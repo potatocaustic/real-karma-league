@@ -24,7 +24,7 @@
         color: #333;
       }
 
-      /* Header styling - matching your design */
+      /* Header styling - standardized */
       header {
         background-color: #333;
         color: #fff;
@@ -34,8 +34,37 @@
       
       header h1 {
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem;
         margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+      }
+      
+      .header-logo {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      
+      /* Mobile header - show only logo */
+      @media (max-width: 768px) {
+        header h1 {
+          font-size: 1.6rem;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+      
+        .header-logo {
+          width: 35px;
+          height: 35px;
+        }
+      
+        .header-text {
+          display: none; /* Hide text on mobile */
+        }
       }
       
       /* Navigation styling */
