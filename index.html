@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real Karma League - Official Homepage</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <style>
+      /* Reset and General Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        color: #333;
+        line-height: 1.6;
+      }
+      
+      h1, h2, h3 {
+        color: #333;
+      }
+
+      /* Header styling */
+      header {
+        background-color: #333;
+        color: #fff;
+        padding: 1rem;
+        text-align: center;
+      }
+      
+      header h1 {
+        color: white !important;
+        font-size: 2rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+      }
+      
+      .header-logo {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      /* Main content */
+      main {
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      /* Hero section */
+      .hero-section {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 3rem 2rem;
+        margin-bottom: 3rem;
+        text-align: center;
+      }
+
+      .hero-logo {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 2rem auto;
+        display: block;
+        border: 4px solid #ddd;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .hero-title {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        color: #333;
+        font-weight: bold;
+      }
+
+      .hero-subtitle {
+        font-size: 1.3rem;
+        color: #666;
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-description {
+        font-size: 1.1rem;
+        color: #555;
+        max-width: 800px;
+        margin: 0 auto 2rem auto;
+        line-height: 1.7;
+      }
+
+      /* Current season highlight */
+      .current-season {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        padding: 2rem;
+        border-radius: 12px;
+        margin: 2rem auto;
+        max-width: 500px;
+        text-align: center;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+      }
+
+      .current-season h3 {
+        color: white;
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+      }
+
+      .current-season p {
+        font-size: 1.1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.9;
+      }
+
+      .cta-button {
+        background-color: white;
+        color: #007bff;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: bold;
+        text-decoration: none;
+        display: inline-block;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        text-decoration: none;
+        color: #0056b3;
+      }
+
+      /* League navigation */
+      .league-nav {
+        margin-bottom: 3rem;
+      }
+
+      .nav-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .nav-header h2 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .nav-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+      }
+
+      .nav-card {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        border: 1px solid #ddd;
+      }
+
+      .nav-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .nav-card-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #007bff;
+      }
+
+      .nav-card-title {
+        font-size: 1.3rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        color: #333;
+      }
+
+      .nav-card-description {
+        color: #666;
+        font-size: 0.95rem;
+      }
+
+      /* Season history */
+      .season-history {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        margin-bottom: 3rem;
+      }
+
+      .section-header {
+        background-color: #333;
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      .section-header h3 {
+        color: white;
+        margin: 0;
+        font-size: 1.8rem;
+      }
+
+      .seasons-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 0;
+      }
+
+      .season-card {
+        padding: 2rem;
+        border-right: 1px solid #eee;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        transition: all 0.3s ease;
+        background-color: #fff;
+        text-decoration: none;
+        color: inherit;
+        position: relative;
+      }
+
+      .season-card:hover {
+        background-color: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .season-card.current {
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+      }
+
+      .season-card.current:hover {
+        background: linear-gradient(135deg, #0056b3, #004085);
+        color: white;
+      }
+
+      .season-card.current .season-title,
+      .season-card.current .season-status {
+        color: white;
+      }
+
+      .season-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        color: #333;
+      }
+
+      .season-status {
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 1rem;
+      }
+
+      .season-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .season-stat {
+        text-align: center;
+      }
+
+      .season-stat-value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #007bff;
+      }
+
+      .season-card.current .season-stat-value {
+        color: white;
+      }
+
+      .season-stat-label {
+        font-size: 0.8rem;
+        color: #666;
+        margin-top: 0.2rem;
+      }
+
+      .season-card.current .season-stat-label {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .current-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #28a745;
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      /* League info sections */
+      .info-sections {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 3rem;
+      }
+
+      .info-section {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .info-content {
+        padding: 2rem;
+      }
+
+      .info-content h4 {
+        font-size: 1.3rem;
+        margin-bottom: 1rem;
+        color: #333;
+      }
+
+      .info-content p {
+        color: #666;
+        line-height: 1.7;
+        margin-bottom: 1rem;
+      }
+
+      .info-content ul {
+        color: #666;
+        margin-left: 1.5rem;
+      }
+
+      .info-content li {
+        margin-bottom: 0.5rem;
+      }
+
+      /* Footer */
+      .footer-section {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.5rem;
+      }
+
+      .footer-links a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .footer-links a:hover {
+        text-decoration: underline;
+      }
+
+      footer {
+        text-align: center;
+        padding: 1rem;
+        background-color: #333;
+        color: #fff;
+        border-radius: 8px;
+      }
+
+      /* Loading states */
+      .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+      }
+
+      .error {
+        text-align: center;
+        padding: 1rem;
+        color: #dc3545;
+        background-color: #f8d7da;
+        border-radius: 4px;
+        margin: 0.5rem 0;
+      }
+
+      /* Mobile responsive */
+      @media (max-width: 768px) {
+        .hero-title {
+          font-size: 2.5rem;
+        }
+
+        .nav-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .info-sections {
+          grid-template-columns: 1fr;
+        }
+
+        .seasons-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .footer-links {
+          flex-direction: column;
+          gap: 1rem;
+        }
+
+        header h1 {
+          font-size: 1.6rem;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .header-logo {
+          width: 35px;
+          height: 35px;
+        }
+
+        .hero-logo {
+          width: 100px;
+          height: 100px;
+        }
+
+        .current-season {
+          margin: 2rem 0;
+          padding: 1.5rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        main {
+          padding: 1rem;
+        }
+
+        .hero-section {
+          padding: 2rem 1rem;
+        }
+
+        .nav-card, .season-card {
+          padding: 1.5rem;
+        }
+
+        .hero-title {
+          font-size: 2rem;
+        }
+
+        .season-stats {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        <img src="S7/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        Real Karma League
+      </h1>
+    </header>
+    
+    <main>
+      <div class="hero-section">
+        <img src="S7/icons/RKL.webp" alt="RKL Logo" class="hero-logo" onerror="this.style.display='none'">
+        <h1 class="hero-title">Real Karma League</h1>
+        <p class="hero-subtitle">The premier competitive league for daily fantasy sports</p>
+        <p class="hero-description">
+          Established as the ultimate test of daily fantasy skill, the Real Karma League brings together the best competitors 
+          in a structured, season-long format featuring trades, draft picks, and intense weekly competition.
+        </p>
+        
+        <div class="current-season">
+          <h3>Season 7 Now Active</h3>
+          <p>Follow the current season with live standings, player stats, and weekly results</p>
+          <a href="S7/RKL-S7.html" class="cta-button">Enter Season 7 Hub →</a>
+        </div>
+      </div>
+
+      <div class="league-nav">
+        <div class="nav-header">
+          <h2>League Central</h2>
+          <p>Access current season information and league resources</p>
+        </div>
+        
+        <div class="nav-grid">
+          <a href="S7/standings.html" class="nav-card">
+            <div class="nav-card-icon">📊</div>
+            <div class="nav-card-title">Current Standings</div>
+            <div class="nav-card-description">Live conference standings and playoff picture</div>
+          </a>
+          
+          <a href="S7/leaderboards.html" class="nav-card">
+            <div class="nav-card-icon">🏆</div>
+            <div class="nav-card-title">Player Leaderboards</div>
+            <div class="nav-card-description">Top performers across all statistical categories</div>
+          </a>
+          
+          <a href="S7/schedule.html" class="nav-card">
+            <div class="nav-card-icon">📅</div>
+            <div class="nav-card-title">Schedule & Results</div>
+            <div class="nav-card-description">Complete game schedule and weekly standouts</div>
+          </a>
+          
+          <a href="S7/teams.html" class="nav-card">
+            <div class="nav-card-icon">👥</div>
+            <div class="nav-card-title">All Teams</div>
+            <div class="nav-card-description">Team rosters and general manager information</div>
+          </a>
+          
+          <a href="S7/transactions.html" class="nav-card">
+            <div class="nav-card-icon">🔄</div>
+            <div class="nav-card-title">Transaction Log</div>
+            <div class="nav-card-description">Complete trade history and roster moves</div>
+          </a>
+          
+          <a href="S7/draft-capital.html" class="nav-card">
+            <div class="nav-card-icon">📋</div>
+            <div class="nav-card-title">Draft Capital</div>
+            <div class="nav-card-description">Future draft pick ownership and trades</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="season-history">
+        <div class="section-header">
+          <h3>League History</h3>
+        </div>
+        <div class="seasons-grid">
+          <a href="S7/RKL-S7.html" class="season-card current">
+            <div class="current-badge">Current</div>
+            <div class="season-title">Season 7</div>
+            <div class="season-status" id="s7-status">In Progress</div>
+            <div class="season-stats">
+              <div class="season-stat">
+                <div class="season-stat-value" id="s7-week">-</div>
+                <div class="season-stat-label">Current Week</div>
+              </div>
+              <div class="season-stat">
+                <div class="season-stat-value" id="s7-games">-</div>
+                <div class="season-stat-label">Games Played</div>
+              </div>
+            </div>
+          </a>
+          
+          <div class="season-card">
+            <div class="season-title">Season 6</div>
+            <div class="season-status">Completed</div>
+            <div class="season-stats">
+              <div class="season-stat">
+                <div class="season-stat-value">TBD</div>
+                <div class="season-stat-label">Champion</div>
+              </div>
+              <div class="season-stat">
+                <div class="season-stat-value">-</div>
+                <div class="season-stat-label">Games</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="season-card">
+            <div class="season-title">Season 5</div>
+            <div class="season-status">Completed</div>
+            <div class="season-stats">
+              <div class="season-stat">
+                <div class="season-stat-value">TBD</div>
+                <div class="season-stat-label">Champion</div>
+              </div>
+              <div class="season-stat">
+                <div class="season-stat-value">-</div>
+                <div class="season-stat-label">Games</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="season-card">
+            <div class="season-title">Season 4</div>
+            <div class="season-status">Completed</div>
+            <div class="season-stats">
+              <div class="season-stat">
+                <div class="season-stat-value">TBD</div>
+                <div class="season-stat-label">Champion</div>
+              </div>
+              <div class="season-stat">
+                <div class="season-stat-value">-</div>
+                <div class="season-stat-label">Games</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="season-card">
+            <div class="season-title">Season 3</div>
+            <div class="season-status">Completed</div>
+            <div class="season-stats">
+              <div class="season-stat">
+                <div class="season-stat-value">TBD</div>
+                <div class="season-stat-label">Champion</div>
+              </div>
+              <div class="season-stat">
+                <div class="season-stat-value">-</div>
+                <div class="season-stat-label">Games</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="season-card">
+            <div class="season-title">Season 2</div>
+            <div class="season-status">Completed</div>
+            <div class="season-stats">
+              <div class="season-stat">
+                <div class="season-stat-value">TBD</div>
+                <div class="season-stat-label">Champion</div>
+              </div>
+              <div class="season-stat">
+                <div class="season-stat-value">-</div>
+                <div class="season-stat-label">Games</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="season-card">
+            <div class="season-title">Season 1</div>
+            <div class="season-status">Completed</div>
+            <div class="season-stats">
+              <div class="season-stat">
+                <div class="season-stat-value">TBD</div>
+                <div class="season-stat-label">Champion</div>
+              </div>
+              <div class="season-stat">
+                <div class="season-stat-value">-</div>
+                <div class="season-stat-label">Games</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-sections">
+        <div class="info-section">
+          <div class="section-header">
+            <h3>How It Works</h3>
+          </div>
+          <div class="info-content">
+            <h4>League Structure</h4>
+            <p>The Real Karma League operates as a season-long competition featuring:</p>
+            <ul>
+              <li>Conference-based team structure with playoffs</li>
+              <li>Weekly head-to-head matchups</li>
+              <li>Player trades and draft pick exchanges</li>
+              <li>Comprehensive statistical tracking</li>
+              <li>Performance-based player rankings</li>
+            </ul>
+            <p>Each season culminates in a playoff tournament to crown the league champion.</p>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <div class="section-header">
+            <h3>Scoring System</h3>
+          </div>
+          <div class="info-content">
+            <h4>Karma Points</h4>
+            <p>Players earn "Karma" points based on their daily fantasy performance, with additional metrics including:</p>
+            <ul>
+              <li><strong>REL (Relative to League)</strong> - Performance vs. league average</li>
+              <li><strong>Global Rankings</strong> - Daily performance rankings</li>
+              <li><strong>Captain Bonuses</strong> - 1.5x multiplier for captain selections</li>
+              <li><strong>PAM (Points Above Median)</strong> - Team performance metric</li>
+            </ul>
+            <p>These advanced analytics provide deep insights into player and team performance.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-section">
+        <h3>League Resources</h3>
+        <div class="footer-links">
+          <a href="S7/RKL-S7.html">Current Season</a>
+          <a href="S7/standings.html">Live Standings</a>
+          <a href="S7/leaderboards.html">Player Stats</a>
+          <a href="S7/teams.html">All Teams</a>
+          <a href="S7/transactions.html">Trade Activity</a>
+          <a href="S7/schedule.html">Game Schedule</a>
+        </div>
+        <p>Experience the most competitive daily fantasy league with comprehensive statistics and analysis</p>
+      </div>
+    </main>
+    
+    <footer>
+      <p>&copy; 2025 Real Karma League | Powered by caustic.info</p>
+    </footer>
+
+    <script>
+      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+      
+      async function fetchSheetData(sheetName) {
+        try {
+          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
+          const csvText = await response.text();
+          return parseCSV(csvText);
+        } catch (error) {
+          console.error(`Error fetching ${sheetName}:`, error);
+          return null;
+        }
+      }
+      
+      function parseCSV(csvText) {
+        const lines = csvText.trim().split('\n');
+        const headers = parseCSVLine(lines[0]);
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i]);
+          const row = {};
+          headers.forEach((header, index) => {
+            row[header] = values[index] || '';
+          });
+          data.push(row);
+        }
+        return data;
+      }
+      
+      function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        result.push(current.trim());
+        return result.map(field => field.replace(/^"(.*)"$/, '$1'));
+      }
+      
+      async function loadCurrentSeasonInfo() {
+        const schedule = await fetchSheetData('Schedule');
+        if (!schedule) {
+          document.getElementById('s7-status').textContent = 'Loading...';
+          return;
+        }
+        
+        // Determine current week
+        const gamesByWeek = {};
+        schedule.forEach(game => {
+          const week = parseInt(game.week);
+          if (!gamesByWeek[week]) {
+            gamesByWeek[week] = { total: 0, completed: 0 };
+          }
+          gamesByWeek[week].total++;
+          if (game.completed === 'TRUE') {
+            gamesByWeek[week].completed++;
+          }
+        });
+        
+        let currentWeek = 1;
+        const weeks = Object.keys(gamesByWeek).map(w => parseInt(w)).sort((a, b) => a - b);
+        let allComplete = true;
+        
+        for (const week of weeks) {
+          if (gamesByWeek[week].completed < gamesByWeek[week].total) {
+            currentWeek = week;
+            allComplete = false;
+            break;
+          }
+          currentWeek = week;
+        }
+        
+        // Update status and stats
+        if (allComplete && weeks.length > 0) {
+          document.getElementById('s7-status').textContent = 'Regular Season Complete';
+        } else {
+          document.getElementById('s7-status').textContent = 'In Progress';
+        }
+        
+        document.getElementById('s7-week').textContent = currentWeek;
+        
+        // Total completed games
+        const completedGames = schedule.filter(game => game.completed === 'TRUE').length;
+        document.getElementById('s7-games').textContent = completedGames;
+      }
+      
+      document.addEventListener('DOMContentLoaded', loadCurrentSeasonInfo);
+    </script>
+  </body>
+</html>
