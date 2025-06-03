@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 7 Player Leaderboards - caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -32,10 +32,42 @@
         text-align: center;
       }
       
-      header h1 {
+      header h1 { /* This is for the main page title in the header block */
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; 
         margin: 0;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; 
+      }
+      
+      .header-logo { /* For the logo in the main page title */
+        width: 40px; 
+        height: 40px;
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+      
+      /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; 
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
       }
       
       nav ul {
@@ -55,10 +87,59 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
         color: #ccc;
+      }
+
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
+        nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); 
+          left: 0;
+          right: 0;
+          background-color: #444; 
+          flex-direction: column;
+          align-items: center;
+          gap: 0rem; 
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; 
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
+        
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
       }
 
       /* Main content */
@@ -94,34 +175,20 @@
         text-align: center;
       }
 
-      .category-buttons {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); 
-        gap: 1rem;
-      }
-
-      .category-btn {
-        background-color: #f8f9fa;
-        border: 2px solid #ddd;
+      #category-select { /* Styling for the new dropdown */
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #ddd;
         border-radius: 6px;
-        padding: 1rem;
+        font-size: 1rem;
+        background-color: #f8f9fa;
         cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: center;
-        font-weight: 500;
-        font-size: 0.95rem; 
       }
 
-      .category-btn:hover {
-        background-color: #e9ecef;
+      #category-select:hover {
         border-color: #007bff;
       }
 
-      .category-btn.active {
-        background-color: #007bff;
-        color: white;
-        border-color: #007bff;
-      }
 
       /* Leaderboard table */
       .leaderboard-container {
@@ -288,7 +355,6 @@
       .second-place { background-color: silver; color: black; border-radius: 4px; padding: 2px 5px; display: inline-block; width: 30px; height: 30px; line-height: 26px;}
       .third-place { background-color: #cd7f32; color: white; border-radius: 4px; padding: 2px 5px; display: inline-block; width: 30px; height: 30px; line-height: 26px;}
 
-      /* MODIFIED: Styles for table controls */
       .table-controls {
         padding: 1rem;
         background-color: #f8f9fa;
@@ -297,17 +363,17 @@
         display: flex; 
         justify-content: center;
         align-items: center;
-        gap: 0.5rem; /* Adjusted gap between control groups */
+        gap: 0.5rem; 
         flex-wrap: wrap;
       }
       .table-controls .control-item {
-        margin: 0 0.5rem; /* Margin for each control group */
+        margin: 0 0.5rem; 
         display: inline-flex;
         align-items: center;
-        gap: 0.3rem; /* Gap between label and select/input */
+        gap: 0.3rem; 
       }
       .table-controls .control-item label {
-        font-size: 0.95rem; /* Consistent label size */
+        font-size: 0.95rem; 
         margin-right: 0.25rem;
       }
       .table-controls .control-item select,
@@ -319,14 +385,12 @@
       }
       #min-games { width: 60px; }
       #team-filter-select { min-width: 150px; }
-      /* END MODIFIED */
-
 
       .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
       .error { color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; padding: 1rem; text-align: center;}
 
       @media (max-width: 768px) {
-        .category-buttons { grid-template-columns: 1fr; }
+        /* .category-buttons { grid-template-columns: 1fr; } */ /* No longer needed */
         .leaderboard-table th, .leaderboard-table td {
           padding: 0.5rem 0.3rem; font-size: 0.9rem;
         }
@@ -346,10 +410,10 @@
         .leaderboard-table[data-active-columns="3"] td:nth-child(4) { display: none; }
 
         .table-controls {
-            gap: 0.5rem; /* Reduce gap on mobile */
+            gap: 0.5rem; 
         }
         .table-controls .control-item {
-            margin: 0.25rem 0; /* Stack controls slightly better */
+            margin: 0.25rem 0; 
             width: 100%;
             justify-content: space-between;
         }
@@ -359,10 +423,9 @@
          .table-controls .control-item select,
          .table-controls .control-item input[type="number"] {
             flex-grow: 1;
-            min-width: 100px; /* Ensure they don't get too small */
+            min-width: 100px; 
          }
-         #team-filter-select { width: auto; } /* Allow team select to grow */
-
+         #team-filter-select { width: auto; } 
       }
 
       footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
@@ -370,15 +433,20 @@
   </head>
   <body>
     <header>
-      <h1>RKL Season 7 Player Leaderboards</h1>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
       <nav>
-        <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+          <li><a href="RKL-S7.html">S7 Home</a></li>
           <li><a href="standings.html">Standings</a></li>
           <li><a href="leaderboards.html">Leaderboards</a></li>
           <li><a href="schedule.html">Schedule</a></li>
+          <li><a href="transactions.html">Transactions</a></li>
+          <li><a href="teams.html">Teams</a></li>
+          <li><a href="draft-capital.html">Draft Capital</a></li>
         </ul>
       </nav>
     </header>
@@ -391,17 +459,8 @@
 
       <div class="category-selector">
         <div class="selector-title">Select Leaderboard Category</div>
-        <div class="category-buttons">
-          <div class="category-btn active" data-category="total_points">Total Karma</div>
-          <div class="category-btn" data-category="rel_mean">REL Mean</div>
-          <div class="category-btn" data-category="rel_median">REL Median</div>
-          <div class="category-btn" data-category="median_gameday_rank">Median Gameday Rank</div>
-          <div class="category-btn" data-category="aag_mean">Games Above Mean</div>
-          <div class="category-btn" data-category="aag_median">Games Above Median</div>
-          <div class="category-btn" data-category="single_game_karma">Single Game Karma</div>
-          <div class="category-btn" data-category="single_game_rank">Single Game Rank</div>
-          <div class="category-btn" data-category="t100_finishes">T100 Finishes</div>
-        </div>
+        <select id="category-select">
+          </select>
       </div>
 
       <div class="leaderboard-container">
@@ -474,7 +533,7 @@
       }
 
       const categories = {
-        total_points: { /* ... (no changes to individual category definitions other than subtitle below) ... */
+        total_points: { 
           title: 'Total Karma Leaders',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
@@ -486,7 +545,7 @@
           defaultSortDescending: true,
           dataSourceType: 'players' 
         },
-        rel_mean: { /* ... */ 
+        rel_mean: { 
           title: 'REL Mean Leaders',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
@@ -499,7 +558,7 @@
           dataSourceType: 'players',
           hasMinGamesFilter: true 
         },
-        rel_median: { /* ... */ 
+        rel_median: { 
           title: 'REL Median Leaders', 
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
@@ -512,7 +571,7 @@
           dataSourceType: 'players',
           hasMinGamesFilter: true 
         },
-        median_gameday_rank: {  /* ... */
+        median_gameday_rank: { 
           title: 'Median Gameday Rank Leaders',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
@@ -527,7 +586,7 @@
         },
         aag_mean: {
           title: 'Games Above Mean Leaders',
-          subtitle: 'Ties broken by % of Games Above Mean', // MODIFIED subtitle
+          subtitle: 'Ties broken by % of Games Above Mean',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
@@ -540,7 +599,7 @@
         },
         aag_median: {
           title: 'Games Above Median Leaders',
-          subtitle: 'Ties broken by % of Games Above Median', // MODIFIED subtitle
+          subtitle: 'Ties broken by % of Games Above Median',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
@@ -551,7 +610,7 @@
           defaultSortDescending: true,
           dataSourceType: 'players'
         },
-        single_game_karma: { /* ... */ 
+        single_game_karma: { 
           title: 'Single Game Karma Leaders',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
@@ -563,7 +622,7 @@
           defaultSortDescending: true,
           dataSourceType: 'games' 
         },
-        single_game_rank: { /* ... */ 
+        single_game_rank: { 
           title: 'Single Game Rank Leaders',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
@@ -577,7 +636,7 @@
         },
         t100_finishes: { 
           title: 'T100 Finishes Leaders',
-          subtitle: 'Ties broken by % of Games in T100', // MODIFIED subtitle
+          subtitle: 'Ties broken by % of Games in T100',
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
@@ -858,7 +917,7 @@
         const selectedTeamId = document.getElementById('team-filter-select').value;
         
         if (categoryConfig.hasMinGamesFilter) {
-            minGamesContainer.style.display = 'inline-block'; // Changed from 'inline-block' in original CSS to match wrapper below
+            minGamesContainer.style.display = 'inline-flex';
             if (minGamesInput.dataset.lastCategory !== currentCategory || minGamesInput.dataset.userInteracted === "false") {
                 const playersMeeting3Games = allPlayersData.filter(p => (p.games_played || 0) >= 3).length;
                 minGamesInput.value = (playersMeeting3Games < 120 && allPlayersData.length > 20) ? "1" : "3";
@@ -869,11 +928,10 @@
             minGamesContainer.style.display = 'none';
         }
 
-        // MODIFIED: Show team filter for player and specified game leaderboards
         if (categoryConfig.dataSourceType === 'players' || 
             currentCategory === 'single_game_karma' || 
             currentCategory === 'single_game_rank') {
-            teamFilterContainer.style.display = 'inline-flex'; // Using inline-flex to match .control-item
+            teamFilterContainer.style.display = 'inline-flex';
         } else {
             teamFilterContainer.style.display = 'none';
         }
@@ -914,17 +972,15 @@
           if (currentCategory === 'single_game_karma') sourceDataForProcessing = sourceDataForProcessing.filter(g => g.karma > 0);
           else if (currentCategory === 'single_game_rank') sourceDataForProcessing = sourceDataForProcessing.filter(g => g.daily_rank > 0 && g.daily_rank !== Infinity);
           
-          // MODIFIED: Apply team filter to game leaderboards if selected
           if (selectedTeamId !== 'all' && (currentCategory === 'single_game_karma' || currentCategory === 'single_game_rank')) {
               sourceDataForProcessing = sourceDataForProcessing.filter(game => game.team_id === selectedTeamId);
           }
-        } else { // Player leaderboards
+        } else { 
           sourceDataForProcessing = [...allPlayersData];
           if (categoryConfig.hasMinGamesFilter) {
             const minGames = parseInt(minGamesInput.value) || 0;
             if (minGames > 0) sourceDataForProcessing = sourceDataForProcessing.filter(player => (parseNumber(player.games_played) || 0) >= minGames);
           }
-          // Team filter for player leaderboards is applied AFTER global ranking (see dataForDisplaySort below)
         }
         
         const rankSortField = categoryConfig.defaultSortField;
@@ -932,7 +988,7 @@
         const rankColConfigForSort = categoryConfig.cols.find(c => c.dataField === rankSortField) || {};
         const rankColTypeForSort = rankColConfigForSort.type || 'number';
 
-        let dataSortedForRank = [...sourceDataForProcessing]; // This data is used to determine ranks
+        let dataSortedForRank = [...sourceDataForProcessing];
 
         dataSortedForRank.sort((a, b) => {
           let valA = a[rankSortField];
@@ -953,27 +1009,25 @@
           let primarySortResult = rankSortDesc ? -comparison : comparison;
 
            if (primarySortResult === 0) { 
-                // MODIFIED: Tie-breaking logic
                 if (!isGameLeaderboard) {
                     if (rankSortField === 'aag_mean') {
                         const valAPct = parseFloat(a.aag_mean_pct || 0); const valBPct = parseFloat(b.aag_mean_pct || 0);
-                        if (valBPct !== valAPct) return valBPct - valAPct; // Descending on Pct
+                        if (valBPct !== valAPct) return valBPct - valAPct; 
                     } else if (rankSortField === 'aag_median') {
                         const valAPct = parseFloat(a.aag_median_pct || 0); const valBPct = parseFloat(b.aag_median_pct || 0);
-                        if (valBPct !== valAPct) return valBPct - valAPct; // Descending on Pct
+                        if (valBPct !== valAPct) return valBPct - valAPct; 
                     } else if (rankSortField === 't100_finishes') {
                         const valAPct = parseFloat(a.t100_finishes_pct || 0); const valBPct = parseFloat(b.t100_finishes_pct || 0);
-                        if (valBPct !== valAPct) return valBPct - valAPct; // Descending on Pct
+                        if (valBPct !== valAPct) return valBPct - valAPct; 
                     }
-                } else { // isGameLeaderboard specific tie-breakers
+                } else { 
                     if (rankSortField === 'karma') return new Date(a.date) - new Date(b.date);
                     else if (rankSortField === 'daily_rank') {
                         const aKarma = parseFloat(a.karma || 0); const bKarma = parseFloat(b.karma || 0);
-                        if (bKarma !== aKarma) return bKarma - aKarma; // Higher karma first
-                        return new Date(a.date) - new Date(b.date); // Then older date
+                        if (bKarma !== aKarma) return bKarma - aKarma; 
+                        return new Date(a.date) - new Date(b.date); 
                     }
                 }
-                // Final fallback tie-breaker for stability if all else is equal
                 if (a.player_handle && b.player_handle) { 
                     return String(a.player_handle).localeCompare(String(b.player_handle));
                 }
@@ -989,7 +1043,6 @@
                 let currentValue = currentItem[rankSortField];
                 let prevValue = prevItem[rankSortField];
 
-                // Apply same parseFloat logic for comparison to avoid issues with string numbers vs float
                 if (rankColTypeForSort === 'number') { 
                     currentValue = parseFloat(currentValue === Infinity ? (rankSortDesc ? -Infinity : Infinity) : (currentValue || (rankSortDesc ? -Infinity : Infinity)));
                     prevValue = parseFloat(prevValue === Infinity ? (rankSortDesc ? -Infinity : Infinity) : (prevValue || (rankSortDesc ? -Infinity : Infinity)));
@@ -999,7 +1052,6 @@
                     currentValue = String(currentValue || '').toLowerCase();
                     prevValue = String(prevValue || '').toLowerCase();
                 }
-                // Check tie-breaker field if primary values are equal
                 let tieBroken = false;
                 if (currentValue === prevValue) {
                     if (!isGameLeaderboard) {
@@ -1013,11 +1065,9 @@
                             const valAPct = parseFloat(currentItem.t100_finishes_pct || 0); const valBPct = parseFloat(prevItem.t100_finishes_pct || 0);
                             if (valAPct !== valBPct) tieBroken = true;
                         }
-                    } // Add game leaderboard tie-breaker checks here if necessary for rank assignment
+                    } 
                 }
-
-
-                if (currentValue === prevValue && !tieBroken) { // Only if primary AND specified tie-breakers are same
+                if (currentValue === prevValue && !tieBroken) { 
                     currentItem.leaderboardDisplayRank = prevItem.leaderboardDisplayRank;
                 } else {
                     currentItem.leaderboardDisplayRank = i + 1;
@@ -1025,8 +1075,6 @@
             }
         }
         
-        // sourceDataForProcessing items now have leaderboardDisplayRank.
-        // Apply team filter for player leaderboards now.
         let dataForDisplaySort = [...sourceDataForProcessing]; 
         if (!isGameLeaderboard && selectedTeamId !== 'all') {
             dataForDisplaySort = dataForDisplaySort.filter(player => player.current_team_id === selectedTeamId);
@@ -1063,7 +1111,6 @@
           let primarySortResult = displaySortDirection === 'asc' ? comparison : -comparison;
 
           if (primarySortResult === 0) { 
-             // Apply new tie-breaking for specific categories during display sort as well
             if (!isGameLeaderboard) {
                 if (actualDisplaySortField === 'aag_mean') {
                     const valAPct = parseFloat(a.aag_mean_pct || 0); const valBPct = parseFloat(b.aag_mean_pct || 0);
@@ -1076,8 +1123,7 @@
                     if (valBPct !== valAPct) return valBPct - valAPct;
                 }
             }
-            // Fallback tie-breakers
-            let rankA = a.leaderboardDisplayRank; // Use sticky rank as a consistent tie-breaker
+            let rankA = a.leaderboardDisplayRank; 
             let rankB = b.leaderboardDisplayRank;
             if (rankA < rankB) return -1;
             if (rankA > rankB) return 1;
@@ -1143,39 +1189,38 @@
       }
       
       document.addEventListener('DOMContentLoaded', () => { 
+        // Populate category dropdown
+        const categorySelect = document.getElementById('category-select');
+        let optionsHTML = '';
+        for (const key in categories) {
+            optionsHTML += `<option value="${key}">${categories[key].title}</option>`;
+        }
+        categorySelect.innerHTML = optionsHTML;
+
         const urlParams = new URLSearchParams(window.location.search);
         const categoryParam = urlParams.get('category');
         const storedCategory = sessionStorage.getItem('selectedLeaderboardCategory');
         currentCategory = categoryParam || storedCategory || 'total_points'; 
         
         if (categories[currentCategory]) {
-          document.querySelectorAll('.category-btn').forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.dataset.category === currentCategory) btn.classList.add('active');
-          });
+          categorySelect.value = currentCategory; // Set dropdown to current category
           if (categoryParam) { 
             sessionStorage.setItem('selectedLeaderboardCategory', currentCategory); 
             window.history.replaceState({}, document.title, window.location.pathname); 
           }
         } else { 
             currentCategory = 'total_points'; 
-            document.querySelectorAll('.category-btn').forEach(btn => { 
-                btn.classList.remove('active');
-                if (btn.dataset.category === currentCategory) btn.classList.add('active');
-            });
+            categorySelect.value = currentCategory;
             sessionStorage.setItem('selectedLeaderboardCategory', currentCategory);
         }
         
-        document.querySelectorAll('.category-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentCategory = btn.dataset.category;
+        // Event listener for category dropdown change
+        categorySelect.addEventListener('change', function() {
+            currentCategory = this.value;
             sessionStorage.setItem('selectedLeaderboardCategory', currentCategory); 
             leaderboardSortState.columnField = null; 
             document.getElementById('min-games').dataset.userInteracted = "false"; 
             displayLeaderboard();
-          });
         });
 
         const showCountElement = document.getElementById('show-count');
@@ -1197,6 +1242,17 @@
         });
         
         loadData();
+
+        // Nav Toggle JS
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
       });
     </script>
   </body>
