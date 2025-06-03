@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <title>Real Karma League S7</title>
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -34,10 +34,25 @@
       
       header h1 {
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; /* Increased font size */
         margin: 0;
+        display: flex; /* For aligning icon and text */
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; /* Space between icon and text */
       }
       
+      .header-logo {
+        width: 40px; /* Adjust size as needed */
+        height: 40px;
+        /* border-radius: 50%; /* If the logo is meant to be circular */
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+
       /* Navigation styling */
       nav ul {
         display: flex;
@@ -63,8 +78,18 @@
         color: #ccc;
       }
 
-      /* Mobile navigation */
+      /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
+        header h1 {
+          /* On mobile, text might still be too large or icon might be enough */
+        }
+        .header-text {
+          display: none; /* Hide text on mobile */
+        }
+        .header-logo {
+          width: 50px; /* Larger logo when it's the only thing */
+          height: 50px;
+        }
         nav ul {
           flex-direction: column;
           align-items: center;
@@ -429,9 +454,7 @@
         padding: 2rem;
       }
       
-      /* This div inside modal-body will hold the dynamically loaded game details grid */
-      #game-details-content-area { /* MODIFIED: Standardized ID for content injection */
-         /* No specific styles needed here, content will fill it */
+      #game-details-content-area {
       }
 
 
@@ -453,7 +476,7 @@
         border-width: 2px;
       }
 
-      .modal-team-header { /* Renamed to avoid conflict with .team-header on page */
+      .modal-team-header { 
         background-color: #333;
         color: white;
         padding: 1.5rem;
@@ -465,17 +488,17 @@
         flex-direction: column;
       }
 
-      .modal-team-header.winner { /* Renamed */
+      .modal-team-header.winner { 
         background-color: #28a745;
       }
 
-      .modal-team-header h4 { /* Renamed */
+      .modal-team-header h4 { 
         color: white;
         margin: 0;
         font-size: 1.2rem;
       }
 
-      .modal-team-header .team-logo { /* Renamed, and specific to modal */
+      .modal-team-header .team-logo { 
         width: 48px;
         height: 48px;
         border-radius: 4px;
@@ -572,13 +595,12 @@
         font-weight: bold;
       }
 
-      .rank-cell { /* This is for player rank in lineup, not standings rank */
+      .rank-cell { 
         text-align: center;
         color: #666;
       }
 
       .desktop-only-col {
-        /* Default is visible */
       }
       
       .loading {
@@ -643,7 +665,7 @@
         .game-details-grid { grid-template-columns: 1fr; gap: 1rem;}
         .modal-body { padding: 1rem;}
         .lineup-table th, .lineup-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem;}
-        .modal-team-header .team-logo { width: 36px; height: 36px;} /* Renamed */
+        .modal-team-header .team-logo { width: 36px; height: 36px;} 
         .modal-header { padding: 1rem;}
         .modal-header h3 { font-size: 1.1rem; line-height: 1.3; word-break: break-word; hyphens: auto;}
       }
@@ -667,15 +689,19 @@
   </head>
   <body>
     <header>
-      <h1>RKL Season 7</h1>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
       <nav>
         <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
-          <li><a href="../../PSPs/mlb-psp.html">MLB PSP Database</a></li>
-          <li><a href="../../PSPs-WNBA/wnba-psp.html">WNBA PSP Database</a></li>
-          <li><a href="../../karma-calculator.html">Karma EV Calculator</a></li>
+          <li><a href="RKL-S7.html">S7 Home</a></li>
+          <li><a href="standings.html">Standings</a></li>
+          <li><a href="leaderboards.html">Leaderboards</a></li>
+          <li><a href="schedule.html">Schedule</a></li>
+          <li><a href="transactions.html">Transactions</a></li>
+          <li><a href="teams.html">Teams</a></li>
+          <li><a href="draft-capital.html">Draft Capital</a></li>
         </ul>
       </nav>
     </header>
@@ -767,9 +793,8 @@
       const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
       
       let allTeams = [];
-      // let allLineups = []; // Removed global allLineups as modal fetches it
 
-      function getTeamName(teamId, teamsArray = allTeams) { // Ensure teamsArray is used
+      function getTeamName(teamId, teamsArray = allTeams) { 
         const team = teamsArray.find(t => t.team_id === teamId);
         return team ? team.team_name : teamId;
       }
@@ -777,7 +802,7 @@
       function formatInThousands(value) {
         const num = parseFloat(value);
         if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-        return Math.round(num).toLocaleString(); // Keep Math.round for consistency
+        return Math.round(num).toLocaleString(); 
       }
       
       function parseNumber(value) {
@@ -837,14 +862,14 @@
       }
       
       async function loadStandingsPreview() {
-        const teamsData = await fetchSheetData('Teams'); // Renamed to avoid conflict
+        const teamsData = await fetchSheetData('Teams'); 
         if (!teamsData) {
           document.getElementById('eastern-standings').innerHTML = '<tr><td colspan="4" class="error">Error loading standings</td></tr>';
           document.getElementById('western-standings').innerHTML = '<tr><td colspan="4" class="error">Error loading standings</td></tr>';
           return;
         }
         
-        if (allTeams.length === 0) allTeams = teamsData; // Populate global if not already by loadRecentGames
+        if (allTeams.length === 0) allTeams = teamsData; 
         
         const easternTeams = teamsData.filter(team => team.conference === 'Eastern')
           .sort((a, b) => {
@@ -897,15 +922,15 @@
       }
       
       async function loadRecentGames() { 
-        const scheduleData = await fetchSheetData('Schedule'); // Renamed to avoid conflict
-        const teamsData = await fetchSheetData('Teams'); // Fetch teams if not already available globally
+        const scheduleData = await fetchSheetData('Schedule'); 
+        const teamsData = await fetchSheetData('Teams'); 
         
         if (!scheduleData || !teamsData) {
           document.getElementById('recent-games').innerHTML = '<div class="error">Error loading recent games</div>';
           return;
         }
         
-        if (allTeams.length === 0) allTeams = teamsData; // Ensure global allTeams is populated
+        if (allTeams.length === 0) allTeams = teamsData; 
         
         const completedGames = scheduleData
           .filter(game => game.completed === 'TRUE')
@@ -1017,21 +1042,17 @@
         `;
       }
       
-      // MODIFIED showGameDetails function
       async function showGameDetails(team1Id, team2Id, date) {
         const modal = document.getElementById('game-modal');
         const modalTitle = document.getElementById('modal-title');
-        // MODIFIED: Target the correct div for content injection
         const modalContentArea = document.getElementById('game-details-content-area'); 
         
         modal.style.display = 'block';
-        // Ensure allTeams is populated before calling getTeamName
         const team1Name = getTeamName(team1Id, allTeams);
         const team2Name = getTeamName(team2Id, allTeams);
         modalTitle.textContent = `${team1Name} vs ${team2Name} - ${formatDateShort(date)}`;
         modalContentArea.innerHTML = '<div class="loading">Loading game details...</div>';
         
-        // Fetch Schedule and Lineups data when modal is opened
         const scheduleData = await fetchSheetData('Schedule');
         if (!scheduleData) {
           modalContentArea.innerHTML = '<div class="error">Error loading schedule data for modal.</div>';
@@ -1054,7 +1075,6 @@
           modalContentArea.innerHTML = '<div class="error">Error loading lineup data for modal.</div>';
           return;
         }
-        // END MODIFIED data fetching
         
         const team1AllLineups = lineupsData.filter(lineup => 
           lineup.team_id === team1Id && lineup.date === date
@@ -1079,7 +1099,7 @@
         const winner = game.winner;
         
         const generateLineupTable = (lineups, teamIdForTable, total, isWinner) => {
-          const teamDataForTable = allTeams.find(t => t.team_id === teamIdForTable); // Use global allTeams
+          const teamDataForTable = allTeams.find(t => t.team_id === teamIdForTable); 
           const teamRecord = teamDataForTable ? `${teamDataForTable.wins || 0}-${teamDataForTable.losses || 0}` : '';
           
           if (lineups.length === 0) {
@@ -1114,10 +1134,8 @@
               <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
             </div>`;};
         
-        // MODIFIED: Set innerHTML of the correct target
         modalContentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, winner === team2Id)}</div>`;
       }
-      // END MODIFIED showGameDetails
       
       function closeGameModal() { 
         document.getElementById('game-modal').style.display = 'none';
@@ -1128,11 +1146,8 @@
       }
       
       async function initializePage() {
-        // Ensure allTeams is populated before recent games might need it for getTeamName.
-        // loadStandingsPreview populates allTeams.
         await loadStandingsPreview(); 
         await Promise.all([
-          // loadStandingsPreview(), // Already called and awaited
           loadRecentGames(),
           loadSeasonInfo()
         ]);
