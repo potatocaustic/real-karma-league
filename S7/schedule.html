@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 7 Schedule & Results - caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -32,10 +32,42 @@
         text-align: center;
       }
       
-      header h1 {
+      header h1 { /* This is for the main page title in the header block */
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; 
         margin: 0;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; 
+      }
+      
+      .header-logo { /* For the logo in the main page title */
+        width: 40px; 
+        height: 40px;
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+      
+      /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; 
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
       }
       
       nav ul {
@@ -55,10 +87,59 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
         color: #ccc;
+      }
+
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
+        nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); 
+          left: 0;
+          right: 0;
+          background-color: #444; 
+          flex-direction: column;
+          align-items: center;
+          gap: 0rem; 
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; 
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
+        
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
       }
 
       /* Main content */
@@ -475,15 +556,20 @@
   </head>
   <body>
     <header>
-      <h1>RKL Season 7 Schedule & Results</h1>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
       <nav>
-        <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+          <li><a href="RKL-S7.html">S7 Home</a></li>
           <li><a href="standings.html">Standings</a></li>
           <li><a href="leaderboards.html">Leaderboards</a></li>
           <li><a href="schedule.html">Schedule</a></li>
+          <li><a href="transactions.html">Transactions</a></li>
+          <li><a href="teams.html">Teams</a></li>
+          <li><a href="draft-capital.html">Draft Capital</a></li>
         </ul>
       </nav>
     </header>
@@ -527,19 +613,19 @@
           <h4>Week <span id="standout-week-number">-</span> Standouts</h4>
           <div class="standouts-grid">
             <div class="standout-item">
-              <h5>🏆 Best Team</h5>
+              <h5>醇 Best Team</h5>
               <p id="best-team-perf">Calculating...</p>
             </div>
             <div class="standout-item">
-              <h5>🌟 Best Player</h5>
+              <h5>検 Best Player</h5>
               <p id="best-player-perf">Calculating...</p>
             </div>
             <div class="standout-item">
-              <h5>💩 Worst Team</h5>
+              <h5>朝 Worst Team</h5>
               <p id="worst-team-perf">Calculating...</p>
             </div>
             <div class="standout-item">
-              <h5>🚽 Worst Player</h5>
+              <h5>埒 Worst Player</h5>
               <p id="worst-player-perf">Calculating...</p>
             </div>
           </div>
@@ -608,8 +694,7 @@
           return parseCSV(csvText);
         } catch (error) {
           console.error(`Error fetching ${sheetName}:`, error);
-          // Display error directly relevant to what's being loaded
-          if (document.getElementById('games-content')) { // Check if element exists
+          if (document.getElementById('games-content')) { 
              document.getElementById('games-content').innerHTML = `<div class="error">Error fetching ${sheetName}. Check console.</div>`;
           }
           return null;
@@ -640,7 +725,6 @@
         const result = []; let current = ''; let inQuotes = false;
         for (let i = 0; i < line.length; i++) {
           const char = line[i];
-          // Improved quote handling: only toggle inQuotes if char is " and not preceded by \
           if (char === '"' && (i === 0 || line[i-1] !== '\\')) { 
             inQuotes = !inQuotes;
           } else if (char === ',' && !inQuotes) {
@@ -648,14 +732,13 @@
           } else { current += char; }
         }
         result.push(current.trim());
-        // Remove surrounding quotes only if they exist, and unescape internal double quotes
         return result.map(field => field.replace(/^"(.*)"$/, '$1').replace(/\\"/g, '"'));
        }
       
       function formatDate(dateString) { 
         if (!dateString) return 'Invalid Date';
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'Invalid Date'; // Check for valid date
+        if (isNaN(date.getTime())) return 'Invalid Date'; 
         return date.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
        }
       function formatDateShort(dateString) {
@@ -728,11 +811,11 @@
         displayWeek(currentWeek); 
       }
       
-      function determineCurrentWeek(schedule) { /* ... (existing) ... */
+      function determineCurrentWeek(schedule) { 
         const gamesByWeek = {};
         schedule.forEach(game => {
           const week = parseInt(game.week);
-          if (!isNaN(week)) { // Ensure week is a number
+          if (!isNaN(week)) { 
             if (!gamesByWeek[week]) {
               gamesByWeek[week] = { total: 0, completed: 0 };
             }
@@ -751,12 +834,12 @@
         return weeks.length > 0 ? weeks[weeks.length - 1] : 1;
        }
       
-      function setupWeekSelector() { /* ... (existing) ... */
+      function setupWeekSelector() { 
         const weeks = [...new Set(allGames.map(game => parseInt(game.week)).filter(w => !isNaN(w)))].sort((a, b) => a - b);
         const weekButtonsHTML = weeks.map(week => {
           const weekGames = allGames.filter(game => parseInt(game.week) === week);
           const completedCount = weekGames.filter(game => game.completed === 'TRUE').length;
-          const isCompleted = weekGames.length > 0 && completedCount === weekGames.length; // Ensure weekGames is not empty
+          const isCompleted = weekGames.length > 0 && completedCount === weekGames.length; 
           return `<div class="week-btn ${week === currentWeek ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-week="${week}">Week ${week}</div>`;
         }).join('');
         document.getElementById('week-buttons').innerHTML = weekButtonsHTML;
@@ -835,7 +918,6 @@
               const team1Record = team1Data ? `${team1Data.wins || 0}-${team1Data.losses || 0}` : '';
               const team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
               
-              // Use team1_id, team2_id, and date for reliable game identification for the modal
               const clickHandler = isCompleted ? `onclick="showGameDetails('${escapeHTML(game.team1_id)}', '${escapeHTML(game.team2_id)}', '${escapeHTML(game.date)}')" ` : '';
 
               return `
@@ -891,7 +973,6 @@
           teamsInGame.forEach(team => {
             if (!team.id || team.id === 'N/A') return;
             const percentageDiff = ((team.score / dailyMedianTeamScore) - 1) * 100;
-            // Store game identifiers for linking
             if (percentageDiff > bestTeam.percentage_diff) {
               bestTeam = { team_id: team.id, team_name: team.name, percentage_diff: percentageDiff, game_key_t1: game.team1_id, game_key_t2: game.team2_id, game_key_date: game.date };
             }
@@ -922,7 +1003,7 @@
             } else if (rank === bestPlayer.rank) {
               if (!bestPlayer.players.find(p=>p.handle === lineup.player_handle)) { 
                 bestPlayer.players.push(playerDisplay);
-                if (!bestPlayer.game_key_date) { // If game_id not set for the tie, use this one
+                if (!bestPlayer.game_key_date) { 
                     bestPlayer.game_key_t1 = gameForPlayer.team1_id;
                     bestPlayer.game_key_t2 = gameForPlayer.team2_id;
                     bestPlayer.game_key_date = gameForPlayer.date;
@@ -945,7 +1026,6 @@
           }
         });
         
-        // Populate standouts, making metrics clickable
         document.getElementById('best-team-perf').innerHTML = bestTeam.game_key_date ? 
           `<a href="team.html?id=${escapeHTML(bestTeam.team_id)}" class="team-link">${escapeHTML(bestTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('${escapeHTML(bestTeam.game_key_t1)}', '${escapeHTML(bestTeam.game_key_t2)}', '${escapeHTML(bestTeam.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">+${bestTeam.percentage_diff.toFixed(1)}% vs median</span></a>` : 
           'Not enough data.';
@@ -963,7 +1043,6 @@
           'No ranked player data.';
       }
       
-      // MODIFIED: showGameDetails to accept team1Id, team2Id, date (original reliable method)
       async function showGameDetails(team1Id, team2Id, date) {
         const modal = document.getElementById('game-modal');
         const modalTitle = document.getElementById('modal-title');
@@ -972,7 +1051,7 @@
         if (!team1Id || !team2Id || !date) {
             console.error("showGameDetails called with incomplete identifiers:", team1Id, team2Id, date);
             modalContent.innerHTML = '<div class="error">Cannot load game details: Incomplete information.</div>';
-            if(!modal.style.display || modal.style.display === 'none') modal.style.display = 'block'; // Ensure modal is visible to show error
+            if(!modal.style.display || modal.style.display === 'none') modal.style.display = 'block';
             return;
         }
         
@@ -988,7 +1067,6 @@
         }
         modalTitle.textContent = `${getTeamName(game.team1_id)} vs ${getTeamName(game.team2_id)} - ${formatDateShort(game.date)}`;
         
-        // Filter lineups based on date and the two teams involved in THIS game.
         const gameLineups = allLineups.filter(lineup => 
           lineup.date === game.date && 
           (lineup.team_id === game.team1_id || lineup.team_id === game.team2_id) &&
@@ -1080,7 +1158,19 @@
         }
        }
       
-      document.addEventListener('DOMContentLoaded', loadData);
+      document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        // Nav Toggle JS
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
+      });
     </script>
   </body>
 </html>
