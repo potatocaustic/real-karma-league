@@ -359,11 +359,6 @@
           grid-template-columns: 1fr 1fr;
         }
         
-        /* Keep all 4 stats for team cards on mobile unless explicitly asked to hide */
-        /* .team-stats .stat-item:nth-child(3),
-        .team-stats .stat-item:nth-child(4) {
-          display: none; 
-        } */
       }
 
       @media (max-width: 480px) {
@@ -466,6 +461,34 @@
         }
         return data;
       }
+
+      // ADDED: Helper function to count transactions for a team
+      function countTransactionsForTeam(teamId, transactionLog) {
+        if (!transactionLog || transactionLog.length === 0) return 0;
+
+        const relevantTransactionIds = new Set();
+
+        transactionLog.forEach(transaction => {
+            const notes = transaction.notes ? transaction.notes.toLowerCase() : '';
+            if (notes.includes('pre-database') || notes.includes('preseason')) {
+                return;
+            }
+
+            let involved = false;
+            if (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === teamId) {
+                involved = true;
+            } else if (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamId) {
+                involved = true;
+            } else if (transaction.from_team === teamId || transaction.to_team === teamId) {
+                involved = true;
+            }
+
+            if (involved && transaction.transaction_id) {
+                relevantTransactionIds.add(transaction.transaction_id);
+            }
+        });
+        return relevantTransactionIds.size;
+      }
       
       function getPlayoffIndicator(conference, rankInConference) { 
         if (rankInConference <= 6) {
@@ -473,7 +496,6 @@
         } else if (rankInConference <= 10) {
           return `<div class="playoff-position playin-seed">${rankInConference}</div>`;
         } else {
-          // For teams out of play-in, show their rank with eliminated styling
           return `<div class="playoff-position eliminated">${rankInConference}</div>`;
         }
       }
@@ -494,7 +516,12 @@
       }
       
       async function loadTeams() {
-        const teams = await fetchSheetData('Teams');
+        // MODIFIED: Fetch Transaction_Log as well
+        const [teams, transactionLogData] = await Promise.all([
+            fetchSheetData('Teams'),
+            fetchSheetData('Transaction_Log')
+        ]);
+
         if (!teams) {
           document.getElementById('eastern-teams').innerHTML = 
             '<div class="error">Error loading team data</div>';
@@ -510,6 +537,11 @@
           team.team_id.toUpperCase() !== 'FA' && 
           team.conference && (team.conference.toLowerCase() === 'eastern' || team.conference.toLowerCase() === 'western')
         );
+
+        // MODIFIED: Calculate transaction counts for each active team
+        activeTeams.forEach(team => {
+            team.calculated_total_transactions = countTransactionsForTeam(team.team_id, transactionLogData);
+        });
         
         const easternTeams = activeTeams
           .filter(team => team.conference.toLowerCase() === 'eastern')
@@ -534,9 +566,9 @@
           const losses = parseInt(team.losses || 0);
           const pam = parseFloat(team.pam || 0);
           const medianStarterRank = parseFloat(team.med_starter_rank || 0); 
-          
-          // Add a class if the team is eliminated from play-in contention
           const cardClass = rankInConference > 10 ? 'eliminated-from-playoffs' : '';
+          // MODIFIED: Use calculated_total_transactions
+          const totalTransactions = team.calculated_total_transactions || 0;
 
           return `
             <a href="team.html?id=${team.team_id}" class="team-card ${cardClass}">
@@ -567,7 +599,7 @@
                   <div class="stat-label">Med Rank</div>
                 </div>
                 <div class="stat-item">
-                  <div class="stat-value">${team.total_transactions || 0}</div>
+                  <div class="stat-value">${totalTransactions}</div>
                   <div class="stat-label">Transactions</div>
                 </div>
               </div>
@@ -591,7 +623,6 @@
       
       document.addEventListener('DOMContentLoaded', () => {
         loadTeams();
-        // Nav Toggle JS
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
         if (navToggle && navMenu) {

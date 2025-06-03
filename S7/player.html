@@ -546,13 +546,16 @@
       let allLineups = [];
       let allScheduleData = []; 
       let allTransactionsLogData = []; 
+      // Removed: let allWeeklyAverages = []; // This will be fetched locally
 
+      // UPDATED parseNumber function (from leaderboards.html)
       function parseNumber(value) { 
-        if (!value) return 0;
-        const cleaned = value.toString().replace(/,/g, '');
+        if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
+        const cleaned = String(value).replace(/,/g, '');
         const parsed = parseFloat(cleaned);
         return isNaN(parsed) ? 0 : parsed;
        }
+
       async function fetchSheetData(sheetName) { 
         try {
           const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
@@ -607,38 +610,14 @@
         const v = n % 100;
         return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
        }
-      function calculatePlayerRankings(playerData, allPlayersData) { 
-        const rankings = {};
-        const totalKarmaPlayers = allPlayersData
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => parseFloat(b.total_points || 0) - parseFloat(a.total_points || 0));
-        rankings.totalKarma = totalKarmaPlayers.findIndex(p => p.player_handle === playerData.player_handle) + 1;
-        const relMedianPlayers = allPlayersData
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => parseFloat(b.calculated_rel_median || 0) - parseFloat(a.calculated_rel_median || 0));
-        rankings.relMedian = relMedianPlayers.findIndex(p => p.player_handle === playerData.player_handle) + 1;
-        const gamesAboveMedianPlayers = allPlayersData
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => {
-            const aGames = parseInt(a.aag_median || 0); const bGames = parseInt(b.aag_median || 0);
-            if (bGames !== aGames) return bGames - aGames;
-            const aREL = parseFloat(a.calculated_rel_median || 0); const bREL = parseFloat(b.calculated_rel_median || 0);
-            return bREL - aREL;
-          });
-        rankings.gamesAboveMedian = gamesAboveMedianPlayers.findIndex(p => p.player_handle === playerData.player_handle) + 1;
-        const aboveMedianPctPlayers = allPlayersData
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => parseFloat(b.aag_median_pct || 0) - parseFloat(a.aag_median_pct || 0));
-        rankings.aboveMedianPct = aboveMedianPctPlayers.findIndex(p => p.player_handle === playerData.player_handle) + 1;
-        const medianRankPlayers = allPlayersData
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0 && parseFloat(p.calculated_median_rank || 0) > 0)
-          .sort((a, b) => parseFloat(a.calculated_median_rank || 999) - parseFloat(b.calculated_median_rank || 999));
-        rankings.medianRank = medianRankPlayers.findIndex(p => p.player_handle === playerData.player_handle) + 1;
-        return rankings;
-       }
-      function calculateRELForAllPlayers(players, weeklyAverages, lineups) { 
+
+      // ADDED: calculateRELForAllPlayers (copied from leaderboards.html, uses points_final)
+      function calculateRELForAllPlayers(players, weeklyAverages, lineups) {
+        if (!players || !weeklyAverages || !lineups) {
+            return players || []; 
+        }
         const weeklyAveragesMap = {};
-        (weeklyAverages || []).forEach(week => { 
+        weeklyAverages.forEach(week => {
           if (week.date) {
             weeklyAveragesMap[week.date] = {
               mean_score: parseNumber(week.mean_score),
@@ -646,77 +625,110 @@
             };
           }
         });
-        return (players || []).map(player => { 
-          const playerGames = (lineups || []).filter(lineup => 
+
+        return players.map(player => {
+          const playerGames = lineups.filter(lineup => 
             lineup.player_handle === player.player_handle && 
-            (String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1)
+            (String(lineup.started).toUpperCase() === 'TRUE') // Consistent with leaderboards.html
           );
-          if (playerGames.length === 0) {
-            return { ...player, calculated_rel_mean: 0, calculated_rel_median: 0, calculated_median_rank: 0, aag_median: 0, aag_median_pct: 0 }; 
-          }
-          let totalPlayerKarmaRaw = 0, totalMeanKarma = 0, totalMedianKarma = 0, validGames = 0;
+          
+          let totalPlayerKarmaFinal = 0;
+          let totalMeanKarma = 0;
+          let totalMedianKarma = 0;
+          let validGamesForREL = 0;
           const ranks = [];
-          let gamesAboveMedian = 0; 
+          let gamesAboveMean = 0;
+          let gamesAboveMedian = 0;
+          let t100_finishes = 0; 
+
           playerGames.forEach(game => {
-            const playerKarmaRaw = parseNumber(game.points_raw);
+            const gameDate = game.date;
+            const playerKarmaFinal = parseNumber(game.points_final); // Using points_final
             const globalRank = parseNumber(game.global_rank);
-            if (weeklyAveragesMap[game.date]) {
-              totalPlayerKarmaRaw += playerKarmaRaw;
-              totalMeanKarma += weeklyAveragesMap[game.date].mean_score;
-              totalMedianKarma += weeklyAveragesMap[game.date].median_score;
-              validGames++;
-              if (playerKarmaRaw > weeklyAveragesMap[game.date].median_score) gamesAboveMedian++; 
+            
+            if (weeklyAveragesMap[gameDate]) {
+              totalPlayerKarmaFinal += playerKarmaFinal;
+              totalMeanKarma += weeklyAveragesMap[gameDate].mean_score;
+              totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
+              validGamesForREL++;
+              if (playerKarmaFinal > weeklyAveragesMap[gameDate].mean_score) gamesAboveMean++;
+              if (playerKarmaFinal > weeklyAveragesMap[gameDate].median_score) gamesAboveMedian++;
             }
-            if (globalRank > 0) ranks.push(globalRank);
+            if (globalRank > 0) {
+              ranks.push(globalRank);
+              if (globalRank <= 100) { 
+                t100_finishes++;
+              }
+            }
           });
-          const avgPlayerKarmaRaw = validGames > 0 ? totalPlayerKarmaRaw / validGames : 0;
-          const avgMeanKarma = validGames > 0 ? totalMeanKarma / validGames : 0;
-          const avgMedianKarma = validGames > 0 ? totalMedianKarma / validGames : 0;
-          const relMeanAvgRaw = avgMeanKarma > 0 ? (avgPlayerKarmaRaw / avgMeanKarma) : 0;
-          const relMedianAvgRaw = avgMedianKarma > 0 ? (avgPlayerKarmaRaw / avgMedianKarma) : 0;
-          let medianRank = 0;
+          
+          const avgPlayerKarmaFinal = validGamesForREL > 0 ? totalPlayerKarmaFinal / validGamesForREL : 0;
+          const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
+          const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
+          
+          const calculated_rel_mean = avgMeanKarma > 0 ? (avgPlayerKarmaFinal / avgMeanKarma) : 0;
+          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerKarmaFinal / avgMedianKarma) : 0;
+          
+          let calculated_median_rank = 0;
           if (ranks.length > 0) {
             ranks.sort((a, b) => a - b);
             const mid = Math.floor(ranks.length / 2);
-            medianRank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
+            calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
           }
-          const gamesPlayedCount = parseInt(player.games_played || 0); 
-          return { ...player, calculated_rel_mean: relMeanAvgRaw, calculated_rel_median: relMedianAvgRaw, calculated_median_rank: medianRank, aag_median: gamesAboveMedian, aag_median_pct: gamesPlayedCount > 0 ? gamesAboveMedian / gamesPlayedCount : 0 };
+          
+          const games_played_count = parseInt(player.games_played || 0);
+
+          return {
+            ...player, 
+            calculated_rel_mean: calculated_rel_mean,
+            calculated_rel_median: calculated_rel_median,
+            calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, 
+            aag_mean: gamesAboveMean,
+            aag_mean_pct: games_played_count > 0 ? gamesAboveMean / games_played_count : 0,
+            aag_median: gamesAboveMedian,
+            aag_median_pct: games_played_count > 0 ? gamesAboveMedian / games_played_count : 0,
+            t100_finishes: t100_finishes, 
+            t100_finishes_pct: games_played_count > 0 ? (t100_finishes / games_played_count) : 0,
+            total_points: parseNumber(player.total_points),
+            games_played: games_played_count 
+          };
         });
+      }
+
+      // calculatePlayerRankings remains largely the same, but operates on consistently calculated data
+      function calculatePlayerRankings(playerDataForRanking, allPlayersDataForRanking) { 
+        const rankings = {};
+        const totalKarmaPlayers = allPlayersDataForRanking
+          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
+          .sort((a, b) => parseFloat(b.total_points || 0) - parseFloat(a.total_points || 0));
+        rankings.totalKarma = totalKarmaPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        
+        const relMedianPlayers = allPlayersDataForRanking
+          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
+          .sort((a, b) => parseFloat(b.calculated_rel_median || 0) - parseFloat(a.calculated_rel_median || 0));
+        rankings.relMedian = relMedianPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        
+        const gamesAboveMedianPlayers = allPlayersDataForRanking
+          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
+          .sort((a, b) => {
+            const aGames = parseInt(a.aag_median || 0); const bGames = parseInt(b.aag_median || 0);
+            if (bGames !== aGames) return bGames - aGames;
+            const aREL = parseFloat(a.calculated_rel_median || 0); const bREL = parseFloat(b.calculated_rel_median || 0);
+            return bREL - aREL;
+          });
+        rankings.gamesAboveMedian = gamesAboveMedianPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+
+        const aboveMedianPctPlayers = allPlayersDataForRanking
+          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
+          .sort((a, b) => parseFloat(b.aag_median_pct || 0) - parseFloat(a.aag_median_pct || 0));
+        rankings.aboveMedianPct = aboveMedianPctPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        
+        const medianRankPlayers = allPlayersDataForRanking
+          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0 && parseFloat(p.calculated_median_rank || Infinity) !== Infinity)
+          .sort((a, b) => parseFloat(a.calculated_median_rank || Infinity) - parseFloat(b.calculated_median_rank || Infinity));
+        rankings.medianRank = medianRankPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        return rankings;
        }
-      function calculatePlayerRELMedian(playerHandle, weeklyAverages, lineups) { 
-        const playerGames = (lineups || []).filter(lineup => 
-          lineup.player_handle === playerHandle && 
-          (String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1)
-        );
-        if (playerGames.length === 0) return 0;
-        const weeklyAveragesMap = {};
-        (weeklyAverages || []).forEach(week => {
-          if (week.date) weeklyAveragesMap[week.date] = { median_score: parseNumber(week.median_score) };
-        });
-        let totalPlayerKarma = 0, totalMedianKarma = 0, validGames = 0;
-        playerGames.forEach(game => {
-          if (weeklyAveragesMap[game.date]) {
-            totalPlayerKarma += parseNumber(game.points_raw);
-            totalMedianKarma += weeklyAveragesMap[game.date].median_score;
-            validGames++;
-          }
-        });
-        const avgPlayerKarma = validGames > 0 ? totalPlayerKarma / validGames : 0;
-        const avgMedianKarma = validGames > 0 ? totalMedianKarma / validGames : 0;
-        return avgMedianKarma > 0 ? (avgPlayerKarma / avgMedianKarma) : 0;
-      }
-      function calculatePlayerMedianRank(playerHandle, lineups) { 
-        const playerGames = (lineups || []).filter(lineup => 
-          lineup.player_handle === playerHandle && 
-          (String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1) &&
-          lineup.global_rank && parseFloat(lineup.global_rank) > 0
-        );
-        if (playerGames.length === 0) return 0;
-        const ranks = playerGames.map(game => parseFloat(game.global_rank)).sort((a, b) => a - b);
-        const mid = Math.floor(ranks.length / 2);
-        return ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
-      }
       
       async function loadPlayerData() {
         playerHandle = getUrlParameter('player');
@@ -724,34 +736,36 @@
           document.getElementById('player-main-info').innerHTML = '<div class="error">No player specified</div>';
           return;
         }
-        const [players, teams, weeklyAverages, lineups, schedule, transactions] = await Promise.all([
+        // Fetch all necessary data
+        const [playersRaw, teams, weeklyAveragesRaw, lineupsRaw, schedule, transactions] = await Promise.all([
           fetchSheetData('Players'), fetchSheetData('Teams'),
           fetchSheetData('Weekly_Averages'), fetchSheetData('Lineups'),
           fetchSheetData('Schedule'),
           fetchSheetData('Transaction_Log') 
         ]);
 
-        if (!players || !teams) {
-          document.getElementById('player-main-info').innerHTML = '<div class="error">Error loading player data</div>';
+        if (!playersRaw || !teams || !weeklyAveragesRaw || !lineupsRaw) { // Added weeklyAveragesRaw and lineupsRaw check
+          document.getElementById('player-main-info').innerHTML = '<div class="error">Error loading critical player data</div>';
           return;
         }
         allTeams = teams;
-        allLineups = lineups || []; 
+        allLineups = lineupsRaw; 
         allScheduleData = schedule || []; 
         allTransactionsLogData = transactions || [];
 
-
-        const playersWithREL = calculateRELForAllPlayers(players, weeklyAverages || [], allLineups);
-        playerData = playersWithREL.find(player => player.player_handle === playerHandle);
+        // Use the centralized function to calculate stats for ALL players
+        const playersWithCalculatedStats = calculateRELForAllPlayers(playersRaw, weeklyAveragesRaw, lineupsRaw);
+        
+        // Find the specific player from the processed list
+        playerData = playersWithCalculatedStats.find(player => player.player_handle === playerHandle);
 
         if (!playerData) {
           document.getElementById('player-main-info').innerHTML = '<div class="error">Player not found</div>';
           return;
         }
-        playerData.calculated_rel_median = calculatePlayerRELMedian(playerHandle, weeklyAverages || [], allLineups);
-        playerData.calculated_median_rank = calculatePlayerMedianRank(playerHandle, allLineups);
         
-        const activePlayersWithREL = playersWithREL.filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0);
+        // Filter for active players to pass to calculatePlayerRankings
+        const activePlayersWithREL = playersWithCalculatedStats.filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0);
         const rankings = calculatePlayerRankings(playerData, activePlayersWithREL);
         
         displayPlayerHeader(rankings);
@@ -768,13 +782,9 @@
 
       function displayPlayerHeader(rankings) { 
         document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL Season 7`;
-        // The player's name is now set within the .player-details h2 directly
         const playerDetailsH2 = document.querySelector('.player-details h2');
         if (playerDetailsH2) {
             playerDetailsH2.textContent = playerData.player_handle;
-        } else { // Fallback if the H2 isn't found for some reason, update the placeholder
-            const placeholderTitle = document.getElementById('header-title-placeholder');
-            if(placeholderTitle) placeholderTitle.textContent = playerData.player_handle;
         }
 
         let teamLogoHTML = '';
@@ -822,10 +832,13 @@
             ${teamInfoHTML}
             ${previousTeamsHTML} 
           </div>`;
+        
         const relMedian = playerData.calculated_rel_median || 0;
         const gamesAboveMedian = parseInt(playerData.aag_median || 0); 
         const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100; 
-        const medianRank = playerData.calculated_median_rank || 0;
+        // Adjusted medianRank display logic
+        const medianRankValue = (playerData.calculated_median_rank !== Infinity && playerData.calculated_median_rank > 0) ? Math.round(playerData.calculated_median_rank) : '-';
+
         document.getElementById('player-stats').innerHTML = `
           <a href="leaderboards.html?category=total_points" class="stat-card">
             <div class="stat-value">${Math.round(totalPoints).toLocaleString()}</div><div class="stat-label">Total Karma</div><div class="stat-rank">${getOrdinal(rankings.totalKarma)} Overall</div></a>
@@ -835,7 +848,7 @@
             <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="stat-rank">${getOrdinal(rankings.gamesAboveMedian)} Overall</div></a>
           <a href="leaderboards.html?category=aag_median_pct" class="stat-card"> <div class="stat-value">${Math.round(aboveMedianPct)}%</div><div class="stat-label">Above Median %</div><div class="stat-rank">${getOrdinal(rankings.aboveMedianPct)} Overall</div></a>
           <a href="leaderboards.html?category=median_gameday_rank" class="stat-card"> 
-            <div class="stat-value">${medianRank > 0 ? Math.round(medianRank) : '-'}</div><div class="stat-label">Median Rank</div><div class="stat-rank">${rankings.medianRank > 0 ? `${getOrdinal(rankings.medianRank)} Overall` : 'Not ranked'}</div></a>`;
+            <div class="stat-value">${medianRankValue}</div><div class="stat-label">Median Rank</div><div class="stat-rank">${rankings.medianRank > 0 ? `${getOrdinal(rankings.medianRank)} Overall` : 'Not ranked'}</div></a>`;
         document.getElementById('player-stats').style.display = 'grid';
        }
 
@@ -865,7 +878,7 @@
 
         const performanceHTML = playerLineups.map(lineup => {
           const isCaptain = String(lineup.captain).toLowerCase() === 'true' || lineup.captain === true || lineup.captain === 1;
-          const pointsRaw = parseNumber(lineup.points_raw);
+          const pointsRaw = parseNumber(lineup.points_raw); // points_raw is fine for weekly display if that's the intended raw score
           const globalRank = parseNumber(lineup.global_rank);
 
           const gameForLineup = allScheduleData.find(g => g.date === lineup.date && (g.team1_id === lineup.team_id || g.team2_id === lineup.team_id));
@@ -917,7 +930,7 @@
 
         const historyHTML = gamesWithPerformance.map(game => {
           const isCaptain = String(game.lineup.captain).toLowerCase() === 'true' || game.lineup.captain === true || game.lineup.captain === 1;
-          const pointsRaw = parseNumber(game.lineup.points_raw);
+          const pointsRaw = parseNumber(game.lineup.points_raw); // points_raw for this display
           const globalRank = parseNumber(game.lineup.global_rank);
           
           const playerTeamName = getTeamName(game.playerTeamId);
@@ -970,13 +983,11 @@
         modalTitle.textContent = `${getTeamName(team1Id)} vs ${getTeamName(team2Id)} - ${formatDate(date)}`; 
         modalBodyContent.innerHTML = '<div class="loading">Loading game details...</div>';
         
-        const schedule = await fetchSheetData('Schedule'); 
-        if (!schedule) { modalBodyContent.innerHTML = '<div class="error">Error loading game details (schedule)</div>'; return; }
-        
-        const game = schedule.find(g => g.team1_id === team1Id && g.team2_id === team2Id && g.date === date);
+        // Use already fetched data if available, or fetch again if necessary (though ideally fetched once)
+        const game = allScheduleData.find(g => g.team1_id === team1Id && g.team2_id === team2Id && g.date === date);
         if (!game) { modalBodyContent.innerHTML = '<div class="error">Game not found in schedule</div>'; return; }
         
-        const lineupsForModal = await fetchSheetData('Lineups'); 
+        const lineupsForModal = allLineups; 
         if (!lineupsForModal) { modalBodyContent.innerHTML = '<div class="error">Error loading game details (lineups)</div>'; return; }
 
         const team1AllGameLineups = lineupsForModal.filter(lineup => lineup.team_id === team1Id && lineup.date === date);
@@ -1021,7 +1032,6 @@
       
       document.addEventListener('DOMContentLoaded', () => {
         loadPlayerData();
-        // Nav Toggle JS
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
         if (navToggle && navMenu) {

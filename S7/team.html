@@ -769,9 +769,10 @@
       let teamId = null;
       let teamData = null;
       let allTeams = [];
-      let allWeeklyAverages = [];
+      let allWeeklyAverages = []; // For REL calculations
       let allTransactionsLogData = []; 
       let allLineups = []; 
+      let allDraftPicks = []; // Added for draft capital
 
       function formatInThousands(value) {
         const num = parseFloat(value);
@@ -900,10 +901,10 @@
         return `${wins}-${losses}`;
       }
 
-      function calculatePlayerRELMedian(playerHandle, weeklyAverages, lineups) {
-        const playerGames = lineups.filter(lineup => 
+      function calculatePlayerRELMedian(playerHandle, weeklyAvgs, lineupsForPlayer) { // Changed param name
+        const playerGames = lineupsForPlayer.filter(lineup => 
           lineup.player_handle === playerHandle && 
-          (lineup.started === 'TRUE' || lineup.started === true || lineup.started === 'true')
+          (String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1)
         );
         
         if (playerGames.length === 0) {
@@ -911,7 +912,7 @@
         }
         
         const weeklyAveragesMap = {};
-        weeklyAverages.forEach(week => {
+        (weeklyAvgs || []).forEach(week => { // Use passed weeklyAvgs
           if (week.date) {
             weeklyAveragesMap[week.date] = {
               median_score: parseNumber(week.median_score)
@@ -949,10 +950,10 @@
         return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
       }
       
-      function calculateTeamRankings(currentTeamData, allTeamsData) { 
+      function calculateTeamRankings(currentTeamData, allTeamsDataForRanking) { // Renamed param
         const rankings = {};
         
-        const conferenceTeams = allTeamsData
+        const conferenceTeams = allTeamsDataForRanking // Use passed param
           .filter(t => t.conference === currentTeamData.conference)
           .sort((a, b) => {
             const winsA = parseInt(a.wins || 0);
@@ -962,17 +963,45 @@
           });
         rankings.record = conferenceTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
         
-        const pamTeams = allTeamsData 
+        const pamTeams = allTeamsDataForRanking // Use passed param
           .sort((a, b) => parseFloat(b.pam || 0) - parseFloat(a.pam || 0));
         rankings.pam = pamTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
         
-        const medRankTeams = allTeamsData 
+        const medRankTeams = allTeamsDataForRanking // Use passed param
           .filter(t => parseFloat(t.med_starter_rank || 0) > 0) 
           .sort((a, b) => parseFloat(a.med_starter_rank || 999) - parseFloat(b.med_starter_rank || 999));
         const medRankIndex = medRankTeams.findIndex(t => t.team_id === currentTeamData.team_id);
         rankings.medRank = medRankIndex !== -1 ? medRankIndex + 1 : 0; 
         
         return rankings;
+      }
+
+      // ADDED: Helper function to count transactions for a team
+      function countTransactionsForTeam(teamIdToCount, transactionLog) {
+        if (!transactionLog || transactionLog.length === 0) return 0;
+
+        const relevantTransactionIds = new Set();
+
+        transactionLog.forEach(transaction => {
+            const notes = transaction.notes ? transaction.notes.toLowerCase() : '';
+            if (notes.includes('pre-database') || notes.includes('preseason')) {
+                return;
+            }
+
+            let involved = false;
+            if (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === teamIdToCount) {
+                involved = true;
+            } else if (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamIdToCount) {
+                involved = true;
+            } else if (transaction.from_team === teamIdToCount || transaction.to_team === teamIdToCount) {
+                involved = true;
+            }
+
+            if (involved && transaction.transaction_id) {
+                relevantTransactionIds.add(transaction.transaction_id);
+            }
+        });
+        return relevantTransactionIds.size;
       }
       
       async function loadTeamData() {
@@ -983,11 +1012,14 @@
           return;
         }
         
-        const [teamsResult, weeklyAveragesResult, transactionsLogResult, lineupsResult] = await Promise.all([
+        // MODIFIED: Fetch Draft_Capital as well
+        const [teamsResult, weeklyAveragesResult, transactionsLogResult, lineupsResult, scheduleResult, draftPicksResult] = await Promise.all([
           fetchSheetData('Teams'),
           fetchSheetData('Weekly_Averages'),
           fetchSheetData('Transaction_Log'),
-          fetchSheetData('Lineups') 
+          fetchSheetData('Lineups'),
+          fetchSheetData('Schedule'),
+          fetchSheetData('Draft_Capital') // Added
         ]);
         
         if (!teamsResult) { 
@@ -1000,6 +1032,8 @@
         allWeeklyAverages = weeklyAveragesResult || [];
         allTransactionsLogData = transactionsLogResult || [];
         allLineups = lineupsResult || []; 
+        allScheduleData = scheduleResult || []; 
+        allDraftPicks = draftPicksResult || []; // Store draft picks
 
         teamData = allTeams.find(team => team.team_id === teamId);
         if (!teamData) {
@@ -1007,6 +1041,9 @@
             '<div class="error">Team not found</div>';
           return;
         }
+
+        // MODIFIED: Calculate transaction count for this specific team
+        teamData.calculated_total_transactions = countTransactionsForTeam(teamData.team_id, allTransactionsLogData);
         
         const activeTeamsForRanking = allTeams.filter(t => 
           t.team_id && 
@@ -1021,18 +1058,18 @@
         await Promise.all([
           loadRoster(),
           loadSchedule(),
-          loadDraftCapital()
+          loadDraftCapital() // Call the new function
         ]);
       }
       
       function displayTeamHeader(rankings) {
         document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
-        // The main site header is static "Real Karma League". Team name is in the .team-details h2.
-        // document.getElementById('header-title-placeholder').textContent = escapeHTML(teamData.team_name); // This element is hidden
         
         const wins = parseInt(teamData.wins || 0);
         const losses = parseInt(teamData.losses || 0);
         const pam = parseFloat(teamData.pam || 0);
+        // MODIFIED: Use calculated_total_transactions
+        const totalTransactions = teamData.calculated_total_transactions || 0;
         
         document.getElementById('team-main-info').innerHTML = `
           <div style="display: flex; align-items: center; gap: 1.5rem;">
@@ -1090,9 +1127,9 @@
         transactionsLink.className = 'stat-card-link';
         transactionsLink.innerHTML = `
           <div class="stat-card">
-            <div class="stat-value">${teamData.total_transactions || 0}</div>
+            <div class="stat-value">${totalTransactions}</div>
             <div class="stat-label">Transactions</div>
-            ${(teamData.total_transactions || 0) > 0 ? `<div class="stat-rank">&nbsp;</div>` : '<div class="stat-rank" style="height:1em;">&nbsp;</div>'}
+            ${(totalTransactions) > 0 ? `<div class="stat-rank">&nbsp;</div>` : '<div class="stat-rank" style="height:1em;">&nbsp;</div>'}
           </div>
         `;
         teamStatsContainer.appendChild(transactionsLink);
@@ -1120,7 +1157,6 @@
         
         const playersWithREL = teamPlayers.map(player => {
           const relMedian = calculatePlayerRELMedian(player.player_handle, allWeeklyAverages, allLineups);
-          // Calculate Median Global Rank for roster display
           let medianGlobalRank = 0;
           const playerStartedGamesWithRank = allLineups.filter(lineup =>
               lineup.player_handle === player.player_handle &&
@@ -1136,7 +1172,7 @@
           return {
             ...player,
             calculated_rel_median: relMedian,
-            median_global_rank_for_roster: medianGlobalRank // Store calculated median rank
+            median_global_rank_for_roster: medianGlobalRank 
           };
         }).sort((a, b) => b.calculated_rel_median - a.calculated_rel_median);
         
@@ -1177,15 +1213,14 @@
       }
       
       async function loadSchedule() {
-        const scheduleData = await fetchSheetData('Schedule'); 
-        
-        if (!scheduleData) {
+        // allScheduleData is already loaded in loadTeamData
+        if (!allScheduleData) {
           document.getElementById('team-schedule').innerHTML = 
             '<div class="error">Error loading schedule data</div>';
           return;
         }
         
-        const teamGames = scheduleData
+        const teamGames = allScheduleData
           .filter(game => game.team1_id === teamId || game.team2_id === teamId)
           .sort((a, b) => new Date(a.date) - new Date(b.date)); 
         
@@ -1205,20 +1240,20 @@
           
           let opponentRecord = '';
           if (isCompleted) {
-            opponentRecord = getTeamRecordAtDate(opponentId, game.date, scheduleData);
+            opponentRecord = getTeamRecordAtDate(opponentId, game.date, allScheduleData);
           } else {
             const previousDate = new Date(game.date);
             previousDate.setDate(previousDate.getDate() - 1);
-            opponentRecord = getTeamRecordAtDate(opponentId, previousDate.toISOString().split('T')[0], scheduleData);
+            opponentRecord = getTeamRecordAtDate(opponentId, previousDate.toISOString().split('T')[0], allScheduleData);
           }
 
           let teamRecord = '';
           if (isCompleted) {
-            teamRecord = getTeamRecordAtDate(teamId, game.date, scheduleData);
+            teamRecord = getTeamRecordAtDate(teamId, game.date, allScheduleData);
           } else {
             const previousDate = new Date(game.date);
             previousDate.setDate(previousDate.getDate() - 1);
-            teamRecord = getTeamRecordAtDate(teamId, previousDate.toISOString().split('T')[0], scheduleData);
+            teamRecord = getTeamRecordAtDate(teamId, previousDate.toISOString().split('T')[0], allScheduleData);
           }
           
           let clickHandler = '';
@@ -1341,14 +1376,14 @@
       }
       
       async function loadDraftCapital() {
-        const draftPicksData = await fetchSheetData('Draft_Capital');
-        if (!draftPicksData) {
+        // allDraftPicks and allTransactionsLogData are already loaded in loadTeamData
+        if (!allDraftPicks) {
           document.getElementById('draft-picks').innerHTML = 
             '<div class="error">Error loading draft capital data</div>';
           return;
         }
         
-        const teamPicks = draftPicksData
+        const teamPicks = allDraftPicks
           .filter(pick => pick.current_owner === teamId)
           .sort((a, b) => {
             const seasonA = parseInt(a.season || 0);
@@ -1561,13 +1596,8 @@
         modalTitle.textContent = `${escapeHTML(getTeamName(team1Id))} vs ${escapeHTML(getTeamName(team2Id))} - ${formatDateShort(date)}`;
         modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
         
-        const scheduleData = await fetchSheetData('Schedule');
-        if (!scheduleData) {
-          modalContentEl.innerHTML = '<div class="error">Error loading game details (schedule)</div>';
-          return;
-        }
-        
-        const game = scheduleData.find(g => 
+        // allScheduleData is already loaded
+        const game = allScheduleData.find(g => 
           g.team1_id === team1Id && 
           g.team2_id === team2Id && 
           g.date === date
@@ -1578,20 +1608,21 @@
           return;
         }
         
-        const lineupsData = await fetchSheetData('Lineups'); 
+        // allLineups is already loaded
+        const lineupsData = allLineups; 
         if (!lineupsData) {
           modalContentEl.innerHTML = '<div class="error">Error loading lineup data</div>';
           return;
         }
         
-        const team1AllLineups = lineupsData.filter(lineup => 
+        const team1AllGameLineups = lineupsData.filter(lineup => 
           lineup.team_id === team1Id && lineup.date === date
         );
-        const team2AllLineups = lineupsData.filter(lineup => 
+        const team2AllGameLineups = lineupsData.filter(lineup => 
           lineup.team_id === team2Id && lineup.date === date
         );
         
-        const team1Lineups = team1AllLineups.filter(lineup => {
+        const team1Lineups = team1AllGameLineups.filter(lineup => {
           const isStarted = lineup.started === 'TRUE' || lineup.started === true || lineup.started === 'true' || lineup.started === 1 || lineup.started === '1';
           return isStarted;
         }).sort((a, b) => {
@@ -1602,7 +1633,7 @@
           return parseNumber(b.points_final) - parseNumber(a.points_final);
         });
         
-        const team2Lineups = team2AllLineups.filter(lineup => {
+        const team2Lineups = team2AllGameLineups.filter(lineup => {
           const isStarted = lineup.started === 'TRUE' || lineup.started === true || lineup.started === 'true' || lineup.started === 1 || lineup.started === '1';
           return isStarted;
         }).sort((a, b) => {
@@ -1697,7 +1728,6 @@
       
       document.addEventListener('DOMContentLoaded', () => {
         loadTeamData();
-        // Nav Toggle JS
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
         if (navToggle && navMenu) {
