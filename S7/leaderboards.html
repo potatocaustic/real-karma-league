@@ -390,7 +390,6 @@
       .error { color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; padding: 1rem; text-align: center;}
 
       @media (max-width: 768px) {
-        /* .category-buttons { grid-template-columns: 1fr; } */ /* No longer needed */
         .leaderboard-table th, .leaderboard-table td {
           padding: 0.5rem 0.3rem; font-size: 0.9rem;
         }
@@ -1189,11 +1188,12 @@
       }
       
       document.addEventListener('DOMContentLoaded', () => { 
-        // Populate category dropdown
         const categorySelect = document.getElementById('category-select');
         let optionsHTML = '';
         for (const key in categories) {
-            optionsHTML += `<option value="${key}">${categories[key].title}</option>`;
+            // MODIFICATION: Remove " Leaders" from the option text
+            const optionText = categories[key].title.replace(/ Leaders$/, '');
+            optionsHTML += `<option value="${key}">${optionText}</option>`;
         }
         categorySelect.innerHTML = optionsHTML;
 
@@ -1203,7 +1203,7 @@
         currentCategory = categoryParam || storedCategory || 'total_points'; 
         
         if (categories[currentCategory]) {
-          categorySelect.value = currentCategory; // Set dropdown to current category
+          categorySelect.value = currentCategory;
           if (categoryParam) { 
             sessionStorage.setItem('selectedLeaderboardCategory', currentCategory); 
             window.history.replaceState({}, document.title, window.location.pathname); 
@@ -1214,7 +1214,6 @@
             sessionStorage.setItem('selectedLeaderboardCategory', currentCategory);
         }
         
-        // Event listener for category dropdown change
         categorySelect.addEventListener('change', function() {
             currentCategory = this.value;
             sessionStorage.setItem('selectedLeaderboardCategory', currentCategory); 
