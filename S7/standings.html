@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title id="page-title">RKL Season 7 Team - caustic.info</title>
+    <title>RKL Season 7 Standings - caustic.info</title>
     <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
@@ -55,6 +55,7 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
@@ -64,623 +65,435 @@
       /* Main content */
       main {
         padding: 2rem;
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
       }
 
-      /* Team header */
-      .team-header {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        padding: 2rem;
-        margin-bottom: 2rem;
+      .page-header {
         text-align: center;
-      }
-
-      .team-main-info {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 2rem;
         margin-bottom: 2rem;
       }
 
-      .team-logo-large {
-        width: 120px;
-        height: 120px;
-        border-radius: 50% !important;
-        border: 3px solid #ddd;
-        object-fit: cover;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        flex-shrink: 0;
-      }
-
-      .team-details h2 {
+      .page-header h2 {
         font-size: 2.5rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .team-subtitle {
-        font-size: 1.2rem;
-        color: #666;
-        margin-bottom: 0.5rem;
-      }
-
-      .gm-info {
-        font-size: 1.1rem;
-        color: #007bff;
-        font-weight: 500;
-      }
-
-      /* Team stats grid */
-      .team-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
-        margin-top: 2rem;
-      }
-
-      .stat-card {
-        background-color: #f8f9fa;
-        padding: 1.5rem;
-        border-radius: 6px;
-        text-align: center;
-        border: 1px solid #ddd;
-      }
-
-      .stat-value {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #333;
-      }
-
-      .stat-label {
-        font-size: 0.9rem;
-        color: #666;
-        margin-top: 0.5rem;
+        margin-bottom: 1rem;
       }
       
-      .stat-rank {
-        font-size: 0.8rem;
-        color: #007bff;
-        margin-top: 0.3rem;
-        font-weight: 500;
+      .hidden {
+        display: none !important;
       }
-      
-      .positive {
-        color: #28a745;
+      #toggleViewButton {
+        display: block; 
+        margin: 0.5rem auto 1.5rem auto; 
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
       }
-
-      .negative {
-        color: #dc3545;
-      }
-
-      .stat-card-link {
-          text-decoration: none;
-          color: inherit;
-          display: block; 
-          border-radius: 6px; 
+      #toggleViewButton:hover {
+        background-color: #0056b3;
       }
 
-      .stat-card-link .stat-card {
-          transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-      }
-
-      .stat-card-link:hover .stat-card {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 16px rgba(0,0,0,0.12);
-      }
-
-      /* Content grid */
-      .content-grid {
+      .standings-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2rem;
-        margin-top: 2rem;
-        align-items: start;
+        margin-bottom: 2rem;
       }
 
-      /* Roster section */
-      .roster-section {
+      .conference-section { 
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         overflow: hidden;
-        height: fit-content;
+      }
+      
+      #fullLeagueViewContainer .conference-section {
+        max-width: 700px; 
+        margin-left: auto;  
+        margin-right: auto; 
       }
 
-      .section-header {
+      .conference-header {
         background-color: #333;
         color: white;
         padding: 1.5rem;
         text-align: center;
       }
 
-      .section-header h3 {
+      .conference-header h3 {
         color: white;
+        font-size: 1.5rem;
         margin: 0;
-        font-size: 1.4rem;
       }
 
-      .roster-list {
-        padding: 0;
+      .standings-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed; 
       }
 
-      .roster-header {
-        display: grid;
-        grid-template-columns: 40px 1fr 80px; 
-        gap: 0.5rem; 
-        align-items: center;
-        padding: 1rem 1rem;
+      .standings-table th {
         background-color: #f8f9fa;
-        border-bottom: 2px solid #ddd;
+        padding: 1rem 0.5rem;
+        text-align: center; 
         font-weight: bold;
+        border-bottom: 2px solid #ddd;
         font-size: 0.9rem;
-        color: #666;
+        cursor: pointer; 
+        position: relative; 
       }
-      .roster-logo-header-col { /* For spacing */ }
-
-      .roster-header .header-player {
-        text-align: left;
-        padding-left: 0;
+       .standings-table th .sort-indicator {
+        font-size: 0.8em;
+        margin-left: 5px;
+        position: absolute;
+        right: 5px; 
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .standings-table th.no-sort {
+        cursor: default;
       }
 
-      .roster-header .header-rel {
+      .standings-table th:nth-child(1), 
+      .standings-table td:nth-child(1) {
+        width: 15%;
         text-align: center;
-        padding-right: 0;
       }
 
-      .roster-content {
-        padding: 0;
+      .standings-table th:nth-child(2), 
+      .standings-table td:nth-child(2) {
+        width: 35%;
+        text-align: left;
       }
 
-      .player-item {
-        display: grid;
-        grid-template-columns: 40px 1fr 80px; 
-        gap: 0.5rem; 
-        align-items: center;
-        padding: 1rem 1rem;
+      .standings-table th:nth-child(3), 
+      .standings-table td:nth-child(3) {
+        width: 20%;
+        text-align: center;
+      }
+
+      .standings-table th:nth-child(4), 
+      .standings-table td:nth-child(4) {
+        width: 15%;
+        text-align: center;
+      }
+
+      .standings-table th:nth-child(5), 
+      .standings-table td:nth-child(5) {
+        width: 15%;
+        text-align: center;
+      }
+
+      .standings-table td {
+        padding: 0.8rem 0.5rem;
         border-bottom: 1px solid #eee;
-        transition: background-color 0.2s;
+        font-size: 0.9rem;
       }
-      .roster-player-logo-col {
+
+      .standings-table tr {
+        transition: none; 
+      }
+
+      .standings-table tr:hover {
+        background-color: #f8f9fa;
+      }
+
+      .rank-cell {
+        font-weight: bold;
+      }
+
+      .team-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        min-height: auto;
+        padding: 0; 
+      }
+
+      .team-cell:hover {
+        color: #007bff;
+      }
+
+      .team-logo {
+        width: 24px;
+        height: 24px;
+        border-radius: 2px;
+        flex-shrink: 0; 
+      }
+
+      .team-name {
+        font-weight: 500;
+        flex-grow: 1; 
+      }
+
+      .record-cell {
+        font-weight: 500;
+      }
+
+      .pam-cell {
+        font-weight: 500;
+      }
+
+      .pam-positive {
+        color: #28a745;
+      }
+
+      .pam-negative {
+        color: #dc3545;
+      }
+
+      .playoff-seed {
+        background-color: #28a745;
+        color: white;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
         display: flex;
         align-items: center;
         justify-content: center;
-      }
-      .roster-team-logo-inline {
-        width: 24px;
-        height: 24px;
-        border-radius: 3px;
-      }
-
-
-      .player-item:hover {
-        background-color: #f8f9fa;
-      }
-
-      .player-item:last-child {
-        border-bottom: none;
-      }
-
-      .player-info {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        padding-left: 0;
-      }
-
-      .player-rel {
+        font-size: 0.8rem;
         font-weight: bold;
-        font-size: 1.1rem;
+        margin: 0 auto; 
+      }
+
+      .playin-seed {
+        background-color: #ffc107;
         color: #333;
-        text-align: center;
-        min-width: 80px;
-        padding-right: 0;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin: 0 auto; 
       }
 
-      .player-name {
-        font-weight: 500;
-        font-size: 1.1rem;
-        color: #007bff;
-        text-decoration: none;
-        cursor: pointer;
-        transition: color 0.3s ease;
+      .eliminated {
+        opacity: 0.6;
       }
 
-      .player-name:hover {
-        color: #0056b3;
-        text-decoration: underline;
+      .eliminated-seed {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        font-weight: bold;
+        margin: 0 auto; 
       }
 
-      .player-stats {
-        font-size: 0.9rem;
-        color: #666;
-        margin-top: 0.2rem;
-      }
-
-      /* Schedule section */
-      .schedule-section {
+      .playoff-legend {
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        height: fit-content;
-        min-height: 600px;
-      }
-
-      .games-list {
         padding: 1.5rem;
-        max-height: none;
-        overflow-y: visible;
+        margin-bottom: 2rem;
       }
 
-      .game-item {
-        display: flex;
-        gap: 0;
-        padding: 0;
-        border-bottom: 1px solid #eee;
-        transition: background-color 0.2s;
-        margin-left: 0;
-        position: relative;
-        min-height: 70px;
-        background-color: #fff;
-        border-radius: 4px;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      }
-
-      .game-item:hover {
-        background-color: #f8f9fa;
-      }
-
-      .game-item:last-child {
-        border-bottom: none;
-      }
-
-      .game-info-table {
-        display: grid;
-        grid-template-rows: 1fr 1fr;
-        width: 45px;
-        min-width: 45px;
-        max-width: 45px;
-        flex-shrink: 0;
-        border-right: 1px solid #ddd;
-        background-color: #f8f9fa;
-      }
-
-      .week-cell {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-bottom: 1px solid #ddd;
-        padding: 0.5rem;
-      }
-
-      .date-cell {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.5rem;
-      }
-
-      .game-content-table {
-        display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        align-items: center;
-        padding: 1rem;
-        flex: 1;
-        background-color: #fff;
-        gap: 1rem;
-      }
-
-      .team-section {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        min-width: 0;
-      }
-
-      .team-section.left {
-        justify-content: flex-start;
-      }
-
-      .team-section.right {
-        justify-content: flex-end;
-        flex-direction: row-reverse;
-      }
-
-      .team-details { 
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        flex: 1;
-      }
-
-      .team-details.right {
-        text-align: right;
-      }
-
-      .scores-section {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
+      .legend-title {
+        font-size: 1.2rem;
         font-weight: bold;
-        font-size: 1.1rem;
-        white-space: nowrap;
-        min-width: 120px;
-        justify-content: center;
-      }
-
-      .score {
-        min-width: 40px;
+        margin-bottom: 1rem;
         text-align: center;
       }
 
-      .vs-text {
-        color: #666;
-        font-weight: 500;
-        font-size: 1rem;
+      .legend-items {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
       }
 
-      .team-logo-game {
-        width: 32px;
-        height: 32px;
-        border-radius: 50% !important;
-        object-fit: cover;
-        background-color: #fff;
-        border: 1px solid #ddd;
-        flex-shrink: 0;
-      }
-
-      .team-name-game {
-        font-weight: 500;
-        font-size: 0.95rem;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      .team-record-game {
-        font-size: 0.8rem;
-        color: #666;
-        line-height: 1;
-        margin-top: 0.2rem;
-        white-space: nowrap;
-      }
-
-      .game-meta {
-        text-align: right;
-        color: #666;
-        font-size: 0.8rem;
+      .legend-item {
         display: flex;
         align-items: center;
-        justify-content: flex-end;
+        gap: 0.5rem;
       }
 
-      .game-date {
-        font-size: 0.8rem;
+      .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+      }
+
+      .playoff-color {
+        background-color: #28a745;
+      }
+
+      .playin-color {
+        background-color: #ffc107;
+      }
+
+      .eliminated-color {
+        background-color: #dc3545;
+      }
+      
+      .loading {
+        text-align: center;
+        padding: 3rem;
         color: #666;
-        font-weight: 500;
-        white-space: nowrap;
+        font-size: 1.1rem;
       }
 
-      .opponent-name {
-        font-weight: 500;
-        font-size: 0.95rem;
-        line-height: 1.2;
-        overflow-wrap: break-word;
-        word-wrap: break-word;
-        hyphens: auto;
-      }
-
-      .opponent-record {
-        font-size: 0.8rem;
-        color: #666;
-        line-height: 1;
-        margin-top: 0.2rem;
-      }
-
-      .win { color: #28a745; }
-      .loss { color: #333; } 
-      .upcoming { color: #333; font-weight: 500; }
-      .team-matchup, .team, .team-info, .vs { display: none; }
-      .game-matchup .week-badge { display: none; }
-      .team-logo { width: 20px; height: 20px; vertical-align: middle; } 
-
-      .week-badge {
-        background-color: #007bff; color: white; border-radius: 50%;
-        width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
-        font-size: 0.7rem; font-weight: bold; border: 1px solid white; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      }
-      .date-badge { font-size: 0.65rem; color: #666; font-weight: 500; }
-
-      /* Draft capital section */
-      .draft-capital { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; margin-top: 2rem; }
-      .picks-list { padding: 1.5rem; max-height: 400px; overflow-y: auto; }
-      .pick-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid #eee; font-family: monospace; font-size: 0.9rem; }
-      .pick-item:last-child { border-bottom: none; }
-      .pick-description { font-weight: 500; }
-      .pick-origin { color: #666; font-size: 0.8rem; }
-      .pick-origin a { color: #007bff; text-decoration: none; }
-      .pick-origin a:hover { text-decoration: underline; }
-      .pick-origin .pick-origin-stats { color: inherit; }
-      .pick-origin-stats { font-size: 0.75rem; color: #007bff; margin-left: 0.5rem; }
-      .game-item[onclick] { cursor: pointer; transition: all 0.3s ease; }
-      .game-item[onclick]:hover { background-color: #e8f5e8 !important; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-
-      /* Modal styles */
-      .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
-      .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
-      .modal-header { background-color: #333; color: white; padding: 1.5rem; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
-      .modal-header h3 { color: white; margin: 0; font-size: 1.4rem; }
-      .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; transition: background-color 0.3s; }
-      .close-btn:hover { background-color: rgba(255,255,255,0.1); }
-      .modal-body { padding: 2rem; }
-      .game-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-      .team-breakdown { background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
-      .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
-      .modal-team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; }
-      .modal-team-header.winner { background-color: #28a745; }
-      .modal-team-header h4 { color: white; margin: 0; font-size: 1.2rem; }
-      .modal-team-header .team-logo { width: 48px; height: 48px; border-radius: 4px; }
-      .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; }
-      .lineup-table { width: 100%; border-collapse: collapse; }
-      .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; }
-      .lineup-table th:first-child { text-align: left; width: 50%; }
-      .lineup-table th:nth-child(2), .lineup-table th:nth-child(3) { width: 25%; }
-      .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; }
-      .lineup-table td:first-child { text-align: left; }
-      .lineup-table tr:hover { background-color: white; }
-      .captain-row { background-color: #fff3cd !important; font-weight: bold; }
-      .captain-badge { background-color: #ffc107; color: #333; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 0.5rem; }
-      .captain-bonus { font-size: 0.75rem; color: #ffc107; font-weight: 500; margin-top: 0.2rem; }
-      .player-name-cell { font-weight: 500; }
-      .player-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
-      .player-link:hover { color: #0056b3; text-decoration: underline; }
-      .points-cell { text-align: center; font-weight: bold; }
-      .rank-cell { text-align: center; color: #666; } 
-
-      .pick-item-enhanced { transition: background-color 0.2s ease; display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid #eee; }
-      .pick-item-enhanced > div:first-child { text-align: left; }
-      .pick-item-enhanced:hover { background-color: #f8f9fa !important; }
-      .pick-item-enhanced:last-child { border-bottom: none; }
-      .pick-status { font-size: 0.8rem; color: #666; }
-      .season-group { box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 6px; overflow: hidden; }
-      .season-header { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.5px; }
-      .draft-capital .season-group .season-header .season-pick-count-badge { font-size: 0.9rem; white-space: nowrap; flex-shrink: 0; }
-
-      .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
-      .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
-      .back-button { background-color: #007bff; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 4px; text-decoration: none; font-size: 1rem; display: inline-block; margin-bottom: 2rem; transition: background-color 0.3s;}
-      .back-button:hover { background-color: #0056b3; text-decoration: none; color: white; }
-
-      .desktop-only-roster-logo { /* For roster logos on desktop */
-        width: 30px; 
-        height: 30px;
-        flex-shrink: 0;
-        display: flex; /* Ensure it's visible on desktop by default */
-        align-items: center;
-        justify-content: center;
+      .error {
+        text-align: center;
+        padding: 2rem;
+        color: #dc3545;
+        background-color: #f8d7da;
+        border-radius: 4px;
+        margin: 1rem;
       }
 
       @media (max-width: 768px) {
-        .content-grid { grid-template-columns: 1fr; }
-        .team-main-info { flex-direction: column; gap: 1rem; }
-        .team-logo-large { width: 80px; height: 80px; }
-        .team-stats-grid { grid-template-columns: repeat(2, 1fr); }
-        .player-item { padding: 0.75rem; grid-template-columns: 1fr 80px !important; }
-        .roster-header { grid-template-columns: 1fr 80px !important; }
-        .desktop-only-roster-logo { display: none; } 
-        
-        .game-item { padding: 0.75rem; margin-left: 0; position: relative; display: block; }
-        .game-matchup .week-badge { display: flex !important; position: absolute; top: 0.75rem; right: 0.75rem; left: auto; transform: none; width: 28px; height: 28px; font-size: 0.8rem; z-index: 2; background-color: #007bff; color: white; border-radius: 50%; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .game-matchup { display: flex; flex-direction: column; gap: 0.75rem; align-items: stretch; margin-top: 0; padding-right: 35px; }
-        .team { display: flex; align-items: center; gap: 0.5rem; min-width: auto; width: 100%; }
-        .team-info { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-        .team-name { font-weight: 500; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .team-name.win { color: #28a745; } .team-name.loss { color: #dc3545; } .team-name.upcoming { color: #333; }
-        .team-record { font-size: 0.8rem; color: #666; }
-        .team-score { font-weight: bold; color: #333; margin-left: auto; min-width: 35px; text-align: right; flex-shrink: 0; }
-        .team-score.win { color: #28a745; } .team-score.loss { color: #dc3545; } .team-score.upcoming { color: #333; }
-        .vs { display: none; }
-        .team-logo { width: 32px; height: 32px; vertical-align: middle; } 
-        .game-info-table, .game-content-table { display: none; }
-        .modal-content { margin: 1rem; width: calc(100% - 2rem); }
-        .modal-body { padding: 1rem; }
-        .modal-header h3 { font-size: 1.1rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; }
-        .game-details-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
-        .pick-item-enhanced { flex-direction: column; align-items: center; gap: 0.5rem; text-align: center; }
-        .pick-item-enhanced > div:first-child { text-align: center; }
-        .pick-description { display: block; margin: 0 auto; }
-        .pick-origin { margin-top: 0.25rem; }
-        .pick-status { align-self: center; margin-top: 0.5rem; }
-        .draft-capital .season-group .season-header { padding: 0.75rem 1rem; }
-        .draft-capital .season-group .season-header > span:first-child { font-size: 0.9rem; margin-right: 8px; flex-grow: 1; flex-shrink: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .draft-capital .season-group .season-header .season-pick-count-badge { font-size: 0.8rem; padding: 0.2rem 0.5rem; }
+        .standings-container {
+          grid-template-columns: 1fr; 
+          gap: 1.5rem;
+        }
+        #fullLeagueViewContainer .conference-section {
+            max-width: 100%; 
+        }
+        /* MODIFIED: Hide sort indicator on mobile */
+        .standings-table th .sort-indicator {
+          display: none; 
+        }
       }
 
-      @media (max-width: 480px) {
-        .team-stats-grid { grid-template-columns: 1fr; }
-        .player-item { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-        .player-rel { align-self: flex-end; }
-        .modal-header h3 { font-size: 1.0rem; }
+      footer {
+        text-align: center;
+        margin-top: 3rem;
+        padding: 1rem;
+        background-color: #333;
+        color: #fff;
       }
-
-      footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
     </style>
   </head>
   <body>
     <header>
-      <h1 id="header-title">RKL Season 7 Team</h1>
+      <h1>RKL Season 7 Standings</h1>
       <nav>
         <ul>
           <li><a href="../../index.html">Home</a></li>
           <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
           <li><a href="RKL-S7.html">Season 7</a></li>
           <li><a href="standings.html">Standings</a></li>
-          <li><a href="teams.html">Teams</a></li>
+          <li><a href="leaderboards.html">Leaderboards</a></li>
+          <li><a href="schedule.html">Schedule</a></li>
         </ul>
       </nav>
     </header>
     
     <main>
-      <a href="teams.html" class="back-button">← Back to All Teams</a>
-      
-      <div class="team-header">
-        <div class="team-main-info" id="team-main-info">
-          <div class="loading">Loading team information...</div>
-        </div>
-        
-        <div class="team-stats-grid" id="team-stats" style="display: none;">
-          </div>
+      <div class="page-header">
+        <h2 id="standingsPageTitle">Conference Standings</h2> 
+        <p>Updated after each completed game. Click headers to sort.</p> 
       </div>
 
-      <div class="content-grid">
-        <div class="roster-section">
-          <div class="section-header">
-            <h3>Current Roster</h3>
-          </div>
-          <div class="roster-list" id="roster-list">
-            <div class="loading">Loading roster...</div>
+      <button id="toggleViewButton">Show Full League Standings</button>
+
+      <div id="conferenceViewContainer">
+        <div class="playoff-legend">
+          <div class="legend-title">Playoff Picture (Conferences)</div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-color playoff-color"></div>
+              <span>Playoffs (Seeds 1-6)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color playin-color"></div>
+              <span>Play-in (Seeds 7-10)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color eliminated-color"></div>
+              <span>Out (Seeds 11+)</span>
+            </div>
           </div>
         </div>
 
-        <div class="schedule-section">
-          <div class="section-header">
-            <h3>Schedule</h3>
+        <div class="standings-container">
+          <div class="conference-section">
+            <div class="conference-header">
+              <h3>Eastern Conference</h3>
+            </div>
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th class="no-sort">Rank<span class="sort-indicator"></span></th>
+                  <th class="no-sort">Team<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Eastern', 'record')">Record<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Eastern', 'pam')">PAM<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Eastern', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+                </tr>
+              </thead>
+              <tbody id="eastern-standings">
+                <tr>
+                  <td colspan="5" class="loading">Loading Eastern Conference standings...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="games-list" id="team-schedule">
-            <div class="loading">Loading schedule...</div>
+
+          <div class="conference-section">
+            <div class="conference-header">
+              <h3>Western Conference</h3>
+            </div>
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th class="no-sort">Rank<span class="sort-indicator"></span></th>
+                  <th class="no-sort">Team<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Western', 'record')">Record<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Western', 'pam')">PAM<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Western', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+                </tr>
+              </thead>
+              <tbody id="western-standings">
+                <tr>
+                  <td colspan="5" class="loading">Loading Western Conference standings...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
 
-      <div class="draft-capital">
-        <div class="section-header">
-          <h3>Draft Capital</h3>
-        </div>
-        <div class="picks-list" id="draft-picks">
-          <div class="loading">Loading draft picks...</div>
+      <div id="fullLeagueViewContainer" class="hidden">
+        <div class="conference-section"> 
+          <div class="conference-header">
+            <h3>Full League (All Teams)</h3>
+          </div>
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th class="no-sort">Rank<span class="sort-indicator"></span></th>
+                <th class="no-sort">Team<span class="sort-indicator"></span></th>
+                <th onclick="handleSort('FullLeague', 'record')">Record<span class="sort-indicator"></span></th>
+                <th onclick="handleSort('FullLeague', 'pam')">PAM<span class="sort-indicator"></span></th>
+                <th onclick="handleSort('FullLeague', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+              </tr>
+            </thead>
+            <tbody id="full-league-standings">
+              <tr>
+                <td colspan="5" class="loading">Loading Full League standings...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
+
     </main>
-
-    <div id="game-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="modal-title">Game Details</h3>
-          <button class="close-btn" onclick="closeGameModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <div id="modal-content">
-            <div class="loading">Loading game details...</div>
-          </div>
-        </div>
-      </div>
-    </div>
     
     <footer>
       <p>&copy; caustic.info</p>
@@ -690,36 +503,24 @@
       const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
       const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
       
-      let teamId = null;
-      let teamData = null;
-      let allTeams = [];
-      let allWeeklyAverages = [];
-      let allTransactionsLogData = []; 
-      let allLineups = []; 
-
-      function formatInThousands(value) {
-        const num = parseFloat(value);
-        if (num >= 1000) {
-          return (num / 1000).toFixed(1) + 'k';
-        }
-        return Math.round(num).toLocaleString();
-      }
-
-      function formatDateMMDD(dateString) {
-        const date = new Date(dateString);
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${month}-${day}`;
-      }
-
-      function formatDateShort(dateString) {
-        const date = new Date(dateString);
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const year = String(date.getFullYear()).slice(-2);
-        return `${month}/${day}/${year}`;
-      }
+      let allTeamsData = [];
+      let easternTeamsData = []; 
+      let westernTeamsData = []; 
+      let fullLeagueTeamsData = []; 
       
+      let currentView = 'conferences'; 
+
+      const sortState = {
+        Eastern: { column: 'record', direction: 'asc' }, 
+        Western: { column: 'record', direction: 'asc' },
+        FullLeague: { column: 'record', direction: 'asc'}
+      };
+
+      function getUrlParameter(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+      }
+
       async function fetchSheetData(sheetName) {
         try {
           const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
@@ -727,903 +528,274 @@
           return parseCSV(csvText);
         } catch (error) {
           console.error(`Error fetching ${sheetName}:`, error);
+          const errorMsg = `<tr><td colspan="5" class="error">Error loading data from ${sheetName}</td></tr>`;
+          const tableIds = ['eastern-standings', 'western-standings', 'full-league-standings'];
+          tableIds.forEach(id => {
+            const tableBody = document.getElementById(id);
+            if (tableBody) tableBody.innerHTML = errorMsg;
+          });
           return null;
         }
       }
       
       function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
-        const headers = parseCSVLine(lines[0]);
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim()); 
         const data = [];
-        
         for (let i = 1; i < lines.length; i++) {
-          const values = parseCSVLine(lines[i]);
-          const row = {};
-          headers.forEach((header, index) => {
-            row[header] = values[index] || '';
-          });
-          data.push(row);
+          const values = [];
+          let currentVal = '';
+          let inQuotes = false;
+          for (let j = 0; j < lines[i].length; j++) {
+            const char = lines[i][j];
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+              values.push(currentVal.replace(/^"|"$/g, '').trim());
+              currentVal = '';
+            } else currentVal += char;
+          }
+          values.push(currentVal.replace(/^"|"$/g, '').trim()); 
+          if (values.length === headers.length) { 
+            const row = {};
+            headers.forEach((header, index) => { row[header] = values[index] || ''; });
+            data.push(row);
+          } else {
+            console.warn('Skipping mismatched CSV line:', lines[i], 'Expected', headers.length, 'got', values.length, 'values.');
+          }
         }
-        
         return data;
       }
       
-      function parseCSVLine(line) {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            result.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        result.push(current.trim());
-        return result.map(field => field.replace(/^"(.*)"$/, '$1'));
+      function getPlayoffIndicator(rank) {
+        if (rank <= 0) return '-'; 
+        if (rank <= 6) return `<div class="playoff-seed">${rank}</div>`;
+        else if (rank <= 10) return `<div class="playin-seed">${rank}</div>`;
+        else return `<div class="eliminated-seed">${rank}</div>`;
+      }
+      
+      function getPAMClass(pam) {
+        const pamValue = parseFloat(pam);
+        if (pamValue > 0) return 'pam-positive';
+        if (pamValue < 0) return 'pam-negative';
+        return '';
+      }
+      
+      function handleTeamClick(teamId) {
+        window.location.href = `team.html?id=${teamId}`;
       }
 
-      function parseNumber(value) {
-        if (!value) return 0;
-        const cleaned = value.toString().replace(/,/g, '');
-        const parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? 0 : parsed;
-      }
-
-      function escapeHTML(str) {
-        if (typeof str !== 'string') return str; 
-        return str.replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#039;');
-      }
-      
-      function getUrlParameter(name) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(name);
-      }
-      
-      function formatDate(dateString) {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
-      
-      function getTeamName(teamIdToFind) { 
-        const team = allTeams.find(t => t.team_id === teamIdToFind);
-        return team ? team.team_name : teamIdToFind;
-      }
-      
-      function getTeamRecordAtDate(teamIdForRecord, targetDate, schedule) { 
-        const completedGames = schedule.filter(game => {
-          const gameDate = new Date(game.date);
-          const target = new Date(targetDate);
-          return gameDate <= target && 
-                 game.completed === 'TRUE' && 
-                 (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord);
-        });
-        
-        let wins = 0;
-        let losses = 0;
-        
-        completedGames.forEach(game => {
-          const winner = game.winner;
-          if (winner === teamIdForRecord) {
-            wins++;
-          } else if (winner && (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord)) {
-            losses++;
+      function updateSortIndicators(tableType) { 
+        let tableElementId;
+        if (tableType === 'Eastern') tableElementId = 'eastern-standings';
+        else if (tableType === 'Western') tableElementId = 'western-standings';
+        else if (tableType === 'FullLeague') tableElementId = 'full-league-standings';
+        else return;
+        const table = document.getElementById(tableElementId)?.closest('table');
+        if (!table) return;
+        const headers = table.querySelectorAll('thead th[onclick]');
+        headers.forEach(th => {
+          const columnAttr = th.getAttribute('onclick');
+          if (!columnAttr) return;
+          const columnMatch = columnAttr.match(/'([^']+)'.*?'([^']+)'/);
+          if (!columnMatch || columnMatch.length < 3) return;
+          const column = columnMatch[2]; 
+          const indicator = th.querySelector('.sort-indicator');
+          if (indicator) {
+            if (sortState[tableType].column === column) {
+              if (column === 'med_starter_rank') indicator.textContent = sortState[tableType].direction === 'asc_rank' ? '▲' : '▼';
+              else indicator.textContent = sortState[tableType].direction === 'asc' ? '▲' : '▼';
+            } else indicator.textContent = ''; 
           }
         });
-        
-        return `${wins}-${losses}`;
       }
 
-      function calculatePlayerRELMedian(playerHandle, weeklyAverages, lineups) {
-        const playerGames = lineups.filter(lineup => 
-          lineup.player_handle === playerHandle && 
-          (lineup.started === 'TRUE' || lineup.started === true || lineup.started === 'true')
-        );
-        
-        if (playerGames.length === 0) {
-          return 0;
+      function renderStandings(tableType, teamsToRender) { 
+        let tableBodyId;
+        if (tableType === 'Eastern') tableBodyId = 'eastern-standings';
+        else if (tableType === 'Western') tableBodyId = 'western-standings';
+        else if (tableType === 'FullLeague') tableBodyId = 'full-league-standings';
+        else return; 
+        const tableBody = document.getElementById(tableBodyId);
+        if (!teamsToRender || teamsToRender.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="5" class="loading">No teams to display for ${tableType}.</td></tr>`;
+            return;
         }
-        
-        const weeklyAveragesMap = {};
-        weeklyAverages.forEach(week => {
-          if (week.date) {
-            weeklyAveragesMap[week.date] = {
-              median_score: parseNumber(week.median_score)
-            };
+        const sortedTeamsForDisplay = [...teamsToRender].sort((a, b) => {
+          const currentSortColumn = sortState[tableType].column;
+          const currentSortDirection = sortState[tableType].direction;
+          let valA, valB;
+          switch (currentSortColumn) {
+            case 'pam':
+              valA = parseFloat(a.pam || 0); valB = parseFloat(b.pam || 0);
+              return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1);
+            case 'med_starter_rank':
+              valA = parseFloat(a.med_starter_rank || 9999); valB = parseFloat(b.med_starter_rank || 9999);
+              return (valA - valB) * (currentSortDirection === 'asc_rank' ? 1 : -1); 
+            case 'record': default: 
+              if (tableType === 'FullLeague') { valA = a.officialFullLeagueRank; valB = b.officialFullLeagueRank; }
+              else { valA = a.officialRecordRank; valB = b.officialRecordRank; }
+              return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1) ;
           }
         });
-        
-        let totalPlayerKarma = 0;
-        let totalMedianKarma = 0;
-        let validGames = 0;
-        
-        playerGames.forEach(game => {
-          const gameDate = game.date;
-          const playerKarma = parseNumber(game.points_raw);
-          
-          if (weeklyAveragesMap[gameDate]) {
-            totalPlayerKarma += playerKarma;
-            totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
-            validGames++;
+        const html = sortedTeamsForDisplay.map(team => {
+          const wins = parseInt(team.wins || 0); const losses = parseInt(team.losses || 0);
+          const pam = parseFloat(team.pam || 0); const medRank = parseFloat(team.med_starter_rank || 0);
+          let rankCellContent; let trClass = '';
+          if (tableType === 'FullLeague') {
+            rankCellContent = team.officialFullLeagueRank;
+          } else { 
+            rankCellContent = getPlayoffIndicator(team.officialRecordRank);
+            if (team.officialRecordRank > 10) trClass = 'eliminated';
           }
-        });
-        
-        const avgPlayerKarma = validGames > 0 ? totalPlayerKarma / validGames : 0;
-        const avgMedianKarma = validGames > 0 ? totalMedianKarma / validGames : 0;
-        
-        return avgMedianKarma > 0 ? (avgPlayerKarma / avgMedianKarma) : 0;
-      }
-
-      function getOrdinal(num) {
-        const n = parseInt(num);
-        if (n <= 0) return 'Unranked';
-        
-        const suffix = ['th', 'st', 'nd', 'rd'];
-        const v = n % 100;
-        return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
-      }
-      
-      function calculateTeamRankings(currentTeamData, allTeamsData) { 
-        const rankings = {};
-        
-        const conferenceTeams = allTeamsData
-          .filter(t => t.conference === currentTeamData.conference)
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0);
-            const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-          });
-        rankings.record = conferenceTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
-        
-        const pamTeams = allTeamsData 
-          .sort((a, b) => parseFloat(b.pam || 0) - parseFloat(a.pam || 0));
-        rankings.pam = pamTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
-        
-        const medRankTeams = allTeamsData 
-          .filter(t => parseFloat(t.med_starter_rank || 0) > 0) 
-          .sort((a, b) => parseFloat(a.med_starter_rank || 999) - parseFloat(b.med_starter_rank || 999));
-        const medRankIndex = medRankTeams.findIndex(t => t.team_id === currentTeamData.team_id);
-        rankings.medRank = medRankIndex !== -1 ? medRankIndex + 1 : 0; 
-        
-        return rankings;
-      }
-      
-      async function loadTeamData() {
-        teamId = getUrlParameter('id');
-        if (!teamId) {
-          document.getElementById('team-main-info').innerHTML = 
-            '<div class="error">No team specified</div>';
-          return;
-        }
-        
-        const [teamsResult, weeklyAveragesResult, transactionsLogResult, lineupsResult] = await Promise.all([
-          fetchSheetData('Teams'),
-          fetchSheetData('Weekly_Averages'),
-          fetchSheetData('Transaction_Log'),
-          fetchSheetData('Lineups') 
-        ]);
-        
-        if (!teamsResult) { 
-          document.getElementById('team-main-info').innerHTML = 
-            '<div class="error">Error loading team data (Teams sheet).</div>';
-          return;
-        }
-        
-        allTeams = teamsResult;
-        allWeeklyAverages = weeklyAveragesResult || [];
-        allTransactionsLogData = transactionsLogResult || [];
-        allLineups = lineupsResult || []; 
-
-        teamData = allTeams.find(team => team.team_id === teamId);
-        if (!teamData) {
-          document.getElementById('team-main-info').innerHTML = 
-            '<div class="error">Team not found</div>';
-          return;
-        }
-        
-        const activeTeamsForRanking = allTeams.filter(t => 
-          t.team_id && 
-          t.team_id.toUpperCase() !== 'RETIRED' && 
-          t.team_id.toUpperCase() !== 'FREE_AGENT' &&
-          t.conference 
-        );
-        const rankings = calculateTeamRankings(teamData, activeTeamsForRanking);
-        
-        displayTeamHeader(rankings); 
-        
-        await Promise.all([
-          loadRoster(),
-          loadSchedule(),
-          loadDraftCapital()
-        ]);
-      }
-      
-      function displayTeamHeader(rankings) {
-        document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
-        document.getElementById('header-title').textContent = escapeHTML(teamData.team_name);
-        
-        const wins = parseInt(teamData.wins || 0);
-        const losses = parseInt(teamData.losses || 0);
-        const pam = parseFloat(teamData.pam || 0);
-        
-        document.getElementById('team-main-info').innerHTML = `
-          <div style="display: flex; align-items: center; gap: 1.5rem;">
-            <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
-            <div class="team-details">
-              <h2>${escapeHTML(teamData.team_name)}</h2>
-              <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
-              <div class="gm-info">General Manager: ${escapeHTML(teamData.gm_handle)}</div>
-            </div>
-          </div>
-        `;
-        
-        const medRank = parseFloat(teamData.med_starter_rank || 0);
-        const teamStatsContainer = document.getElementById('team-stats');
-        teamStatsContainer.innerHTML = ''; 
-
-        const recordLink = document.createElement('a');
-        recordLink.href = 'standings.html'; 
-        recordLink.className = 'stat-card-link';
-        recordLink.innerHTML = `
-          <div class="stat-card">
-            <div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div>
-            <div class="stat-label">Record</div>
-            <div class="stat-rank">${getOrdinal(rankings.record)} in ${escapeHTML(teamData.conference)} Conference</div>
-          </div>
-        `;
-        teamStatsContainer.appendChild(recordLink);
-
-        const pamLink = document.createElement('a');
-        pamLink.href = `standings.html?view=fullLeague&sortBy=pam&sortDirection=desc`;
-        pamLink.className = 'stat-card-link';
-        pamLink.innerHTML = `
-          <div class="stat-card">
-            <div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div>
-            <div class="stat-label">PAM</div>
-            <div class="stat-rank">${getOrdinal(rankings.pam)} Overall</div>
-          </div>
-        `;
-        teamStatsContainer.appendChild(pamLink);
-
-        const medRankLink = document.createElement('a');
-        medRankLink.href = `standings.html?view=fullLeague&sortBy=med_starter_rank&sortDirection=asc`;
-        medRankLink.className = 'stat-card-link';
-        medRankLink.innerHTML = `
-          <div class="stat-card">
-            <div class="stat-value">${Math.round(medRank)}</div>
-            <div class="stat-label">Median Starter Rank</div>
-            <div class="stat-rank">${rankings.medRank > 0 ? `${getOrdinal(rankings.medRank)} Overall` : 'Not ranked'}</div>
-          </div>
-        `;
-        teamStatsContainer.appendChild(medRankLink);
-
-        const transactionsLink = document.createElement('a');
-        transactionsLink.href = `transactions.html?teamFilter=${teamData.team_id}`;
-        transactionsLink.className = 'stat-card-link';
-        transactionsLink.innerHTML = `
-          <div class="stat-card">
-            <div class="stat-value">${teamData.total_transactions || 0}</div>
-            <div class="stat-label">Transactions</div>
-            ${(teamData.total_transactions || 0) > 0 ? `<div class="stat-rank">&nbsp;</div>` : '<div class="stat-rank" style="height:1em;">&nbsp;</div>'}
-          </div>
-        `;
-        teamStatsContainer.appendChild(transactionsLink);
-        
-        teamStatsContainer.style.display = 'grid';
-      }
-      
-      async function loadRoster() {
-        const players = await fetchSheetData('Players'); 
-        
-        if (!players || !allLineups) {
-          document.getElementById('roster-list').innerHTML = 
-            '<div class="error">Error loading roster data</div>';
-          return;
-        }
-        
-        const teamPlayers = players
-          .filter(player => player.current_team_id === teamId && player.player_status === 'ACTIVE');
-        
-        if (teamPlayers.length === 0) {
-          document.getElementById('roster-list').innerHTML = 
-            '<div style="text-align: center; padding: 2rem; color: #666;">No active players found</div>';
-          return;
-        }
-        
-        const playersWithREL = teamPlayers.map(player => {
-          const relMedian = calculatePlayerRELMedian(player.player_handle, allWeeklyAverages, allLineups);
-          // Calculate Median Global Rank for roster display
-          let medianGlobalRank = 0;
-          const playerStartedGamesWithRank = allLineups.filter(lineup =>
-              lineup.player_handle === player.player_handle &&
-              (String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1) &&
-              lineup.global_rank && parseNumber(lineup.global_rank) > 0
-          );
-          if (playerStartedGamesWithRank.length > 0) {
-              const ranks = playerStartedGamesWithRank.map(game => parseNumber(game.global_rank)).sort((a, b) => a - b);
-              const mid = Math.floor(ranks.length / 2);
-              medianGlobalRank = ranks.length % 2 === 0 ? Math.round((ranks[mid - 1] + ranks[mid]) / 2) : Math.round(ranks[mid]);
-          }
-
-          return {
-            ...player,
-            calculated_rel_median: relMedian,
-            median_global_rank_for_roster: medianGlobalRank // Store calculated median rank
-          };
-        }).sort((a, b) => b.calculated_rel_median - a.calculated_rel_median);
-        
-        const rosterHTML = playersWithREL.map(player => {
-          const relMedian = player.calculated_rel_median;
-          const gamesPlayed = parseInt(player.games_played || 0);
-          const medianRankDisplay = player.median_global_rank_for_roster > 0 ? player.median_global_rank_for_roster : '-';
-          
           return `
-            <div class="player-item">
-              <div class="roster-player-logo-col desktop-only-roster-logo">
-                <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="roster-team-logo-inline" onerror="this.style.display='none'">
-              </div>
-              <div class="player-info">
-                <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}</a>
-                <div class="player-stats">
-                  ${gamesPlayed} games • 
-                  ${medianRankDisplay} med rank 
+            <tr class="${trClass}">
+              <td class="rank-cell">${rankCellContent}</td>
+              <td>
+                <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
+                  <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                  <span class="team-name">${team.team_name}</span>
                 </div>
-              </div>
-              <div class="player-rel">${relMedian.toFixed(3)}</div>
-            </div>
-          `;
+              </td>
+              <td class="record-cell">${wins}-${losses}</td>
+              <td class="pam-cell ${getPAMClass(pam)}">${Math.round(pam).toLocaleString()}</td>
+              <td class="rank-cell">${medRank > 0 ? Math.round(medRank) : '-'}</td>
+            </tr>`;
         }).join('');
-        
-        const finalHTML = `
-          <div class="roster-header">
-            <span class="roster-logo-header-col desktop-only-roster-logo"></span>
-            <span class="header-player">Player</span>
-            <span class="header-rel">REL Median</span>
-          </div>
-          <div class="roster-content">
-            ${rosterHTML}
-          </div>
-        `;
-        
-        document.getElementById('roster-list').innerHTML = finalHTML;
+        tableBody.innerHTML = html;
+        updateSortIndicators(tableType); 
+      }
+
+      function handleSort(tableType, column) { 
+        const currentSort = sortState[tableType]; let newDirection;
+        if (currentSort.column === column) {
+          if (column === 'med_starter_rank') newDirection = currentSort.direction === 'asc_rank' ? 'desc_rank' : 'asc_rank';
+          else newDirection = currentSort.direction === 'desc' ? 'asc' : 'desc';
+        } else {
+          if (column === 'med_starter_rank') newDirection = 'asc_rank'; 
+          else if (column === 'record') newDirection = 'asc'; 
+          else newDirection = 'desc'; 
+        }
+        sortState[tableType] = { column, direction: newDirection };
+        let teamsToRender;
+        if (tableType === 'Eastern') teamsToRender = easternTeamsData;
+        else if (tableType === 'Western') teamsToRender = westernTeamsData;
+        else if (tableType === 'FullLeague') teamsToRender = fullLeagueTeamsData;
+        else return; 
+        renderStandings(tableType, teamsToRender);
       }
       
-      async function loadSchedule() {
-        const scheduleData = await fetchSheetData('Schedule'); 
-        
-        if (!scheduleData) {
-          document.getElementById('team-schedule').innerHTML = 
-            '<div class="error">Error loading schedule data</div>';
-          return;
-        }
-        
-        const teamGames = scheduleData
-          .filter(game => game.team1_id === teamId || game.team2_id === teamId)
-          .sort((a, b) => new Date(a.date) - new Date(b.date)); 
-        
-        if (teamGames.length === 0) {
-          document.getElementById('team-schedule').innerHTML = 
-            '<div style="text-align: center; padding: 2rem; color: #666;">No games scheduled</div>';
-          return;
-        }
-        
-        const gamesHTML = teamGames.map(game => {
-          const isTeam1 = game.team1_id === teamId;
-          const opponentId = isTeam1 ? game.team2_id : game.team1_id;
-          const opponentName = getTeamName(opponentId);
-          const isCompleted = game.completed === 'TRUE';
-          const gameWeek = game.week || 'TBD';
-          const gameDateFormatted = formatDateMMDD(game.date); 
-          
-          let opponentRecord = '';
-          if (isCompleted) {
-            opponentRecord = getTeamRecordAtDate(opponentId, game.date, scheduleData);
-          } else {
-            const previousDate = new Date(game.date);
-            previousDate.setDate(previousDate.getDate() - 1);
-            opponentRecord = getTeamRecordAtDate(opponentId, previousDate.toISOString().split('T')[0], scheduleData);
-          }
+      function toggleStandingsView() {
+        const confView = document.getElementById('conferenceViewContainer');
+        const fullLeagueView = document.getElementById('fullLeagueViewContainer');
+        const toggleButton = document.getElementById('toggleViewButton');
+        const pageTitle = document.getElementById('standingsPageTitle');
 
-          let teamRecord = '';
-          if (isCompleted) {
-            teamRecord = getTeamRecordAtDate(teamId, game.date, scheduleData);
-          } else {
-            const previousDate = new Date(game.date);
-            previousDate.setDate(previousDate.getDate() - 1);
-            teamRecord = getTeamRecordAtDate(teamId, previousDate.toISOString().split('T')[0], scheduleData);
-          }
-          
-          let clickHandler = '';
-          let teamScoreText = ''; 
-          let oppScoreText = '';  
-          let teamScoreClass = '';
-          let oppScoreClass = '';
-          let teamWon = false;
-          let oppWon = false;
-          
-          let logoClickHandlers = '';
-          
-          if (isCompleted) {
-            const teamScoreValue = parseFloat(isTeam1 ? game.team1_score : game.team2_score);
-            const oppScoreValue = parseFloat(isTeam1 ? game.team2_score : game.team1_score);
-            teamWon = teamScoreValue > oppScoreValue;
-            oppWon = oppScoreValue > teamScoreValue;
-            
-            teamScoreText = formatInThousands(teamScoreValue);
-            oppScoreText = formatInThousands(oppScoreValue);
-            
-            teamScoreClass = teamWon ? 'win' : 'loss';
-            oppScoreClass = oppWon ? 'win' : 'loss';
-            
-            clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')" style="cursor: pointer;"`;
-          } else {
-            teamScoreText = '-';
-            oppScoreText = '-';
-            teamScoreClass = 'upcoming';
-            oppScoreClass = 'upcoming';
-            
-            logoClickHandlers = `onclick="window.location.href='team.html?id=${opponentId}'" style="cursor: pointer;"`;
-          }
-          
-          return `
-            <div class="game-item" ${clickHandler}>
-              <div class="game-info-table">
-                <div class="week-cell">
-                  <div class="week-badge">${gameWeek}</div>
-                </div>
-                <div class="date-cell">
-                  <div class="date-badge">${gameDateFormatted}</div>
-                </div>
-              </div>
-              
-              <div class="game-content-table">
-                <div class="team-section left">
-                  <img src="icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-game" onerror="this.style.display='none'">
-                  <div class="team-details">
-                    <div class="team-name-game">${escapeHTML(teamData.team_name)}</div>
-                    <div class="team-record-game">${teamRecord}</div>
-                  </div>
-                </div>
-                
-                <div class="scores-section">
-                  <div class="score ${teamScoreClass}">${teamScoreText}</div>
-                  <div class="vs-text">vs</div>
-                  <div class="score ${oppScoreClass}">${oppScoreText}</div>
-                </div>
-                
-                <div class="team-section right">
-                  <img src="icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo-game" ${logoClickHandlers} onerror="this.style.display='none'">
-                  <div class="team-details right">
-                    <div class="team-name-game">${escapeHTML(opponentName)}</div>
-                    <div class="team-record-game">${opponentRecord}</div>
-                  </div>
-                </div>
-              </div>
+        if (currentView === 'conferences') {
+            currentView = 'fullLeague';
+            confView.classList.add('hidden');
+            fullLeagueView.classList.remove('hidden');
+            toggleButton.textContent = 'Show Conference Standings';
+            pageTitle.textContent = 'Full League Standings';
+        } else {
+            currentView = 'conferences';
+            fullLeagueView.classList.add('hidden');
+            confView.classList.remove('hidden');
+            toggleButton.textContent = 'Show Full League Standings';
+            pageTitle.textContent = 'Conference Standings';
+        }
+      }
 
-              <div class="game-matchup"> 
-                <div class="week-badge">${gameWeek}</div> 
-                
-                <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}">
-                  <img src="icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo" onerror="this.style.display='none'">
-                  <div class="team-info">
-                    <span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span>
-                    <span class="team-record">${teamRecord}</span>
-                  </div>
-                  <span class="team-score ${teamScoreClass}">${teamScoreText}</span>
-                </div>
-                <span class="vs">vs</span>
-                <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}">
-                  <img src="icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo" ${logoClickHandlers} onerror="this.style.display='none'">
-                  <div class="team-info">
-                    <span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span>
-                    <span class="team-record">${opponentRecord}</span>
-                  </div>
-                  <span class="team-score ${oppScoreClass}">${oppScoreText}</span>
-                </div>
-              </div>
-            </div>
-          `;
-        }).join('');
-        
-        document.getElementById('team-schedule').innerHTML = gamesHTML;
-        
-        if (window.innerWidth <= 768) {
-          const gameItems = document.querySelectorAll('#team-schedule .game-item'); 
-          teamGames.forEach((game, index) => {
-            if (gameItems[index]) {
-              const mobileDateContainer = gameItems[index].querySelector('.game-matchup');
-              if (mobileDateContainer) { 
-                const mobileDate = document.createElement('div');
-                mobileDate.className = 'mobile-date-under-badge';
-                mobileDate.style.position = 'absolute';
-                mobileDate.style.top = '2.75rem'; 
-                mobileDate.style.right = '0.75rem';
-                mobileDate.style.fontSize = '0.65rem';
-                mobileDate.style.color = '#666';
-                mobileDate.style.fontWeight = '500';
-                mobileDate.style.textAlign = 'center';
-                mobileDate.style.width = '28px'; 
-                mobileDate.style.zIndex = '1';
-                mobileDate.textContent = formatDateMMDD(game.date);
-                gameItems[index].appendChild(mobileDate);
-              }
+      async function loadStandings() {
+        const viewParam = getUrlParameter('view');
+        const sortByParam = getUrlParameter('sortBy');
+        let sortDirectionParam = getUrlParameter('sortDirection'); 
+
+        if (viewParam === 'fullLeague' && sortByParam) {
+            let effectiveSortDirection = sortDirectionParam;
+            if (!effectiveSortDirection) { 
+                if (sortByParam === 'med_starter_rank') effectiveSortDirection = 'asc_rank'; 
+                else if (sortByParam === 'pam') effectiveSortDirection = 'desc'; 
+                else effectiveSortDirection = 'asc'; 
+            } else {
+                if (sortByParam === 'med_starter_rank') {
+                    if (sortDirectionParam.toLowerCase() === 'asc') effectiveSortDirection = 'asc_rank';
+                    else if (sortDirectionParam.toLowerCase() === 'desc') effectiveSortDirection = 'desc_rank';
+                }
             }
-          });
+            sortState.FullLeague = { column: sortByParam, direction: effectiveSortDirection };
         }
-      }
-      
-      async function loadDraftCapital() {
-        const draftPicksData = await fetchSheetData('Draft_Capital');
-        if (!draftPicksData) {
-          document.getElementById('draft-picks').innerHTML = 
-            '<div class="error">Error loading draft capital data</div>';
+        
+        let fetchedTeamsData = await fetchSheetData('Teams'); 
+        if (!fetchedTeamsData) {
           return;
         }
         
-        const teamPicks = draftPicksData
-          .filter(pick => pick.current_owner === teamId)
+        allTeamsData = fetchedTeamsData.filter(team => {
+            const id = team.team_id ? team.team_id.trim().toUpperCase() : ''; 
+            return id !== 'RETIRED' && id !== 'FREE_AGENT';
+        });
+
+        if (!allTeamsData || allTeamsData.length === 0) {
+            const errorMsg = '<tr><td colspan="5" class="error">No valid team data available after filtering.</td></tr>';
+            const tableIds = ['eastern-standings', 'western-standings', 'full-league-standings'];
+            tableIds.forEach(id => {
+                const tableBody = document.getElementById(id);
+                if (tableBody) tableBody.innerHTML = errorMsg;
+            });
+            document.getElementById('conferenceViewContainer').classList.add('hidden');
+            document.getElementById('fullLeagueViewContainer').classList.add('hidden');
+            document.getElementById('toggleViewButton').classList.add('hidden'); 
+            document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
+            return;
+        }
+        
+        let rawEasternTeams = allTeamsData.filter(team => team.conference === 'Eastern');
+        let rawWesternTeams = allTeamsData.filter(team => team.conference === 'Western');
+
+        easternTeamsData = rawEasternTeams
+          .sort((a, b) => { 
+            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
+          })
+          .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
+          
+        westernTeamsData = rawWesternTeams
+          .sort((a, b) => { 
+            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
+          })
+          .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
+
+        fullLeagueTeamsData = [...allTeamsData] 
           .sort((a, b) => {
-            const seasonA = parseInt(a.season || 0);
-            const seasonB = parseInt(b.season || 0);
-            if (seasonA !== seasonB) return seasonA - seasonB;
-            return parseInt(a.round || 0) - parseInt(b.round || 0);
-          });
+            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
+          })
+          .map((team, index) => ({ ...team, officialFullLeagueRank: index + 1 }));
         
-        if (teamPicks.length === 0) {
-          document.getElementById('draft-picks').innerHTML = 
-            '<div style="text-align: center; padding: 2rem; color: #666;">No draft picks owned</div>';
-          return;
+        renderStandings('Eastern', easternTeamsData);
+        renderStandings('Western', westernTeamsData);
+        renderStandings('FullLeague', fullLeagueTeamsData); 
+        
+        document.getElementById('fullLeagueViewContainer').classList.add('hidden');
+        document.getElementById('conferenceViewContainer').classList.remove('hidden');
+        document.getElementById('standingsPageTitle').textContent = 'Conference Standings';
+        const toggleButton = document.getElementById('toggleViewButton');
+        toggleButton.textContent = 'Show Full League Standings';
+        toggleButton.classList.remove('hidden'); 
+        currentView = 'conferences';
+
+        if (viewParam === 'fullLeague') {
+            toggleStandingsView(); 
         }
-        
-        const picksBySeason = {};
-        teamPicks.forEach(pick => {
-          const season = pick.season;
-          if (!picksBySeason[season]) {
-            picksBySeason[season] = [];
-          }
-          picksBySeason[season].push(pick);
-        });
-        
-        const seasonsHTML = Object.keys(picksBySeason)
-          .sort((a, b) => parseInt(a) - parseInt(b))
-          .map(season => {
-            const picks = picksBySeason[season];
-            const seasonColor = getSeasonColor(parseInt(season));
-            
-            const picksHTML = picks.map(pick => {
-              const isOriginalOwnerOfPick = pick.original_team === teamId;
-              const isPendingForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
-              
-              let originDisplayHTML = '';
-              let pickDescriptionText = escapeHTML(pick.pick_description);
-              let transactionForLink = null; // To store the specific transaction for linking
-              let originTextContent = '';
 
-
-              if (isPendingForfeiture) {
-                originDisplayHTML = `<div class="pick-origin" style="font-size: 0.8rem; color: #dc3545; font-weight: bold;">PENDING FORFEITURE</div>`;
-              } else if (!isOriginalOwnerOfPick) { // Pick was acquired
-                let viaTeamId = null;
-                let viaTeamName = '';
-                let originalTeamForDisplayId = pick.original_team;
-                let originalTeamForDisplayName = getTeamName(originalTeamForDisplayId);
-                
-                // Try to parse the 'via' team from notes if a specific trade is cited
-                if (pick.notes) {
-                    const citationRegex = /\b([A-Z]{2,4})\s*\/\s*([A-Z]{2,4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\b/i;
-                    const noteMatch = pick.notes.match(citationRegex);
-                    if (noteMatch) {
-                        const teamA_in_note = noteMatch[1].toUpperCase();
-                        const teamB_in_note = noteMatch[2].toUpperCase();
-                        // Find the specific transaction to confirm roles and get from_team
-                        const specificTransaction = (allTransactionsLogData || []).find(t => 
-                            t.draft_pick_id === pick.pick_id &&
-                            t.to_team === teamId && // Current team received the pick
-                            ((t.from_team === teamA_in_note && t.to_team === teamB_in_note) || (t.from_team === teamB_in_note && t.to_team === teamA_in_note)) &&
-                            new Date(t.date).toLocaleDateString('en-US', {month:'numeric', day:'numeric', year:'numeric'}) === new Date(noteMatch[3]).toLocaleDateString('en-US', {month:'numeric', day:'numeric', year:'numeric'})
-                        );
-                        if (specificTransaction) {
-                            viaTeamId = specificTransaction.from_team;
-                            transactionForLink = specificTransaction; // Use this for link
-                        } else { // Fallback if note is present but transaction not found (should be rare)
-                           if (teamA_in_note === teamId) viaTeamId = teamB_in_note;
-                           else if (teamB_in_note === teamId) viaTeamId = teamA_in_note;
-                        }
-                    }
-                }
-                
-                // If viaTeamId was not found through notes, try finding the last transaction for this pick to this team
-                if (!viaTeamId && (allTransactionsLogData || []).length > 0) {
-                    const relevantTransactions = allTransactionsLogData
-                        .filter(t => t.draft_pick_id === pick.pick_id && t.to_team === teamId && t.transaction_type === 'TRADE')
-                        .sort((a,b) => new Date(b.date) - new Date(a.date)); // Get most recent
-                    if (relevantTransactions.length > 0) {
-                        viaTeamId = relevantTransactions[0].from_team;
-                        if (!transactionForLink) transactionForLink = relevantTransactions[0];
-                    }
-                }
-
-
-                const originalOwnerStats = allTeams.find(t => t.team_id === originalTeamForDisplayId);
-                let originalOwnerStatsStr = "";
-                if (originalOwnerStats) {
-                    const ooWins = parseInt(originalOwnerStats.wins || 0);
-                    const ooLosses = parseInt(originalOwnerStats.losses || 0);
-                    const ooPAM = parseFloat(originalOwnerStats.pam || 0);
-                    const pamFormatted = Math.abs(ooPAM) >= 1000 ? (ooPAM / 1000).toFixed(1) + 'k' : Math.round(ooPAM).toString();
-                    originalOwnerStatsStr = ` (${ooWins}-${ooLosses}, ${pamFormatted} PAM)`;
-                }
-
-                if (viaTeamId && viaTeamId !== originalTeamForDisplayId) {
-                    viaTeamName = getTeamName(viaTeamId);
-                    originTextContent = `via ${escapeHTML(viaTeamName)}; (${escapeHTML(originalTeamForDisplayName)}: ${escapeHTML(originalOwnerStatsStr)})`;
-                } else { // Acquired directly from original owner, or viaTeamId could not be determined reliably
-                    originTextContent = `from ${escapeHTML(originalTeamForDisplayName)}${escapeHTML(originalOwnerStatsStr)}`;
-                    // If viaTeamId was null, try to find any transaction for linking if notes available
-                    if (!transactionForLink && pick.notes) {
-                         const citationRegex = /\b([A-Z]{2,4})\s*\/\s*([A-Z]{2,4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\b/i;
-                         const noteMatch = pick.notes.match(citationRegex);
-                         if (noteMatch) { // Attempt to build a generic link based on note
-                             const teamA_in_note = noteMatch[1].toUpperCase();
-                             const teamB_in_note = noteMatch[2].toUpperCase();
-                             const dateStr = noteMatch[3];
-                             const dateParts = dateStr.split('/');
-                             const year = dateParts[2];
-                             const month = String(dateParts[0]).padStart(2, '0');
-                             const day = String(dateParts[1]).padStart(2, '0');
-                             const formattedDateForLink = `${year}-${month}-${day}`;
-                             transactionForLink = { date: formattedDateForLink, from_team: teamA_in_note, to_team: teamB_in_note }; // Mock transaction for link
-                         }
-                    }
-                }
-                
-                if (transactionForLink) {
-                    const linkDate = new Date(transactionForLink.date).toISOString().split('T')[0];
-                    // Ensure from_team and to_team are valid for the link
-                    const linkFromTeam = transactionForLink.from_team || (viaTeamId || pick.original_team);
-                    const linkToTeam = transactionForLink.to_team || teamId;
-                    const transactionsLink = `transactions.html?type=TRADE&date=${linkDate}&teamFilters=${linkFromTeam},${linkToTeam}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
-                    originDisplayHTML = `<div class="pick-origin"><a href="${transactionsLink}" title="View transaction">${originTextContent}</a></div>`;
-                } else {
-                    originDisplayHTML = `<div class="pick-origin" style="color: #666;">${originTextContent}</div>`;
-                }
-
-              } else if (!isPendingForfeiture) { 
-                  originDisplayHTML = `<div class="pick-origin" style="color: #666;">Original Pick</div>`;
-              }
-              
-              let pickBackgroundColor = '#e8f5e8'; 
-              if (isPendingForfeiture) {
-                pickBackgroundColor = '#f8d7da'; 
-              } else if (!isOriginalOwnerOfPick) { 
-                pickBackgroundColor = '#fff3cd'; 
-              }
-
-              return `
-                <div class="pick-item-enhanced" style="background-color: ${pickBackgroundColor};">
-                  <div>
-                    <span class="pick-description">${pickDescriptionText}</span>
-                    ${originDisplayHTML}
-                  </div>
-                  <div class="pick-status">
-                    ${isPendingForfeiture ? 'Pending Forfeiture' : (isOriginalOwnerOfPick ? 'Own Pick' : 'Acquired')}
-                  </div>
-                </div>
-              `;
-            }).join('');
-            
-            return `
-              <div class="season-group" style="margin-bottom: 1.5rem;">
-                <div class="season-header" style="background-color: ${seasonColor}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-                  <span>Season ${season} Draft</span>
-                  <span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">${picks.length} pick${picks.length !== 1 ? "s" : ""}</span>
-                </div>
-                <div class="season-picks" style="border: 1px solid ${seasonColor}; border-top: none; border-radius: 0 0 6px 6px;">
-                  ${picksHTML}
-                </div>
-              </div>
-            `;
-          }).join('');
-        
-        const totalPicks = teamPicks.length;
-        const summaryPendingForfeitureCount = teamPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
-        const summaryOwnPicks = teamPicks.filter(p => p.original_team === teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
-        const summaryAcquiredPicks = teamPicks.filter(p => p.original_team !== teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
-        
-        const summaryHTML = `
-          <div class="draft-summary" style="background-color: #f8f9fa; padding: 1.5rem; border-radius: 6px; margin-bottom: 1.5rem; border: 1px solid #ddd;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; text-align: center;">
-              <div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #333;">${totalPicks}</div>
-                <div style="font-size: 0.9rem; color: #666;">Total Picks</div>
-              </div>
-              <div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${summaryOwnPicks}</div>
-                <div style="font-size: 0.9rem; color: #666;">Own Picks</div>
-              </div>
-              <div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;">${summaryAcquiredPicks}</div>
-                <div style="font-size: 0.9rem; color: #666;">Acquired</div>
-              </div>
-              ${summaryPendingForfeitureCount > 0 ? `
-                <div>
-                  <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">${summaryPendingForfeitureCount}</div>
-                  <div style="font-size: 0.9rem; color: #666;">Pending Forfeiture</div>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-        `;
-        
-        document.getElementById('draft-picks').innerHTML = summaryHTML + seasonsHTML;
-      }
-
-      function getSeasonColor(season) {
-        const colors = {
-          8: '#007bff', 
-          9: '#28a745',  
-          10: '#ffc107', 
-          11: '#dc3545', 
-          12: '#6c757d'  
-        };
-        return colors[season] || '#6c757d';
-      }
-
-      async function showGameDetails(team1Id, team2Id, date) {
-        const modal = document.getElementById('game-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalContentEl = document.getElementById('modal-content'); 
-        
-        modal.style.display = 'block';
-        modalTitle.textContent = `${escapeHTML(getTeamName(team1Id))} vs ${escapeHTML(getTeamName(team2Id))} - ${formatDateShort(date)}`;
-        modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
-        
-        const scheduleData = await fetchSheetData('Schedule');
-        if (!scheduleData) {
-          modalContentEl.innerHTML = '<div class="error">Error loading game details (schedule)</div>';
-          return;
-        }
-        
-        const game = scheduleData.find(g => 
-          g.team1_id === team1Id && 
-          g.team2_id === team2Id && 
-          g.date === date
-        );
-        
-        if (!game) {
-          modalContentEl.innerHTML = '<div class="error">Game not found</div>';
-          return;
-        }
-        
-        const lineupsData = await fetchSheetData('Lineups'); 
-        if (!lineupsData) {
-          modalContentEl.innerHTML = '<div class="error">Error loading lineup data</div>';
-          return;
-        }
-        
-        const team1AllLineups = lineupsData.filter(lineup => 
-          lineup.team_id === team1Id && lineup.date === date
-        );
-        const team2AllLineups = lineupsData.filter(lineup => 
-          lineup.team_id === team2Id && lineup.date === date
-        );
-        
-        const team1Lineups = team1AllLineups.filter(lineup => {
-          const isStarted = lineup.started === 'TRUE' || lineup.started === true || lineup.started === 'true' || lineup.started === 1 || lineup.started === '1';
-          return isStarted;
-        }).sort((a, b) => {
-          const aCaptain = a.captain === 'TRUE' || a.captain === true || a.captain === 'true';
-          const bCaptain = b.captain === 'TRUE' || b.captain === true || b.captain === 'true';
-          if (aCaptain && !bCaptain) return -1;
-          if (!aCaptain && bCaptain) return 1;
-          return parseNumber(b.points_final) - parseNumber(a.points_final);
-        });
-        
-        const team2Lineups = team2AllLineups.filter(lineup => {
-          const isStarted = lineup.started === 'TRUE' || lineup.started === true || lineup.started === 'true' || lineup.started === 1 || lineup.started === '1';
-          return isStarted;
-        }).sort((a, b) => {
-          const aCaptain = a.captain === 'TRUE' || a.captain === true || a.captain === 'true';
-          const bCaptain = b.captain === 'TRUE' || b.captain === true || b.captain === 'true';
-          if (aCaptain && !bCaptain) return -1;
-          if (!aCaptain && bCaptain) return 1;
-          return parseNumber(b.points_final) - parseNumber(a.points_final);
-        });
-        
-        const team1Total = team1Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0);
-        const team2Total = team2Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0);
-        
-        const winner = game.winner;
-        
-        const generateLineupTable = (lineupsForTable, idOfTeam, total, isWinner) => { 
-          const teamDetailsForModal = allTeams.find(t => t.team_id === idOfTeam); 
-          const teamRecord = teamDetailsForModal ? `${teamDetailsForModal.wins || 0}-${teamDetailsForModal.losses || 0}` : '';
-          
-          if (lineupsForTable.length === 0) {
-            return `
-              <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;">
-                  <img src="icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'">
-                  <div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
-                </div>
-                <div class="team-total">Total: ${Math.round(total).toLocaleString()}</div>
-                <div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div>
-              </div>
-            `;
-          }
-          
-          const lineupRows = lineupsForTable.map(player => {
-            const isCaptain = player.captain === 'TRUE' || player.captain === true || player.captain === 'true';
-            const pointsRaw = parseNumber(player.points_raw);
-            const globalRank = parseNumber(player.global_rank);
-            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
-            
-            return `
-              <tr class="${isCaptain ? 'captain-row' : ''}">
-                <td class="player-name-cell">
-                  <a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">
-                    ${escapeHTML(player.player_handle || 'Unknown')}
-                  </a>
-                  ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
-                </td>
-                <td class="points-cell">
-                  ${Math.round(pointsRaw).toLocaleString()}
-                  ${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}
-                </td>
-                <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
-              </tr>
-            `;
-          }).join('');
-          
-          return `
-            <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-              <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;">
-                <img src="icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'">
-                <div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
-              </div>
-              <div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div>
-              <table class="lineup-table">
-                <thead> <tr> <th>Player</th> <th>Points</th> <th>Rank</th> </tr> </thead>
-                <tbody> ${lineupRows} </tbody>
-              </table>
-            </div>
-          `;
-        };
-        
-        modalContentEl.innerHTML = `
-          <div class="game-details-grid">
-            ${generateLineupTable(team1Lineups, team1Id, team1Total, winner === team1Id)}
-            ${generateLineupTable(team2Lineups, team2Id, team2Total, winner === team2Id)}
-          </div>
-        `;
+        document.getElementById('toggleViewButton').addEventListener('click', toggleStandingsView);
       }
       
-      function closeGameModal() {
-        const modal = document.getElementById('game-modal');
-        if (modal) {
-          modal.style.display = 'none';
-        }
-      }
-      
-      window.onclick = function(event) {
-        const modal = document.getElementById('game-modal');
-        if (event.target === modal) {
-          closeGameModal();
-        }
-      }
-      
-      document.addEventListener('DOMContentLoaded', loadTeamData);
+      document.addEventListener('DOMContentLoaded', loadStandings);
     </script>
   </body>
 </html>
