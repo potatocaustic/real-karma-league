@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title id="page-title">RKL Season 7 Player - caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <title id="page-title">RKL Season 7 Player</title> <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -32,10 +31,42 @@
         text-align: center;
       }
       
-      header h1 {
+      header h1 { /* This is for the main page title in the header block */
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; 
         margin: 0;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; 
+      }
+      
+      .header-logo { /* For the logo in the main page title */
+        width: 40px; 
+        height: 40px;
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+      
+      /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; 
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
       }
       
       nav ul {
@@ -55,10 +86,59 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
         color: #ccc;
+      }
+
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
+        nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); 
+          left: 0;
+          right: 0;
+          background-color: #444; 
+          flex-direction: column;
+          align-items: center;
+          gap: 0rem; 
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; 
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
+        
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
       }
 
       /* Main content */
@@ -86,7 +166,7 @@
         margin-bottom: 1rem; 
       }
 
-      .team-logo-large {
+      .team-logo-large { /* Used for player's current team logo */
         width: 120px;
         height: 120px;
         border-radius: 50% !important;
@@ -96,7 +176,7 @@
         flex-shrink: 0;
       }
 
-      .player-details h2 {
+      .player-details h2 { /* Player's name */
         font-size: 2.5rem;
         margin-bottom: 0.5rem;
       }
@@ -199,7 +279,7 @@
         grid-template-columns: 1fr 1fr;
         gap: 2rem;
         margin-top: 2rem;
-        align-items: start; /* MODIFIED: To prevent vertical stretching of grid items */
+        align-items: start; 
       }
 
       /* Performance section */
@@ -370,18 +450,17 @@
         
         .game-item { 
           /* Keep as flex row for mobile to have performance on right */
-          /* padding: 0.75rem; /* Removed gap to rely on justify-content */
         }
         .game-history-main-content {
           /* width: auto; /* Default, flex-grow will handle */
         }
         .game-history-matchup-teams {
             flex-direction: column; 
-            align-items: flex-start; /* Align stacked teams to the left */
+            align-items: flex-start; 
             gap: 0.2rem; 
         }
         .game-history-vs-separator {
-            display: none; /* Hide "vs" on mobile */
+            display: none; 
         }
         .game-history-team-entry {
             width: 100%; 
@@ -402,7 +481,6 @@
       @media (max-width: 480px) {
         .player-stats-grid { grid-template-columns: 1fr; }
         .performance-table th:nth-child(4), .performance-table td:nth-child(4) { display: none; }
-        /* .game-item { padding: 0.75rem; } /* Keep padding consistent */
         .opponent-logo { width: 24px; height: 24px; }
         .game-history-team-name { font-size: 0.85rem; }
         .game-history-date { font-size: 0.75rem; }
@@ -415,16 +493,8 @@
   </head>
   <body>
     <header>
-      <h1 id="header-title">RKL Season 7 Player</h1>
-      <nav>
-        <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
-          <li><a href="standings.html">Standings</a></li>
-          <li><a href="leaderboards.html">Leaderboards</a></li>
-        </ul>
-      </nav>
+       <nav>
+        </nav>
     </header>
     
     <main>
@@ -464,7 +534,7 @@
       </div>
     </div>
     
-    <footer><p>&copy; caustic.info</p></footer>
+    <footer><p>@caustic on Real</p></footer>
 
     <script>
       const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
@@ -698,7 +768,15 @@
 
       function displayPlayerHeader(rankings) { 
         document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL Season 7`;
-        document.getElementById('header-title').textContent = playerData.player_handle;
+        // The player's name is now set within the .player-details h2 directly
+        const playerDetailsH2 = document.querySelector('.player-details h2');
+        if (playerDetailsH2) {
+            playerDetailsH2.textContent = playerData.player_handle;
+        } else { // Fallback if the H2 isn't found for some reason, update the placeholder
+            const placeholderTitle = document.getElementById('header-title-placeholder');
+            if(placeholderTitle) placeholderTitle.textContent = playerData.player_handle;
+        }
+
         let teamLogoHTML = '';
         let teamInfoHTML = '';
         let previousTeamsHTML = '';
@@ -941,7 +1019,19 @@
         if (event.target === modal) closeGameModal();
       }
       
-      document.addEventListener('DOMContentLoaded', loadPlayerData);
+      document.addEventListener('DOMContentLoaded', () => {
+        loadPlayerData();
+        // Nav Toggle JS
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
+      });
     </script>
   </body>
 </html>

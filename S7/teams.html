@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Season 7 Teams - caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <title>RKL Season 7 Teams</title>
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -32,10 +32,42 @@
         text-align: center;
       }
       
-      header h1 {
+      header h1 { /* This is for the main page title in the header block */
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; 
         margin: 0;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; 
+      }
+      
+      .header-logo { /* For the logo in the main page title */
+        width: 40px; 
+        height: 40px;
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+      
+      /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; 
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
       }
       
       nav ul {
@@ -55,10 +87,59 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
         color: #ccc;
+      }
+
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
+        nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); 
+          left: 0;
+          right: 0;
+          background-color: #444; 
+          flex-direction: column;
+          align-items: center;
+          gap: 0rem; 
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; 
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
+        
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
       }
 
       /* Main content */
@@ -238,9 +319,17 @@
         color: #333;
       }
 
-      .eliminated {
-        background-color: #dc3545;
+      .eliminated { /* This class was for the seed color, but we use rank instead */
+        /* background-color: #dc3545; */ 
       }
+      
+      .team-card.eliminated-from-playoffs { /* New class to dim the whole card */
+        opacity: 0.6;
+      }
+      .team-card.eliminated-from-playoffs .playoff-position { /* Ensure playoff position still shows eliminated color */
+         background-color: #dc3545;
+      }
+
 
       /* Loading states */
       .loading {
@@ -270,10 +359,11 @@
           grid-template-columns: 1fr 1fr;
         }
         
-        .team-stats .stat-item:nth-child(3),
+        /* Keep all 4 stats for team cards on mobile unless explicitly asked to hide */
+        /* .team-stats .stat-item:nth-child(3),
         .team-stats .stat-item:nth-child(4) {
-          display: none;
-        }
+          display: none; 
+        } */
       }
 
       @media (max-width: 480px) {
@@ -283,7 +373,7 @@
         }
         
         .team-stats {
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr; /* Stack all 4 stats on very small screens */
         }
       }
 
@@ -299,15 +389,20 @@
   </head>
   <body>
     <header>
-      <h1>RKL Season 7 Teams</h1>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
       <nav>
-        <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+          <li><a href="RKL-S7.html">S7 Home</a></li>
           <li><a href="standings.html">Standings</a></li>
           <li><a href="leaderboards.html">Leaderboards</a></li>
+          <li><a href="schedule.html">Schedule</a></li>
+          <li><a href="transactions.html">Transactions</a></li>
           <li><a href="teams.html">Teams</a></li>
+          <li><a href="draft-capital.html">Draft Capital</a></li>
         </ul>
       </nav>
     </header>
@@ -338,7 +433,7 @@
     </main>
     
     <footer>
-      <p>&copy; caustic.info</p>
+      <p>@caustic on Real</p>
     </footer>
 
     <script>
@@ -372,13 +467,14 @@
         return data;
       }
       
-      function getPlayoffIndicator(conference, rankInConference) { // Renamed parameter for clarity
+      function getPlayoffIndicator(conference, rankInConference) { 
         if (rankInConference <= 6) {
           return `<div class="playoff-position playoff-seed">${rankInConference}</div>`;
         } else if (rankInConference <= 10) {
           return `<div class="playoff-position playin-seed">${rankInConference}</div>`;
         } else {
-          return ''; 
+          // For teams out of play-in, show their rank with eliminated styling
+          return `<div class="playoff-position eliminated">${rankInConference}</div>`;
         }
       }
       
@@ -415,14 +511,13 @@
           team.conference && (team.conference.toLowerCase() === 'eastern' || team.conference.toLowerCase() === 'western')
         );
         
-        // ***** MODIFIED SORTING LOGIC: Reverted to Wins then PAM *****
         const easternTeams = activeTeams
           .filter(team => team.conference.toLowerCase() === 'eastern')
           .sort((a, b) => {
             const winsA = parseInt(a.wins || 0);
             const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA; // Primary sort: wins descending
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); // Secondary sort: pam descending
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
           });
           
         const westernTeams = activeTeams
@@ -430,18 +525,21 @@
           .sort((a, b) => {
             const winsA = parseInt(a.wins || 0);
             const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA; // Primary sort: wins descending
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); // Secondary sort: pam descending
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
           });
         
-        function generateTeamCard(team, rankInConference) { // rankInConference is now based on sort order (index + 1)
+        function generateTeamCard(team, rankInConference) { 
           const wins = parseInt(team.wins || 0);
           const losses = parseInt(team.losses || 0);
           const pam = parseFloat(team.pam || 0);
           const medianStarterRank = parseFloat(team.med_starter_rank || 0); 
           
+          // Add a class if the team is eliminated from play-in contention
+          const cardClass = rankInConference > 10 ? 'eliminated-from-playoffs' : '';
+
           return `
-            <a href="team.html?id=${team.team_id}" class="team-card">
+            <a href="team.html?id=${team.team_id}" class="team-card ${cardClass}">
               ${getPlayoffIndicator(team.conference, rankInConference)}
               <div class="team-header">
                 <img src="icons/${team.team_id}.webp" 
@@ -478,11 +576,11 @@
         }
         
         const easternHTML = easternTeams.map((team, index) => {
-          return generateTeamCard(team, index + 1); // Use index + 1 for rank after sorting
+          return generateTeamCard(team, index + 1); 
         }).join('');
         
         const westernHTML = westernTeams.map((team, index) => {
-          return generateTeamCard(team, index + 1); // Use index + 1 for rank after sorting
+          return generateTeamCard(team, index + 1); 
         }).join('');
         
         document.getElementById('eastern-teams').innerHTML = easternHTML || 
@@ -491,7 +589,19 @@
           '<p class="error" style="grid-column: 1 / -1;">No Western Conference teams found or data error.</p>';
       }
       
-      document.addEventListener('DOMContentLoaded', loadTeams);
+      document.addEventListener('DOMContentLoaded', () => {
+        loadTeams();
+        // Nav Toggle JS
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
+      });
     </script>
   </body>
 </html>

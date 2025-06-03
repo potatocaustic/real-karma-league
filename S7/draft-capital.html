@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Season 7 Draft Capital - caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <title>RKL Season 7 Draft Capital</title>
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -32,10 +32,42 @@
         text-align: center;
       }
       
-      header h1 {
+      header h1 { /* This is for the main page title in the header block */
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; 
         margin: 0;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; 
+      }
+      
+      .header-logo { /* For the logo in the main page title */
+        width: 40px; 
+        height: 40px;
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+      
+      /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; 
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
       }
       
       nav ul {
@@ -55,10 +87,59 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
         color: #ccc;
+      }
+
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
+        nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); 
+          left: 0;
+          right: 0;
+          background-color: #444; 
+          flex-direction: column;
+          align-items: center;
+          gap: 0rem; 
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; 
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
+        
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
       }
 
       /* Main content */
@@ -231,7 +312,6 @@
         background-color: #fff3cd;
       }
 
-      /* This class is now used for "Pending Forfeiture" */
       .forfeited-pick { 
         background-color: #f8d7da;
         opacity: 0.7; 
@@ -396,13 +476,19 @@
   </head>
   <body>
     <header>
-      <h1>RKL Season 7 Draft Capital</h1>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
       <nav>
-        <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+          <li><a href="RKL-S7.html">S7 Home</a></li>
           <li><a href="standings.html">Standings</a></li>
+          <li><a href="leaderboards.html">Leaderboards</a></li>
+          <li><a href="schedule.html">Schedule</a></li>
+          <li><a href="transactions.html">Transactions</a></li>
+          <li><a href="teams.html">Teams</a></li>
           <li><a href="draft-capital.html">Draft Capital</a></li>
         </ul>
       </nav>
@@ -450,7 +536,6 @@
               <option value="all">All Picks</option>
               <option value="original">Original Owner</option>
               <option value="traded">Traded</option>
-              {/* MODIFIED: Filter option text and value */}
               <option value="pending_forfeiture">Pending Forfeiture</option>
             </select>
           </div>
@@ -487,7 +572,7 @@
     </main>
     
     <footer>
-      <p>&copy; caustic.info</p>
+      <p>@caustic on Real</p>
     </footer>
 
     <script>
@@ -627,7 +712,6 @@
         });
       }
       
-      // ***** MODIFIED getFilteredPicks for "pending_forfeiture" *****
       function getFilteredPicks() {
         const roundFilter = document.getElementById('round-filter').value;
         const ownerFilter = document.getElementById('owner-filter').value;
@@ -664,7 +748,6 @@
         
         const totalPicks = filteredPicks.length;
         const originalPicksCount = filteredPicks.filter(p => p.current_owner === p.original_team && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
-        // ***** MODIFIED for Pending Forfeiture Count and Label *****
         const pendingForfeiturePicksCount = filteredPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
         const tradedPicksCount = filteredPicks.filter(p => p.current_owner !== p.original_team && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
         
@@ -688,7 +771,6 @@
         });
         
         const tableHTML = sortedPicks.map(pick => {
-          // ***** MODIFIED to check for "PENDING FORFEITURE" *****
           const isPendingForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
           let tradeStatusText = 'Original Owner'; 
           let rowClass = 'original-pick';
@@ -707,7 +789,7 @@
 
           if (isPendingForfeiture) {
             tradeStatusText = 'Pending Forfeiture';
-            rowClass = 'forfeited-pick'; // Use existing class for styling
+            rowClass = 'forfeited-pick'; 
           } else if (pick.current_owner !== pick.original_team) {
             rowClass = 'traded-pick';
             const relevantTransactions = (allTransactionsLogData || [])
@@ -735,7 +817,6 @@
           
           let finalTradeStatusHTML = escapeHTML(tradeStatusText); 
 
-          // Link only if actually traded (not original owner) AND not pending forfeiture AND has notes for linking
           if (pick.current_owner !== pick.original_team && !isPendingForfeiture && pick.notes) {
               const citationRegex = /\b([A-Z]{2,4})\s*\/\s*([A-Z]{2,4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\b/i;
               const match = pick.notes.match(citationRegex);
@@ -751,13 +832,12 @@
                   const day = String(dateParts[1]).padStart(2, '0');
                   const formattedDateForLink = `${year}-${month}-${day}`;
                   
-                  const transactionsLink = `transactions.html?type=TRADE&date=${formattedDateForLink}&teamFilters=${team1ID},${team2ID}`;
+                  const transactionsLink = `transactions.html?type=TRADE&date=${formattedDateForLink}&teamFilters=${team1ID},${team2ID}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
                   finalTradeStatusHTML = `<a href="${transactionsLink}" title="View transaction: ${escapeHTML(pick.notes)}">${escapeHTML(tradeStatusText)}</a>`;
               }
           }
           
           let originalTeamCellClasses = "owner-cell"; 
-          // Apply opacity if traded and NOT pending forfeiture
           if (pick.current_owner !== pick.original_team && !isPendingForfeiture) { 
             originalTeamCellClasses += " original-team-cell-traded";
           }
@@ -827,10 +907,9 @@
                 <div class="team-picks">
                   ${sortedPicks.map(pick => {
                     const isOwn = pick.current_owner === pick.original_team;
-                    // ***** MODIFIED to check for "PENDING FORFEITURE" *****
                     const isPendingForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
                     let originText = '';
-                    if (isPendingForfeiture) { // Use isPendingForfeiture here
+                    if (isPendingForfeiture) { 
                         originText = '<div class="pick-origin" style="color: #dc3545;">PENDING FORFEITURE</div>'; 
                     } else if (!isOwn) {
                         originText = `<div class="pick-origin">from ${escapeHTML(getTeamName(pick.original_team))}</div>`;
@@ -847,10 +926,9 @@
                     }
                     const safeFormattedPickDescInTeamView = escapeHTML(formattedPickDescInTeamView);
                     
-                    // Apply forfeited-pick class styling in team view as well
                     let pickItemClass = isOwn && !isPendingForfeiture ? 'own' : 'acquired';
                     if (isPendingForfeiture) {
-                        pickItemClass = 'forfeited-pick'; // Reuse for styling consistency if desired
+                        pickItemClass = 'forfeited-pick'; 
                     }
 
 
@@ -910,6 +988,17 @@
             }
         }
         loadData();
+
+        // Nav Toggle JS
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
       });
     </script>
   </body>

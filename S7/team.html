@@ -3,8 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title id="page-title">RKL Season 7 Team - caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <title id="page-title">RKL Season 7 Team</title> <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -32,10 +31,42 @@
         text-align: center;
       }
       
-      header h1 {
+      header h1 { /* This is for the main page title in the header block */
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; 
         margin: 0;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; 
+      }
+      
+      .header-logo { /* For the logo in the main page title */
+        width: 40px; 
+        height: 40px;
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+      
+      /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; 
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
       }
       
       nav ul {
@@ -55,10 +86,59 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
         color: #ccc;
+      }
+
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
+        nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); 
+          left: 0;
+          right: 0;
+          background-color: #444; 
+          flex-direction: column;
+          align-items: center;
+          gap: 0rem; 
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; 
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
+        
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
       }
 
       /* Main content */
@@ -68,8 +148,8 @@
         margin: 0 auto;
       }
 
-      /* Team header */
-      .team-header {
+      /* Team header section styling (specific to this page) */
+      .team-header-content { /* Renamed to avoid conflict with general header */
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -96,7 +176,7 @@
         flex-shrink: 0;
       }
 
-      .team-details h2 {
+      .team-details h2 { /* This is where the team name is displayed */
         font-size: 2.5rem;
         margin-bottom: 0.5rem;
       }
@@ -486,11 +566,11 @@
       .win { color: #28a745; }
       .loss { color: #333; } 
       .upcoming { color: #333; font-weight: 500; }
-      .team-matchup, .team, .team-info, .vs { display: none; }
-      .game-matchup .week-badge { display: none; }
+      .team-matchup, .team, .team-info, .vs { display: none; } /* Styles for old mobile schedule format, hidden by default */
+      .game-matchup .week-badge { display: none; } /* Hides old mobile week badge */
       .team-logo { width: 20px; height: 20px; vertical-align: middle; } 
 
-      .week-badge {
+      .week-badge { /* For new schedule format */
         background-color: #007bff; color: white; border-radius: 50%;
         width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;
         font-size: 0.7rem; font-weight: bold; border: 1px solid white; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
@@ -576,6 +656,11 @@
         .desktop-only-roster-logo { display: none; } 
         
         .game-item { padding: 0.75rem; margin-left: 0; position: relative; display: block; }
+        /* Show the old mobile schedule display for team.html specifically */
+        .game-item .game-matchup { display: flex !important; } 
+        .game-item .game-info-table, .game-item .game-content-table { display: none !important; }
+
+
         .game-matchup .week-badge { display: flex !important; position: absolute; top: 0.75rem; right: 0.75rem; left: auto; transform: none; width: 28px; height: 28px; font-size: 0.8rem; z-index: 2; background-color: #007bff; color: white; border-radius: 50%; align-items: center; justify-content: center; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .game-matchup { display: flex; flex-direction: column; gap: 0.75rem; align-items: stretch; margin-top: 0; padding-right: 35px; }
         .team { display: flex; align-items: center; gap: 0.5rem; min-width: auto; width: 100%; }
@@ -587,7 +672,7 @@
         .team-score.win { color: #28a745; } .team-score.loss { color: #dc3545; } .team-score.upcoming { color: #333; }
         .vs { display: none; }
         .team-logo { width: 32px; height: 32px; vertical-align: middle; } 
-        .game-info-table, .game-content-table { display: none; }
+        
         .modal-content { margin: 1rem; width: calc(100% - 2rem); }
         .modal-body { padding: 1rem; }
         .modal-header h3 { font-size: 1.1rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-grow: 1; min-width: 0; }
@@ -614,23 +699,14 @@
   </head>
   <body>
     <header>
-      <h1 id="header-title">RKL Season 7 Team</h1>
-      <nav>
-        <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
-          <li><a href="standings.html">Standings</a></li>
-          <li><a href="teams.html">Teams</a></li>
-        </ul>
-      </nav>
+        <h1 id="header-title-placeholder" style="display:none;">RKL Season 7 Team</h1> <nav>
+        </nav>
     </header>
     
     <main>
       <a href="teams.html" class="back-button">← Back to All Teams</a>
       
-      <div class="team-header">
-        <div class="team-main-info" id="team-main-info">
+      <div class="team-header-content"> <div class="team-main-info" id="team-main-info">
           <div class="loading">Loading team information...</div>
         </div>
         
@@ -683,7 +759,7 @@
     </div>
     
     <footer>
-      <p>&copy; caustic.info</p>
+      <p>@caustic on Real</p>
     </footer>
 
     <script>
@@ -951,7 +1027,8 @@
       
       function displayTeamHeader(rankings) {
         document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
-        document.getElementById('header-title').textContent = escapeHTML(teamData.team_name);
+        // The main site header is static "Real Karma League". Team name is in the .team-details h2.
+        // document.getElementById('header-title-placeholder').textContent = escapeHTML(teamData.team_name); // This element is hidden
         
         const wins = parseInt(teamData.wins || 0);
         const losses = parseInt(teamData.losses || 0);
@@ -1307,47 +1384,44 @@
               
               let originDisplayHTML = '';
               let pickDescriptionText = escapeHTML(pick.pick_description);
-              let transactionForLink = null; // To store the specific transaction for linking
+              let transactionForLink = null; 
               let originTextContent = '';
 
 
               if (isPendingForfeiture) {
                 originDisplayHTML = `<div class="pick-origin" style="font-size: 0.8rem; color: #dc3545; font-weight: bold;">PENDING FORFEITURE</div>`;
-              } else if (!isOriginalOwnerOfPick) { // Pick was acquired
+              } else if (!isOriginalOwnerOfPick) { 
                 let viaTeamId = null;
                 let viaTeamName = '';
                 let originalTeamForDisplayId = pick.original_team;
                 let originalTeamForDisplayName = getTeamName(originalTeamForDisplayId);
                 
-                // Try to parse the 'via' team from notes if a specific trade is cited
                 if (pick.notes) {
                     const citationRegex = /\b([A-Z]{2,4})\s*\/\s*([A-Z]{2,4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\b/i;
                     const noteMatch = pick.notes.match(citationRegex);
                     if (noteMatch) {
                         const teamA_in_note = noteMatch[1].toUpperCase();
                         const teamB_in_note = noteMatch[2].toUpperCase();
-                        // Find the specific transaction to confirm roles and get from_team
                         const specificTransaction = (allTransactionsLogData || []).find(t => 
                             t.draft_pick_id === pick.pick_id &&
-                            t.to_team === teamId && // Current team received the pick
+                            t.to_team === teamId && 
                             ((t.from_team === teamA_in_note && t.to_team === teamB_in_note) || (t.from_team === teamB_in_note && t.to_team === teamA_in_note)) &&
                             new Date(t.date).toLocaleDateString('en-US', {month:'numeric', day:'numeric', year:'numeric'}) === new Date(noteMatch[3]).toLocaleDateString('en-US', {month:'numeric', day:'numeric', year:'numeric'})
                         );
                         if (specificTransaction) {
                             viaTeamId = specificTransaction.from_team;
-                            transactionForLink = specificTransaction; // Use this for link
-                        } else { // Fallback if note is present but transaction not found (should be rare)
+                            transactionForLink = specificTransaction; 
+                        } else { 
                            if (teamA_in_note === teamId) viaTeamId = teamB_in_note;
                            else if (teamB_in_note === teamId) viaTeamId = teamA_in_note;
                         }
                     }
                 }
                 
-                // If viaTeamId was not found through notes, try finding the last transaction for this pick to this team
                 if (!viaTeamId && (allTransactionsLogData || []).length > 0) {
                     const relevantTransactions = allTransactionsLogData
                         .filter(t => t.draft_pick_id === pick.pick_id && t.to_team === teamId && t.transaction_type === 'TRADE')
-                        .sort((a,b) => new Date(b.date) - new Date(a.date)); // Get most recent
+                        .sort((a,b) => new Date(b.date) - new Date(a.date)); 
                     if (relevantTransactions.length > 0) {
                         viaTeamId = relevantTransactions[0].from_team;
                         if (!transactionForLink) transactionForLink = relevantTransactions[0];
@@ -1368,13 +1442,12 @@
                 if (viaTeamId && viaTeamId !== originalTeamForDisplayId) {
                     viaTeamName = getTeamName(viaTeamId);
                     originTextContent = `via ${escapeHTML(viaTeamName)}; (${escapeHTML(originalTeamForDisplayName)}: ${escapeHTML(originalOwnerStatsStr)})`;
-                } else { // Acquired directly from original owner, or viaTeamId could not be determined reliably
+                } else { 
                     originTextContent = `from ${escapeHTML(originalTeamForDisplayName)}${escapeHTML(originalOwnerStatsStr)}`;
-                    // If viaTeamId was null, try to find any transaction for linking if notes available
                     if (!transactionForLink && pick.notes) {
                          const citationRegex = /\b([A-Z]{2,4})\s*\/\s*([A-Z]{2,4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\b/i;
                          const noteMatch = pick.notes.match(citationRegex);
-                         if (noteMatch) { // Attempt to build a generic link based on note
+                         if (noteMatch) { 
                              const teamA_in_note = noteMatch[1].toUpperCase();
                              const teamB_in_note = noteMatch[2].toUpperCase();
                              const dateStr = noteMatch[3];
@@ -1383,14 +1456,13 @@
                              const month = String(dateParts[0]).padStart(2, '0');
                              const day = String(dateParts[1]).padStart(2, '0');
                              const formattedDateForLink = `${year}-${month}-${day}`;
-                             transactionForLink = { date: formattedDateForLink, from_team: teamA_in_note, to_team: teamB_in_note }; // Mock transaction for link
+                             transactionForLink = { date: formattedDateForLink, from_team: teamA_in_note, to_team: teamB_in_note }; 
                          }
                     }
                 }
                 
                 if (transactionForLink) {
                     const linkDate = new Date(transactionForLink.date).toISOString().split('T')[0];
-                    // Ensure from_team and to_team are valid for the link
                     const linkFromTeam = transactionForLink.from_team || (viaTeamId || pick.original_team);
                     const linkToTeam = transactionForLink.to_team || teamId;
                     const transactionsLink = `transactions.html?type=TRADE&date=${linkDate}&teamFilters=${linkFromTeam},${linkToTeam}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
@@ -1623,7 +1695,19 @@
         }
       }
       
-      document.addEventListener('DOMContentLoaded', loadTeamData);
+      document.addEventListener('DOMContentLoaded', () => {
+        loadTeamData();
+        // Nav Toggle JS
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
+      });
     </script>
   </body>
 </html>

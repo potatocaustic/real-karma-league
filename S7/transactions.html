@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Season 7 Transactions - caustic.info</title>
+    <title>RKL Season 7 Transactions</title>
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
@@ -447,7 +447,7 @@
     </main>
     
     <footer>
-      <p>&copy; caustic.info</p>
+      <p>@caustic on Real</p>
     </footer>
 
     <script>
@@ -828,8 +828,9 @@
           return;
         }
         
+        // MODIFIED LINE: Changed "Transaction Group" to "Transaction"
         document.getElementById('transactions-title').textContent = 
-          `${finalGroupsToShow.length} Transaction Group${finalGroupsToShow.length === 1 ? '' : 's'}`;
+          `${finalGroupsToShow.length} Transaction${finalGroupsToShow.length === 1 ? '' : 's'}`;
         
         const transactionsHTML = finalGroupsToShow.map(group => {
           const isTradeGroup = group.some(t => t.transaction_type === "TRADE");
