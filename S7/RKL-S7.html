@@ -24,7 +24,7 @@
         color: #333;
       }
 
-      /* Header styling - matching your design */
+      /* Header styling */
       header {
         background-color: #333;
         color: #fff;
@@ -34,18 +34,17 @@
       
       header h1 {
         color: white !important;
-        font-size: 2rem; /* Increased font size */
+        font-size: 2rem; 
         margin: 0;
-        display: flex; /* For aligning icon and text */
+        display: flex; 
         align-items: center;
         justify-content: center;
-        gap: 0.75rem; /* Space between icon and text */
+        gap: 0.75rem; 
       }
       
       .header-logo {
-        width: 40px; /* Adjust size as needed */
+        width: 40px; 
         height: 40px;
-        /* border-radius: 50%; /* If the logo is meant to be circular */
         object-fit: cover;
       }
 
@@ -54,6 +53,23 @@
       }
 
       /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; /* Position toggle button if needed */
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
+      }
+      
       nav ul {
         display: flex;
         justify-content: center;
@@ -80,25 +96,49 @@
 
       /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
-        header h1 {
-          /* On mobile, text might still be too large or icon might be enough */
-        }
         .header-text {
-          display: none; /* Hide text on mobile */
+          display: none; 
         }
         .header-logo {
-          width: 50px; /* Larger logo when it's the only thing */
+          width: 50px; 
           height: 50px;
         }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
         nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); /* Position below the header (adjust if nav is not directly in header) */
+          left: 0;
+          right: 0;
+          background-color: #444; /* Dropdown background */
           flex-direction: column;
           align-items: center;
-          gap: 0.5rem;
+          gap: 0rem; /* Remove gap, handled by li padding */
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; /* Ensure dropdown is on top */
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
         }
         
         nav ul li {
-          margin: 0.2rem 0;
+          margin: 0;
+          width: 100%;
           text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
         }
       }
 
@@ -408,7 +448,7 @@
         overflow-y: auto;
       }
 
-      .modal-content { /* This is the main modal box */
+      .modal-content { 
         background-color: #fff;
         margin: 2rem auto;
         border-radius: 8px;
@@ -456,7 +496,6 @@
       
       #game-details-content-area {
       }
-
 
       .game-details-grid {
         display: grid;
@@ -694,7 +733,8 @@
         <span class="header-text">Real Karma League</span>
       </h1>
       <nav>
-        <ul>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
           <li><a href="RKL-S7.html">S7 Home</a></li>
           <li><a href="standings.html">Standings</a></li>
           <li><a href="leaderboards.html">Leaderboards</a></li>
@@ -1151,6 +1191,17 @@
           loadRecentGames(),
           loadSeasonInfo()
         ]);
+        
+        // Dropdown menu toggle functionality
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
       }
       document.addEventListener('DOMContentLoaded', initializePage);
     </script>
