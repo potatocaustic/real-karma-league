@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Real Karma League S7</title>
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <title>RKL Season 7 Draft Capital - caustic.info</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -24,7 +24,7 @@
         color: #333;
       }
 
-      /* Header styling - standardized */
+      /* Header styling */
       header {
         background-color: #333;
         color: #fff;
@@ -34,37 +34,8 @@
       
       header h1 {
         color: white !important;
-        font-size: 2rem;
+        font-size: 1.5rem;
         margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-      }
-      
-      .header-logo {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        object-fit: cover;
-      }
-      
-      /* Mobile header - show only logo */
-      @media (max-width: 768px) {
-        header h1 {
-          font-size: 1.6rem;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-      
-        .header-logo {
-          width: 35px;
-          height: 35px;
-        }
-      
-        .header-text {
-          display: none; /* Hide text on mobile */
-        }
       }
       
       nav ul {
@@ -425,10 +396,7 @@
   </head>
   <body>
     <header>
-      <h1>    
-        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
-        <span class="header-text">Real Karma League</span>
-      </h1>
+      <h1>RKL Season 7 Draft Capital</h1>
       <nav>
         <ul>
           <li><a href="../../index.html">Home</a></li>
@@ -523,7 +491,7 @@
     </footer>
 
     <script>
-      const SHEET_ID = '1Q0ONjrvzWE2TNoph-tQZxmxKj6g4FuyQuSanAHOeNR0'; 
+      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
       const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
       
       let currentSeason = 8;
