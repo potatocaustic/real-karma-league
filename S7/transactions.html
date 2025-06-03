@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 7 Transactions - caustic.info</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/potatocaustic/web-stuff/refs/heads/main/favicon.ico" type="image/x-icon" />
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <style>
       /* Reset and General Styles */
       * {
@@ -32,10 +32,42 @@
         text-align: center;
       }
       
-      header h1 {
+      header h1 { /* This is for the main page title in the header block */
         color: white !important;
-        font-size: 1.5rem;
+        font-size: 2rem; 
         margin: 0;
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem; 
+      }
+      
+      .header-logo { /* For the logo in the main page title */
+        width: 40px; 
+        height: 40px;
+        object-fit: cover;
+      }
+
+      .header-text {
+        /* Default display */
+      }
+      
+      /* Navigation styling */
+      nav {
+        position: relative; /* For dropdown positioning context */
+      }
+
+      .nav-toggle {
+        display: none; /* Hidden by default, shown on mobile */
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.8rem;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        position: absolute; 
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        right: 1rem;
       }
       
       nav ul {
@@ -55,10 +87,59 @@
         text-decoration: none;
         font-size: 1.1rem;
         transition: color 0.3s ease;
+        white-space: nowrap;
       }
       
       nav ul li a:hover {
         color: #ccc;
+      }
+
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
+        nav ul {
+          display: none; /* Hide nav list by default on mobile */
+          position: absolute;
+          top: calc(100% - 1rem); 
+          left: 0;
+          right: 0;
+          background-color: #444; 
+          flex-direction: column;
+          align-items: center;
+          gap: 0rem; 
+          margin-top: 0;
+          padding: 0.5rem 0;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          z-index: 100; 
+        }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
+        
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
       }
 
       /* Main content */
@@ -300,15 +381,20 @@
   </head>
   <body>
     <header>
-      <h1>RKL Season 7 Transactions</h1>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
       <nav>
-        <ul>
-          <li><a href="../../index.html">Home</a></li>
-          <li><a href="../rkl-stats.html">RKL Stats Database</a></li>
-          <li><a href="RKL-S7.html">Season 7</a></li>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+          <li><a href="RKL-S7.html">S7 Home</a></li>
           <li><a href="standings.html">Standings</a></li>
           <li><a href="leaderboards.html">Leaderboards</a></li>
+          <li><a href="schedule.html">Schedule</a></li>
           <li><a href="transactions.html">Transactions</a></li>
+          <li><a href="teams.html">Teams</a></li>
+          <li><a href="draft-capital.html">Draft Capital</a></li>
         </ul>
       </nav>
     </header>
@@ -379,7 +465,7 @@
       let urlDateFilter = null;
       let urlTeamFilters = []; 
       let urlTransactionType = null;
-      let urlPickIdFilter = null; // MODIFIED: Added global variable for pick ID filter
+      let urlPickIdFilter = null; 
 
       async function fetchSheetData(sheetName) {
         try {
@@ -555,7 +641,7 @@
         const params = new URLSearchParams(window.location.search);
         urlDateFilter = params.get('date'); 
         urlTransactionType = params.get('type');
-        urlPickIdFilter = params.get('pick_id'); // MODIFIED: Get pick_id from URL
+        urlPickIdFilter = params.get('pick_id'); 
         
         const singleTeamFilterParam = params.get('teamFilter'); 
         const multiTeamFiltersParam = params.get('teamFilters'); 
@@ -630,33 +716,26 @@
             typeFilterEl.disabled = true; 
         }
         if (urlDateFilter) {
-            // weekFilterEl.value = 'all'; // Keep 'all' to show transactions from all weeks matching the date
             weekFilterEl.disabled = true; 
         }
         if (urlTeamFilters.length > 0) {
-            if (urlTeamFilters.length === 1 && !urlPickIdFilter) { // Only disable if not a pick_id link needing broader team context initially
+            if (urlTeamFilters.length === 1 && !urlPickIdFilter) { 
                 teamFilterEl.value = urlTeamFilters[0];
             } else { 
                 teamFilterEl.value = 'all'; 
             }
             teamFilterEl.disabled = true;
         }
-        // If a pick_id is present, ensure filters are broad enough initially, then JS will narrow it down.
         if (urlPickIdFilter) {
-            weekFilterEl.value = 'all'; // Ensure all weeks are considered
-            // typeFilterEl.value = 'TRADE'; // Usually pick trades are of type TRADE
-            // teamFilterEl.value = 'all'; // Consider all teams then filter by pick
-            // These can be disabled if we are sure the link provides enough context.
-            // For now, let's allow them to be broad if pick_id is the main filter.
+            weekFilterEl.value = 'all'; 
         }
         
         [weekFilterEl, typeFilterEl, teamFilterEl].forEach(filterEl => {
           filterEl.addEventListener('change', () => {
-            // Clear URL-based filters if user interacts with dropdowns
-            if (filterEl.id === 'week-filter' && (urlDateFilter || urlPickIdFilter)) { // If week changed, clear date/pick specific context
+            if (filterEl.id === 'week-filter' && (urlDateFilter || urlPickIdFilter)) { 
                 urlDateFilter = null; urlPickIdFilter = null;
                 weekFilterEl.disabled = false; 
-                typeFilterEl.disabled = false; // Re-enable other filters
+                typeFilterEl.disabled = false; 
                 teamFilterEl.disabled = false;
             }
             if (filterEl.id === 'type-filter' && (urlTransactionType || urlPickIdFilter)) {
@@ -681,7 +760,6 @@
         const typeFilterValue = document.getElementById('type-filter').value;
         
         return allTransactions.filter(transaction => {
-          // If a specific date is in URL, it's a hard filter (unless cleared by week interaction)
           if (urlDateFilter) {
             const transactionDateComparable = getComparableDate(transaction.date);
             if (transactionDateComparable !== urlDateFilter) return false;
@@ -689,14 +767,11 @@
             return false; 
           }
           
-          // If a specific type is in URL, it's a hard filter (unless cleared)
           if (urlTransactionType) {
             if (transaction.transaction_type !== urlTransactionType) return false;
           } else if (typeFilterValue !== 'all' && transaction.transaction_type !== typeFilterValue) {
             return false; 
           }
-          // Note: pick_id filter will be applied *after* grouping, on the groups.
-          // Team filter will also be applied after grouping, on the groups.
           return true;
         });
       }
@@ -718,7 +793,6 @@
         let finalGroupsToShow = transactionGroups;
         const teamFilterDropdownValue = document.getElementById('team-filter').value;
 
-        // Apply URL Team Filters first if they exist
         if (urlTeamFilters.length > 0) {
             finalGroupsToShow = finalGroupsToShow.filter(group => {
                 return group.some(transaction => { 
@@ -731,7 +805,6 @@
                 });
             });
         } 
-        // Else, if no URL team filter, apply dropdown team filter (unless it's 'all')
         else if (teamFilterDropdownValue !== 'all') {
             finalGroupsToShow = finalGroupsToShow.filter(group => {
                 return group.some(transaction => 
@@ -743,13 +816,11 @@
             });
         }
 
-        // MODIFIED: Apply pick_id filter if present in URL
         if (urlPickIdFilter) {
             finalGroupsToShow = finalGroupsToShow.filter(group => {
                 return group.some(transaction => transaction.draft_pick_id === urlPickIdFilter);
             });
         }
-        // END MODIFIED
 
         if (finalGroupsToShow.length === 0) {
           document.getElementById('transactions-list').innerHTML = '<div class="no-transactions">No transactions match your filters.</div>';
@@ -910,7 +981,19 @@
         `;
       }
       
-      document.addEventListener('DOMContentLoaded', loadData);
+      document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+        // Nav Toggle JS
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
+      });
     </script>
   </body>
 </html>
