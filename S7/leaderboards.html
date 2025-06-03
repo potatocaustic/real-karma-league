@@ -518,13 +518,21 @@
 
 <script>
       const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
-      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&`;
       
       function formatKarma(value) {
         return Math.round(parseFloat(value || 0)).toLocaleString();
       }
+      // MODIFIED: formatRank now uses Math.round() and handles Infinity for unrankable
       function formatRank(value) {
-        const rank = parseInt(value || 0);
+        if (value === Infinity || value === null || typeof value === 'undefined' || String(value).trim() === '') {
+            return '-';
+        }
+        const numValue = parseFloat(String(value)); 
+        if (isNaN(numValue) || numValue <= 0) {
+            return '-';
+        }
+        const rank = Math.round(numValue); // Use Math.round()
         return rank > 0 ? rank : '-';
       }
       function formatPercentage(value) {
@@ -575,7 +583,7 @@
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
-            { header: 'Median Rank', dataField: 'calculated_median_rank', sortable: true, type: 'number', formatFn: formatRank },
+            { header: 'Median Rank', dataField: 'calculated_median_rank', sortable: true, type: 'number', formatFn: formatRank }, // Uses updated formatRank
             { header: 'Games', dataField: 'games_played', sortable: true, type: 'number', formatFn: (v) => parseInt(v || 0) }
           ],
           defaultSortField: 'calculated_median_rank',
@@ -626,7 +634,7 @@
           cols: [
             { header: 'Rank', dataField: 'leaderboardDisplayRank', sortable: true, type: 'number' }, 
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
-            { header: 'Daily Rank', dataField: 'daily_rank', sortable: true, type: 'number', formatFn: formatRank },
+            { header: 'Daily Rank', dataField: 'daily_rank', sortable: true, type: 'number', formatFn: formatRank }, // Uses updated formatRank
             { header: 'Week', dataField: 'week', sortable: true, type: 'number', formatFn: (v) => v }
           ],
           defaultSortField: 'daily_rank', 
@@ -660,7 +668,7 @@
       
       async function fetchSheetDataOriginal(sheetName) { 
         try {
-          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
+          const response = await fetch(BASE_URL + "sheet=" + encodeURIComponent(sheetName)); // Ensure "sheet=" is included
           const csvText = await response.text();
           return parseCSVOriginal(csvText); 
         } catch (error) {
@@ -1191,7 +1199,6 @@
         const categorySelect = document.getElementById('category-select');
         let optionsHTML = '';
         for (const key in categories) {
-            // MODIFICATION: Remove " Leaders" from the option text
             const optionText = categories[key].title.replace(/ Leaders$/, '');
             optionsHTML += `<option value="${key}">${optionText}</option>`;
         }
@@ -1242,7 +1249,6 @@
         
         loadData();
 
-        // Nav Toggle JS
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
         if (navToggle && navMenu) {

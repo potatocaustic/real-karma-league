@@ -769,10 +769,11 @@
       let teamId = null;
       let teamData = null;
       let allTeams = [];
-      let allWeeklyAverages = []; // For REL calculations
+      let allWeeklyAverages = []; 
       let allTransactionsLogData = []; 
       let allLineups = []; 
-      let allDraftPicks = []; // Added for draft capital
+      let allDraftPicks = []; 
+      let processedPlayersData = []; // MODIFIED: To store players with calculated stats
 
       function formatInThousands(value) {
         const num = parseFloat(value);
@@ -901,45 +902,93 @@
         return `${wins}-${losses}`;
       }
 
-      function calculatePlayerRELMedian(playerHandle, weeklyAvgs, lineupsForPlayer) { // Changed param name
-        const playerGames = lineupsForPlayer.filter(lineup => 
-          lineup.player_handle === playerHandle && 
-          (String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1)
-        );
-        
-        if (playerGames.length === 0) {
-          return 0;
+      // MODIFIED: Added calculateRELForAllPlayers from player.html (and leaderboards.html)
+      function calculateRELForAllPlayers(players, weeklyAverages, lineups) {
+        if (!players || !weeklyAverages || !lineups) {
+            return players || []; 
         }
-        
         const weeklyAveragesMap = {};
-        (weeklyAvgs || []).forEach(week => { // Use passed weeklyAvgs
+        weeklyAverages.forEach(week => {
           if (week.date) {
             weeklyAveragesMap[week.date] = {
+              mean_score: parseNumber(week.mean_score),
               median_score: parseNumber(week.median_score)
             };
           }
         });
-        
-        let totalPlayerKarma = 0;
-        let totalMedianKarma = 0;
-        let validGames = 0;
-        
-        playerGames.forEach(game => {
-          const gameDate = game.date;
-          const playerKarma = parseNumber(game.points_raw);
+
+        return players.map(player => {
+          const playerGames = lineups.filter(lineup => 
+            lineup.player_handle === player.player_handle && 
+            (String(lineup.started).toUpperCase() === 'TRUE') 
+          );
           
-          if (weeklyAveragesMap[gameDate]) {
-            totalPlayerKarma += playerKarma;
-            totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
-            validGames++;
+          let totalPlayerKarmaFinal = 0; // Corresponds to points_final in lineups
+          let totalMeanKarma = 0;
+          let totalMedianKarma = 0;
+          let validGamesForREL = 0;
+          const ranks = [];
+          let gamesAboveMean = 0;
+          let gamesAboveMedian = 0;
+          let t100_finishes = 0; 
+
+          playerGames.forEach(game => {
+            const gameDate = game.date;
+            // Use points_final for REL calculations as it includes captain bonus
+            const playerKarmaFinal = parseNumber(game.points_final); 
+            const globalRank = parseNumber(game.global_rank);
+            
+            if (weeklyAveragesMap[gameDate]) {
+              totalPlayerKarmaFinal += playerKarmaFinal;
+              totalMeanKarma += weeklyAveragesMap[gameDate].mean_score;
+              totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
+              validGamesForREL++;
+              // Comparison is against player's final score (including captaincy if applicable)
+              if (playerKarmaFinal > weeklyAveragesMap[gameDate].mean_score) gamesAboveMean++;
+              if (playerKarmaFinal > weeklyAveragesMap[gameDate].median_score) gamesAboveMedian++;
+            }
+            if (globalRank > 0) {
+              ranks.push(globalRank);
+              if (globalRank <= 100) { 
+                t100_finishes++;
+              }
+            }
+          });
+          
+          const avgPlayerKarmaFinal = validGamesForREL > 0 ? totalPlayerKarmaFinal / validGamesForREL : 0;
+          const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
+          const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
+          
+          // REL calculations now use avgPlayerKarmaFinal
+          const calculated_rel_mean = avgMeanKarma > 0 ? (avgPlayerKarmaFinal / avgMeanKarma) : 0;
+          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerKarmaFinal / avgMedianKarma) : 0;
+          
+          let calculated_median_rank = 0;
+          if (ranks.length > 0) {
+            ranks.sort((a, b) => a - b);
+            const mid = Math.floor(ranks.length / 2);
+            calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
           }
+          
+          const games_played_count = parseInt(player.games_played || 0);
+
+          return {
+            ...player, 
+            calculated_rel_mean: calculated_rel_mean,
+            calculated_rel_median: calculated_rel_median, // This is the key value for roster
+            calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, // This is the key value for roster
+            aag_mean: gamesAboveMean,
+            aag_mean_pct: games_played_count > 0 ? gamesAboveMean / games_played_count : 0,
+            aag_median: gamesAboveMedian,
+            aag_median_pct: games_played_count > 0 ? gamesAboveMedian / games_played_count : 0,
+            t100_finishes: t100_finishes, 
+            t100_finishes_pct: games_played_count > 0 ? (t100_finishes / games_played_count) : 0,
+            total_points: parseNumber(player.total_points), // total_points from Players sheet remains as is
+            games_played: games_played_count 
+          };
         });
-        
-        const avgPlayerKarma = validGames > 0 ? totalPlayerKarma / validGames : 0;
-        const avgMedianKarma = validGames > 0 ? totalMedianKarma / validGames : 0;
-        
-        return avgMedianKarma > 0 ? (avgPlayerKarma / avgMedianKarma) : 0;
       }
+
 
       function getOrdinal(num) {
         const n = parseInt(num);
@@ -950,10 +999,10 @@
         return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
       }
       
-      function calculateTeamRankings(currentTeamData, allTeamsDataForRanking) { // Renamed param
+      function calculateTeamRankings(currentTeamData, allTeamsDataForRanking) { 
         const rankings = {};
         
-        const conferenceTeams = allTeamsDataForRanking // Use passed param
+        const conferenceTeams = allTeamsDataForRanking 
           .filter(t => t.conference === currentTeamData.conference)
           .sort((a, b) => {
             const winsA = parseInt(a.wins || 0);
@@ -963,11 +1012,11 @@
           });
         rankings.record = conferenceTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
         
-        const pamTeams = allTeamsDataForRanking // Use passed param
+        const pamTeams = allTeamsDataForRanking 
           .sort((a, b) => parseFloat(b.pam || 0) - parseFloat(a.pam || 0));
         rankings.pam = pamTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
         
-        const medRankTeams = allTeamsDataForRanking // Use passed param
+        const medRankTeams = allTeamsDataForRanking 
           .filter(t => parseFloat(t.med_starter_rank || 0) > 0) 
           .sort((a, b) => parseFloat(a.med_starter_rank || 999) - parseFloat(b.med_starter_rank || 999));
         const medRankIndex = medRankTeams.findIndex(t => t.team_id === currentTeamData.team_id);
@@ -976,7 +1025,6 @@
         return rankings;
       }
 
-      // ADDED: Helper function to count transactions for a team
       function countTransactionsForTeam(teamIdToCount, transactionLog) {
         if (!transactionLog || transactionLog.length === 0) return 0;
 
@@ -1012,19 +1060,19 @@
           return;
         }
         
-        // MODIFIED: Fetch Draft_Capital as well
-        const [teamsResult, weeklyAveragesResult, transactionsLogResult, lineupsResult, scheduleResult, draftPicksResult] = await Promise.all([
+        const [teamsResult, playersResult, weeklyAveragesResult, transactionsLogResult, lineupsResult, scheduleResult, draftPicksResult] = await Promise.all([
           fetchSheetData('Teams'),
+          fetchSheetData('Players'), // Fetch players here
           fetchSheetData('Weekly_Averages'),
           fetchSheetData('Transaction_Log'),
           fetchSheetData('Lineups'),
           fetchSheetData('Schedule'),
-          fetchSheetData('Draft_Capital') // Added
+          fetchSheetData('Draft_Capital') 
         ]);
         
-        if (!teamsResult) { 
+        if (!teamsResult || !playersResult) { 
           document.getElementById('team-main-info').innerHTML = 
-            '<div class="error">Error loading team data (Teams sheet).</div>';
+            '<div class="error">Error loading core team or player data.</div>';
           return;
         }
         
@@ -1033,7 +1081,10 @@
         allTransactionsLogData = transactionsLogResult || [];
         allLineups = lineupsResult || []; 
         allScheduleData = scheduleResult || []; 
-        allDraftPicks = draftPicksResult || []; // Store draft picks
+        allDraftPicks = draftPicksResult || [];
+
+        // MODIFIED: Calculate all player stats once
+        processedPlayersData = calculateRELForAllPlayers(playersResult, allWeeklyAverages, allLineups);
 
         teamData = allTeams.find(team => team.team_id === teamId);
         if (!teamData) {
@@ -1042,7 +1093,6 @@
           return;
         }
 
-        // MODIFIED: Calculate transaction count for this specific team
         teamData.calculated_total_transactions = countTransactionsForTeam(teamData.team_id, allTransactionsLogData);
         
         const activeTeamsForRanking = allTeams.filter(t => 
@@ -1058,7 +1108,7 @@
         await Promise.all([
           loadRoster(),
           loadSchedule(),
-          loadDraftCapital() // Call the new function
+          loadDraftCapital() 
         ]);
       }
       
@@ -1068,7 +1118,6 @@
         const wins = parseInt(teamData.wins || 0);
         const losses = parseInt(teamData.losses || 0);
         const pam = parseFloat(teamData.pam || 0);
-        // MODIFIED: Use calculated_total_transactions
         const totalTransactions = teamData.calculated_total_transactions || 0;
         
         document.getElementById('team-main-info').innerHTML = `
@@ -1082,7 +1131,7 @@
           </div>
         `;
         
-        const medRank = parseFloat(teamData.med_starter_rank || 0);
+        const medRank = parseFloat(teamData.med_starter_rank || 0); // This remains from Teams sheet
         const teamStatsContainer = document.getElementById('team-stats');
         teamStatsContainer.innerHTML = ''; 
 
@@ -1138,15 +1187,8 @@
       }
       
       async function loadRoster() {
-        const players = await fetchSheetData('Players'); 
-        
-        if (!players || !allLineups) {
-          document.getElementById('roster-list').innerHTML = 
-            '<div class="error">Error loading roster data</div>';
-          return;
-        }
-        
-        const teamPlayers = players
+        // MODIFIED: Use processedPlayersData
+        const teamPlayers = processedPlayersData
           .filter(player => player.current_team_id === teamId && player.player_status === 'ACTIVE');
         
         if (teamPlayers.length === 0) {
@@ -1155,31 +1197,21 @@
           return;
         }
         
-        const playersWithREL = teamPlayers.map(player => {
-          const relMedian = calculatePlayerRELMedian(player.player_handle, allWeeklyAverages, allLineups);
-          let medianGlobalRank = 0;
-          const playerStartedGamesWithRank = allLineups.filter(lineup =>
-              lineup.player_handle === player.player_handle &&
-              (String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1) &&
-              lineup.global_rank && parseNumber(lineup.global_rank) > 0
-          );
-          if (playerStartedGamesWithRank.length > 0) {
-              const ranks = playerStartedGamesWithRank.map(game => parseNumber(game.global_rank)).sort((a, b) => a - b);
-              const mid = Math.floor(ranks.length / 2);
-              medianGlobalRank = ranks.length % 2 === 0 ? Math.round((ranks[mid - 1] + ranks[mid]) / 2) : Math.round(ranks[mid]);
-          }
-
-          return {
-            ...player,
-            calculated_rel_median: relMedian,
-            median_global_rank_for_roster: medianGlobalRank 
-          };
-        }).sort((a, b) => b.calculated_rel_median - a.calculated_rel_median);
+        // MODIFIED: Sort by pre-calculated rel_median
+        const sortedPlayers = teamPlayers.sort((a, b) => (b.calculated_rel_median || 0) - (a.calculated_rel_median || 0));
         
-        const rosterHTML = playersWithREL.map(player => {
-          const relMedian = player.calculated_rel_median;
+        const rosterHTML = sortedPlayers.map(player => {
+          // MODIFIED: Use pre-calculated stats
+          const relMedian = player.calculated_rel_median || 0;
           const gamesPlayed = parseInt(player.games_played || 0);
-          const medianRankDisplay = player.median_global_rank_for_roster > 0 ? player.median_global_rank_for_roster : '-';
+          
+          let medianRankDisplay = '-';
+          if (player.calculated_median_rank !== Infinity && player.calculated_median_rank > 0) {
+              const roundedRank = Math.round(player.calculated_median_rank);
+              if (roundedRank > 0) {
+                  medianRankDisplay = roundedRank;
+              }
+          }
           
           return `
             <div class="player-item">
@@ -1213,7 +1245,6 @@
       }
       
       async function loadSchedule() {
-        // allScheduleData is already loaded in loadTeamData
         if (!allScheduleData) {
           document.getElementById('team-schedule').innerHTML = 
             '<div class="error">Error loading schedule data</div>';
@@ -1376,7 +1407,6 @@
       }
       
       async function loadDraftCapital() {
-        // allDraftPicks and allTransactionsLogData are already loaded in loadTeamData
         if (!allDraftPicks) {
           document.getElementById('draft-picks').innerHTML = 
             '<div class="error">Error loading draft capital data</div>';
@@ -1596,7 +1626,6 @@
         modalTitle.textContent = `${escapeHTML(getTeamName(team1Id))} vs ${escapeHTML(getTeamName(team2Id))} - ${formatDateShort(date)}`;
         modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
         
-        // allScheduleData is already loaded
         const game = allScheduleData.find(g => 
           g.team1_id === team1Id && 
           g.team2_id === team2Id && 
@@ -1608,7 +1637,6 @@
           return;
         }
         
-        // allLineups is already loaded
         const lineupsData = allLineups; 
         if (!lineupsData) {
           modalContentEl.innerHTML = '<div class="error">Error loading lineup data</div>';

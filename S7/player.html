@@ -546,9 +546,7 @@
       let allLineups = [];
       let allScheduleData = []; 
       let allTransactionsLogData = []; 
-      // Removed: let allWeeklyAverages = []; // This will be fetched locally
 
-      // UPDATED parseNumber function (from leaderboards.html)
       function parseNumber(value) { 
         if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
         const cleaned = String(value).replace(/,/g, '');
@@ -611,7 +609,6 @@
         return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
        }
 
-      // ADDED: calculateRELForAllPlayers (copied from leaderboards.html, uses points_final)
       function calculateRELForAllPlayers(players, weeklyAverages, lineups) {
         if (!players || !weeklyAverages || !lineups) {
             return players || []; 
@@ -629,7 +626,7 @@
         return players.map(player => {
           const playerGames = lineups.filter(lineup => 
             lineup.player_handle === player.player_handle && 
-            (String(lineup.started).toUpperCase() === 'TRUE') // Consistent with leaderboards.html
+            (String(lineup.started).toUpperCase() === 'TRUE') 
           );
           
           let totalPlayerKarmaFinal = 0;
@@ -643,7 +640,7 @@
 
           playerGames.forEach(game => {
             const gameDate = game.date;
-            const playerKarmaFinal = parseNumber(game.points_final); // Using points_final
+            const playerKarmaFinal = parseNumber(game.points_final); 
             const globalRank = parseNumber(game.global_rank);
             
             if (weeklyAveragesMap[gameDate]) {
@@ -695,7 +692,6 @@
         });
       }
 
-      // calculatePlayerRankings remains largely the same, but operates on consistently calculated data
       function calculatePlayerRankings(playerDataForRanking, allPlayersDataForRanking) { 
         const rankings = {};
         const totalKarmaPlayers = allPlayersDataForRanking
@@ -736,7 +732,6 @@
           document.getElementById('player-main-info').innerHTML = '<div class="error">No player specified</div>';
           return;
         }
-        // Fetch all necessary data
         const [playersRaw, teams, weeklyAveragesRaw, lineupsRaw, schedule, transactions] = await Promise.all([
           fetchSheetData('Players'), fetchSheetData('Teams'),
           fetchSheetData('Weekly_Averages'), fetchSheetData('Lineups'),
@@ -744,7 +739,7 @@
           fetchSheetData('Transaction_Log') 
         ]);
 
-        if (!playersRaw || !teams || !weeklyAveragesRaw || !lineupsRaw) { // Added weeklyAveragesRaw and lineupsRaw check
+        if (!playersRaw || !teams || !weeklyAveragesRaw || !lineupsRaw) { 
           document.getElementById('player-main-info').innerHTML = '<div class="error">Error loading critical player data</div>';
           return;
         }
@@ -753,10 +748,8 @@
         allScheduleData = schedule || []; 
         allTransactionsLogData = transactions || [];
 
-        // Use the centralized function to calculate stats for ALL players
         const playersWithCalculatedStats = calculateRELForAllPlayers(playersRaw, weeklyAveragesRaw, lineupsRaw);
         
-        // Find the specific player from the processed list
         playerData = playersWithCalculatedStats.find(player => player.player_handle === playerHandle);
 
         if (!playerData) {
@@ -764,7 +757,6 @@
           return;
         }
         
-        // Filter for active players to pass to calculatePlayerRankings
         const activePlayersWithREL = playersWithCalculatedStats.filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0);
         const rankings = calculatePlayerRankings(playerData, activePlayersWithREL);
         
@@ -835,9 +827,16 @@
         
         const relMedian = playerData.calculated_rel_median || 0;
         const gamesAboveMedian = parseInt(playerData.aag_median || 0); 
-        const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100; 
-        // Adjusted medianRank display logic
-        const medianRankValue = (playerData.calculated_median_rank !== Infinity && playerData.calculated_median_rank > 0) ? Math.round(playerData.calculated_median_rank) : '-';
+        const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100;
+        
+        // MODIFIED: Use Math.round() for medianRankValueForDisplay to match user preference
+        let medianRankValueForDisplay = '-';
+        if (playerData.calculated_median_rank !== Infinity && playerData.calculated_median_rank > 0) {
+            const roundedRank = Math.round(playerData.calculated_median_rank); // Use Math.round()
+            if (roundedRank > 0) { 
+                medianRankValueForDisplay = roundedRank;
+            }
+        }
 
         document.getElementById('player-stats').innerHTML = `
           <a href="leaderboards.html?category=total_points" class="stat-card">
@@ -848,12 +847,12 @@
             <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="stat-rank">${getOrdinal(rankings.gamesAboveMedian)} Overall</div></a>
           <a href="leaderboards.html?category=aag_median_pct" class="stat-card"> <div class="stat-value">${Math.round(aboveMedianPct)}%</div><div class="stat-label">Above Median %</div><div class="stat-rank">${getOrdinal(rankings.aboveMedianPct)} Overall</div></a>
           <a href="leaderboards.html?category=median_gameday_rank" class="stat-card"> 
-            <div class="stat-value">${medianRankValue}</div><div class="stat-label">Median Rank</div><div class="stat-rank">${rankings.medianRank > 0 ? `${getOrdinal(rankings.medianRank)} Overall` : 'Not ranked'}</div></a>`;
+            <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Rank</div><div class="stat-rank">${rankings.medianRank > 0 ? `${getOrdinal(rankings.medianRank)} Overall` : 'Not ranked'}</div></a>`;
         document.getElementById('player-stats').style.display = 'grid';
        }
 
       function formatWeeklyPerformanceRank(globalRankStr) {
-        const rank = parseInt(globalRankStr);
+        const rank = parseInt(globalRankStr); // parseInt is fine for display here as it's not the primary median calc
         if (isNaN(rank) || rank <= 0) return '-';
         if (rank === 1) return `<span class="rank-badge rank-gold">1</span>`;
         if (rank === 2) return `<span class="rank-badge rank-silver">2</span>`;
@@ -878,7 +877,7 @@
 
         const performanceHTML = playerLineups.map(lineup => {
           const isCaptain = String(lineup.captain).toLowerCase() === 'true' || lineup.captain === true || lineup.captain === 1;
-          const pointsRaw = parseNumber(lineup.points_raw); // points_raw is fine for weekly display if that's the intended raw score
+          const pointsRaw = parseNumber(lineup.points_raw); 
           const globalRank = parseNumber(lineup.global_rank);
 
           const gameForLineup = allScheduleData.find(g => g.date === lineup.date && (g.team1_id === lineup.team_id || g.team2_id === lineup.team_id));
@@ -930,7 +929,7 @@
 
         const historyHTML = gamesWithPerformance.map(game => {
           const isCaptain = String(game.lineup.captain).toLowerCase() === 'true' || game.lineup.captain === true || game.lineup.captain === 1;
-          const pointsRaw = parseNumber(game.lineup.points_raw); // points_raw for this display
+          const pointsRaw = parseNumber(game.lineup.points_raw); 
           const globalRank = parseNumber(game.lineup.global_rank);
           
           const playerTeamName = getTeamName(game.playerTeamId);
@@ -983,7 +982,6 @@
         modalTitle.textContent = `${getTeamName(team1Id)} vs ${getTeamName(team2Id)} - ${formatDate(date)}`; 
         modalBodyContent.innerHTML = '<div class="loading">Loading game details...</div>';
         
-        // Use already fetched data if available, or fetch again if necessary (though ideally fetched once)
         const game = allScheduleData.find(g => g.team1_id === team1Id && g.team2_id === team2Id && g.date === date);
         if (!game) { modalBodyContent.innerHTML = '<div class="error">Game not found in schedule</div>'; return; }
         
