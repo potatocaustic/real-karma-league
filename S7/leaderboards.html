@@ -732,27 +732,29 @@
             (String(lineup.started).toUpperCase() === 'TRUE')
           );
           
-          let totalPlayerKarmaFinal = 0;
+          let totalPlayerKarmaRawForREL = 0; // MODIFIED: For REL calculations using raw points
           let totalMeanKarma = 0;
           let totalMedianKarma = 0;
           let validGamesForREL = 0;
           const ranks = [];
-          let gamesAboveMean = 0;
-          let gamesAboveMedian = 0;
+          let gamesAboveMean = 0;   // Stays based on final points (including captaincy)
+          let gamesAboveMedian = 0; // Stays based on final points (including captaincy)
           let t100_finishes = 0; 
 
           playerGames.forEach(game => {
             const gameDate = game.date;
-            const playerKarmaFinal = parseNumber(game.points_final);
+            const playerKarmaFinalForComparisons = parseNumber(game.points_final); // MODIFIED: For AAG, etc.
+            const playerKarmaRawForRELCalculation = parseNumber(game.points_raw); // MODIFIED: For REL sum
             const globalRank = parseNumber(game.global_rank);
             
             if (weeklyAveragesMap[gameDate]) {
-              totalPlayerKarmaFinal += playerKarmaFinal;
+              totalPlayerKarmaRawForREL += playerKarmaRawForRELCalculation; // MODIFIED: Accumulate raw points for REL
               totalMeanKarma += weeklyAveragesMap[gameDate].mean_score;
               totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
               validGamesForREL++;
-              if (playerKarmaFinal > weeklyAveragesMap[gameDate].mean_score) gamesAboveMean++;
-              if (playerKarmaFinal > weeklyAveragesMap[gameDate].median_score) gamesAboveMedian++;
+              // Comparisons for AAG/AAM still use final points (includes captaincy)
+              if (playerKarmaFinalForComparisons > weeklyAveragesMap[gameDate].mean_score) gamesAboveMean++;
+              if (playerKarmaFinalForComparisons > weeklyAveragesMap[gameDate].median_score) gamesAboveMedian++;
             }
             if (globalRank > 0) {
               ranks.push(globalRank);
@@ -762,12 +764,13 @@
             }
           });
           
-          const avgPlayerKarmaFinal = validGamesForREL > 0 ? totalPlayerKarmaFinal / validGamesForREL : 0;
+          const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0; // MODIFIED: Average of raw points for REL
           const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
           const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
           
-          const calculated_rel_mean = avgMeanKarma > 0 ? (avgPlayerKarmaFinal / avgMeanKarma) : 0;
-          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerKarmaFinal / avgMedianKarma) : 0;
+          // MODIFIED: REL calculations use average of raw karma
+          const calculated_rel_mean = avgMeanKarma > 0 ? (avgPlayerRawKarmaForREL / avgMeanKarma) : 0;
+          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerRawKarmaForREL / avgMedianKarma) : 0;
           
           let calculated_median_rank = 0;
           if (ranks.length > 0) {
@@ -783,13 +786,13 @@
             calculated_rel_mean: calculated_rel_mean,
             calculated_rel_median: calculated_rel_median,
             calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, 
-            aag_mean: gamesAboveMean,
+            aag_mean: gamesAboveMean, // Remains based on final points
             aag_mean_pct: games_played_count > 0 ? gamesAboveMean / games_played_count : 0,
-            aag_median: gamesAboveMedian,
+            aag_median: gamesAboveMedian, // Remains based on final points
             aag_median_pct: games_played_count > 0 ? gamesAboveMedian / games_played_count : 0,
             t100_finishes: t100_finishes, 
             t100_finishes_pct: games_played_count > 0 ? (t100_finishes / games_played_count) : 0,
-            total_points: parseNumber(player.total_points),
+            total_points: parseNumber(player.total_points), // This is from Players sheet, not re-calculated here
             games_played: games_played_count 
           };
         });
@@ -814,7 +817,7 @@
 
         lineups.forEach(game => {
           if (game.started && (String(game.started).toUpperCase() === 'TRUE')) {
-            const karma = parseNumber(game.points_final);
+            const karma = parseNumber(game.points_final); // For single game leaderboards, final points (incl. captaincy) are typically used
             const dailyRank = parseNumber(game.global_rank);
             const weekStr = dateToWeekMap[game.date];
             
@@ -823,7 +826,7 @@
                 gamePerformances.push({
                   player_handle: game.player_handle,
                   team_id: game.team_id || playerTeamMap[game.player_handle] || 'FA', 
-                  karma: karma,
+                  karma: karma, // Karma for single game leaderboard display
                   daily_rank: dailyRank > 0 ? dailyRank : Infinity, 
                   week: parseInt(weekStr), 
                   date: game.date 

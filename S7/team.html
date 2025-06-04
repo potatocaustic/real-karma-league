@@ -773,7 +773,7 @@
       let allTransactionsLogData = []; 
       let allLineups = []; 
       let allDraftPicks = []; 
-      let processedPlayersData = []; // MODIFIED: To store players with calculated stats
+      let processedPlayersData = []; 
 
       function formatInThousands(value) {
         const num = parseFloat(value);
@@ -902,7 +902,6 @@
         return `${wins}-${losses}`;
       }
 
-      // MODIFIED: Added calculateRELForAllPlayers from player.html (and leaderboards.html)
       function calculateRELForAllPlayers(players, weeklyAverages, lineups) {
         if (!players || !weeklyAverages || !lineups) {
             return players || []; 
@@ -923,29 +922,29 @@
             (String(lineup.started).toUpperCase() === 'TRUE') 
           );
           
-          let totalPlayerKarmaFinal = 0; // Corresponds to points_final in lineups
+          let totalPlayerKarmaRawForREL = 0; // MODIFIED: For REL calculations using raw points
           let totalMeanKarma = 0;
           let totalMedianKarma = 0;
           let validGamesForREL = 0;
           const ranks = [];
-          let gamesAboveMean = 0;
-          let gamesAboveMedian = 0;
+          let gamesAboveMean = 0;   // Stays based on final points (including captaincy)
+          let gamesAboveMedian = 0; // Stays based on final points (including captaincy)
           let t100_finishes = 0; 
 
           playerGames.forEach(game => {
             const gameDate = game.date;
-            // Use points_final for REL calculations as it includes captain bonus
-            const playerKarmaFinal = parseNumber(game.points_final); 
+            const playerKarmaFinalForComparisons = parseNumber(game.points_final); // MODIFIED: For AAG, etc.
+            const playerKarmaRawForRELCalculation = parseNumber(game.points_raw); // MODIFIED: For REL sum
             const globalRank = parseNumber(game.global_rank);
             
             if (weeklyAveragesMap[gameDate]) {
-              totalPlayerKarmaFinal += playerKarmaFinal;
+              totalPlayerKarmaRawForREL += playerKarmaRawForRELCalculation; // MODIFIED: Accumulate raw points for REL
               totalMeanKarma += weeklyAveragesMap[gameDate].mean_score;
               totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
               validGamesForREL++;
-              // Comparison is against player's final score (including captaincy if applicable)
-              if (playerKarmaFinal > weeklyAveragesMap[gameDate].mean_score) gamesAboveMean++;
-              if (playerKarmaFinal > weeklyAveragesMap[gameDate].median_score) gamesAboveMedian++;
+              // Comparisons for AAG/AAM still use final points (includes captaincy)
+              if (playerKarmaFinalForComparisons > weeklyAveragesMap[gameDate].mean_score) gamesAboveMean++;
+              if (playerKarmaFinalForComparisons > weeklyAveragesMap[gameDate].median_score) gamesAboveMedian++;
             }
             if (globalRank > 0) {
               ranks.push(globalRank);
@@ -955,13 +954,13 @@
             }
           });
           
-          const avgPlayerKarmaFinal = validGamesForREL > 0 ? totalPlayerKarmaFinal / validGamesForREL : 0;
+          const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0; // MODIFIED: Average of raw points for REL
           const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
           const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
           
-          // REL calculations now use avgPlayerKarmaFinal
-          const calculated_rel_mean = avgMeanKarma > 0 ? (avgPlayerKarmaFinal / avgMeanKarma) : 0;
-          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerKarmaFinal / avgMedianKarma) : 0;
+          // MODIFIED: REL calculations use average of raw karma
+          const calculated_rel_mean = avgMeanKarma > 0 ? (avgPlayerRawKarmaForREL / avgMeanKarma) : 0;
+          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerRawKarmaForREL / avgMedianKarma) : 0;
           
           let calculated_median_rank = 0;
           if (ranks.length > 0) {
@@ -975,15 +974,15 @@
           return {
             ...player, 
             calculated_rel_mean: calculated_rel_mean,
-            calculated_rel_median: calculated_rel_median, // This is the key value for roster
-            calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, // This is the key value for roster
-            aag_mean: gamesAboveMean,
+            calculated_rel_median: calculated_rel_median, 
+            calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, 
+            aag_mean: gamesAboveMean, // Remains based on final points
             aag_mean_pct: games_played_count > 0 ? gamesAboveMean / games_played_count : 0,
-            aag_median: gamesAboveMedian,
+            aag_median: gamesAboveMedian, // Remains based on final points
             aag_median_pct: games_played_count > 0 ? gamesAboveMedian / games_played_count : 0,
             t100_finishes: t100_finishes, 
             t100_finishes_pct: games_played_count > 0 ? (t100_finishes / games_played_count) : 0,
-            total_points: parseNumber(player.total_points), // total_points from Players sheet remains as is
+            total_points: parseNumber(player.total_points), // This is from Players sheet
             games_played: games_played_count 
           };
         });
@@ -1062,7 +1061,7 @@
         
         const [teamsResult, playersResult, weeklyAveragesResult, transactionsLogResult, lineupsResult, scheduleResult, draftPicksResult] = await Promise.all([
           fetchSheetData('Teams'),
-          fetchSheetData('Players'), // Fetch players here
+          fetchSheetData('Players'), 
           fetchSheetData('Weekly_Averages'),
           fetchSheetData('Transaction_Log'),
           fetchSheetData('Lineups'),
@@ -1083,7 +1082,6 @@
         allScheduleData = scheduleResult || []; 
         allDraftPicks = draftPicksResult || [];
 
-        // MODIFIED: Calculate all player stats once
         processedPlayersData = calculateRELForAllPlayers(playersResult, allWeeklyAverages, allLineups);
 
         teamData = allTeams.find(team => team.team_id === teamId);
@@ -1131,7 +1129,7 @@
           </div>
         `;
         
-        const medRank = parseFloat(teamData.med_starter_rank || 0); // This remains from Teams sheet
+        const medRank = parseFloat(teamData.med_starter_rank || 0); 
         const teamStatsContainer = document.getElementById('team-stats');
         teamStatsContainer.innerHTML = ''; 
 
@@ -1187,7 +1185,6 @@
       }
       
       async function loadRoster() {
-        // MODIFIED: Use processedPlayersData
         const teamPlayers = processedPlayersData
           .filter(player => player.current_team_id === teamId && player.player_status === 'ACTIVE');
         
@@ -1197,12 +1194,10 @@
           return;
         }
         
-        // MODIFIED: Sort by pre-calculated rel_median
-        const sortedPlayers = teamPlayers.sort((a, b) => (b.calculated_rel_median || 0) - (a.calculated_rel_median || 0));
+        const sortedPlayers = teamPlayers.sort((a, b) => (b.calculated_rel_median || 0) - (a.calculated_rel_median || 0)); // REL Median now from raw
         
         const rosterHTML = sortedPlayers.map(player => {
-          // MODIFIED: Use pre-calculated stats
-          const relMedian = player.calculated_rel_median || 0;
+          const relMedian = player.calculated_rel_median || 0; // Uses raw
           const gamesPlayed = parseInt(player.games_played || 0);
           
           let medianRankDisplay = '-';
@@ -1658,7 +1653,7 @@
           const bCaptain = b.captain === 'TRUE' || b.captain === true || b.captain === 'true';
           if (aCaptain && !bCaptain) return -1;
           if (!aCaptain && bCaptain) return 1;
-          return parseNumber(b.points_final) - parseNumber(a.points_final);
+          return parseNumber(b.points_final) - parseNumber(a.points_final); // Modal sort uses points_final
         });
         
         const team2Lineups = team2AllGameLineups.filter(lineup => {
@@ -1669,11 +1664,11 @@
           const bCaptain = b.captain === 'TRUE' || b.captain === true || b.captain === 'true';
           if (aCaptain && !bCaptain) return -1;
           if (!aCaptain && bCaptain) return 1;
-          return parseNumber(b.points_final) - parseNumber(a.points_final);
+          return parseNumber(b.points_final) - parseNumber(a.points_final); // Modal sort uses points_final
         });
         
-        const team1Total = team1Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0);
-        const team2Total = team2Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0);
+        const team1Total = team1Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0); // Modal total uses points_final
+        const team2Total = team2Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0); // Modal total uses points_final
         
         const winner = game.winner;
         
@@ -1696,9 +1691,9 @@
           
           const lineupRows = lineupsForTable.map(player => {
             const isCaptain = player.captain === 'TRUE' || player.captain === true || player.captain === 'true';
-            const pointsRaw = parseNumber(player.points_raw);
+            const pointsRaw = parseNumber(player.points_raw); // Display raw points in modal line item
             const globalRank = parseNumber(player.global_rank);
-            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
+            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0; // Calculate bonus based on raw
             
             return `
               <tr class="${isCaptain ? 'captain-row' : ''}">
