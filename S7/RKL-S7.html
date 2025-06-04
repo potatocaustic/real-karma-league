@@ -826,7 +826,7 @@
       </div>
     </div>
     
-    <footer>@caustic on Real</p></footer>
+    <footer><p>@caustic on Real</p></footer>
 
     <script>
       const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
@@ -1024,19 +1024,22 @@
         document.getElementById('recent-games').innerHTML = gamesHTML;
       }
       
-      async function loadSeasonInfo() { 
-        const [schedule, transactions, players] = await Promise.all([
+      async function loadSeasonInfo() {
+        // Modified to fetch 'Lineups' instead of 'Players' for totalKarma calculation.
+        // If 'Players' data was used for other things in this function, you'd fetch it as well.
+        // For this specific change, we're assuming 'Players' fetched here was only for the old totalKarma.
+        const [schedule, transactions, lineupsSheetData] = await Promise.all([ // Changed 'players' to 'lineupsSheetData'
           fetchSheetData('Schedule'),
           fetchSheetData('Transaction_Log'),
-          fetchSheetData('Players')
+          fetchSheetData('Lineups') // Fetch data from the 'Lineups' sheet
         ]);
-        
+
         if (!schedule) {
           document.getElementById('current-week').textContent = 'Unknown';
-          document.getElementById('season-stats').innerHTML = '<p>Error loading season information</p>';
+          document.getElementById('season-stats').innerHTML = '<p>Error loading season information (schedule missing)</p>'; // Added more specific error
           return;
         }
-        
+
         const gamesByWeek = {};
         schedule.forEach(game => {
           const week = parseInt(game.week);
@@ -1044,25 +1047,25 @@
           gamesByWeek[week].total++;
           if (game.completed === 'TRUE') { gamesByWeek[week].completed++;}
         });
-        
+
         let currentWeek = 1;
         const weeks = Object.keys(gamesByWeek).map(w => parseInt(w)).sort((a, b) => a - b);
-        
+
         for (const week of weeks) {
           if (gamesByWeek[week].completed < gamesByWeek[week].total) { currentWeek = week; break;}
-          currentWeek = week; 
+          currentWeek = week;
         }
         document.getElementById('current-week').textContent = `Week ${currentWeek}`;
-        
+
         const totalGames = schedule.length;
         const completedGames = schedule.filter(game => game.completed === 'TRUE').length;
-        
+
         let uniqueTransactionCount = 0;
         if (transactions) {
           const uniqueTransactionIds = new Set();
           transactions.forEach(transaction => {
-            if (transaction.transaction_id && 
-                transaction.transaction_type && 
+            if (transaction.transaction_id &&
+                transaction.transaction_type &&
                 !transaction.notes?.toLowerCase().includes('pre-database') &&
                 !transaction.notes?.toLowerCase().includes('preseason')) {
               uniqueTransactionIds.add(transaction.transaction_id);
@@ -1070,16 +1073,30 @@
           });
           uniqueTransactionCount = uniqueTransactionIds.size;
         }
-        
-        const totalKarma = players ? players
-          .filter(player => player.player_status === 'ACTIVE')
-          .reduce((sum, player) => sum + parseFloat(player.total_points || 0), 0) : 0;
-        
+
+        // Calculate totalKarma from the 'Lineups' sheet, summing 'points_raw'
+        let totalKarma = 0;
+        if (lineupsSheetData) {
+          totalKarma = lineupsSheetData.reduce((sum, lineupEntry) => {
+            // Using the existing parseNumber function to convert 'points_raw' to a number
+            return sum + parseNumber(lineupEntry.points_raw || 0);
+          }, 0);
+        } else {
+          // Handle case where lineupsSheetData might not be loaded
+          console.error("Lineups data could not be loaded for totalKarma calculation.");
+          document.getElementById('season-stats').innerHTML = `
+            <p><strong>${completedGames} of ${totalGames}</strong> regular season games complete</p>
+            <p><strong>${uniqueTransactionCount}</strong> transactions made (excludes pre-database moves)</p>
+            <p><strong>Error loading total karma</strong></p> 
+          `; // Update UI to show error
+          return; // Exit if no lineups data
+        }
+
         document.getElementById('season-stats').innerHTML = `
           <p><strong>${completedGames} of ${totalGames}</strong> regular season games complete</p>
           <p><strong>${uniqueTransactionCount}</strong> transactions made (excludes pre-database moves)</p>
-          <p><strong>${Math.round(totalKarma).toLocaleString()}</strong> total karma earned</p>
-        `;
+          <p><strong>${Math.round(totalKarma).toLocaleString()}</strong> total karma earned</p> 
+        `; 
       }
       
       async function showGameDetails(team1Id, team2Id, date) {
@@ -1128,14 +1145,14 @@
             const bCaptain = b.captain === 'TRUE' || b.captain === true || b.captain === 'true';
             if (aCaptain && !bCaptain) return -1;
             if (!aCaptain && bCaptain) return 1;
-            return parseNumber(b.points_final) - parseNumber(a.points_final);
+            return parseNumber(b.points_raw) - parseNumber(a.points_raw);
         };
 
         const team1Lineups = team1AllLineups.filter(l => (l.started === 'TRUE' || l.started === true || l.started === 'true' || l.started === 1 || l.started === '1')).sort(sortLineup);
         const team2Lineups = team2AllLineups.filter(l => (l.started === 'TRUE' || l.started === true || l.started === 'true' || l.started === 1 || l.started === '1')).sort(sortLineup);
         
-        const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
-        const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+        const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_raw), 0);
+        const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_raw), 0);
         const winner = game.winner;
         
         const generateLineupTable = (lineups, teamIdForTable, total, isWinner) => {
