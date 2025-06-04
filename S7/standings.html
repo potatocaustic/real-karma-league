@@ -162,9 +162,9 @@
       .hidden {
         display: none !important;
       }
-
-      /* New button styling */
-      .view-toggle-button {
+      #toggleViewButton {
+        display: block; 
+        margin: 0.5rem auto 1.5rem auto; 
         padding: 0.6rem 1.2rem;
         font-size: 1rem;
         cursor: pointer;
@@ -173,16 +173,10 @@
         border: none;
         border-radius: 4px;
         transition: background-color 0.2s ease;
-        margin: 0 5px; /* Spacing between buttons */
       }
-      .view-toggle-button:hover {
+      #toggleViewButton:hover {
         background-color: #0056b3;
       }
-      .page-buttons-container { /* Container for the toggle buttons */
-        text-align: center;
-        margin-bottom: 1.5rem;
-      }
-
 
       .standings-container {
         display: grid;
@@ -198,8 +192,7 @@
         overflow: hidden;
       }
       
-      #fullLeagueViewContainer .conference-section,
-      #powerRankingsViewContainer .conference-section { /* Apply to new PR container too */
+      #fullLeagueViewContainer .conference-section {
         max-width: 700px; 
         margin-left: auto;  
         margin-right: auto; 
@@ -246,7 +239,6 @@
         cursor: default;
       }
 
-      /* Default column widths for 5-column tables */
       .standings-table th:nth-child(1), 
       .standings-table td:nth-child(1) {
         width: 15%;
@@ -261,7 +253,7 @@
 
       .standings-table th:nth-child(3), 
       .standings-table td:nth-child(3) {
-        width: 20%; 
+        width: 20%;
         text-align: center;
       }
 
@@ -276,24 +268,6 @@
         width: 15%;
         text-align: center;
       }
-      
-      /* Column widths for 3-column Power Rankings table */
-      #powerRankingsViewContainer .standings-table th:nth-child(1),
-      #powerRankingsViewContainer .standings-table td:nth-child(1) {
-        width: 20%; /* Rank */
-        text-align: center;
-      }
-      #powerRankingsViewContainer .standings-table th:nth-child(2),
-      #powerRankingsViewContainer .standings-table td:nth-child(2) {
-        width: 50%; /* Team */
-        text-align: left;
-      }
-      #powerRankingsViewContainer .standings-table th:nth-child(3),
-      #powerRankingsViewContainer .standings-table td:nth-child(3) {
-        width: 30%; /* Change */
-        text-align: center;
-      }
-
 
       .standings-table td {
         padding: 0.8rem 0.5rem;
@@ -339,7 +313,7 @@
         flex-grow: 1; 
       }
 
-      .record-cell { /* Used for Record, and Change in PR */
+      .record-cell {
         font-weight: 500;
       }
 
@@ -347,11 +321,11 @@
         font-weight: 500;
       }
 
-      .pam-positive { /* Also used for positive PR delta */
+      .pam-positive {
         color: #28a745;
       }
 
-      .pam-negative { /* Also used for negative PR delta */
+      .pam-negative {
         color: #dc3545;
       }
 
@@ -468,21 +442,11 @@
           grid-template-columns: 1fr; 
           gap: 1.5rem;
         }
-        #fullLeagueViewContainer .conference-section,
-        #powerRankingsViewContainer .conference-section { /* Apply to PR container too */
+        #fullLeagueViewContainer .conference-section {
             max-width: 100%; 
         }
         .standings-table th .sort-indicator {
           display: none; 
-        }
-        .page-buttons-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        .view-toggle-button {
-            width: 80%;
-            margin: 0 auto; /* Center buttons in flex column */
         }
       }
 
@@ -518,13 +482,10 @@
     <main>
       <div class="page-header">
         <h2 id="standingsPageTitle">Conference Standings</h2> 
-        <p>Updated after each completed game. Click headers to sort (where applicable).</p> 
+        <p>Updated after each completed game. Click headers to sort.</p> 
       </div>
 
-      <div class="page-buttons-container">
-        <button id="viewToggleButton1" class="view-toggle-button">Show Full League Standings</button>
-        <button id="viewToggleButton2" class="view-toggle-button">Show Power Rankings</button>
-      </div>
+      <button id="toggleViewButton">Show Full League Standings</button>
 
       <div id="conferenceViewContainer">
         <div class="playoff-legend">
@@ -616,28 +577,6 @@
         </div>
       </div>
 
-      <div id="powerRankingsViewContainer" class="hidden">
-        <div class="conference-section"> 
-          <div class="conference-header">
-            <h3>Power Rankings</h3>
-          </div>
-          <table class="standings-table"> 
-            <thead>
-              <tr>
-                <th class="no-sort">Rank<span class="sort-indicator"></span></th>
-                <th class="no-sort">Team<span class="sort-indicator"></span></th>
-                <th class="no-sort">Change<span class="sort-indicator"></span></th>
-              </tr>
-            </thead>
-            <tbody id="power-rankings-standings">
-              <tr>
-                <td colspan="3" class="loading">Loading Power Rankings...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </main>
     
     <footer>
@@ -645,20 +584,18 @@
     </footer>
 
     <script>
-      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
       const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
-
+      
       let allTeamsData = [];
-      let easternTeamsData = [];
-      let westernTeamsData = [];
-      let fullLeagueTeamsData = [];
-      let powerRankingsData = []; 
-
+      let easternTeamsData = []; 
+      let westernTeamsData = []; 
+      let fullLeagueTeamsData = []; 
+      
       let currentView = 'conferences'; 
-      let viewButton1, viewButton2; // Button elements
 
       const sortState = {
-        Eastern: { column: 'record', direction: 'asc' },
+        Eastern: { column: 'record', direction: 'asc' }, 
         Western: { column: 'record', direction: 'asc' },
         FullLeague: { column: 'record', direction: 'asc'}
       };
@@ -671,46 +608,23 @@
       async function fetchSheetData(sheetName) {
         try {
           const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
-          if (!response.ok) {
-            throw new Error(`Network response was not ok for ${sheetName}: ${response.statusText}`);
-          }
           const csvText = await response.text();
-          if (!csvText) { 
-            console.warn(`Empty CSV data received from ${sheetName}`);
-            return [];
-          }
           return parseCSV(csvText);
         } catch (error) {
           console.error(`Error fetching ${sheetName}:`, error);
-          let colspan = 5; 
-          if (sheetName === 'TPR') colspan = 3; 
-          
-          const errorMsg = `<tr><td colspan="${colspan}" class="error">Error loading data from ${sheetName}</td></tr>`;
-          
-          let tableBodyIdToUpdate;
-          if (sheetName === 'Teams') { 
-            ['eastern-standings', 'western-standings', 'full-league-standings', 'power-rankings-standings'].forEach(id => {
-                const tableBody = document.getElementById(id);
-                if (tableBody) {
-                    const currentTableColspan = id === 'power-rankings-standings' ? 3 : 5;
-                    tableBody.innerHTML = `<tr><td colspan="${currentTableColspan}" class="error">Core team data failed to load.</td></tr>`;
-                }
-            });
-          } else if (sheetName === 'TPR') {
-            tableBodyIdToUpdate = 'power-rankings-standings';
-            const tableBody = document.getElementById(tableBodyIdToUpdate);
+          const errorMsg = `<tr><td colspan="5" class="error">Error loading data from ${sheetName}</td></tr>`;
+          const tableIds = ['eastern-standings', 'western-standings', 'full-league-standings'];
+          tableIds.forEach(id => {
+            const tableBody = document.getElementById(id);
             if (tableBody) tableBody.innerHTML = errorMsg;
-          } else { 
-             console.warn("Error handling for sheet", sheetName, "not explicitly defined for UI update.");
-          }
+          });
           return null;
         }
       }
-
+      
       function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
-        if (lines.length === 0) return [];
-        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim()); 
         const data = [];
         for (let i = 1; i < lines.length; i++) {
           const values = [];
@@ -718,63 +632,48 @@
           let inQuotes = false;
           for (let j = 0; j < lines[i].length; j++) {
             const char = lines[i][j];
-            if (char === '"') {
-                if (inQuotes && j + 1 < lines[i].length && lines[i][j+1] === '"') {
-                    currentVal += '"'; 
-                    j++; 
-                    continue;
-                }
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              values.push(currentVal.trim()); 
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) {
+              values.push(currentVal.replace(/^"|"$/g, '').trim());
               currentVal = '';
-            } else {
-              currentVal += char;
-            }
+            } else currentVal += char;
           }
-          values.push(currentVal.trim());
-          
-          const processedValues = values.map(v => v.replace(/^"|"$/g, ''));
-
-          if (processedValues.length === headers.length) {
+          values.push(currentVal.replace(/^"|"$/g, '').trim()); 
+          if (values.length === headers.length) { 
             const row = {};
-            headers.forEach((header, index) => { row[header] = processedValues[index] || ''; });
+            headers.forEach((header, index) => { row[header] = values[index] || ''; });
             data.push(row);
           } else {
-            console.warn('Skipping mismatched CSV line:', lines[i], 'Expected', headers.length, 'got', processedValues.length, 'values:', processedValues);
+            console.warn('Skipping mismatched CSV line:', lines[i], 'Expected', headers.length, 'got', values.length, 'values.');
           }
         }
         return data;
       }
-
+      
       function getPlayoffIndicator(rank) {
-        if (rank <= 0) return '-';
+        if (rank <= 0) return '-'; 
         if (rank <= 6) return `<div class="playoff-seed">${rank}</div>`;
         else if (rank <= 10) return `<div class="playin-seed">${rank}</div>`;
         else return `<div class="eliminated-seed">${rank}</div>`;
       }
-
+      
       function getPAMClass(pam) {
         const pamValue = parseFloat(pam);
         if (pamValue > 0) return 'pam-positive';
         if (pamValue < 0) return 'pam-negative';
         return '';
       }
-
+      
       function handleTeamClick(teamId) {
-        if (teamId && teamId !== 'null' && teamId !== 'undefined' && teamId.trim() !== '') {
-             window.location.href = `team.html?id=${teamId}`;
-        } else {
-            console.warn('handleTeamClick called with invalid teamId:', teamId);
-        }
+        window.location.href = `team.html?id=${teamId}`;
       }
 
-      function updateSortIndicators(tableType) {
+      function updateSortIndicators(tableType) { 
         let tableElementId;
         if (tableType === 'Eastern') tableElementId = 'eastern-standings';
         else if (tableType === 'Western') tableElementId = 'western-standings';
         else if (tableType === 'FullLeague') tableElementId = 'full-league-standings';
-        else return; 
+        else return;
         const table = document.getElementById(tableElementId)?.closest('table');
         if (!table) return;
         const headers = table.querySelectorAll('thead th[onclick]');
@@ -783,34 +682,29 @@
           if (!columnAttr) return;
           const columnMatch = columnAttr.match(/'([^']+)'.*?'([^']+)'/);
           if (!columnMatch || columnMatch.length < 3) return;
-          const column = columnMatch[2];
+          const column = columnMatch[2]; 
           const indicator = th.querySelector('.sort-indicator');
           if (indicator) {
-            if (sortState[tableType] && sortState[tableType].column === column) {
+            if (sortState[tableType].column === column) {
               if (column === 'med_starter_rank') indicator.textContent = sortState[tableType].direction === 'asc_rank' ? '▲' : '▼';
               else indicator.textContent = sortState[tableType].direction === 'asc' ? '▲' : '▼';
-            } else indicator.textContent = '';
+            } else indicator.textContent = ''; 
           }
         });
       }
 
-      function renderStandings(tableType, teamsToRender) {
+      function renderStandings(tableType, teamsToRender) { 
         let tableBodyId;
         if (tableType === 'Eastern') tableBodyId = 'eastern-standings';
         else if (tableType === 'Western') tableBodyId = 'western-standings';
         else if (tableType === 'FullLeague') tableBodyId = 'full-league-standings';
-        else return;
+        else return; 
         const tableBody = document.getElementById(tableBodyId);
-        if (!tableBody) {
-            console.error(`Table body not found for ${tableBodyId}`);
-            return;
-        }
         if (!teamsToRender || teamsToRender.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="5" class="loading">No teams to display for ${tableType}.</td></tr>`;
             return;
         }
         const sortedTeamsForDisplay = [...teamsToRender].sort((a, b) => {
-          if (!sortState[tableType]) return 0; 
           const currentSortColumn = sortState[tableType].column;
           const currentSortDirection = sortState[tableType].direction;
           let valA, valB;
@@ -820,8 +714,8 @@
               return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1);
             case 'med_starter_rank':
               valA = parseFloat(a.med_starter_rank || 9999); valB = parseFloat(b.med_starter_rank || 9999);
-              return (valA - valB) * (currentSortDirection === 'asc_rank' ? 1 : -1);
-            case 'record': default:
+              return (valA - valB) * (currentSortDirection === 'asc_rank' ? 1 : -1); 
+            case 'record': default: 
               if (tableType === 'FullLeague') { valA = a.officialFullLeagueRank; valB = b.officialFullLeagueRank; }
               else { valA = a.officialRecordRank; valB = b.officialRecordRank; }
               return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1) ;
@@ -833,7 +727,7 @@
           let rankCellContent; let trClass = '';
           if (tableType === 'FullLeague') {
             rankCellContent = team.officialFullLeagueRank;
-          } else {
+          } else { 
             rankCellContent = getPlayoffIndicator(team.officialRecordRank);
             if (team.officialRecordRank > 10) trClass = 'eliminated';
           }
@@ -852,164 +746,60 @@
             </tr>`;
         }).join('');
         tableBody.innerHTML = html;
-        updateSortIndicators(tableType);
+        updateSortIndicators(tableType); 
       }
 
-      function getChangeIndicator(delta) {
-        const deltaValue = parseInt(delta);
-        if (isNaN(deltaValue)) return `<span>–</span>`; 
-        if (deltaValue > 0) return `<span class="pam-positive">▲ ${deltaValue}</span>`;
-        if (deltaValue < 0) return `<span class="pam-negative">▼ ${Math.abs(deltaValue)}</span>`;
-        return `<span>–</span>`;
-      }
-
-      function renderPowerRankings(teamsToRender) {
-        const tableBody = document.getElementById('power-rankings-standings');
-        if (!tableBody) {
-            console.error("Table body not found for power-rankings-standings");
-            return;
-        }
-        if (!teamsToRender || teamsToRender.length === 0) {
-            if (tableBody.innerHTML.includes('class="loading"')) { 
-                 tableBody.innerHTML = `<tr><td colspan="3" class="loading">No teams to display for Power Rankings.</td></tr>`;
-            }
-            return;
-        }
-        
-        const html = teamsToRender.map(team => {
-          return `
-            <tr>
-              <td class="rank-cell">${team.rank}</td>
-              <td>
-                <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
-                  <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                  <span class="team-name">${team.team_name}</span>
-                </div>
-              </td>
-              <td class="record-cell">${getChangeIndicator(team.delta)}</td>
-            </tr>`;
-        }).join('');
-        tableBody.innerHTML = html;
-      }
-
-      function handleSort(tableType, column) {
-        if (!sortState[tableType]) { 
-            if (column === 'med_starter_rank') sortState[tableType] = { column, direction: 'asc_rank' };
-            else if (column === 'record') sortState[tableType] = { column, direction: 'asc' };
-            else sortState[tableType] = { column, direction: 'desc' };
-        }
-
+      function handleSort(tableType, column) { 
         const currentSort = sortState[tableType]; let newDirection;
         if (currentSort.column === column) {
           if (column === 'med_starter_rank') newDirection = currentSort.direction === 'asc_rank' ? 'desc_rank' : 'asc_rank';
           else newDirection = currentSort.direction === 'desc' ? 'asc' : 'desc';
         } else {
-          if (column === 'med_starter_rank') newDirection = 'asc_rank';
-          else if (column === 'record') newDirection = 'asc';
-          else newDirection = 'desc';
+          if (column === 'med_starter_rank') newDirection = 'asc_rank'; 
+          else if (column === 'record') newDirection = 'asc'; 
+          else newDirection = 'desc'; 
         }
         sortState[tableType] = { column, direction: newDirection };
         let teamsToRender;
         if (tableType === 'Eastern') teamsToRender = easternTeamsData;
         else if (tableType === 'Western') teamsToRender = westernTeamsData;
         else if (tableType === 'FullLeague') teamsToRender = fullLeagueTeamsData;
-        else return;
+        else return; 
         renderStandings(tableType, teamsToRender);
       }
       
-      function updateButtonStates() {
-        if (!viewButton1 || !viewButton2) {
-            console.error("View toggle buttons not found in updateButtonStates");
-            return;
-        }
-
-        let action1, text1, action2, text2;
+      function toggleStandingsView() {
+        const confView = document.getElementById('conferenceViewContainer');
+        const fullLeagueView = document.getElementById('fullLeagueViewContainer');
+        const toggleButton = document.getElementById('toggleViewButton');
+        const pageTitle = document.getElementById('standingsPageTitle');
 
         if (currentView === 'conferences') {
-            text1 = 'Show Full League Standings';
-            action1 = showFullLeagueView;
-            text2 = 'Show Power Rankings';
-            action2 = showPowerRankingsView;
-        } else if (currentView === 'fullLeague') {
-            text1 = 'Show Conference Standings';
-            action1 = showConferenceView;
-            text2 = 'Show Power Rankings';
-            action2 = showPowerRankingsView;
-        } else { // currentView === 'powerRankings'
-            text1 = 'Show Conference Standings';
-            action1 = showConferenceView;
-            text2 = 'Show Full League Standings';
-            action2 = showFullLeagueView;
+            currentView = 'fullLeague';
+            confView.classList.add('hidden');
+            fullLeagueView.classList.remove('hidden');
+            toggleButton.textContent = 'Show Conference Standings';
+            pageTitle.textContent = 'Full League Standings';
+        } else {
+            currentView = 'conferences';
+            fullLeagueView.classList.add('hidden');
+            confView.classList.remove('hidden');
+            toggleButton.textContent = 'Show Full League Standings';
+            pageTitle.textContent = 'Conference Standings';
         }
-
-        viewButton1.textContent = text1;
-        viewButton1.onclick = action1; 
-
-        viewButton2.textContent = text2;
-        viewButton2.onclick = action2; 
       }
-
-      function showConferenceView() {
-          currentView = 'conferences';
-          document.getElementById('conferenceViewContainer').classList.remove('hidden');
-          document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-          document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Conference Standings';
-          const playoffLegend = document.querySelector('.playoff-legend');
-          if (playoffLegend) playoffLegend.classList.remove('hidden');
-          updateButtonStates();
-      }
-
-      function showFullLeagueView() {
-          currentView = 'fullLeague';
-          document.getElementById('conferenceViewContainer').classList.add('hidden');
-          document.getElementById('fullLeagueViewContainer').classList.remove('hidden');
-          document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Full League Standings';
-          const playoffLegend = document.querySelector('.playoff-legend');
-          if (playoffLegend) playoffLegend.classList.add('hidden');
-          updateButtonStates();
-      }
-
-      function showPowerRankingsView() {
-          currentView = 'powerRankings';
-          document.getElementById('conferenceViewContainer').classList.add('hidden');
-          document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-          document.getElementById('powerRankingsViewContainer').classList.remove('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Power Rankings';
-          const playoffLegend = document.querySelector('.playoff-legend');
-          if (playoffLegend) playoffLegend.classList.add('hidden');
-          updateButtonStates();
-      }
-
 
       async function loadStandings() {
         const viewParam = getUrlParameter('view');
         const sortByParam = getUrlParameter('sortBy');
-        let sortDirectionParam = getUrlParameter('sortDirection');
-        const playoffLegend = document.querySelector('.playoff-legend'); // Get reference to legend
-
-        viewButton1 = document.getElementById('viewToggleButton1');
-        viewButton2 = document.getElementById('viewToggleButton2');
-        
-        if (!viewButton1 || !viewButton2) {
-            console.error("Toggle buttons not found on page load.");
-            // Hide all content containers if buttons are critical and missing
-            document.getElementById('conferenceViewContainer').classList.add('hidden');
-            document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-            document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-            if(playoffLegend) playoffLegend.classList.add('hidden');
-            document.getElementById('standingsPageTitle').textContent = 'Page Error: UI Elements Missing';
-            return;
-        }
-
+        let sortDirectionParam = getUrlParameter('sortDirection'); 
 
         if (viewParam === 'fullLeague' && sortByParam) {
             let effectiveSortDirection = sortDirectionParam;
-            if (!effectiveSortDirection) {
-                if (sortByParam === 'med_starter_rank') effectiveSortDirection = 'asc_rank';
-                else if (sortByParam === 'pam') effectiveSortDirection = 'desc';
-                else effectiveSortDirection = 'asc';
+            if (!effectiveSortDirection) { 
+                if (sortByParam === 'med_starter_rank') effectiveSortDirection = 'asc_rank'; 
+                else if (sortByParam === 'pam') effectiveSortDirection = 'desc'; 
+                else effectiveSortDirection = 'asc'; 
             } else {
                 if (sortByParam === 'med_starter_rank') {
                     if (sortDirectionParam.toLowerCase() === 'asc') effectiveSortDirection = 'asc_rank';
@@ -1018,115 +808,77 @@
             }
             sortState.FullLeague = { column: sortByParam, direction: effectiveSortDirection };
         }
-
-        let fetchedTeamsData = await fetchSheetData('Teams');
+        
+        let fetchedTeamsData = await fetchSheetData('Teams'); 
         if (!fetchedTeamsData) {
-          console.error("Failed to fetch main Teams data. Standings cannot be loaded.");
-          document.getElementById('conferenceViewContainer').classList.add('hidden');
-          document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-          document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-          if(playoffLegend) playoffLegend.classList.add('hidden');
-          document.querySelector('.page-buttons-container').classList.add('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
           return;
         }
-
+        
         allTeamsData = fetchedTeamsData.filter(team => {
-            const id = team.team_id ? team.team_id.trim().toUpperCase() : '';
+            const id = team.team_id ? team.team_id.trim().toUpperCase() : ''; 
             return id !== 'RETIRED' && id !== 'FREE_AGENT';
         });
 
         if (!allTeamsData || allTeamsData.length === 0) {
             const errorMsg = '<tr><td colspan="5" class="error">No valid team data available after filtering.</td></tr>';
-            const prErrorMsg = '<tr><td colspan="3" class="error">No valid team data available.</td></tr>';
-            ['eastern-standings', 'western-standings', 'full-league-standings'].forEach(id => {
+            const tableIds = ['eastern-standings', 'western-standings', 'full-league-standings'];
+            tableIds.forEach(id => {
                 const tableBody = document.getElementById(id);
                 if (tableBody) tableBody.innerHTML = errorMsg;
             });
-            const prTableBody = document.getElementById('power-rankings-standings');
-            if(prTableBody) prTableBody.innerHTML = prErrorMsg;
-
             document.getElementById('conferenceViewContainer').classList.add('hidden');
             document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-            document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-            if(playoffLegend) playoffLegend.classList.add('hidden');
-            document.querySelector('.page-buttons-container').classList.add('hidden');
+            document.getElementById('toggleViewButton').classList.add('hidden'); 
             document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
             return;
         }
-
+        
         let rawEasternTeams = allTeamsData.filter(team => team.conference === 'Eastern');
         let rawWesternTeams = allTeamsData.filter(team => team.conference === 'Western');
 
         easternTeamsData = rawEasternTeams
-          .sort((a, b) => {
+          .sort((a, b) => { 
             const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
           })
           .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
-
+          
         westernTeamsData = rawWesternTeams
-          .sort((a, b) => {
+          .sort((a, b) => { 
             const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
           })
           .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
 
-        fullLeagueTeamsData = [...allTeamsData]
+        fullLeagueTeamsData = [...allTeamsData] 
           .sort((a, b) => {
             const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+            if (winsB !== winsA) return winsB - winsA; 
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
           })
           .map((team, index) => ({ ...team, officialFullLeagueRank: index + 1 }));
-
         
-        let rawPowerRankings = await fetchSheetData('TPR');
-        const prTableBody = document.getElementById('power-rankings-standings');
-
-        if (rawPowerRankings && rawPowerRankings.length > 0) {
-            powerRankingsData = rawPowerRankings.map(prTeam => {
-                // TPR sheet now has team_id (Col D), power_delta (assumed Col E or header 'power_delta')
-                const officialTeam = allTeamsData.find(t => t.team_id === prTeam.team_id);
-                const displayName = officialTeam ? officialTeam.team_name : prTeam.team_name; 
-
-                return {
-                    rank: parseInt(prTeam.power_rank),
-                    team_name: displayName, 
-                    team_id: prTeam.team_id,      
-                    delta: parseInt(prTeam.power_delta) || 0 
-                };
-            }).filter(team => team.team_id && team.team_id.trim() !== '' && !isNaN(team.rank))
-              .sort((a, b) => a.rank - b.rank);
-
-            if (powerRankingsData.length === 0 && rawPowerRankings.length > 0) {
-                 console.warn("Power rankings data fetched, but no teams could be fully processed (missing team_id or invalid rank).");
-                 if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="3" class="error">Could not process power ranking data. Check team_ids and ranks in TPR sheet.</td></tr>`;
-            }
-        } else if (rawPowerRankings && rawPowerRankings.length === 0) { 
-            if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="3" class="loading">No power ranking data available in the sheet.</td></tr>`;
-        } else if (!rawPowerRankings) { 
-            console.log("TPR sheet fetch failed, error message should be in table.");
-        }
-
-
         renderStandings('Eastern', easternTeamsData);
         renderStandings('Western', westernTeamsData);
-        renderStandings('FullLeague', fullLeagueTeamsData);
-        renderPowerRankings(powerRankingsData); 
+        renderStandings('FullLeague', fullLeagueTeamsData); 
+        
+        document.getElementById('fullLeagueViewContainer').classList.add('hidden');
+        document.getElementById('conferenceViewContainer').classList.remove('hidden');
+        document.getElementById('standingsPageTitle').textContent = 'Conference Standings';
+        const toggleButton = document.getElementById('toggleViewButton');
+        toggleButton.textContent = 'Show Full League Standings';
+        toggleButton.classList.remove('hidden'); 
+        currentView = 'conferences';
 
-        // Initial view setup based on URL params or default
         if (viewParam === 'fullLeague') {
-            showFullLeagueView();
-        } else if (viewParam === 'powerRankings') {
-            showPowerRankingsView();
-        } else {
-            showConferenceView(); // Default view
+            toggleStandingsView(); 
         }
-        // updateButtonStates() is called by each show...View() function.
 
+        document.getElementById('toggleViewButton').addEventListener('click', toggleStandingsView);
+        
+        // Dropdown menu toggle functionality
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
         if (navToggle && navMenu) {
@@ -1137,7 +889,7 @@
             });
         }
       }
-
+      
       document.addEventListener('DOMContentLoaded', loadStandings);
     </script>
   </body>
