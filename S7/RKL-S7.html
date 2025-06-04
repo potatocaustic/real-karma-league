@@ -1145,14 +1145,16 @@
             const bCaptain = b.captain === 'TRUE' || b.captain === true || b.captain === 'true';
             if (aCaptain && !bCaptain) return -1;
             if (!aCaptain && bCaptain) return 1;
-            return parseNumber(b.points_raw) - parseNumber(a.points_raw);
+            return parseNumber(b.points_raw) - parseNumber(a.points_raw); // Sorting within lineup still uses points_raw for display order
         };
 
         const team1Lineups = team1AllLineups.filter(l => (l.started === 'TRUE' || l.started === true || l.started === 'true' || l.started === 1 || l.started === '1')).sort(sortLineup);
         const team2Lineups = team2AllLineups.filter(l => (l.started === 'TRUE' || l.started === true || l.started === 'true' || l.started === 1 || l.started === '1')).sort(sortLineup);
         
-        const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_raw), 0);
-        const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_raw), 0);
+        // **MODIFIED LINES BELOW**
+        const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+        const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+        // **MODIFIED LINES ABOVE**
         const winner = game.winner;
         
         const generateLineupTable = (lineups, teamIdForTable, total, isWinner) => {
@@ -1172,13 +1174,13 @@
           }
           const lineupRows = lineups.map(player => {
             const isCaptain = player.captain === 'TRUE' || player.captain === true || player.captain === 'true';
-            const pointsRaw = parseNumber(player.points_raw);
+            const pointsRaw = parseNumber(player.points_raw); // points_raw for individual display
             const globalRank = parseNumber(player.global_rank);
-            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
+            const captainBonus = isCaptain ? Math.round(parseNumber(player.points_final) - pointsRaw) : 0; // Calculate bonus based on points_final and points_raw for display
             return `
               <tr class="${isCaptain ? 'captain-row' : ''}">
                 <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${player.player_handle || 'Unknown'}</a>${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td>
-                <td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td>
+                <td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain && captainBonus > 0 ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td>
                 <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
               </tr>`;}).join('');
           return `
