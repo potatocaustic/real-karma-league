@@ -332,7 +332,13 @@
         font-weight: bold;
         text-align: center;
         margin-top: 1.5rem; 
+        /* Ensure it aligns well if it's the only thing in an 'auto' column */
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        min-height: 50px; /* Adjust as needed based on trade-side content height */
       }
+
 
       .trade-team { 
         font-weight: bold;
@@ -371,8 +377,13 @@
         .filter-group { width: 100%; }
         .filter-group select { min-width: auto; width: 100%; }
         .transaction-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-        .trade-parts { grid-template-columns: 1fr; gap: 1rem; }
-        .trade-arrow { text-align: center; transform: rotate(90deg); margin-top: 0; margin-bottom: 0.5rem;}
+        .trade-parts { grid-template-columns: 1fr; gap: 1rem; } /* This ensures vertical stacking */
+        .trade-arrow { 
+            text-align: center; 
+            transform: rotate(90deg); 
+            margin-top: 0; margin-bottom: 0.5rem;
+            min-height: auto; /* Reset min-height for mobile */
+        }
       }
 
       /* Footer */
@@ -389,7 +400,7 @@
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
           <li><a href="RKL-S7.html">S7 Home</a></li>
-          <li><a href="standings.html">Standings</a></li>
+          <li><a href="standings.html">Standings & Rankings</a></li>
           <li><a href="leaderboards.html">Leaderboards</a></li>
           <li><a href="schedule.html">Schedule</a></li>
           <li><a href="transactions.html">Transactions</a></li>
@@ -828,7 +839,6 @@
           return;
         }
         
-        // MODIFIED LINE: Changed "Transaction Group" to "Transaction"
         document.getElementById('transactions-title').textContent = 
           `${finalGroupsToShow.length} Transaction${finalGroupsToShow.length === 1 ? '' : 's'}`;
         
@@ -958,13 +968,24 @@
                     </ul>
                 </div>`; 
 
-            if (index < teamIdsArray.length - 1 && teamIdsArray.length === 2) { 
-                tradeSummaryHtml += `<div class="trade-arrow">⇄</div>`;
-            } else if (index < teamIdsArray.length - 1 && teamIdsArray.length > 2) {
-                tradeSummaryHtml += `<div class="trade-arrow" style="font-size:1em; color:#666;">then</div>`; 
+            // MODIFIED SEPARATOR LOGIC HERE
+            if (index < teamIdsArray.length - 1) { // Only add separator if it's not the last team
+                if (teamIdsArray.length === 2) { // Two-team trade
+                    tradeSummaryHtml += `<div class="trade-arrow">⇄</div>`;
+                } else if (teamIdsArray.length === 3) { // Three-team trade
+                    // No separator, teams will be laid out by the grid
+                } else if (teamIdsArray.length > 3) { // Four or more team trade
+                    tradeSummaryHtml += `<div class="trade-arrow" style="font-size:1em; color:#666;">then</div>`;
+                }
             }
         });
         tradeSummaryHtml += '</div>';
+
+        // Adjust .trade-parts grid styling for 3-team trades if no separator is present
+        // This is a bit tricky to do purely in JS by modifying style directly without classes
+        // The existing CSS grid-template-columns: 1fr auto 1fr; might try to fit 3 .trade-side divs.
+        // If teamIdsArray.length === 3, the middle .trade-side will go into the 'auto' column.
+        // This might be acceptable or desired (Team A | Team B (auto) | Team C)
 
         return `
           <div class="transaction-item multi-transaction">
