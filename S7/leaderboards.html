@@ -448,7 +448,8 @@
           box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       }
       .team-checklist-container.dropdown-menu label {
-          display: block;
+          display: flex; /* MODIFIED */
+          align-items: center; /* ADDED */
           padding: 0.35rem 0.6rem; 
           cursor: pointer;
           font-size: 0.95rem;
@@ -463,7 +464,8 @@
       }
       .team-checklist-container.dropdown-menu input[type="checkbox"] {
           margin-right: 0.6rem; 
-          vertical-align: middle;
+          /* vertical-align: middle; */ /* REMOVED */
+          flex-shrink: 0; /* ADDED */
       }
 
 
