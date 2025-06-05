@@ -212,7 +212,7 @@
       /* Player stats grid */
       .player-stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); 
         gap: 1rem;
         margin-top: 2rem;
       }
@@ -227,6 +227,9 @@
         transition: all 0.3s ease;
         text-decoration: none;
         color: inherit;
+        display: flex; 
+        flex-direction: column; 
+        justify-content: space-between; 
       }
 
       .stat-card:hover {
@@ -247,6 +250,7 @@
         font-size: 0.9rem;
         color: #666;
         margin-top: 0.5rem;
+        flex-grow: 1; 
       }
 
       .stat-rank {
@@ -255,6 +259,11 @@
         margin-top: 0.3rem;
         font-weight: 500;
       }
+      .stat-rank.unranked-gp-required { 
+        color: #dc3545; 
+         font-size: 0.75rem;
+      }
+
 
       .positive { color: #28a745; }
       .negative { color: #dc3545; }
@@ -264,9 +273,11 @@
           color: inherit;
           display: block; 
           border-radius: 6px; 
+          height: 100%; 
       }
       .stat-card-link .stat-card {
           transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+          height: 100%; 
       }
       .stat-card-link:hover .stat-card {
           transform: translateY(-4px);
@@ -417,7 +428,6 @@
       .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
       .modal-team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column;}
       .modal-team-header.winner { background-color: #28a745; }
-      .modal-team-header h4 { color: white; margin: 0; font-size: 1.2rem; }
       .modal-team-header .team-logo { width: 48px; height: 48px; border-radius: 4px; } 
       .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; }
       .lineup-table { width: 100%; border-collapse: collapse; }
@@ -445,7 +455,7 @@
         .content-grid { grid-template-columns: 1fr; }
         .player-main-info { flex-direction: column; gap: 1rem; }
         .team-logo-large { width: 80px; height: 80px; }
-        .player-stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .player-stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } 
         .performance-table th, .performance-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem; }
         
         .game-item { 
@@ -479,7 +489,7 @@
         .modal-team-header .team-logo { width: 36px; height: 36px; }
       }
       @media (max-width: 480px) {
-        .player-stats-grid { grid-template-columns: 1fr; }
+        .player-stats-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
         .performance-table th:nth-child(4), .performance-table td:nth-child(4) { display: none; }
         .opponent-logo { width: 24px; height: 24px; }
         .game-history-team-name { font-size: 0.85rem; }
@@ -541,7 +551,7 @@
       const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
       
       let playerHandle = null;
-      let playerData = null;
+      let playerData = null; 
       let allTeams = [];
       let allLineups = [];
       let allScheduleData = []; 
@@ -601,15 +611,15 @@
         const team = allTeams.find(t => t.team_id === teamId);
         return team ? team.team_name : teamId;
        }
-      function getOrdinal(num) { 
-        const n = parseInt(num);
-        if (n <= 0) return 'Unranked';
+      function getOrdinal(numInput) { 
+        const n = parseInt(String(numInput));
+        if (isNaN(n) || n <= 0) return String(numInput); 
         const suffix = ['th', 'st', 'nd', 'rd'];
         const v = n % 100;
         return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
        }
 
-      function calculateRELForAllPlayers(players, weeklyAverages, lineups) {
+      function calculateAllPlayerStats(players, weeklyAverages, lineups) {
         if (!players || !weeklyAverages || !lineups) {
             return players || []; 
         }
@@ -629,103 +639,157 @@
             (String(lineup.started).toUpperCase() === 'TRUE') 
           );
           
-          let totalPlayerKarmaRawForREL = 0; // MODIFIED: For REL calculations using raw points
+          let totalPlayerKarmaRawForREL = 0;
           let totalMeanKarma = 0;
           let totalMedianKarma = 0;
           let validGamesForREL = 0;
           const ranks = [];
-          let gamesAboveMean = 0;   // Stays based on final points (including captaincy)
-          let gamesAboveMedian = 0; // Stays based on final points (including captaincy)
+          // Removed sumOfRanks and countOfRankedGames as avg_rank card is removed
+          let gamesAboveMean = 0;
+          let gamesAboveMedian = 0;
           let t100_finishes = 0; 
+          let t50_finishes = 0;
 
           playerGames.forEach(game => {
             const gameDate = game.date;
-            const playerKarmaFinalForComparisons = parseNumber(game.points_final); // MODIFIED: For AAG, etc.
-            const playerKarmaRawForRELCalculation = parseNumber(game.points_raw); // MODIFIED: For REL sum
+            const playerKarmaFinalForComparisons = parseNumber(game.points_final);
+            const playerKarmaRawForRELCalculation = parseNumber(game.points_raw);
             const globalRank = parseNumber(game.global_rank);
             
             if (weeklyAveragesMap[gameDate]) {
-              totalPlayerKarmaRawForREL += playerKarmaRawForRELCalculation; // MODIFIED: Accumulate raw points for REL
+              totalPlayerKarmaRawForREL += playerKarmaRawForRELCalculation;
               totalMeanKarma += weeklyAveragesMap[gameDate].mean_score;
               totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
               validGamesForREL++;
-              // Comparisons for AAG/AAM still use final points (includes captaincy)
               if (playerKarmaFinalForComparisons > weeklyAveragesMap[gameDate].mean_score) gamesAboveMean++;
               if (playerKarmaFinalForComparisons > weeklyAveragesMap[gameDate].median_score) gamesAboveMedian++;
             }
             if (globalRank > 0) {
               ranks.push(globalRank);
+              // Removed sumOfRanks and countOfRankedGames updates
               if (globalRank <= 100) { 
                 t100_finishes++;
+              }
+              if (globalRank <= 50) { 
+                t50_finishes++;
               }
             }
           });
           
-          const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0; // MODIFIED: Average of raw points for REL
+          const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0;
           const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
           const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
           
-          // MODIFIED: REL calculations use average of raw karma
           const calculated_rel_mean = avgMeanKarma > 0 ? (avgPlayerRawKarmaForREL / avgMeanKarma) : 0;
           const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerRawKarmaForREL / avgMedianKarma) : 0;
           
-          let calculated_median_rank = 0;
+          let calculated_median_rank = Infinity; 
           if (ranks.length > 0) {
             ranks.sort((a, b) => a - b);
             const mid = Math.floor(ranks.length / 2);
             calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
           }
-          
+          // Removed calculated_avg_rank from here
+
           const games_played_count = parseInt(player.games_played || 0);
 
           return {
             ...player, 
             calculated_rel_mean: calculated_rel_mean,
             calculated_rel_median: calculated_rel_median,
-            calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, 
-            aag_mean: gamesAboveMean, // Remains based on final points
+            calculated_median_rank: calculated_median_rank, 
+            // calculated_avg_rank: REMOVED
+            aag_mean: gamesAboveMean,
             aag_mean_pct: games_played_count > 0 ? gamesAboveMean / games_played_count : 0,
-            aag_median: gamesAboveMedian, // Remains based on final points
+            aag_median: gamesAboveMedian,
             aag_median_pct: games_played_count > 0 ? gamesAboveMedian / games_played_count : 0,
             t100_finishes: t100_finishes, 
             t100_finishes_pct: games_played_count > 0 ? (t100_finishes / games_played_count) : 0,
-            total_points: parseNumber(player.total_points), // This is from Players sheet
+            t50_finishes: t50_finishes, 
+            t50_finishes_pct: games_played_count > 0 ? (t50_finishes / games_played_count) : 0,
+            total_points: parseNumber(player.total_points), 
             games_played: games_played_count 
           };
         });
       }
 
-      function calculatePlayerRankings(playerDataForRanking, allPlayersDataForRanking) { 
+
+      function calculatePlayerRankings(playerDataToRank, allActivePlayers, is3GPMinimumActive) { 
         const rankings = {};
-        const totalKarmaPlayers = allPlayersDataForRanking
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => parseFloat(b.total_points || 0) - parseFloat(a.total_points || 0));
-        rankings.totalKarma = totalKarmaPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        const playerGamesPlayed = parseInt(playerDataToRank.games_played || 0);
+
+        const getSpecificStatRankingPool = (players) => {
+            if (is3GPMinimumActive) {
+                return players.filter(p => parseInt(p.games_played || 0) >= 3);
+            }
+            return players.filter(p => parseInt(p.games_played || 0) > 0);
+        };
         
-        const relMedianPlayers = allPlayersDataForRanking
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => parseFloat(b.calculated_rel_median || 0) - parseFloat(a.calculated_rel_median || 0));
-        rankings.relMedian = relMedianPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        let rankNum; // Reusable rank number
+
+        // Total Karma
+        const totalKarmaPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
+        const totalKarmaPlayersSorted = [...totalKarmaPool].sort((a, b) => parseFloat(b.total_points || 0) - parseFloat(a.total_points || 0));
+        rankNum = totalKarmaPlayersSorted.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+        rankings.totalKarma = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (totalKarmaPool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
         
-        const gamesAboveMedianPlayers = allPlayersDataForRanking
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => {
+        // REL Median
+        if (is3GPMinimumActive && playerGamesPlayed < 3) {
+            rankings.relMedian = "Unranked (3 GP required)";
+        } else {
+            const pool = getSpecificStatRankingPool(allActivePlayers);
+            if (playerDataToRank.calculated_rel_median === 0 && playerGamesPlayed === 0) {
+                 rankings.relMedian = "Unranked";
+            } else {
+                const sortedPool = [...pool].sort((a, b) => parseFloat(b.calculated_rel_median || 0) - parseFloat(a.calculated_rel_median || 0));
+                rankNum = sortedPool.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+                rankings.relMedian = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (pool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
+            }
+        }
+        
+        // Median Gameday Rank
+        if (is3GPMinimumActive && playerGamesPlayed < 3) {
+            rankings.medianRank = "Unranked (3 GP required)";
+        } else {
+            if (playerDataToRank.calculated_median_rank === Infinity || playerGamesPlayed === 0) {
+                rankings.medianRank = "Unranked";
+            } else {
+                const pool = getSpecificStatRankingPool(allActivePlayers).filter(p => p.calculated_median_rank !== Infinity);
+                const sortedPool = [...pool].sort((a, b) => parseFloat(a.calculated_median_rank || Infinity) - parseFloat(b.calculated_median_rank || Infinity));
+                rankNum = sortedPool.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+                rankings.medianRank = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (pool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
+            }
+        }
+
+        // Average Gameday Rank - REMOVED from ranking object
+        // if (is3GPMinimumActive && playerGamesPlayed < 3) {
+        //     rankings.avgRank = "Unranked (3 GP required)";
+        // } else {
+        //      if (playerDataToRank.calculated_avg_rank === Infinity || playerGamesPlayed === 0) { // Assuming calculated_avg_rank is on playerDataToRank
+        //         rankings.avgRank = "Unranked";
+        //     } else {
+        //         const pool = getSpecificStatRankingPool(allActivePlayers).filter(p => p.calculated_avg_rank !== Infinity); // Assuming calculated_avg_rank
+        //         const sortedPool = [...pool].sort((a, b) => parseFloat(a.calculated_avg_rank || Infinity) - parseFloat(b.calculated_avg_rank || Infinity));
+        //         rankNum = sortedPool.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+        //         rankings.avgRank = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (pool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
+        //     }
+        // }
+        
+        const gamesAboveMedianPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
+        const gamesAboveMedianPlayers = [...gamesAboveMedianPool].sort((a, b) => {
             const aGames = parseInt(a.aag_median || 0); const bGames = parseInt(b.aag_median || 0);
             if (bGames !== aGames) return bGames - aGames;
-            const aREL = parseFloat(a.calculated_rel_median || 0); const bREL = parseFloat(b.calculated_rel_median || 0); // Tie-break with new REL Median
+            const aREL = parseFloat(a.calculated_rel_median || 0); const bREL = parseFloat(b.calculated_rel_median || 0);
             return bREL - aREL;
           });
-        rankings.gamesAboveMedian = gamesAboveMedianPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        rankNum = gamesAboveMedianPlayers.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+        rankings.gamesAboveMedian = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (gamesAboveMedianPool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
 
-        const aboveMedianPctPlayers = allPlayersDataForRanking
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0)
-          .sort((a, b) => parseFloat(b.aag_median_pct || 0) - parseFloat(a.aag_median_pct || 0));
-        rankings.aboveMedianPct = aboveMedianPctPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
-        
-        const medianRankPlayers = allPlayersDataForRanking
-          .filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0 && parseFloat(p.calculated_median_rank || Infinity) !== Infinity)
-          .sort((a, b) => parseFloat(a.calculated_median_rank || Infinity) - parseFloat(b.calculated_median_rank || Infinity));
-        rankings.medianRank = medianRankPlayers.findIndex(p => p.player_handle === playerDataForRanking.player_handle) + 1;
+        const aboveMedianPctPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
+        const aboveMedianPctPlayers = [...aboveMedianPctPool].sort((a, b) => parseFloat(b.aag_median_pct || 0) - parseFloat(a.aag_median_pct || 0));
+        rankNum = aboveMedianPctPlayers.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+        rankings.aboveMedianPct = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (aboveMedianPctPool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
+
         return rankings;
        }
       
@@ -751,19 +815,22 @@
         allScheduleData = schedule || []; 
         allTransactionsLogData = transactions || [];
 
-        const playersWithCalculatedStats = calculateRELForAllPlayers(playersRaw, weeklyAveragesRaw, lineupsRaw);
+        const allPlayersProcessed = calculateAllPlayerStats(playersRaw, weeklyAveragesRaw, lineupsRaw);
         
-        playerData = playersWithCalculatedStats.find(player => player.player_handle === playerHandle);
+        playerData = allPlayersProcessed.find(player => player.player_handle === playerHandle);
 
         if (!playerData) {
           document.getElementById('player-main-info').innerHTML = '<div class="error">Player not found</div>';
           return;
         }
         
-        const activePlayersWithREL = playersWithCalculatedStats.filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) > 0);
-        const rankings = calculatePlayerRankings(playerData, activePlayersWithREL);
+        const playersMeeting3Games = allPlayersProcessed.filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) >= 3).length;
+        const is3GPMinimumActive = playersMeeting3Games >= 120;
         
-        displayPlayerHeader(rankings);
+        const allActivePlayers = allPlayersProcessed.filter(p => p.player_status === 'ACTIVE');
+        const rankings = calculatePlayerRankings(playerData, allActivePlayers, is3GPMinimumActive);
+        
+        displayPlayerHeader(rankings); 
         await Promise.all([loadPerformanceData(), loadGameHistory()]);
       }
       
@@ -777,21 +844,20 @@
 
       function displayPlayerHeader(rankings) { 
         document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL Season 7`;
-        const playerDetailsH2 = document.querySelector('.player-details h2');
-        if (playerDetailsH2) {
-            playerDetailsH2.textContent = playerData.player_handle;
-        }
-
+        
         let teamLogoHTML = '';
         let teamInfoHTML = '';
         let previousTeamsHTML = '';
 
-        const isFreeAgent = playerData.current_team_id === 'FREE_AGENT';
-        if (!isFreeAgent && playerData.current_team_id) { 
+        const isFreeAgent = playerData.current_team_id === 'FREE_AGENT' || !playerData.current_team_id;
+        if (!isFreeAgent) { 
             const teamData = allTeams.find(t => t.team_id === playerData.current_team_id);
             const teamName = teamData ? teamData.team_name : playerData.current_team_id;
-            teamLogoHTML = `<img src="icons/${playerData.current_team_id}.webp" alt="${teamName}" class="team-logo-large" onerror="this.style.display='none';">`;
+            teamLogoHTML = `<img src="icons/${playerData.current_team_id}.webp" alt="${teamName}" class="team-logo-large" onerror="this.onerror=null;this.src='icons/FA.webp';this.alt='Default Logo';">`;
             teamInfoHTML = `<a href="team.html?id=${playerData.current_team_id}" class="team-info">Current Team: ${teamName}</a>`;
+        } else {
+            teamLogoHTML = `<img src="icons/FA.webp" alt="Free Agent" class="team-logo-large">`;
+            teamInfoHTML = `<div class="team-info" style="color:#6c757d; cursor:default;">Current Team: Free Agent</div>`;
         }
         
         const playedForTeamsSet = new Set();
@@ -806,18 +872,18 @@
             if (teamIdPlayedFor !== playerData.current_team_id && teamIdPlayedFor && teamIdPlayedFor.toUpperCase() !== 'FA' && teamIdPlayedFor.toUpperCase() !== 'FREE_AGENT' && teamIdPlayedFor.toUpperCase() !== 'RETIRED') {
                 const gp = getGamesPlayedForTeam(playerHandle, teamIdPlayedFor, allLineups);
                 if (gp > 0) {
-                    previousTeamInfoArray.push({ teamName: getTeamName(teamIdPlayedFor), gp: gp });
+                    previousTeamInfoArray.push({ teamId: teamIdPlayedFor, teamName: getTeamName(teamIdPlayedFor), gp: gp });
                 }
             }
         });
 
         if (previousTeamInfoArray.length > 0) {
             const prefix = previousTeamInfoArray.length > 1 ? "Previous Teams: " : "Previous Team: ";
-            const teamsStr = previousTeamInfoArray.map(pt => `${pt.teamName} (${pt.gp} GP)`).join(", ");
+            const teamsStr = previousTeamInfoArray.map(pt => `<a href="team.html?id=${pt.teamId}" style="color: #666; text-decoration:none;" onmouseover="this.style.textDecoration='underline';" onmouseout="this.style.textDecoration='none';">${pt.teamName}</a> (${pt.gp} GP)`).join(", ");
             previousTeamsHTML = `<div class="player-previous-teams">${prefix}${teamsStr}</div>`;
         }
 
-        const totalPoints = parseNumber(playerData.total_points); // total_points from Players sheet
+        const totalPoints = parseNumber(playerData.total_points);
         const gamesPlayed = parseInt(playerData.games_played || 0);
         document.getElementById('player-main-info').innerHTML = `
           ${teamLogoHTML}
@@ -828,28 +894,29 @@
             ${previousTeamsHTML} 
           </div>`;
         
-        const relMedian = playerData.calculated_rel_median || 0; // Now based on points_raw
-        const gamesAboveMedian = parseInt(playerData.aag_median || 0); // Remains based on points_final comparison
-        const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100; // Remains based on points_final comparison
+        const relMedian = playerData.calculated_rel_median || 0;
+        const gamesAboveMedian = parseInt(playerData.aag_median || 0);
+        const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100;
         
         let medianRankValueForDisplay = '-';
         if (playerData.calculated_median_rank !== Infinity && playerData.calculated_median_rank > 0) {
             const roundedRank = Math.round(playerData.calculated_median_rank); 
-            if (roundedRank > 0) { 
-                medianRankValueForDisplay = roundedRank;
-            }
+            medianRankValueForDisplay = roundedRank > 0 ? roundedRank : '-';
         }
+        
+        const rankClass = (rankText) => String(rankText).includes("required") ? "stat-rank unranked-gp-required" : "stat-rank";
 
         document.getElementById('player-stats').innerHTML = `
-          <a href="leaderboards.html?category=total_points" class="stat-card">
-            <div class="stat-value">${Math.round(totalPoints).toLocaleString()}</div><div class="stat-label">Total Karma</div><div class="stat-rank">${getOrdinal(rankings.totalKarma)} Overall</div></a>
-          <a href="leaderboards.html?category=rel_median" class="stat-card">
-            <div class="stat-value">${relMedian.toFixed(3)}</div><div class="stat-label">REL Median</div><div class="stat-rank">${getOrdinal(rankings.relMedian)} Overall</div></a>
-          <a href="leaderboards.html?category=aag_median" class="stat-card">
-            <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="stat-rank">${getOrdinal(rankings.gamesAboveMedian)} Overall</div></a>
-          <a href="leaderboards.html?category=aag_median" class="stat-card"> <div class="stat-value">${aboveMedianPct.toFixed(1)}%</div><div class="stat-label">% Games Above Median</div><div class="stat-rank">${getOrdinal(rankings.aboveMedianPct)} Overall</div></a>
-          <a href="leaderboards.html?category=median_gameday_rank" class="stat-card"> 
-            <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Gameday Rank</div><div class="stat-rank">${rankings.medianRank > 0 ? `${getOrdinal(rankings.medianRank)} Overall` : 'Not ranked'}</div></a>`;
+          <a href="leaderboards.html?category=total_points" class="stat-card-link"><div class="stat-card">
+            <div class="stat-value">${Math.round(totalPoints).toLocaleString()}</div><div class="stat-label">Total Karma</div><div class="${rankClass(rankings.totalKarma)}">${rankings.totalKarma}</div></div></a>
+          <a href="leaderboards.html?category=rel_median" class="stat-card-link"><div class="stat-card">
+            <div class="stat-value">${relMedian.toFixed(3)}</div><div class="stat-label">REL Median</div><div class="${rankClass(rankings.relMedian)}">${rankings.relMedian}</div></div></a>
+          <a href="leaderboards.html?category=median_gameday_rank" class="stat-card-link"><div class="stat-card"> 
+            <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Gameday Rank</div><div class="${rankClass(rankings.medianRank)}">${rankings.medianRank}</div></div></a>
+          <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card">
+            <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="${rankClass(rankings.gamesAboveMedian)}">${rankings.gamesAboveMedian}</div></div></a>
+          <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${aboveMedianPct.toFixed(1)}%</div><div class="stat-label">% Games Above Median</div><div class="${rankClass(rankings.aboveMedianPct)}">${rankings.aboveMedianPct}</div></div></a>
+          `;
         document.getElementById('player-stats').style.display = 'grid';
        }
 
@@ -879,7 +946,7 @@
 
         const performanceHTML = playerLineups.map(lineup => {
           const isCaptain = String(lineup.captain).toLowerCase() === 'true' || lineup.captain === true || lineup.captain === 1;
-          const pointsRaw = parseNumber(lineup.points_raw); // Display raw points
+          const pointsRaw = parseNumber(lineup.points_raw); 
           const globalRank = parseNumber(lineup.global_rank);
 
           const gameForLineup = allScheduleData.find(g => g.date === lineup.date && (g.team1_id === lineup.team_id || g.team2_id === lineup.team_id));
@@ -931,7 +998,7 @@
 
         const historyHTML = gamesWithPerformance.map(game => {
           const isCaptain = String(game.lineup.captain).toLowerCase() === 'true' || game.lineup.captain === true || game.lineup.captain === 1;
-          const pointsRaw = parseNumber(game.lineup.points_raw); // Display raw points in game history item
+          const pointsRaw = parseNumber(game.lineup.points_raw); 
           const globalRank = parseNumber(game.lineup.global_rank);
           
           const playerTeamName = getTeamName(game.playerTeamId);
@@ -998,8 +1065,8 @@
         const team1Lineups = team1AllGameLineups.filter(lineup => String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1).sort(sortLogic);
         const team2Lineups = team2AllGameLineups.filter(lineup => String(lineup.started).toLowerCase() === 'true' || lineup.started === true || lineup.started === 1).sort(sortLogic);
         
-        const team1Total = team1Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0); // Modal total uses points_final
-        const team2Total = team2Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0); // Modal total uses points_final
+        const team1Total = team1Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0); 
+        const team2Total = team2Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0); 
         const winner = game.winner;
         
         const generateLineupTable = (lineups, teamIdForTable, total, isWinner) => {
@@ -1012,9 +1079,9 @@
           
           const lineupRows = lineups.map(player => {
             const isCaptain = String(player.captain).toLowerCase() === 'true' || player.captain === true || player.captain === 1;
-            const pointsRaw = parseNumber(player.points_raw); // Display raw points in modal line item
+            const pointsRaw = parseNumber(player.points_raw); 
             const globalRank = parseNumber(player.global_rank);
-            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0; // Calculate bonus based on raw
+            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0; 
             return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" target="_blank" class="player-link"> ${player.player_handle || 'Unknown'}</a>${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
           }).join('');
           return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">${teamLogoTagInModal}<div><h4>${getTeamName(teamIdForTable)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
