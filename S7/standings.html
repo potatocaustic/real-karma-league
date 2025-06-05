@@ -167,7 +167,7 @@
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
+        overflow: hidden; /* Ensures box shadow is neat if table overflows slightly */
       }
       
       #fullLeagueViewContainer .conference-section,
@@ -252,41 +252,46 @@
       }
       .standings-table th.no-sort { cursor: default; }
 
-      /* Default column widths for 5-column standings tables (Non-PR) */
-      #eastern-standings th:nth-child(1), #eastern-standings td:nth-child(1),
-      #western-standings th:nth-child(1), #western-standings td:nth-child(1),
-      #full-league-standings th:nth-child(1), #full-league-standings td:nth-child(1) { width: 15%; text-align: center; }
+      /* Default column widths for 5-column standings tables (Non-PR) - DESKTOP */
+      #conferenceViewContainer .standings-table th:nth-child(1), 
+      #conferenceViewContainer .standings-table td:nth-child(1),
+      #fullLeagueViewContainer .standings-table th:nth-child(1), 
+      #fullLeagueViewContainer .standings-table td:nth-child(1) { width: 15%; text-align: center; }
 
-      #eastern-standings th:nth-child(2), #eastern-standings td:nth-child(2),
-      #western-standings th:nth-child(2), #western-standings td:nth-child(2),
-      #full-league-standings th:nth-child(2), #full-league-standings td:nth-child(2) { width: 35%; text-align: left; }
+      #conferenceViewContainer .standings-table th:nth-child(2), 
+      #conferenceViewContainer .standings-table td:nth-child(2),
+      #fullLeagueViewContainer .standings-table th:nth-child(2), 
+      #fullLeagueViewContainer .standings-table td:nth-child(2) { width: 35%; text-align: left; }
 
-      #eastern-standings th:nth-child(3), #eastern-standings td:nth-child(3),
-      #western-standings th:nth-child(3), #western-standings td:nth-child(3),
-      #full-league-standings th:nth-child(3), #full-league-standings td:nth-child(3) { width: 20%; text-align: center; }
+      #conferenceViewContainer .standings-table th:nth-child(3), 
+      #conferenceViewContainer .standings-table td:nth-child(3),
+      #fullLeagueViewContainer .standings-table th:nth-child(3), 
+      #fullLeagueViewContainer .standings-table td:nth-child(3) { width: 20%; text-align: center; }
       
-      #eastern-standings th:nth-child(4), #eastern-standings td:nth-child(4),
-      #western-standings th:nth-child(4), #western-standings td:nth-child(4),
-      #full-league-standings th:nth-child(4), #full-league-standings td:nth-child(4) { width: 15%; text-align: center; }
+      #conferenceViewContainer .standings-table th:nth-child(4), 
+      #conferenceViewContainer .standings-table td:nth-child(4),
+      #fullLeagueViewContainer .standings-table th:nth-child(4), 
+      #fullLeagueViewContainer .standings-table td:nth-child(4) { width: 15%; text-align: center; }
 
-      #eastern-standings th:nth-child(5), #eastern-standings td:nth-child(5),
-      #western-standings th:nth-child(5), #western-standings td:nth-child(5),
-      #full-league-standings th:nth-child(5), #full-league-standings td:nth-child(5) { width: 15%; text-align: center; }
+      #conferenceViewContainer .standings-table th:nth-child(5), 
+      #conferenceViewContainer .standings-table td:nth-child(5),
+      #fullLeagueViewContainer .standings-table th:nth-child(5), 
+      #fullLeagueViewContainer .standings-table td:nth-child(5) { width: 15%; text-align: center; }
       
-      /* Column widths for 5-column Power Rankings table */
-      #powerRankingsViewContainer .standings-table th:nth-child(1), /* Rank */
+      /* Column widths for 5-column Power Rankings table - DESKTOP */
+      #powerRankingsViewContainer .standings-table th:nth-child(1), 
       #powerRankingsViewContainer .standings-table td:nth-child(1) { width: 12%; text-align: center; }
 
-      #powerRankingsViewContainer .standings-table th:nth-child(2), /* Team */
+      #powerRankingsViewContainer .standings-table th:nth-child(2), 
       #powerRankingsViewContainer .standings-table td:nth-child(2) { width: 33%; text-align: left; }
 
-      #powerRankingsViewContainer .standings-table th:nth-child(3), /* Record */
+      #powerRankingsViewContainer .standings-table th:nth-child(3), 
       #powerRankingsViewContainer .standings-table td:nth-child(3) { width: 18%; text-align: center; }
 
-      #powerRankingsViewContainer .standings-table th:nth-child(4), /* Prev */
+      #powerRankingsViewContainer .standings-table th:nth-child(4), 
       #powerRankingsViewContainer .standings-table td:nth-child(4) { width: 15%; text-align: center; }
 
-      #powerRankingsViewContainer .standings-table th:nth-child(5), /* Change */
+      #powerRankingsViewContainer .standings-table th:nth-child(5), 
       #powerRankingsViewContainer .standings-table td:nth-child(5) { width: 22%; text-align: center; }
 
       .standings-table td {
@@ -357,33 +362,53 @@
         .standings-table th .sort-indicator { display: none; }
         .page-buttons-container { display: flex; flex-direction: column; gap: 0.5rem; }
         .view-toggle-button { width: 80%; margin: 0 auto; }
-        .prev-rank-col { display: none; }
+        .prev-rank-col { display: none; } /* Hides "Prev" column in Power Rankings on mobile */
 
-        /* Hide Med Rank column on mobile for Conference and Full League views */
-        #eastern-standings th:nth-child(5), #eastern-standings td:nth-child(5),
-        #western-standings th:nth-child(5), #western-standings td:nth-child(5),
-        #full-league-standings th:nth-child(5), #full-league-standings td:nth-child(5) {
+        /* Hide Med Rank header column for Conference and Full League views on mobile */
+        #conferenceViewContainer .standings-table thead th:nth-child(5),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(5) {
+            display: none;
+        }
+
+        /* Hide Med Rank data cells for Conference and Full League views on mobile */
+        /* Note: JS also handles not rendering these cells, this is a CSS backup. */
+        #eastern-standings td:nth-child(5),
+        #western-standings td:nth-child(5),
+        #full-league-standings td:nth-child(5) {
             display: none;
         }
 
         /* Adjust column widths for Conference and Full League tables on mobile (now 4 columns) */
-        #eastern-standings th:nth-child(1), #eastern-standings td:nth-child(1),
-        #western-standings th:nth-child(1), #western-standings td:nth-child(1),
-        #full-league-standings th:nth-child(1), #full-league-standings td:nth-child(1) { width: 20%; } /* Rank */
+        /* Headers */
+        #conferenceViewContainer .standings-table thead th:nth-child(1),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(1) { width: 20%; } /* Rank */
+
+        #conferenceViewContainer .standings-table thead th:nth-child(2),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(2) { width: 45%; } /* Team */
+
+        #conferenceViewContainer .standings-table thead th:nth-child(3),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(3) { width: 20%; } /* Record */
+
+        #conferenceViewContainer .standings-table thead th:nth-child(4),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(4) { width: 15%; } /* PAM */
+
+        /* Data Cells for Conference and Full League (using tbody IDs) */
+        #eastern-standings td:nth-child(1),
+        #western-standings td:nth-child(1),
+        #full-league-standings td:nth-child(1) { width: 20%; }
+
+        #eastern-standings td:nth-child(2),
+        #western-standings td:nth-child(2),
+        #full-league-standings td:nth-child(2) { width: 45%; }
+
+        #eastern-standings td:nth-child(3),
+        #western-standings td:nth-child(3),
+        #full-league-standings td:nth-child(3) { width: 20%; }
+
+        #eastern-standings td:nth-child(4),
+        #western-standings td:nth-child(4),
+        #full-league-standings td:nth-child(4) { width: 15%; }
         
-        #eastern-standings th:nth-child(2), #eastern-standings td:nth-child(2),
-        #western-standings th:nth-child(2), #western-standings td:nth-child(2),
-        #full-league-standings th:nth-child(2), #full-league-standings td:nth-child(2) { width: 45%; } /* Team */
-
-        #eastern-standings th:nth-child(3), #eastern-standings td:nth-child(3),
-        #western-standings th:nth-child(3), #western-standings td:nth-child(3),
-        #full-league-standings th:nth-child(3), #full-league-standings td:nth-child(3) { width: 20%; } /* Record */
-
-        #eastern-standings th:nth-child(4), #eastern-standings td:nth-child(4),
-        #western-standings th:nth-child(4), #western-standings td:nth-child(4),
-        #full-league-standings th:nth-child(4), #full-league-standings td:nth-child(4) { width: 15%; } /* PAM */
-
-
         /* Power Rankings table column widths on mobile (already 4 visible columns due to .prev-rank-col hidden) */
         #powerRankingsViewContainer .standings-table th:nth-child(1),
         #powerRankingsViewContainer .standings-table td:nth-child(1) { width: 15%; } /* Rank */
@@ -391,13 +416,13 @@
         #powerRankingsViewContainer .standings-table td:nth-child(2) { width: 40%; } /* Team */
         #powerRankingsViewContainer .standings-table th:nth-child(3),
         #powerRankingsViewContainer .standings-table td:nth-child(3) { width: 20%; } /* Record */
-        /* Prev is hidden */
+        /* Prev (th:nth-child(4)) is hidden by .prev-rank-col */
         #powerRankingsViewContainer .standings-table th:nth-child(5),
         #powerRankingsViewContainer .standings-table td:nth-child(5) { width: 25%; } /* Change */
         
         /* Adjust Power Rankings title font size on mobile */
         #powerRankingsViewContainer .conference-header h3 {
-          font-size: 1.1rem; /* Adjust this value as needed to fit title on one line */
+          font-size: 1.1rem; 
         }
       }
 
@@ -550,8 +575,7 @@
             </thead>
             <tbody id="power-rankings-standings">
               <tr>
-                <td colspan="5" class="loading">Loading Power Rankings...</td>
-              </tr>
+                <td colspan="5" class="loading">Loading Power Rankings...</td> </tr>
             </tbody>
           </table>
         </div>
@@ -588,7 +612,11 @@
       }
 
       function getColspanForMobile() {
-        return window.innerWidth <= 768 ? 4 : 5;
+        // Only returns 4 for views where Med Rank is hidden on mobile
+        if ((currentView === 'conferences' || currentView === 'fullLeague') && window.innerWidth <= 768) {
+          return 4;
+        }
+        return 5; // Default for desktop or Power Rankings view
       }
 
       async function fetchSheetData(sheetName) {
@@ -605,35 +633,34 @@
           return parseCSV(csvText);
         } catch (error) {
           console.error(`Error fetching ${sheetName}:`, error);
-          let colspan = 5; // Default for Power Rankings
-          // Adjust colspan for other views based on mobile or desktop
-          if (sheetName === 'Teams' && (currentView === 'conferences' || currentView === 'fullLeague')) {
+          let colspan = 5; 
+          // Adjust colspan for specific views if on mobile
+          if (sheetName === 'Teams' && (document.getElementById('eastern-standings') || document.getElementById('full-league-standings'))) {
              colspan = getColspanForMobile();
           }
+          // For PR specific error, it's always 5 unless mobile CSS hides a PR column (which it does for 'Prev')
+          // However, the error message itself spans all conceptual columns before data rendering.
           
-          const errorMsg = `<tr><td colspan="${colspan}" class="error">Error loading data from ${sheetName}</td></tr>`;
+          const errorMsgHtml = (colspanVal) => `<tr><td colspan="${colspanVal}" class="error">Error loading data from ${sheetName}</td></tr>`;
           
           if (sheetName === 'Teams') { 
             ['eastern-standings', 'western-standings', 'full-league-standings'].forEach(id => {
                 const tableBody = document.getElementById(id);
                 if (tableBody) {
-                    const currentTableColspan = getColspanForMobile();
-                    tableBody.innerHTML = `<tr><td colspan="${currentTableColspan}" class="error">Core team data failed to load.</td></tr>`;
+                    // Colspan for these tables depends on mobile view
+                    tableBody.innerHTML = errorMsgHtml(getColspanForMobile());
                 }
             });
-            // Power rankings table always has 5 columns initially for this error message, as it's not subject to Med Rank hiding
             const prTableBody = document.getElementById('power-rankings-standings');
-            if (prTableBody) {
-                 prTableBody.innerHTML = `<tr><td colspan="5" class="error">Core team data failed to load.</td></tr>`;
+            if (prTableBody) { // PR error messages default to 5 columns
+                 prTableBody.innerHTML = errorMsgHtml(5); 
             }
-
             const summaryContainer = document.getElementById('powerRankingsSummary');
             if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Core team data failed to load.</span></div>';
 
           } else if (sheetName === 'TPR') {
             const tableBody = document.getElementById('power-rankings-standings');
-             // Power rankings table always has 5 columns initially for this error message
-            if (tableBody) tableBody.innerHTML = `<tr><td colspan="5" class="error">Error loading data from TPR</td></tr>`;
+            if (tableBody) tableBody.innerHTML = errorMsgHtml(5); // PR error message always spans 5
             const summaryContainer = document.getElementById('powerRankingsSummary');
             if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Power rankings data failed to load.</span></div>';
           }
@@ -740,7 +767,7 @@
             return;
         }
 
-        const colspan = getColspanForMobile();
+        const colspan = getColspanForMobile(); // Will be 4 on mobile for these tables, 5 otherwise
         if (!teamsToRender || teamsToRender.length === 0) {
             tableBody.innerHTML = `<tr><td colspan="${colspan}" class="loading">No teams to display for ${tableType}.</td></tr>`;
             return;
@@ -757,7 +784,11 @@
               return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1);
             case 'med_starter_rank':
               valA = parseFloat(a.med_starter_rank || 9999); valB = parseFloat(b.med_starter_rank || 9999);
-              return (valA - valB) * (currentSortDirection === 'asc_rank' ? 1 : -1);
+              // Only sort if Med Rank column is visible (desktop)
+              if (window.innerWidth > 768) {
+                return (valA - valB) * (currentSortDirection === 'asc_rank' ? 1 : -1);
+              }
+              return 0; // No sorting by this column if it's hidden
             case 'record': default:
               if (tableType === 'FullLeague') { valA = a.officialFullLeagueRank; valB = b.officialFullLeagueRank; }
               else { valA = a.officialRecordRank; valB = b.officialRecordRank; }
@@ -774,8 +805,8 @@
             rankCellContent = getPlayoffIndicator(team.officialRecordRank);
             if (team.officialRecordRank > 10) trClass = 'eliminated';
           }
-          // Conditionally render Med Rank column based on viewport width for these tables
-          const medRankColumnHtml = window.innerWidth > 768 ? 
+          
+          const medRankColumnHtml = (window.innerWidth > 768 && (tableType === 'Eastern' || tableType === 'Western' || tableType === 'FullLeague')) ? 
             `<td class="rank-cell">${medRank > 0 ? Math.round(medRank) : '-'}</td>` : '';
 
           return `
@@ -817,8 +848,9 @@
             console.error("Table body not found for power-rankings-standings");
             return;
         }
+        // Power rankings table always has 5 conceptual columns for loading/error messages
+        // even if one is hidden by CSS on mobile (.prev-rank-col)
         if (!teamsToRender || teamsToRender.length === 0) {
-            // PR table always has 5 columns for loading/error messages as it's not affected by Med Rank hiding
             if (tableBody.innerHTML.includes('class="loading"')) { 
                  tableBody.innerHTML = `<tr><td colspan="5" class="loading">No teams to display for Power Rankings.</td></tr>`;
             }
@@ -846,6 +878,11 @@
       }
 
       function handleSort(tableType, column) {
+        // Prevent sorting by med_starter_rank if on mobile and column is hidden
+        if (column === 'med_starter_rank' && window.innerWidth <= 768 && (tableType === 'Eastern' || tableType === 'Western' || tableType === 'FullLeague')) {
+            return; 
+        }
+
         if (!sortState[tableType]) { 
             if (column === 'med_starter_rank') sortState[tableType] = { column, direction: 'asc_rank' };
             else if (column === 'record') sortState[tableType] = { column, direction: 'asc' };
@@ -911,6 +948,9 @@
           const playoffLegend = document.querySelector('.playoff-legend');
           if (playoffLegend) playoffLegend.classList.remove('hidden');
           updateColspanForLoadingPlaceholders();
+          // Re-render relevant tables in case window was resized while on another view
+          renderStandings('Eastern', easternTeamsData);
+          renderStandings('Western', westernTeamsData);
           updateButtonStates();
       }
 
@@ -924,6 +964,8 @@
           const playoffLegend = document.querySelector('.playoff-legend');
           if (playoffLegend) playoffLegend.classList.add('hidden');
           updateColspanForLoadingPlaceholders();
+           // Re-render relevant table in case window was resized while on another view
+          renderStandings('FullLeague', fullLeagueTeamsData);
           updateButtonStates();
       }
 
@@ -932,10 +974,13 @@
           document.getElementById('conferenceViewContainer').classList.add('hidden');
           document.getElementById('fullLeagueViewContainer').classList.add('hidden');
           document.getElementById('powerRankingsViewContainer').classList.remove('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Power Rankings'; // Title for PR section is in HTML already
+          document.getElementById('standingsPageTitle').textContent = 'Power Rankings'; 
           document.getElementById('pageDescription').textContent = 'Courtesy of @four. Updated every three weeks.';
           const playoffLegend = document.querySelector('.playoff-legend');
           if (playoffLegend) playoffLegend.classList.add('hidden');
+          // No need to call updateColspanForLoadingPlaceholders specifically for PR view in this way,
+          // as its structure doesn't change based on Med Rank hiding.
+          // renderPowerRankings handles its own loading messages.
           calculateAndDisplayPowerRankingsSummary(); 
           updateButtonStates();
       }
@@ -1010,8 +1055,7 @@
         viewButton1 = document.getElementById('viewToggleButton1');
         viewButton2 = document.getElementById('viewToggleButton2');
         
-        updateColspanForLoadingPlaceholders(); // Initial call for placeholder colspans
-        window.addEventListener('resize', updateColspanForLoadingPlaceholders); // Adjust on resize if needed before data loads
+        updateColspanForLoadingPlaceholders(); 
 
 
         if (!viewButton1 || !viewButton2) {
@@ -1047,7 +1091,6 @@
           document.querySelector('.page-buttons-container').classList.add('hidden');
           if(playoffLegend) playoffLegend.classList.add('hidden');
           document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
-          // Error messages in tables/summary are handled by fetchSheetData which now uses getColspanForMobile
           return;
         }
 
@@ -1057,15 +1100,15 @@
         });
 
         if (!allTeamsData || allTeamsData.length === 0) {
-            const colspan = getColspanForMobile();
-            const errorMsg = `<tr><td colspan="${colspan}" class="error">No valid team data available after filtering.</td></tr>`;
+            const colspanForError = getColspanForMobile();
+            const errorMsg = `<tr><td colspan="${colspanForError}" class="error">No valid team data available after filtering.</td></tr>`;
             const prErrorMsg = `<tr><td colspan="5" class="error">No valid team data available.</td></tr>`; 
             ['eastern-standings', 'western-standings', 'full-league-standings'].forEach(id => {
                 const tableBody = document.getElementById(id);
                 if (tableBody) tableBody.innerHTML = errorMsg;
             });
             const prTableBody = document.getElementById('power-rankings-standings');
-            if(prTableBody) prTableBody.innerHTML = prErrorMsg; // PR always 5 cols for error
+            if(prTableBody) prTableBody.innerHTML = prErrorMsg; 
             const summaryContainer = document.getElementById('powerRankingsSummary');
             if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Team data unavailable.</span></div>';
 
@@ -1129,17 +1172,15 @@
               .sort((a, b) => a.rank - b.rank);
 
             if (powerRankingsData.length === 0 && rawPowerRankings.length > 0) {
-                 console.warn("Power rankings data fetched, but no teams could be fully processed (missing team_id or invalid rank).");
-                 // PR table always 5 columns
-                 if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="5" class="error">Could not process power ranking data. Check team_ids and ranks in TPR sheet.</td></tr>`;
+                 console.warn("Power rankings data fetched, but no teams could be fully processed.");
+                 if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="5" class="error">Could not process power ranking data.</td></tr>`;
                  if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Could not process power ranking data.</span></div>';
             }
         } else if (rawPowerRankings && rawPowerRankings.length === 0) { 
-            // PR table always 5 columns
             if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="5" class="loading">No power ranking data available in the sheet.</td></tr>`;
             if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>No power ranking data available in the sheet.</span></div>';
         } else if (!rawPowerRankings) { 
-            console.log("TPR sheet fetch failed, error message should be in table and summary.");
+            console.log("TPR sheet fetch failed, error message already handled.");
         }
 
         renderStandings('Eastern', easternTeamsData);
@@ -1154,7 +1195,6 @@
         } else {
             showConferenceView(); 
         }
-        // Ensure colspans are correct after initial rendering
         updateColspanForLoadingPlaceholders();
 
         const navToggle = document.querySelector('.nav-toggle');
@@ -1168,13 +1208,17 @@
         }
       }
       window.addEventListener('resize', () => {
-        if (currentView === 'conferences' || currentView === 'fullLeague') {
-            renderStandings('Eastern', easternTeamsData); // Re-render to apply conditional column
-            renderStandings('Western', westernTeamsData); // Re-render to apply conditional column
-            renderStandings('FullLeague', fullLeagueTeamsData); // Re-render to apply conditional column
+        // Re-render standings that are affected by the Med Rank column visibility
+        if (currentView === 'conferences') {
+            renderStandings('Eastern', easternTeamsData); 
+            renderStandings('Western', westernTeamsData); 
+        } else if (currentView === 'fullLeague') {
+            renderStandings('FullLeague', fullLeagueTeamsData); 
         }
-        // No re-render needed for Power Rankings on resize for this specific change
-        updateColspanForLoadingPlaceholders(); // Ensure loading/error messages also update
+        // Power rankings table layout on mobile (hiding .prev-rank-col) is handled by CSS only,
+        // but its loading/error colspan is static 5.
+        // Update colspans for loading placeholders in Conference/Full League views
+        updateColspanForLoadingPlaceholders();
       });
 
       document.addEventListener('DOMContentLoaded', loadStandings);
