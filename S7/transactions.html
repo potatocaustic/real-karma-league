@@ -258,7 +258,8 @@
       }
 
       .transaction-type.trade { background-color: #007bff; color: white; }
-      .transaction-type.retirement { background-color: #dc3545; color: white; }
+      .transaction-type.rescission { background-color: #dc3545; color: white; }
+      .transaction-type.retirement { background-color: #6a5acd; color: white; }
       .transaction-type.unretirement { background-color: #28a745; color: white; }
       .transaction-type.drop { background-color: #ffc107; color: #333; }
       .transaction-type.gm_resignation { background-color: #6c757d; color: white; }
@@ -309,6 +310,10 @@
       /* Multi-transaction group */
       .multi-transaction {
         border-left: 4px solid #007bff;
+      }
+      
+      .multi-rescission {
+        border-left: 4px solid #dc3545;
       }
 
       .trade-parts {
@@ -429,6 +434,7 @@
             <select id="type-filter">
               <option value="all">All Types</option>
               <option value="TRADE">Trades</option>
+              <option value="RESCISSION">Rescissions</option>
               <option value="RETIREMENT">Retirements</option>
               <option value="UNRETIREMENT">Unretirements/Signings</option>
               <option value="DROP">Drops</option>
@@ -844,7 +850,8 @@
         
         const transactionsHTML = finalGroupsToShow.map(group => {
           const isTradeGroup = group.some(t => t.transaction_type === "TRADE");
-          if (isTradeGroup && group.length > 0) { 
+          const isRescissionGroup = group.some(t => t.transaction_type === "RESCISSION");
+          if ((isTradeGroup || isRescissionGroup) && group.length > 0) {
             return renderMultiTransaction(group);
           } else if (group.length > 0) { 
             return renderSingleTransaction(group[0]);
@@ -903,7 +910,10 @@
       }
       
       function renderMultiTransaction(transactions) {
-        const firstTransaction = transactions[0]; 
+        const firstTransaction = transactions[0];
+        const isRescission = firstTransaction.transaction_type === 'RESCISSION';
+        const blockClass = isRescission ? 'multi-rescission' : 'multi-transaction';
+        const verb = isRescission ? 're-acquire' : 'receive';
         const typeClass = firstTransaction.transaction_type.toLowerCase().replace(/_/g, '-');
         
         const teamsInvolved = new Set();
@@ -960,7 +970,7 @@
 
             tradeSummaryHtml += `
                 <div class="trade-side">
-                    <div class="trade-team">${getTeamLogo(teamId)}${getTeamNameLink(teamId)}&nbsp;${getVerb(teamNameForVerb, 'receive')}:</div>
+                    <div class="trade-team">${getTeamLogo(teamId)}${getTeamNameLink(teamId)}&nbsp;${getVerb(teamNameForVerb, verb)}:</div>
                     <ul class="trade-assets">
                         ${assets.received_players.map(player => `<li>📝 ${getPlayerNameLink(player)}${getPlayerStatsString(player)}</li>`).join('')}
                         ${assets.received_picks.map(pick => `<li>🎯 <span class="draft-pick">${pick}</span></li>`).join('')}
@@ -981,14 +991,8 @@
         });
         tradeSummaryHtml += '</div>';
 
-        // Adjust .trade-parts grid styling for 3-team trades if no separator is present
-        // This is a bit tricky to do purely in JS by modifying style directly without classes
-        // The existing CSS grid-template-columns: 1fr auto 1fr; might try to fit 3 .trade-side divs.
-        // If teamIdsArray.length === 3, the middle .trade-side will go into the 'auto' column.
-        // This might be acceptable or desired (Team A | Team B (auto) | Team C)
-
         return `
-          <div class="transaction-item multi-transaction">
+          <div class="transaction-item ${blockClass}">
             <div class="transaction-header">
               <span class="transaction-type ${typeClass}">${firstTransaction.transaction_type.replace(/_/g, ' ')}</span>
               <span class="transaction-date">Week ${firstTransaction.week} - ${formatDate(firstTransaction.date)}</span>
