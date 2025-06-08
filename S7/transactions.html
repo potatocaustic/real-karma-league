@@ -324,6 +324,14 @@
         margin-top: 1rem;
       }
 
+      .trade-parts.three-team-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .trade-parts.four-team-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
       .trade-side {
         background-color: white;
         padding: 1rem;
@@ -960,8 +968,14 @@
             }
         });
         
-        let tradeSummaryHtml = '<div class="trade-parts">';
         const teamIdsArray = Array.from(teamsInvolved);
+        let tradePartsClass = 'trade-parts';
+        if (teamIdsArray.length === 3) {
+            tradePartsClass += ' three-team-grid';
+        } else if (teamIdsArray.length === 4) {
+            tradePartsClass += ' four-team-grid';
+        }
+        let tradeSummaryHtml = `<div class="${tradePartsClass}">`;
 
         teamIdsArray.forEach((teamId, index) => {
             const assets = teamAssetsMap[teamId];
@@ -982,11 +996,10 @@
             if (index < teamIdsArray.length - 1) { // Only add separator if it's not the last team
                 if (teamIdsArray.length === 2) { // Two-team trade
                     tradeSummaryHtml += `<div class="trade-arrow">⇄</div>`;
-                } else if (teamIdsArray.length === 3) { // Three-team trade
-                    // No separator, teams will be laid out by the grid
-                } else if (teamIdsArray.length > 3) { // Four or more team trade
+                } else if (teamIdsArray.length > 4) { // For 5+ teams
                     tradeSummaryHtml += `<div class="trade-arrow" style="font-size:1em; color:#666;">then</div>`;
                 }
+                // No separator for 3 or 4 team trades
             }
         });
         tradeSummaryHtml += '</div>';
