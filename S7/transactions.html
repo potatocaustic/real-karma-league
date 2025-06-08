@@ -391,6 +391,13 @@
         .filter-group select { min-width: auto; width: 100%; }
         .transaction-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
         .trade-parts { grid-template-columns: 1fr; gap: 1rem; } /* This ensures vertical stacking */
+        
+        /* Ensure multi-team grids also stack on mobile */
+        .trade-parts.three-team-grid,
+        .trade-parts.four-team-grid {
+            grid-template-columns: 1fr;
+        }
+
         .trade-arrow { 
             text-align: center; 
             transform: rotate(90deg); 
