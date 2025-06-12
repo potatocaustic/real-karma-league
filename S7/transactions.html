@@ -901,8 +901,7 @@
             details = `${getTeamLogo(transaction.from_team)}${playerNameLinked}${playerStats} dropped by ${getTeamNameLink(transaction.from_team)}.`;
             break;
           case 'WAIVER_CLAIM':
-            const fromTeamText = transaction.from_team ? ` from ${getTeamNameLink(transaction.from_team)}` : '';
-            details = `${getTeamLogo(transaction.to_team)}${playerNameLinked}${playerStats} claimed off waivers by ${getTeamNameLink(transaction.to_team)}${fromTeamText}.`;
+            details = `${getTeamLogo(transaction.to_team)}${playerNameLinked}${playerStats} claimed off waivers by ${getTeamNameLink(transaction.to_team)}.`;
             break;
           case 'GM_RESIGNATION':
             details = `${getTeamLogo(transaction.from_team)}<span class="gm-name">${transaction.gm_involved}</span> resigned as GM of ${getTeamNameLink(transaction.from_team)}.`;
