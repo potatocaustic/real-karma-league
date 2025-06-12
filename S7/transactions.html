@@ -262,9 +262,10 @@
       .transaction-type.retirement { background-color: #6a5acd; color: white; }
       .transaction-type.unretirement { background-color: #28a745; color: white; }
       .transaction-type.drop { background-color: #ffc107; color: #333; }
-      .transaction-type.gm_resignation { background-color: #6c757d; color: white; }
-      .transaction-type.gm_hired { background-color: #17a2b8; color: white; }
-      .transaction-type.waiver_claim { background-color: #fd7e14; color: white; }
+      .transaction-type.gm-resignation { background-color: #6c757d; color: white; }
+      .transaction-type.gm-hired { background-color: #17a2b8; color: white; }
+      .transaction-type.gm-fired { background-color: #dc3545; color: white; }
+      .transaction-type.waiver-claim { background-color: #fd7e14; color: white; }
       .transaction-type.signing { background-color: #20c997; color: white; }
 
 
@@ -457,6 +458,7 @@
               <option value="SIGNING">Signings (FA)</option>
               <option value="GM_RESIGNATION">GM Resignations</option>
               <option value="GM_HIRED">GM Hirings</option>
+              <option value="GM_FIRED">GM Firings</option>
             </select>
           </div>
           <div class="filter-group">
@@ -832,7 +834,8 @@
                         return transaction.from_team === filterTeamId ||
                                transaction.to_team === filterTeamId ||
                                (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === filterTeamId) ||
-                               (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === filterTeamId);
+                               (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === filterTeamId) ||
+                               (transaction.transaction_type === 'GM_FIRED' && transaction.from_team === filterTeamId);
                     });
                 });
             });
@@ -843,7 +846,8 @@
                     transaction.from_team === teamFilterDropdownValue || 
                     transaction.to_team === teamFilterDropdownValue ||
                     (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === teamFilterDropdownValue) ||
-                    (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamFilterDropdownValue)
+                    (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamFilterDropdownValue) ||
+                    (transaction.transaction_type === 'GM_FIRED' && transaction.from_team === teamFilterDropdownValue)
                 );
             });
         }
@@ -905,6 +909,9 @@
             break;
           case 'GM_HIRED':
             details = `${getTeamLogo(transaction.to_team)}<span class="gm-name">${transaction.gm_involved}</span> hired as GM of ${getTeamNameLink(transaction.to_team)}.`;
+            break;
+          case 'GM_FIRED':
+            details = `${getTeamLogo(transaction.from_team)}<span class="gm-name">${transaction.gm_involved}</span> fired as GM of ${getTeamNameLink(transaction.from_team)}.`;
             break;
           default:
             details = `Unknown transaction: ${transaction.transaction_type} involving ${transaction.player_handle || transaction.gm_involved || 'assets'}.`;
