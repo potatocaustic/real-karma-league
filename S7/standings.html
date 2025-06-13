@@ -558,7 +558,7 @@
       <div id="powerRankingsViewContainer" class="hidden">
         <div class="conference-section"> 
           <div class="conference-header">
-            <h3>Power Rankings v2 (Week 3)</h3> </div>
+            <h3>Power Rankings v3 (Week 6)</h3> </div>
           <div id="powerRankingsSummary" class="power-rankings-summary">
             Loading summary...
           </div>
@@ -991,44 +991,64 @@
             return;
         }
 
-        let biggestRiser = null;
+        let biggestRisers = [];
         let maxRise = 0; 
-        let biggestFaller = null;
+        let biggestFallers = [];
         let maxFall = 0; 
 
         powerRankingsData.forEach(team => {
-            const delta = team.delta; 
-            if (delta > 0 && delta >= maxRise) { 
+            const delta = parseInt(team.delta) || 0;
+            
+            // Riser logic
+            if (delta > 0) {
+              if (delta > maxRise) {
                 maxRise = delta;
-                biggestRiser = team;
+                biggestRisers = [team]; // New leader, start a new list
+              } else if (delta === maxRise) {
+                biggestRisers.push(team); // Tied, add to the list
+              }
             }
-            if (delta < 0 && delta <= maxFall) { 
+            
+            // Faller logic
+            if (delta < 0) {
+              if (delta < maxFall) {
                 maxFall = delta;
-                biggestFaller = team;
+                biggestFallers = [team]; // New leader, start a new list
+              } else if (delta === maxFall) {
+                biggestFallers.push(team); // Tied, add to the list
+              }
             }
         });
 
-        let riserHtml = '<div class="summary-item"><span>No significant risers this period.</span></div>';
-        if (biggestRiser && biggestRiser.team_id) { 
-            riserHtml = `
+        let riserHtml = '';
+        if (biggestRisers.length > 0) {
+            riserHtml = biggestRisers.map(riser => `
                 <div class="summary-item">
-                    <img src="icons/${biggestRiser.team_id}.webp" alt="${biggestRiser.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
+                    <img src="icons/${riser.team_id}.webp" alt="${riser.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
                     <span>Biggest Riser: 
-                        <strong class="pam-positive"><a href="team.html?id=${biggestRiser.team_id}" class="summary-team-link">${biggestRiser.team_name}</a></strong> (+<strong class="pam-positive">${biggestRiser.delta}</strong>) 📈
+                        <strong class="pam-positive"><a href="team.html?id=${riser.team_id}" class="summary-team-link">${riser.team_name}</a></strong> (+<strong class="pam-positive">${riser.delta}</strong>) 📈
                     </span>
-                </div>`;
+                </div>
+            `).join('');
+        } else {
+             riserHtml = '<div class="summary-item"><span>No significant risers this period.</span></div>';
         }
 
-        let fallerHtml = '<div class="summary-item"><span>No significant fallers this period.</span></div>';
-        if (biggestFaller && biggestFaller.team_id) { 
-            fallerHtml = `
+
+        let fallerHtml = '';
+        if (biggestFallers.length > 0) {
+            fallerHtml = biggestFallers.map(faller => `
                 <div class="summary-item">
-                    <img src="icons/${biggestFaller.team_id}.webp" alt="${biggestFaller.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
+                    <img src="icons/${faller.team_id}.webp" alt="${faller.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
                     <span>Biggest Faller: 
-                        <strong class="pam-negative"><a href="team.html?id=${biggestFaller.team_id}" class="summary-team-link">${biggestFaller.team_name}</a></strong> (<strong class="pam-negative">${biggestFaller.delta}</strong>) 📉
+                        <strong class="pam-negative"><a href="team.html?id=${faller.team_id}" class="summary-team-link">${faller.team_name}</a></strong> (<strong class="pam-negative">${faller.delta}</strong>) 📉
                     </span>
-                </div>`;
+                </div>
+            `).join('');
+        } else {
+            fallerHtml = '<div class="summary-item"><span>No significant fallers this period.</span></div>';
         }
+        
         summaryContainer.innerHTML = riserHtml + fallerHtml;
     }
 
