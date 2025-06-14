@@ -93,6 +93,54 @@
       nav ul li a:hover {
         color: #ccc;
       }
+      
+      /* Dropdown Menu Styles */
+      .dropdown {
+          position: relative;
+          display: inline-block;
+      }
+
+      .dropdown .dropbtn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #fff;
+          text-decoration: none;
+          font-size: 1.1rem;
+          font-family: inherit;
+      }
+
+      .dropdown-content {
+          display: none;
+          position: absolute;
+          background-color: #333;
+          min-width: 180px;
+          box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+          z-index: 101;
+          border-radius: 4px;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding-top: 0.5rem;
+      }
+
+      .dropdown-content a {
+          color: white;
+          padding: 12px 16px;
+          text-decoration: none;
+          display: block;
+          text-align: left;
+          font-size: 1rem;
+      }
+
+      .dropdown-content a:hover {
+          background-color: #555;
+          color: #fff;
+      }
+
+      .dropdown:hover .dropdown-content {
+          display: block; /* Show on desktop hover */
+      }
 
       /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
@@ -139,6 +187,42 @@
         }
         nav ul li a:hover {
             background-color: #555;
+        }
+        
+        /* Mobile Dropdown Overrides */
+        .dropdown {
+            display: block;
+            width: 100%;
+        }
+        .dropdown .dropbtn {
+            width: 100%;
+            padding: 0.8rem 1rem;
+        }
+        .dropdown .dropbtn:hover {
+            background-color: #555;
+        }
+        .dropdown-content {
+            position: static;
+            display: none;
+            box-shadow: none;
+            background-color: #4a4a4a;
+            border-radius: 0;
+            padding-top: 0;
+            transform: none;
+            left: auto;
+            top: auto;
+        }
+        .dropdown-content a {
+            padding-left: 2.5rem; /* Indent nested links */
+        }
+        .dropdown.active .dropdown-content {
+            display: block; /* Show on mobile click via JS */
+        }
+        .dropdown:hover .dropdown-content {
+            display: none;
+        }
+        .dropdown.active:hover .dropdown-content {
+            display: block;
         }
       }
 
@@ -373,7 +457,7 @@
       .games-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        gap: 1rem;
+        gap: 1.5rem;
       }
 
       .game-card {
@@ -435,6 +519,13 @@
         height: 32px;
         border-radius: 2px;
         flex-shrink: 0;
+      }
+      
+      .team-logo.allstar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
       }
 
       .team-info {
@@ -503,7 +594,15 @@
       .team-breakdown .team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; }
       .team-breakdown .team-header.winner { background-color: #28a745; }
       .team-breakdown .team-header h4 { color: white; margin: 0; font-size: 1.2rem; }
-      .team-breakdown .team-header .team-logo { width: 48px; height: 48px; border-radius: 4px;}
+      .modal-team-header .team-logo {
+        width: 48px;
+        height: 48px;
+        border-radius: 4px;
+      }
+      .modal-team-header .team-logo.allstar {
+        border-radius: 50%;
+        object-fit: cover;
+      }
       .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; }
       .lineup-table { width: 100%; border-collapse: collapse; }
       .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; }
@@ -514,6 +613,7 @@
       .lineup-table tr:hover { background-color: white; }
       .captain-row { background-color: #fff3cd !important; font-weight: bold; }
       .captain-badge { background-color: #ffc107; color: #333; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 0.5rem; }
+      .all-star-badge { color: gold; margin-left: 0.5rem; font-size: 1rem; vertical-align: middle; }
       .captain-bonus { font-size: 0.75rem; color: #ffc107; font-weight: 500; margin-top: 0.2rem; }
       .player-name-cell { font-weight: 500; }
       .player-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
@@ -533,8 +633,9 @@
         .game-details-grid { grid-template-columns: 1fr; gap: 1rem; }
         .modal-body { padding: 1rem; }
         .lineup-table th, .lineup-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem; }
-        .team-header .team-logo { width: 36px; height: 36px; }
-        .team-logo { width: 28px; height: 28px; }
+        .team-logo.allstar, .modal-team-header .team-logo.allstar {
+          width: 36px; height: 36px;
+        }
         .modal-header { padding: 1rem; }
         .modal-header h3 { font-size: 1.1rem; line-height: 1.3; word-break: break-word; hyphens: auto; }
         .standouts-grid { grid-template-columns: 1fr; } 
@@ -563,13 +664,21 @@
       <nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
-          <li><a href="RKL-S7.html">S7 Home</a></li>
-          <li><a href="standings.html">Standings & Rankings</a></li>
-          <li><a href="leaderboards.html">Leaderboards</a></li>
-          <li><a href="schedule.html">Schedule</a></li>
-          <li><a href="transactions.html">Transactions</a></li>
-          <li><a href="teams.html">Teams</a></li>
-          <li><a href="draft-capital.html">Draft Capital</a></li>
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
     </header>
@@ -658,6 +767,7 @@
     <script>
       const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
       const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+      const ALLSTAR_TEAM_IDS = ['EAST', 'WEST', 'EGM', 'WGM', 'RSE', 'RSW'];
       
       function parseNumber(value) {
         if (!value) return 0;
@@ -682,6 +792,7 @@
       let currentWeek = 1;
       let allGames = [];
       let allTeams = [];
+      let allPlayers = [];
       let allLineups = [];
       let allWeeklyScores = []; 
       let dateToMedianTeamScoreMap = {}; 
@@ -737,12 +848,14 @@
       
       function formatDate(dateString) { 
         if (!dateString) return 'Invalid Date';
+        if (dateString.toUpperCase() === 'TBD') return 'TBD';
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'Invalid Date'; 
         return date.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
        }
       function formatDateShort(dateString) {
         if (!dateString) return 'N/A';
+        if (dateString.toUpperCase() === 'TBD') return 'TBD';
         const date = new Date(dateString); 
         if (isNaN(date.getTime())) {
             const parts = dateString.split('-');
@@ -772,23 +885,34 @@
       }
       
       async function loadData() {
-        const [scheduleData, teamsData, lineupsData, weeklyAveragesData, weeklyScoresData] = await Promise.all([
+        const [scheduleData, allstarScheduleData, teamsData, playersData, lineupsData, allstarLineupsData, weeklyAveragesData, weeklyScoresData] = await Promise.all([
           fetchSheetData('Schedule'),
+          fetchSheetData('Allstar_Schedule'),
           fetchSheetData('Teams'),
+          fetchSheetData('Players'),
           fetchSheetData('Lineups'),
+          fetchSheetData('Allstar_Lineups'),
           fetchSheetData('Weekly_Averages'), 
           fetchSheetData('Weekly_Scores') 
         ]);
         
-        if (!scheduleData || !teamsData || !weeklyAveragesData || !weeklyScoresData) { 
+        if (!scheduleData || !teamsData || !playersData) { 
           document.getElementById('games-content').innerHTML = 
             '<div class="error">Error loading core data. Please check console.</div>';
           return;
         }
         
-        allGames = scheduleData;
+        const allstarGames = allstarScheduleData ? allstarScheduleData.map(g => ({...g, week: 'ALLSTAR'})) : [];
+        allGames = allstarGames.concat(scheduleData);
+
         allTeams = teamsData;
-        allLineups = lineupsData || []; 
+        allPlayers = playersData;
+        
+        allLineups = lineupsData || [];
+        if(allstarLineupsData) {
+            allLineups = allLineups.concat(allstarLineupsData);
+        }
+
         const localWeeklyAverages = weeklyAveragesData || []; 
         allWeeklyScores = weeklyScoresData || [];
 
@@ -814,8 +938,8 @@
       function determineCurrentWeek(schedule) { 
         const gamesByWeek = {};
         schedule.forEach(game => {
-          const week = parseInt(game.week);
-          if (!isNaN(week)) { 
+          const week = game.week;
+          if (week) { 
             if (!gamesByWeek[week]) {
               gamesByWeek[week] = { total: 0, completed: 0 };
             }
@@ -825,27 +949,36 @@
             }
           }
         });
-        const weeks = Object.keys(gamesByWeek).map(w => parseInt(w)).sort((a, b) => a - b);
-        for (const week of weeks) {
+        const numericWeeks = Object.keys(gamesByWeek).map(w => parseInt(w)).filter(w => !isNaN(w)).sort((a, b) => a - b);
+        for (const week of numericWeeks) {
           if (gamesByWeek[week].completed < gamesByWeek[week].total) {
             return week;
           }
         }
-        return weeks.length > 0 ? weeks[weeks.length - 1] : 1;
+        return numericWeeks.length > 0 ? numericWeeks[numericWeeks.length - 1] : 1;
        }
       
       function setupWeekSelector() { 
-        const weeks = [...new Set(allGames.map(game => parseInt(game.week)).filter(w => !isNaN(w)))].sort((a, b) => a - b);
-        const weekButtonsHTML = weeks.map(week => {
-          const weekGames = allGames.filter(game => parseInt(game.week) === week);
+        const numericWeeks = [...new Set(allGames.map(game => parseInt(game.week)).filter(w => !isNaN(w)))].sort((a, b) => a - b);
+        const hasAllstarWeek = allGames.some(g => g.week === 'ALLSTAR');
+        
+        let allWeeks = [...numericWeeks];
+        if (hasAllstarWeek) {
+            const allstarIndex = allWeeks.indexOf(8) + 1;
+            allWeeks.splice(allstarIndex, 0, 'ALLSTAR');
+        }
+
+        const weekButtonsHTML = allWeeks.map(week => {
+          const weekGames = allGames.filter(game => String(game.week) === String(week));
           const completedCount = weekGames.filter(game => game.completed === 'TRUE').length;
           const isCompleted = weekGames.length > 0 && completedCount === weekGames.length; 
-          return `<div class="week-btn ${week === currentWeek ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-week="${week}">Week ${week}</div>`;
+          const weekText = week === 'ALLSTAR' ? 'ALLSTAR' : `Week ${week}`;
+          return `<div class="week-btn ${String(week) === String(currentWeek) ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-week="${week}">${weekText}</div>`;
         }).join('');
         document.getElementById('week-buttons').innerHTML = weekButtonsHTML;
         document.querySelectorAll('.week-btn').forEach(btn => {
           btn.addEventListener('click', () => {
-            const week = parseInt(btn.dataset.week);
+            const week = btn.dataset.week;
             currentWeek = week;
             document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
@@ -855,21 +988,26 @@
        }
       
       function displayWeek(week) {
-        const weekGames = allGames.filter(game => parseInt(game.week) === week);
+        const weekGames = allGames.filter(game => String(game.week) === String(week));
         const weekStandoutsSection = document.getElementById('week-standouts-section');
-        const standoutWeekNumSpan = document.getElementById('standout-week-number');
+        const weekSummarySection = document.getElementById('week-summary');
         
-        if (standoutWeekNumSpan) standoutWeekNumSpan.textContent = week;
+        const weekTitle = week === 'ALLSTAR' ? 'All-Star Week' : `Week ${week}`;
+        document.getElementById('games-title').textContent = `${weekTitle} Games`;
+        
+        if (week === 'ALLSTAR') {
+            weekStandoutsSection.style.display = 'none';
+        } else {
+            const standoutWeekNumSpan = document.getElementById('standout-week-number');
+            if (standoutWeekNumSpan) standoutWeekNumSpan.textContent = week;
+        }
 
         if (weekGames.length === 0) {
-          document.getElementById('games-title').textContent = `Week ${week} - No Games`;
           document.getElementById('games-content').innerHTML = '<div class="no-games">No games scheduled for this week</div>';
-          document.getElementById('week-summary').style.display = 'none';
-          if (weekStandoutsSection) weekStandoutsSection.style.display = 'none';
+          weekSummarySection.style.display = 'none';
+          if (week !== 'ALLSTAR') weekStandoutsSection.style.display = 'none';
           return;
         }
-        
-        document.getElementById('games-title').textContent = `Week ${week} Games`;
         
         const completedGamesThisWeek = weekGames.filter(game => game.completed === 'TRUE');
         const completedCount = completedGamesThisWeek.length;
@@ -878,7 +1016,7 @@
         document.getElementById('total-games').textContent = weekGames.length;
         document.getElementById('completed-games').textContent = completedCount;
         document.getElementById('upcoming-games').textContent = upcomingCount;
-        document.getElementById('week-summary').style.display = 'block';
+        weekSummarySection.style.display = 'block';
 
         const existingSubtitle = document.querySelector('.games-subtitle');
         if (existingSubtitle) existingSubtitle.remove();
@@ -890,11 +1028,11 @@
         }
 
         const allGamesInWeekCompleted = weekGames.length > 0 && completedCount === weekGames.length;
-        if (allGamesInWeekCompleted && allLineups && allLineups.length > 0 && Object.keys(dateToMedianTeamScoreMap).length > 0 && Object.keys(dateToWeekMap).length > 0) {
+        if (week !== 'ALLSTAR' && allGamesInWeekCompleted && allLineups && allLineups.length > 0 && Object.keys(dateToMedianTeamScoreMap).length > 0 && Object.keys(dateToWeekMap).length > 0) {
           calculateAndDisplayStandouts(week, completedGamesThisWeek);
-          if (weekStandoutsSection) weekStandoutsSection.style.display = 'block';
+          weekStandoutsSection.style.display = 'block';
         } else {
-          if (weekStandoutsSection) weekStandoutsSection.style.display = 'none';
+          weekStandoutsSection.style.display = 'none';
         }
         
         const gamesByDate = {};
@@ -905,11 +1043,23 @@
         });
         
         const datesHTML = Object.keys(gamesByDate)
-          .sort((a, b) => new Date(a) - new Date(b))
+          .sort((a, b) => {
+            const isADate = a.toUpperCase() !== 'TBD' && !isNaN(new Date(a).getTime());
+            const isBDate = b.toUpperCase() !== 'TBD' && !isNaN(new Date(b).getTime());
+
+            if (isADate && !isBDate) return -1;
+            if (!isADate && isBDate) return 1;
+            if (!isADate && !isBDate) return 0;
+
+            return new Date(a) - new Date(b);
+          })
           .map(date => {
             const dateGames = gamesByDate[date];
             const gamesHTML = dateGames.map(game => {
               const isCompleted = game.completed === 'TRUE';
+              const isAllstarGame = game.week === 'ALLSTAR' || ALLSTAR_TEAM_IDS.includes(game.team1_id) || ALLSTAR_TEAM_IDS.includes(game.team2_id);
+              const logoExt = isAllstarGame ? 'png' : 'webp';
+              const logoClass = isAllstarGame ? 'team-logo allstar' : 'team-logo';
               const team1Score = parseNumber(game.team1_score);
               const team2Score = parseNumber(game.team2_score);
               const winner = game.winner;
@@ -925,7 +1075,7 @@
                   <div class="game-teams">
                     <div class="team ${winner === game.team1_id ? 'winner' : ''}">
                       <div class="team-left">
-                        <img src="icons/${escapeHTML(game.team1_id)}.webp" alt="${escapeHTML(getTeamName(game.team1_id))}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                        <img src="icons/${escapeHTML(game.team1_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team1_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
                         <div class="team-info">
                           <div class="team-name">${escapeHTML(getTeamName(game.team1_id))}</div>
                           <div class="team-record">${escapeHTML(team1Record)}</div>
@@ -935,7 +1085,7 @@
                     </div>
                     <div class="team ${winner === game.team2_id ? 'winner' : ''}">
                       <div class="team-left">
-                        <img src="icons/${escapeHTML(game.team2_id)}.webp" alt="${escapeHTML(getTeamName(game.team2_id))}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                        <img src="icons/${escapeHTML(game.team2_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team2_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
                         <div class="team-info">
                           <div class="team-name">${escapeHTML(getTeamName(game.team2_id))}</div>
                           <div class="team-record">${escapeHTML(team2Record)}</div>
@@ -1075,7 +1225,7 @@
             const aCaptain = String(a.captain).toUpperCase() === 'TRUE';
             const bCaptain = String(b.captain).toUpperCase() === 'TRUE';
             if (aCaptain && !bCaptain) return -1;
-            if (!aCaptain && bCaptain) return 1;
+            if (!bCaptain && bCaptain) return 1;
             return parseNumber(b.points_final) - parseNumber(a.points_final);
         });
 
@@ -1088,13 +1238,17 @@
         
         const generateLineupTable = (lineups, teamIdForTable, totalScoreFromSchedule, isWinner) => {
           const teamData = allTeams.find(t => t.team_id === teamIdForTable);
+          const isAllstarTeam = ALLSTAR_TEAM_IDS.includes(teamIdForTable);
+          const logoExt = isAllstarTeam ? 'png' : 'webp';
+          const logoClass = 'team-logo' + (isAllstarTeam ? ' allstar' : '');
+          const headerOnClick = isAllstarTeam ? '' : `onclick="window.location.href='team.html?id=${escapeHTML(teamIdForTable)}'" style="cursor: pointer;"`;
           const teamRecord = teamData ? `${teamData.wins || 0}-${teamData.losses || 0}` : 'N/A';
           
           if (lineups.length === 0) { 
             return `
               <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                <div class="team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${escapeHTML(teamIdForTable)}'" style="cursor: pointer;">
-                  <img src="icons/${escapeHTML(teamIdForTable)}.webp" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                <div class="team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
+                  <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
                   <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
                 </div>
                 <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
@@ -1104,6 +1258,9 @@
           
           const lineupRows = lineups.map(player => {
             const isCaptain = String(player.captain).toUpperCase() === 'TRUE';
+            const fullPlayerData = allPlayers.find(p => p.player_handle === player.player_handle);
+            const isPlayerAllStar = fullPlayerData && fullPlayerData.all_star === '1';
+            const allStarBadge = isPlayerAllStar ? '<span class="all-star-badge">⭐</span>' : '';
             const pointsRaw = parseNumber(player.points_raw);
             const globalRank = parseNumber(player.global_rank);
             const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0; 
@@ -1114,6 +1271,7 @@
                   <a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">
                     ${escapeHTML(player.player_handle || 'Unknown')}
                   </a>
+                  ${allStarBadge}
                   ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
                 </td>
                 <td class="points-cell">
@@ -1127,8 +1285,8 @@
           
           return `
             <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-              <div class="team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${escapeHTML(teamIdForTable)}'" style="cursor: pointer;">
-                 <img src="icons/${escapeHTML(teamIdForTable)}.webp" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+              <div class="team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
+                 <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
                 <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
               </div>
               <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
@@ -1163,11 +1321,23 @@
         // Nav Toggle JS
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
+        const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+
         if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
                 const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
                 navToggle.setAttribute('aria-expanded', !isExpanded);
                 navMenu.classList.toggle('active');
+            });
+        }
+        
+        if(dropdownBtn) {
+            dropdownBtn.addEventListener('click', function(event) {
+                // Check if we are in mobile view (nav-toggle is visible)
+                if (window.getComputedStyle(navToggle).display !== 'none') {
+                    event.preventDefault(); // Prevent link navigation
+                    this.parentElement.classList.toggle('active');
+                }
             });
         }
       });

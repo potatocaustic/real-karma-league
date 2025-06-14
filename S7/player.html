@@ -92,6 +92,54 @@
       nav ul li a:hover {
         color: #ccc;
       }
+      
+      /* Dropdown Menu Styles */
+      .dropdown {
+          position: relative;
+          display: inline-block;
+      }
+
+      .dropdown .dropbtn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #fff;
+          text-decoration: none;
+          font-size: 1.1rem;
+          font-family: inherit;
+      }
+
+      .dropdown-content {
+          display: none;
+          position: absolute;
+          background-color: #333;
+          min-width: 180px;
+          box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+          z-index: 101;
+          border-radius: 4px;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding-top: 0.5rem;
+      }
+
+      .dropdown-content a {
+          color: white;
+          padding: 12px 16px;
+          text-decoration: none;
+          display: block;
+          text-align: left;
+          font-size: 1rem;
+      }
+
+      .dropdown-content a:hover {
+          background-color: #555;
+          color: #fff;
+      }
+
+      .dropdown:hover .dropdown-content {
+          display: block; /* Show on desktop hover */
+      }
 
       /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
@@ -138,6 +186,42 @@
         }
         nav ul li a:hover {
             background-color: #555;
+        }
+
+        /* Mobile Dropdown Overrides */
+        .dropdown {
+            display: block;
+            width: 100%;
+        }
+        .dropdown .dropbtn {
+            width: 100%;
+            padding: 0.8rem 1rem;
+        }
+        .dropdown .dropbtn:hover {
+            background-color: #555;
+        }
+        .dropdown-content {
+            position: static;
+            display: none;
+            box-shadow: none;
+            background-color: #4a4a4a;
+            border-radius: 0;
+            padding-top: 0;
+            transform: none;
+            left: auto;
+            top: auto;
+        }
+        .dropdown-content a {
+            padding-left: 2.5rem; /* Indent nested links */
+        }
+        .dropdown.active .dropdown-content {
+            display: block; /* Show on mobile click via JS */
+        }
+        .dropdown:hover .dropdown-content {
+            display: none;
+        }
+        .dropdown.active:hover .dropdown-content {
+            display: block;
         }
       }
 
@@ -453,11 +537,8 @@
       .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; }
       .lineup-table { width: 100%; border-collapse: collapse; }
       .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; }
-      .lineup-table th:first-child { text-align: left; width: 50%; }
-      .lineup-table th:nth-child(2), .lineup-table th:nth-child(3) { width: 25%; }
       .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; }
-      .lineup-table td:first-child { text-align: left; }
-      .lineup-table tr:hover { background-color: white; }
+      .lineup-table th:first-child, .lineup-table td:first-child { text-align: left; }
       .captain-row { background-color: #fff3cd !important; font-weight: bold; }
       .captain-badge { background-color: #ffc107; color: #333; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 0.5rem; }
       .captain-bonus { font-size: 0.75rem; color: #ffc107; font-weight: 500; margin-top: 0.2rem; }
@@ -721,7 +802,8 @@
             t50_finishes_pct: games_played_count > 0 ? (t50_finishes / games_played_count) : 0,
             total_points: parseNumber(player.total_points), 
             games_played: games_played_count,
-            WAR: parseNumber(player.WAR)
+            WAR: parseNumber(player.WAR),
+            gem: parseNumber(player.GEM)
           };
         });
       }
@@ -740,15 +822,15 @@
         
         let rankNum; // Reusable rank number
 
-        // Total Points Ranking
-        const totalPointsPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
-        const totalPointsPlayersSorted = [...totalPointsPool].sort((a, b) => (b.total_points || 0) - (a.total_points || 0));
-        rankNum = totalPointsPlayersSorted.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
-        rankings.total_points = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : 'Unranked';
+        // WAR Ranking
+        const warPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) >= 1);
+        const warPlayersSorted = [...warPool].sort((a, b) => (b.WAR || 0) - (a.WAR || 0));
+        rankNum = warPlayersSorted.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+        rankings.war = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : 'Unranked';
 
         // REL Median
         if (is3GPMinimumActive && playerGamesPlayed < 3) {
-            rankings.relMedian = "Unranked (3 GP required)";
+            rankings.relMedian = "Unranked (3 GP req)";
         } else {
             const pool = getSpecificStatRankingPool(allActivePlayers);
             if (playerDataToRank.calculated_rel_median === 0 && playerGamesPlayed === 0) {
@@ -762,7 +844,7 @@
         
         // Median Gameday Rank
         if (is3GPMinimumActive && playerGamesPlayed < 3) {
-            rankings.medianRank = "Unranked (3 GP required)";
+            rankings.medianRank = "Unranked (3 GP req)";
         } else {
             if (playerDataToRank.calculated_median_rank === Infinity || playerGamesPlayed === 0) {
                 rankings.medianRank = "Unranked";
@@ -774,15 +856,19 @@
             }
         }
         
-        const gamesAboveMedianPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
-        const gamesAboveMedianPlayers = [...gamesAboveMedianPool].sort((a, b) => {
-            const aGames = parseInt(a.aag_median || 0); const bGames = parseInt(b.aag_median || 0);
-            if (bGames !== aGames) return bGames - aGames;
-            const aREL = parseFloat(a.calculated_rel_median || 0); const bREL = parseFloat(b.calculated_rel_median || 0);
-            return bREL - aREL;
-          });
-        rankNum = gamesAboveMedianPlayers.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
-        rankings.gamesAboveMedian = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (gamesAboveMedianPool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
+        // GEM Ranking
+        if (is3GPMinimumActive && playerGamesPlayed < 3) {
+            rankings.gem = "Unranked (3 GP req)";
+        } else {
+            const pool = getSpecificStatRankingPool(allActivePlayers).filter(p => p.gem > 0);
+            if (playerDataToRank.gem > 0) {
+                const sortedPool = [...pool].sort((a, b) => parseFloat(a.gem || Infinity) - parseFloat(b.gem || Infinity));
+                rankNum = sortedPool.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+                rankings.gem = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : 'Not Ranked';
+            } else {
+                rankings.gem = "Unranked";
+            }
+        }
 
         const aboveMedianPctPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
         const aboveMedianPctPlayers = [...aboveMedianPctPool].sort((a, b) => parseFloat(b.aag_median_pct || 0) - parseFloat(a.aag_median_pct || 0));
@@ -895,9 +981,9 @@
             ${previousTeamsHTML} 
           </div>`;
         
-        const totalPointsValue = playerData.total_points || 0;
+        const warValue = playerData.WAR || 0;
         const relMedian = playerData.calculated_rel_median || 0;
-        const gamesAboveMedian = parseInt(playerData.aag_median || 0);
+        const gemValue = playerData.gem || 0;
         const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100;
         
         let medianRankValueForDisplay = '-';
@@ -906,17 +992,17 @@
             medianRankValueForDisplay = roundedRank > 0 ? roundedRank : '-';
         }
         
-        const rankClass = (rankText) => String(rankText).includes("required") ? "stat-rank unranked-gp-required" : "stat-rank";
+        const rankClass = (rankText) => String(rankText).includes("req") ? "stat-rank unranked-gp-required" : "stat-rank";
 
         document.getElementById('player-stats').innerHTML = `
-          <a href="leaderboards.html?category=total_points" class="stat-card-link"><div class="stat-card">
-            <div class="stat-value">${Math.round(totalPointsValue).toLocaleString()}</div><div class="stat-label">Total Karma</div><div class="${rankClass(rankings.total_points)}">${rankings.total_points}</div></div></a>
+          <a href="leaderboards.html?category=war" class="stat-card-link"><div class="stat-card">
+            <div class="stat-value">${warValue.toFixed(2)}</div><div class="stat-label">WAR</div><div class="${rankClass(rankings.war)}">${rankings.war}</div></div></a>
           <a href="leaderboards.html?category=rel_median" class="stat-card-link"><div class="stat-card">
             <div class="stat-value">${relMedian.toFixed(3)}</div><div class="stat-label">REL Median</div><div class="${rankClass(rankings.relMedian)}">${rankings.relMedian}</div></div></a>
           <a href="leaderboards.html?category=median_gameday_rank" class="stat-card-link"><div class="stat-card"> 
             <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Gameday Rank</div><div class="${rankClass(rankings.medianRank)}">${rankings.medianRank}</div></div></a>
-          <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card">
-            <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="${rankClass(rankings.gamesAboveMedian)}">${rankings.gamesAboveMedian}</div></div></a>
+          <a href="leaderboards.html?category=gem" class="stat-card-link"><div class="stat-card">
+            <div class="stat-value">${gemValue > 0 ? gemValue.toFixed(1) : '-'}</div><div class="stat-label">GEM</div><div class="${rankClass(rankings.gem)}">${rankings.gem}</div></div></a>
           <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${aboveMedianPct.toFixed(1)}%</div><div class="stat-label">% Games Above Median</div><div class="${rankClass(rankings.aboveMedianPct)}">${rankings.aboveMedianPct}</div></div></a>
           `;
         document.getElementById('player-stats').style.display = 'grid';

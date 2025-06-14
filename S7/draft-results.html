@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL S7 Draft Results</title>
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <style>
+      /* General Styles from other pages */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+      h1, h2, h3 { color: #333; }
+      main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+      .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
+      .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
+
+      /* Header & Nav */
+      header { background-color: #333; color: #fff; padding: 1rem; text-align: center; }
+      header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+      .header-logo { width: 40px; height: 40px; object-fit: cover; }
+      nav { position: relative; }
+      .nav-toggle { display: none; background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 0.5rem 1rem; position: absolute; top: -2.8rem; right: 1rem; }
+      nav ul { display: flex; justify-content: center; list-style: none; margin-top: 1rem; flex-wrap: wrap; }
+      nav ul li { margin: 0.5rem 1rem; }
+      nav ul li a { color: #fff; text-decoration: none; font-size: 1.1rem; transition: color 0.3s ease; white-space: nowrap; }
+      nav ul li a:hover { color: #ccc; }
+
+      /* Dropdown Menu Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown .dropbtn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-family: inherit;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #333;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 101;
+            border-radius: 4px;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding-top: 0.5rem;
+        }
+
+        .dropdown-content a {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            font-size: 1rem;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #555;
+            color: #fff;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block; /* Show on desktop hover */
+        }
+
+      /* Page-specific styles */
+      .page-header { text-align: center; margin-bottom: 2rem; }
+      .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+      
+      /* Quick Links */
+      .quick-links-container {
+          text-align: center;
+          margin-bottom: 2rem;
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+      }
+      .quick-link-btn {
+          background-color: #fff;
+          color: #333;
+          border: 1px solid #ddd;
+          padding: 0.75rem 1.5rem;
+          border-radius: 8px;
+          text-decoration: none;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      }
+      .quick-link-btn:hover {
+          background-color: #f8f9fa;
+          border-color: #ccc;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+
+      .results-container {
+        overflow-x: auto; /* Keep for horizontal scrolling on small screens */
+      }
+      .results-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; }
+      .results-header h3 { color: white; margin: 0; font-size: 1.4rem; }
+      
+      .results-table {
+        width: auto; 
+        margin: 0 auto; 
+        border-collapse: collapse;
+        table-layout: auto; 
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        overflow: hidden; 
+      }
+      .results-table th { background-color: #f8f9fa; padding: 1rem 1rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; white-space: nowrap; }
+      .results-table th.sortable { cursor: pointer; }
+      .results-table th.sortable:hover { background-color: #e9ecef; }
+      .results-table th .sort-indicator { font-size: 0.8em; margin-left: 5px; }
+      
+      .results-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; text-align: center; }
+      .results-table tr:hover { background-color: #f8f9fa; }
+
+      .results-table td.team-cell, .results-table td.player-cell { text-align: left; }
+      .team-cell-content { display: flex; align-items: center; gap: 0.75rem; }
+      .team-logo { width: 24px; height: 24px; border-radius: 2px; flex-shrink: 0; }
+      .player-link, .team-link { color: #007bff; text-decoration: none; font-weight: 500; }
+      .player-link:hover, .team-link:hover { text-decoration: underline; }
+      
+      .mobile-only { display: none; }
+      .desktop-only { display: table-cell; }
+
+      footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
+
+      /* Responsive Styles */
+      @media (max-width: 768px) {
+        .results-table th, .results-table td { font-size: 0.85rem; padding: 0.6rem 0.5rem; }
+        .team-cell-content { gap: 0.5rem; }
+        .team-logo { width: 20px; height: 20px; }
+        .desktop-only { display: none; }
+        .mobile-only { display: table-cell; }
+
+        /* Truncate long names on mobile */
+        .results-table .team-link,
+        .results-table .player-link {
+            display: inline-block;
+            max-width: 90px; /* Adjusted this value to be more aggressive */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle; /* Aligns truncated text with the team logo */
+        }
+      }
+
+      @media (max-width: 600px) {
+        .header-text { display: none; }
+        .header-logo { width: 50px; height: 50px; }
+        .nav-toggle { display: block; }
+        nav ul { display: none; position: absolute; top: calc(100% - 1rem); left: 0; right: 0; background-color: #444; flex-direction: column; align-items: center; gap: 0; margin-top: 0; padding: 0.5rem 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 100; }
+        nav ul.active { display: flex; }
+        nav ul li { margin: 0; width: 100%; text-align: center; }
+        nav ul li a { display: block; padding: 0.8rem 1rem; }
+        nav ul li a:hover { background-color: #555; }
+        main { padding: 1rem; }
+
+        /* Mobile Dropdown Overrides */
+        .dropdown {
+            display: block;
+            width: 100%;
+        }
+        .dropdown .dropbtn {
+            width: 100%;
+            padding: 0.8rem 1rem;
+        }
+        .dropdown .dropbtn:hover {
+            background-color: #555;
+        }
+        .dropdown-content {
+            position: static;
+            display: none;
+            box-shadow: none;
+            background-color: #4a4a4a;
+            border-radius: 0;
+            padding-top: 0;
+            transform: none;
+            left: auto;
+            top: auto;
+        }
+        .dropdown-content a {
+            padding-left: 2.5rem; /* Indent nested links */
+        }
+        .dropdown.active .dropdown-content {
+            display: block; /* Show on mobile click via JS */
+        }
+        .dropdown:hover .dropdown-content {
+            display: none;
+        }
+        .dropdown.active:hover .dropdown-content {
+            display: block;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2>S7 Draft Results</h2>
+        <p>Season 7 draft results and player performance</p>
+      </div>
+
+      <div class="quick-links-container">
+          <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
+          <a href="draft-lottery.html" class="quick-link-btn">S8 Lottery Odds</a>
+      </div>
+
+      <div class="results-container">
+        <div class="results-header" style="border-radius: 8px 8px 0 0; width: auto; margin: 0 auto;">
+          <h3 id="results-title">Season 7 Draft</h3>
+        </div>
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th class="desktop-only">Round</th>
+              <th class="sortable" onclick="handleSort('Overall')">Overall<span class="sort-indicator"></span></th>
+              <th>Team</th>
+              <th>Player</th>
+              <th class="sortable desktop-only" onclick="handleSort('games_played')">GP<span class="sort-indicator"></span></th>
+              <th class="sortable desktop-only" onclick="handleSort('calculated_median_rank')">Med Rank<span class="sort-indicator"></span></th>
+              <th class="sortable" onclick="handleSort('calculated_rel_median')">REL<span class="sort-indicator"></span></th>
+              <th class="sortable desktop-only" onclick="handleSort('WAR')">WAR<span class="sort-indicator"></span></th>
+            </tr>
+          </thead>
+          <tbody id="results-body">
+            <tr><td colspan="8" class="loading">Loading draft results...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+    
+    <footer><p>@caustic on Real</p></footer>
+
+    <script>
+      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+
+      let allDraftData = [];
+      let sortState = { column: 'Overall', direction: 'asc' };
+
+      async function fetchSheetData(sheetName) {
+        try {
+          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
+          if (!response.ok) throw new Error(`Network response was not ok for ${sheetName}`);
+          const csvText = await response.text();
+          return parseCSV(csvText);
+        } catch (error) {
+          console.error(`Error fetching ${sheetName}:`, error);
+          return null;
+        }
+      }
+
+      function parseCSV(csvText) {
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = [];
+          let currentVal = '';
+          let inQuotes = false;
+          for (let j = 0; j < lines[i].length; j++) {
+            const char = lines[i][j];
+            if (char === '"' && (j === 0 || lines[i][j-1] !== '\\')) inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) { values.push(currentVal.replace(/^"|"$/g, '').trim()); currentVal = ''; }
+            else currentVal += char;
+          }
+          values.push(currentVal.replace(/^"|"$/g, '').trim());
+          if (values.length === headers.length) {
+            const row = {};
+            headers.forEach((header, index) => { row[header] = values[index] || ''; });
+            data.push(row);
+          }
+        }
+        return data;
+      }
+      
+      function parseNumber(value) {
+        if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
+        const cleaned = String(value).replace(/,/g, '');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+
+      function calculateAllPlayerStats(players, weeklyAverages, lineups) {
+        if (!players || !weeklyAverages || !lineups) return players || [];
+        const weeklyAveragesMap = {};
+        weeklyAverages.forEach(week => {
+          if (week.date) {
+            weeklyAveragesMap[week.date] = {
+              mean_score: parseNumber(week.mean_score),
+              median_score: parseNumber(week.median_score)
+            };
+          }
+        });
+
+        return players.map(player => {
+          const playerGames = lineups.filter(lineup => 
+            (lineup.player_handle === player.player_handle || lineup.player_id === player.player_id) && 
+            (String(lineup.started).toUpperCase() === 'TRUE')
+          );
+          
+          let totalPlayerKarmaRawForREL = 0;
+          let totalMeanKarma = 0;
+          let totalMedianKarma = 0;
+          let validGamesForREL = 0;
+          const ranks = [];
+
+          playerGames.forEach(game => {
+            if (weeklyAveragesMap[game.date]) {
+              totalPlayerKarmaRawForREL += parseNumber(game.points_raw);
+              totalMeanKarma += weeklyAveragesMap[game.date].mean_score;
+              totalMedianKarma += weeklyAveragesMap[game.date].median_score;
+              validGamesForREL++;
+            }
+            const globalRank = parseNumber(game.global_rank);
+            if (globalRank > 0) ranks.push(globalRank);
+          });
+          
+          const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0;
+          const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
+          const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
+          
+          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerRawKarmaForREL / avgMedianKarma) : 0;
+          
+          let calculated_median_rank = Infinity;
+          if (ranks.length > 0) {
+            ranks.sort((a, b) => a - b);
+            const mid = Math.floor(ranks.length / 2);
+            calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
+          }
+          
+          return {
+            ...player, 
+            calculated_rel_median: calculated_rel_median,
+            calculated_median_rank: calculated_median_rank,
+            games_played: parseInt(player.games_played || 0),
+            WAR: parseNumber(player.WAR)
+          };
+        });
+      }
+
+      async function loadDataAndDisplay() {
+        const resultsBody = document.getElementById('results-body');
+        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Fetching data...</td></tr>`;
+        
+        const [draftResultsRaw, playersRaw, teams, weeklyAverages, lineups] = await Promise.all([
+          fetchSheetData('Draft_Results'),
+          fetchSheetData('Players'),
+          fetchSheetData('Teams'),
+          fetchSheetData('Weekly_Averages'),
+          fetchSheetData('Lineups')
+        ]);
+
+        if (!draftResultsRaw || !playersRaw || !teams || !weeklyAverages || !lineups) {
+          resultsBody.innerHTML = `<tr><td colspan="8" class="error">Failed to load required data. Please try again later.</td></tr>`;
+          return;
+        }
+
+        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Processing data...</td></tr>`;
+        
+        // Filter for Season 7 draft picks only
+        const draftResults = draftResultsRaw.filter(p => p.Season === '7');
+
+        const playersWithStats = calculateAllPlayerStats(playersRaw, weeklyAverages, lineups);
+        const teamsMap = new Map(teams.map(team => [team.team_id, team.team_name]));
+        const playersMap = new Map(playersWithStats.map(p => [p.player_id, p]));
+
+        allDraftData = draftResults.map(pick => {
+          const playerData = playersMap.get(pick.player_id);
+          return {
+            ...pick,
+            team_name: teamsMap.get(pick.team_id) || pick.team_id,
+            games_played: playerData ? playerData.games_played : 0,
+            calculated_median_rank: playerData ? playerData.calculated_median_rank : Infinity,
+            calculated_rel_median: playerData ? playerData.calculated_rel_median : 0,
+            WAR: playerData ? playerData.WAR : 0,
+          };
+        });
+        
+        displayDraftResults();
+      }
+
+      function displayDraftResults() {
+        let dataToDisplay = [...allDraftData];
+        
+        // Sorting logic
+        dataToDisplay.sort((a, b) => {
+          const col = sortState.column;
+          const dir = sortState.direction === 'asc' ? 1 : -1;
+          
+          let valA = a[col];
+          let valB = b[col];
+
+          if (col === 'calculated_median_rank') {
+            valA = valA === Infinity ? Number.MAX_SAFE_INTEGER : valA;
+            valB = valB === Infinity ? Number.MAX_SAFE_INTEGER : valB;
+          }
+          
+          if (['Overall', 'games_played', 'calculated_median_rank', 'calculated_rel_median', 'WAR'].includes(col)) {
+              valA = parseFloat(valA) || 0;
+              valB = parseFloat(valB) || 0;
+          }
+
+          if (valA > valB) return 1 * dir;
+          if (valA < valB) return -1 * dir;
+          return 0;
+        });
+
+        const resultsBody = document.getElementById('results-body');
+        const resultsHeader = document.querySelector('.results-header');
+
+        if (dataToDisplay.length === 0) {
+            resultsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No S7 draft results found.</td></tr>`;
+            resultsHeader.style.display = 'none';
+            document.querySelector('.results-table').style.boxShadow = 'none';
+            return;
+        }
+
+        resultsHeader.style.display = 'block';
+        document.querySelector('.results-table').style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+
+        resultsBody.innerHTML = dataToDisplay.map(pick => {
+          const medRankDisplay = pick.calculated_median_rank === Infinity ? '-' : Math.round(pick.calculated_median_rank);
+          const relDisplay = pick.calculated_rel_median.toFixed(3);
+          const warDisplay = pick.WAR.toFixed(2);
+          const playerCellHTML = pick.Player.toUpperCase() === 'FORFEITED'
+            ? `<span>${pick.Player}</span>`
+            : `<a href="player.html?player=${encodeURIComponent(pick.Player)}" class="player-link">${pick.Player}</a>`;
+
+          return `
+            <tr>
+              <td class="desktop-only">${pick.Round}</td>
+              <td>${pick.Overall}</td>
+              <td class="team-cell">
+                <div class="team-cell-content">
+                  <img src="icons/${pick.team_id}.webp" alt="${pick.team_name}" class="team-logo" onerror="this.style.display='none'">
+                  <a href="team.html?id=${pick.team_id}" class="team-link">${pick.team_name}</a>
+                </div>
+              </td>
+              <td class="player-cell">
+                ${playerCellHTML}
+              </td>
+              <td class="desktop-only">${pick.games_played}</td>
+              <td class="desktop-only">${medRankDisplay}</td>
+              <td>${relDisplay}</td>
+              <td class="desktop-only">${warDisplay}</td>
+            </tr>
+          `;
+        }).join('');
+        
+        const table = document.querySelector('.results-table');
+        resultsHeader.style.width = `${table.offsetWidth}px`;
+        table.style.borderRadius = '0 0 8px 8px';
+      }
+
+      function handleSort(column) {
+        if (sortState.column === column) {
+          sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortState.column = column;
+          // Default sort directions
+          if (column === 'Overall' || column === 'calculated_median_rank') {
+            sortState.direction = 'asc';
+          } else {
+            sortState.direction = 'desc'; // Default desc for REL, WAR, GP
+          }
+        }
+        updateSortIndicators();
+        displayDraftResults();
+      }
+      
+      function updateSortIndicators() {
+          document.querySelectorAll('.results-table th.sortable .sort-indicator').forEach(el => el.textContent = '');
+          const activeHeader = document.querySelector(`.results-table th[onclick="handleSort('${sortState.column}')"]`);
+          if (activeHeader) {
+              const indicator = activeHeader.querySelector('.sort-indicator');
+              indicator.textContent = sortState.direction === 'asc' ? ' ▲' : ' ▼';
+          }
+      }
+      
+      const resultsHeader = document.querySelector('.results-header');
+      const table = document.querySelector('.results-table');
+      const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            if(entry.target.offsetWidth > 0) {
+              resultsHeader.style.width = `${entry.target.offsetWidth}px`;
+            }
+        }
+      });
+      if(table) {
+        resizeObserver.observe(table);
+      }
+
+
+      document.addEventListener('DOMContentLoaded', () => {
+        loadDataAndDisplay();
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
+        
+        if(dropdownBtn) {
+            dropdownBtn.addEventListener('click', function(event) {
+                // Check if we are in mobile view (nav-toggle is visible)
+                if (window.getComputedStyle(navToggle).display !== 'none') {
+                    event.preventDefault(); // Prevent link navigation
+                    this.parentElement.classList.toggle('active');
+                }
+            });
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -289,7 +289,7 @@
 
       .roster-header {
         display: grid;
-        grid-template-columns: 40px 1fr 80px; 
+        grid-template-columns: 40px 1fr 80px 80px; 
         gap: 0.5rem; 
         align-items: center;
         padding: 1rem 1rem;
@@ -306,9 +306,22 @@
         padding-left: 0;
       }
 
-      .roster-header .header-rel {
+      .roster-header .header-rel, .roster-header .header-war {
         text-align: center;
         padding-right: 0;
+      }
+
+      .roster-header .sortable {
+        cursor: pointer;
+        transition: color 0.2s;
+      }
+      .roster-header .sortable:hover {
+        color: #007bff;
+      }
+      .roster-header .sort-indicator {
+        display: inline-block;
+        margin-left: 5px;
+        width: 1em; /* Reserve space for indicator */
       }
 
       .roster-content {
@@ -317,7 +330,7 @@
 
       .player-item {
         display: grid;
-        grid-template-columns: 40px 1fr 80px; 
+        grid-template-columns: 40px 1fr 80px 80px; 
         gap: 0.5rem; 
         align-items: center;
         padding: 1rem 1rem;
@@ -351,7 +364,7 @@
         padding-left: 0;
       }
 
-      .player-rel {
+      .player-rel, .player-war {
         font-weight: bold;
         font-size: 1.1rem;
         color: #333;
@@ -359,7 +372,7 @@
         min-width: 80px;
         padding-right: 0;
       }
-
+      
       .player-name {
         font-weight: 500;
         font-size: 1.1rem;
@@ -372,6 +385,25 @@
       .player-name:hover {
         color: #0056b3;
         text-decoration: underline;
+      }
+      
+      .all-star-badge {
+        color: gold;
+        text-shadow: 0 0 2px #a18000;
+        font-size: 1em;
+        margin-left: 5px;
+        vertical-align: middle;
+      }
+      
+      .rookie-badge {
+        background-color: #6c757d;
+        color: white;
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        margin-left: 5px;
+        vertical-align: middle;
       }
 
       .player-stats {
@@ -653,7 +685,7 @@
         .team-stats-grid { grid-template-columns: repeat(2, 1fr); }
         .player-item { padding: 0.75rem; grid-template-columns: 1fr 80px !important; }
         .roster-header { grid-template-columns: 1fr 80px !important; }
-        .desktop-only-roster-logo { display: none; } 
+        .desktop-only-roster-logo, .header-war, .player-war { display: none; } 
         
         .game-item { padding: 0.75rem; margin-left: 0; position: relative; display: block; }
         /* Show the old mobile schedule display for team.html specifically */
@@ -773,7 +805,8 @@
       let allTransactionsLogData = []; 
       let allLineups = []; 
       let allDraftPicks = []; 
-      let processedPlayersData = []; 
+      let processedPlayersData = [];
+      let rosterSortState = { column: 'rel', direction: 'desc' }; // Default sort for roster
 
       function formatInThousands(value) {
         const num = parseFloat(value);
@@ -1050,6 +1083,16 @@
         });
         return relevantTransactionIds.size;
       }
+
+      function handleRosterSort(column) {
+        if (rosterSortState.column === column) {
+            rosterSortState.direction = rosterSortState.direction === 'desc' ? 'asc' : 'desc';
+        } else {
+            rosterSortState.column = column;
+            rosterSortState.direction = 'desc'; // Default to descending for a new column
+        }
+        loadRoster(); // Re-render the roster with new sorting
+      }
       
       async function loadTeamData() {
         teamId = getUrlParameter('id');
@@ -1194,11 +1237,26 @@
           return;
         }
         
-        const sortedPlayers = teamPlayers.sort((a, b) => (b.calculated_rel_median || 0) - (a.calculated_rel_median || 0)); // REL Median now from raw
+        teamPlayers.sort((a, b) => {
+            let valA, valB;
+            if (rosterSortState.column === 'rel') {
+                valA = a.calculated_rel_median || 0;
+                valB = b.calculated_rel_median || 0;
+            } else if (rosterSortState.column === 'war') {
+                valA = parseFloat(a.WAR || 0);
+                valB = parseFloat(b.WAR || 0);
+            }
+
+            const comparison = valA < valB ? -1 : (valA > valB ? 1 : 0);
+            return rosterSortState.direction === 'desc' ? -comparison : comparison;
+        });
         
-        const rosterHTML = sortedPlayers.map(player => {
-          const relMedian = player.calculated_rel_median || 0; // Uses raw
+        const rosterHTML = teamPlayers.map(player => {
+          const relMedian = player.calculated_rel_median || 0;
           const gamesPlayed = parseInt(player.games_played || 0);
+          const isAllStar = player.all_star === '1';
+          const isRookie = player.rookie === '1';
+          const war = parseFloat(player.WAR || 0).toFixed(2);
           
           let medianRankDisplay = '-';
           if (player.calculated_median_rank !== Infinity && player.calculated_median_rank > 0) {
@@ -1207,6 +1265,8 @@
                   medianRankDisplay = roundedRank;
               }
           }
+
+          const rookieBadge = isRookie ? ` <span class="rookie-badge">R</span>` : '';
           
           return `
             <div class="player-item">
@@ -1214,22 +1274,27 @@
                 <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="roster-team-logo-inline" onerror="this.style.display='none'">
               </div>
               <div class="player-info">
-                <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}</a>
+                <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">&#9733;</span>' : ''}</a>
                 <div class="player-stats">
                   ${gamesPlayed} games • 
                   ${medianRankDisplay} med rank 
                 </div>
               </div>
               <div class="player-rel">${relMedian.toFixed(3)}</div>
+              <div class="player-war">${war}</div>
             </div>
           `;
         }).join('');
         
+        const relSortIndicator = rosterSortState.column === 'rel' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+        const warSortIndicator = rosterSortState.column === 'war' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+
         const finalHTML = `
           <div class="roster-header">
             <span class="roster-logo-header-col desktop-only-roster-logo"></span>
             <span class="header-player">Player</span>
-            <span class="header-rel">REL Median</span>
+            <span class="header-rel sortable" onclick="handleRosterSort('rel')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
+            <span class="header-war sortable" onclick="handleRosterSort('war')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
           </div>
           <div class="roster-content">
             ${rosterHTML}

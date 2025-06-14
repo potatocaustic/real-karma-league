@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL Stats Glossary</title>
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <style>
+      /* General Styles from other pages */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+      h1, h2, h3, h4 { color: #333; }
+      main { padding: 2rem; max-width: 900px; margin: 0 auto; }
+
+      /* Header & Nav */
+      header { background-color: #333; color: #fff; padding: 1rem; text-align: center; }
+      header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+      .header-logo { width: 40px; height: 40px; object-fit: cover; }
+      nav { position: relative; }
+      .nav-toggle { display: none; background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 0.5rem 1rem; position: absolute; top: -2.8rem; right: 1rem; }
+      nav ul { display: flex; justify-content: center; list-style: none; margin-top: 1rem; flex-wrap: wrap; }
+      nav ul li { margin: 0.5rem 1rem; }
+      nav ul li a { color: #fff; text-decoration: none; font-size: 1.1rem; transition: color 0.3s ease; white-space: nowrap; }
+      nav ul li a:hover { color: #ccc; }
+
+      /* Dropdown Menu Styles */
+      .dropdown {
+          position: relative;
+          display: inline-block;
+      }
+
+      .dropdown .dropbtn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #fff;
+          text-decoration: none;
+          font-size: 1.1rem;
+          font-family: inherit;
+      }
+
+      .dropdown-content {
+          display: none;
+          position: absolute;
+          background-color: #333;
+          min-width: 180px;
+          box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+          z-index: 101;
+          border-radius: 4px;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding-top: 0.5rem;
+      }
+
+      .dropdown-content a {
+          color: white;
+          padding: 12px 16px;
+          text-decoration: none;
+          display: block;
+          text-align: left;
+          font-size: 1rem;
+      }
+
+      .dropdown-content a:hover {
+          background-color: #555;
+          color: #fff;
+      }
+
+      .dropdown:hover .dropdown-content {
+          display: block; /* Show on desktop hover */
+      }
+
+      /* Page-specific styles */
+      .page-header { text-align: center; margin-bottom: 2.5rem; }
+      .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+      
+      .glossary-section {
+        margin-bottom: 2rem;
+      }
+      .glossary-term {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+      }
+      .glossary-term h3 {
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+        color: #007bff;
+      }
+      .glossary-term p {
+        margin-bottom: 1rem;
+      }
+      .glossary-term .formula {
+        background-color: #e9ecef;
+        padding: 0.75rem;
+        border-radius: 4px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.95rem;
+        white-space: pre;
+        overflow-x: auto;
+      }
+      
+      footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
+
+      /* Responsive Styles */
+      @media (max-width: 600px) {
+        .header-text { display: none; }
+        .header-logo { width: 50px; height: 50px; }
+        .nav-toggle { display: block; }
+        nav ul { display: none; position: absolute; top: calc(100% - 1rem); left: 0; right: 0; background-color: #444; flex-direction: column; align-items: center; gap: 0; margin-top: 0; padding: 0.5rem 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 100; }
+        nav ul.active { display: flex; }
+        nav ul li { margin: 0; width: 100%; text-align: center; }
+        nav ul li a { display: block; padding: 0.8rem 1rem; }
+        nav ul li a:hover { background-color: #555; }
+        main { padding: 1rem; }
+        .glossary-term { padding: 1.5rem; }
+
+        /* Mobile Dropdown Overrides */
+        .dropdown {
+            display: block;
+            width: 100%;
+        }
+        .dropdown .dropbtn {
+            width: 100%;
+            padding: 0.8rem 1rem;
+        }
+        .dropdown .dropbtn:hover {
+            background-color: #555;
+        }
+        .dropdown-content {
+            position: static;
+            display: none;
+            box-shadow: none;
+            background-color: #4a4a4a;
+            border-radius: 0;
+            padding-top: 0;
+            transform: none;
+            left: auto;
+            top: auto;
+        }
+        .dropdown-content a {
+            padding-left: 2.5rem; /* Indent nested links */
+        }
+        .dropdown.active .dropdown-content {
+            display: block; /* Show on mobile click via JS */
+        }
+        .dropdown:hover .dropdown-content {
+            display: none;
+        }
+        .dropdown.active:hover .dropdown-content {
+            display: block;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2>Stats Glossary</h2>
+        <p>An explanation of the advanced stats used in RKL.</p>
+      </div>
+
+      <div class="glossary-section">
+
+        <div class="glossary-term">
+          <h3>GEM (Geometric Mean Rank)</h3>
+          <p>
+            GEM is an alternative way of averaging a player's rankings to reduce the impact of outliers. GEM is calculated by taking the nth root of the product of all the player's gameday ranks, where n is the total number of values.
+          </p>
+          <div class="formula">
+            GEM = (x1 * x2 * ... * xn) ^ (1/n)
+          </div>
+        </div>
+        
+        <div class="glossary-term">
+          <h3>REL (Relative Performance Score)</h3>
+          <p>
+            REL measures a player's raw point generation relative to the league's mean or median on days they played. It's a way to normalize scores across games that might have different scoring opportunities. An REL above 1.000 indicates above-average performance, while a score below 1.000 is below average.
+          </p>
+          <div class="formula">
+            REL Median = (Player's Raw Scores / League Median Scores)
+            REL Mean = (Player's Raw Scores / League Mean Scores)
+          </div>
+        </div>
+
+        <div class="glossary-term">
+          <h3>WAR (Wins Above Replacement)</h3>
+          <p>
+            WAR attempts to quantify a player's total contribution to their team in a single number. It compares a player's performance to that of a "replacement-level" player—a hypothetical player who is readily available and typically performs at a league-minimum level. The resulting value represents the number of additional wins a team would get by having that player in their lineup instead of a replacement-value one. WAR is a cumulative stat, increasing with every above-replacement level performance.
+            <br>
+            <br>
+            The average margin of victory in a S7 RKL game is equal to 92% of the leaguewide median player score on a given day. Therefore, a player is considered to add 1.0 WAR if they produce (.92 * median) more karma than a replacement level player. For the purposes of WAR calculations, a "replacement level" performance is defined as 80% of the leaguewide median player score. This is approximately equal to the 180th-best REL in the league (30 teams * 6 starters). 
+          </p>
+           <div class="formula">
+            WAR = (Player Scores - Replacement-Level Scores) / (Avg MoV)
+          </div>
+        </div>
+        
+        <!-- To add a new term, copy a "glossary-term" block and paste it here. -->
+
+      </div>
+    </main>
+    
+    <footer><p>@caustic on Real</p></footer>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+        const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('active');
+            });
+        }
+        
+        if(dropdownBtn) {
+            dropdownBtn.addEventListener('click', function(event) {
+                // Check if we are in mobile view (nav-toggle is visible)
+                if (window.getComputedStyle(navToggle).display !== 'none') {
+                    event.preventDefault(); // Prevent link navigation
+                    this.parentElement.classList.toggle('active');
+                }
+            });
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -91,6 +91,55 @@
       nav ul li a:hover {
         color: #ccc;
       }
+      
+      /* Dropdown Menu Styles */
+      .dropdown {
+          position: relative;
+          display: inline-block;
+      }
+
+      .dropdown .dropbtn {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #fff;
+          text-decoration: none;
+          font-size: 1.1rem;
+          font-family: inherit;
+      }
+
+      .dropdown-content {
+          display: none;
+          position: absolute;
+          background-color: #333;
+          min-width: 180px;
+          box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+          z-index: 101;
+          border-radius: 4px;
+          top: 100%;
+          left: 50%;
+          transform: translateX(-50%);
+          padding-top: 0.5rem;
+      }
+
+      .dropdown-content a {
+          color: white;
+          padding: 12px 16px;
+          text-decoration: none;
+          display: block;
+          text-align: left;
+          font-size: 1rem;
+      }
+
+      .dropdown-content a:hover {
+          background-color: #555;
+          color: #fff;
+      }
+
+      .dropdown:hover .dropdown-content {
+          display: block; /* Show on desktop hover */
+      }
+
 
       @media (max-width: 600px) { /* This breakpoint is for very small specific tweaks if needed */
         .header-text { display: none; }
@@ -114,6 +163,42 @@
         nav ul li { margin: 0; width: 100%; text-align: center; }
         nav ul li a { display: block; padding: 0.8rem 1rem; }
         nav ul li a:hover { background-color: #555; }
+        
+        /* Add inside your mobile media query */
+        .dropdown {
+            display: block;
+            width: 100%;
+        }
+        .dropdown .dropbtn {
+            width: 100%;
+            padding: 0.8rem 1rem;
+        }
+        .dropdown .dropbtn:hover {
+            background-color: #555;
+        }
+        .dropdown-content {
+            position: static;
+            display: none;
+            box-shadow: none;
+            background-color: #4a4a4a;
+            border-radius: 0;
+            padding-top: 0;
+            transform: none;
+            left: auto;
+            top: auto;
+        }
+        .dropdown-content a {
+            padding-left: 2.5rem; /* Indent nested links */
+        }
+        .dropdown.active .dropdown-content {
+            display: block; /* Show on mobile click via JS */
+        }
+        .dropdown:hover .dropdown-content {
+            display: none;
+        }
+        .dropdown.active:hover .dropdown-content {
+            display: block;
+        }
       }
 
       /* Main content */
@@ -447,13 +532,21 @@
       <nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
-          <li><a href="RKL-S7.html">S7 Home</a></li>
-          <li><a href="standings.html">Standings & Rankings</a></li>
-          <li><a href="leaderboards.html">Leaderboards</a></li>
-          <li><a href="schedule.html">Schedule</a></li>
-          <li><a href="transactions.html">Transactions</a></li>
-          <li><a href="teams.html">Teams</a></li>
-          <li><a href="draft-capital.html">Draft Capital</a></li>
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
     </header>

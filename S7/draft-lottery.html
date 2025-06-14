@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RKL Draft Lottery Simulator</title>
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <style>
+        /* General Styles from other pages */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
+        h1, h2, h3 { color: #333; }
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
+        .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
+
+        /* Header & Nav */
+        header { background-color: #333; color: #fff; padding: 1rem; text-align: center; }
+        header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+        .header-logo { width: 40px; height: 40px; object-fit: cover; }
+        nav { position: relative; }
+        .nav-toggle { display: none; background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 0.5rem 1rem; position: absolute; top: -2.8rem; right: 1rem; }
+        nav ul { display: flex; justify-content: center; list-style: none; margin-top: 1rem; flex-wrap: wrap; }
+        nav ul li { margin: 0.5rem 1rem; }
+        nav ul li a { color: #fff; text-decoration: none; font-size: 1.1rem; transition: color 0.3s ease; white-space: nowrap; }
+        nav ul li a:hover { color: #ccc; }
+
+        /* Dropdown Menu Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown .dropbtn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #fff;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-family: inherit;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #333;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 101;
+            border-radius: 4px;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding-top: 0.5rem;
+        }
+
+        .dropdown-content a {
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            font-size: 1rem;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #555;
+            color: #fff;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block; /* Show on desktop hover */
+        }
+
+        /* Page-specific styles */
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .page-header h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        .page-header p {
+            color: #555;
+        }
+
+        .quick-links-container {
+            text-align: center;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .quick-link-btn {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .quick-link-btn:hover {
+            background-color: #f8f9fa;
+            border-color: #ccc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .lottery-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 960px; /* Equivalent to max-w-5xl */
+            margin: 0 auto 2rem auto;
+        }
+
+        .lottery-header {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .lottery-card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .action-button {
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .action-button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .action-button:disabled {
+            background-color: #999;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #simulateBtn { background-color: #2563eb; }
+        #simulateBtn:hover:not(:disabled) { background-color: #1d4ed8; }
+        #simulateAgainBtn { background-color: #16a34a; }
+        #simulateAgainBtn:hover { background-color: #15803d; }
+        #resetBtn { background-color: #6b7280; }
+        #resetBtn:hover { background-color: #4b5563; }
+        
+        .table-container { overflow-x: auto; }
+        .lottery-table { width: 100%; border-collapse: collapse; }
+        .lottery-table th, .lottery-table td { text-align: left; padding: 1rem 1.25rem; border-bottom: 1px solid #eee; }
+        .lottery-table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 0.8rem; color: #444; }
+        .lottery-table td { color: #333; }
+        .lottery-table tr:hover { background-color: #f8f9fa; }
+        .lottery-table .text-center { text-align: center; }
+
+        .team-cell { display: inline-flex; align-items: center; gap: 0.75rem; color: #111827; text-decoration: none; transition: color 0.3s; }
+        .team-cell:hover { color: #2563eb; }
+        .team-cell-content { display: flex; align-items: center; gap: 0.5rem; white-space: nowrap; }
+        .team-cell .font-semibold { font-weight: 600; }
+        .team-logo { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+        .original-team-traded { opacity: 0.6; text-decoration: line-through; }
+        
+        .move-up { color: #16a34a; font-weight: 600; font-size: 0.8rem; margin-left: 0.5rem; }
+        .move-down { color: #dc2626; font-weight: 600; font-size: 0.8rem; margin-left: 0.5rem; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden-mobile { display: table-cell; }
+
+        footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
+
+        /* Responsive Styles */
+        @media (min-width: 640px) { /* sm breakpoint */
+            .lottery-header {
+                flex-direction: row;
+                justify-content: space-between; /* Align title and buttons */
+                align-items: center;
+            }
+            .button-container {
+                flex-direction: row;
+            }
+        }
+
+        @media (max-width: 768px) { /* md breakpoint */
+            .hidden-mobile { display: none; }
+            .lottery-table th, .lottery-table td { padding: 0.8rem 0.6rem; }
+        }
+
+        @media (max-width: 600px) {
+            .header-text { display: none; }
+            .header-logo { width: 50px; height: 50px; }
+            .nav-toggle { display: block; }
+            nav ul { display: none; position: absolute; top: calc(100% - 1rem); left: 0; right: 0; background-color: #444; flex-direction: column; align-items: center; gap: 0; margin-top: 0; padding: 0.5rem 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 100; }
+            nav ul.active { display: flex; }
+            nav ul li { margin: 0; width: 100%; text-align: center; }
+            nav ul li a { display: block; padding: 0.8rem 1rem; }
+            nav ul li a:hover { background-color: #555; }
+            main { padding: 1rem; }
+
+            /* Mobile Dropdown Overrides */
+            .dropdown {
+                display: block;
+                width: 100%;
+            }
+            .dropdown .dropbtn {
+                width: 100%;
+                padding: 0.8rem 1rem;
+            }
+             .dropdown .dropbtn:hover {
+                background-color: #555;
+            }
+            .dropdown-content {
+                position: static;
+                display: none;
+                box-shadow: none;
+                background-color: #4a4a4a; /* Slightly different shade */
+                border-radius: 0;
+                padding-top: 0;
+                transform: none;
+                left: auto;
+                top: auto;
+            }
+            .dropdown-content a {
+                padding-left: 2.5rem; /* Indent nested links */
+            }
+            .dropdown.active .dropdown-content {
+                display: block; /* Show on mobile click via JS */
+            }
+            /* Hide hover effect on mobile */
+            .dropdown:hover .dropdown-content {
+                display: none;
+            }
+            .dropdown.active:hover .dropdown-content {
+                 display: block;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        
+        <div class="page-header">
+            <h2 id="table-title">S8 Lottery Odds</h2>
+            <p id="table-description">S8 lottery odds for the 14 (projected) non-playoff teams.</p>
+        </div>
+        
+        <div class="quick-links-container">
+            <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
+            <a href="draft-results.html" class="quick-link-btn">S7 Draft Results</a>
+        </div>
+
+        <div class="lottery-container">
+            <div class="lottery-header">
+                <h3 class="lottery-card-title">Season 8 Draft</h3>
+                <!-- Button Container -->
+                <div id="button-container" class="button-container">
+                    <!-- Buttons are injected here by JS -->
+                </div>
+            </div>
+
+            <!-- Lottery Table -->
+            <div class="table-container">
+                <table id="lottery-table" class="lottery-table">
+                    <thead id="lottery-table-head">
+                        <!-- Header content is generated by JS -->
+                    </thead>
+                    <tbody id="lottery-table-body">
+                        <!-- Body content is generated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <p>@caustic on Real</p>
+    </footer>
+
+<script>
+// --- DATA AND CONFIGURATION ---
+const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+
+const lotteryOdds = [
+    { seed: 1, chances: 140, pct1st: 14.0, pctTop4: 52.14 }, { seed: 2, chances: 140, pct1st: 14.0, pctTop4: 52.14 },
+    { seed: 3, chances: 140, pct1st: 14.0, pctTop4: 52.14 }, { seed: 4, chances: 125, pct1st: 12.5, pctTop4: 48.08 },
+    { seed: 5, chances: 105, pct1st: 10.5, pctTop4: 42.13 }, { seed: 6, chances: 90, pct1st: 9.0, pctTop4: 37.23 },
+    { seed: 7, chances: 75, pct1st: 7.5, pctTop4: 31.96 }, { seed: 8, chances: 60, pct1st: 6.0, pctTop4: 26.30 },
+    { seed: 9, chances: 45, pct1st: 4.5, pctTop4: 20.27 }, { seed: 10, chances: 30, pct1st: 3.0, pctTop4: 13.88 },
+    { seed: 11, chances: 20, pct1st: 2.0, pctTop4: 9.41 }, { seed: 12, chances: 15, pct1st: 1.5, pctTop4: 7.12 },
+    { seed: 13, chances: 10, pct1st: 1.0, pctTop4: 4.79 }, { seed: 14, chances: 5, pct1st: 0.5, pctTop4: 2.41 },
+];
+const DRAFT_SEASON = 8;
+
+// --- STATE MANAGEMENT ---
+let initialLotteryTeams = [];
+let teamDataMap = {};
+let pickOwnership = {};
+
+// --- UTILITY FUNCTIONS ---
+async function fetchSheetData(sheetName) {
+    try {
+        const response = await fetch(`${BASE_URL}${encodeURIComponent(sheetName)}`);
+        if (!response.ok) throw new Error(`Network response not OK for ${sheetName}`);
+        return parseCSV(await response.text());
+    } catch (error) {
+        console.error(`Error fetching ${sheetName}:`, error);
+        const tableBody = document.getElementById('lottery-table-body');
+        if (tableBody) {
+             tableBody.innerHTML = `<tr><td colspan="5"><div class="error">Failed to load required data from sheet: ${sheetName}. Please try again later.</div></td></tr>`;
+        }
+        return null;
+    }
+}
+
+function parseCSV(csvText) {
+    const lines = csvText.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    return lines.slice(1).map(line => {
+        const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+        const row = {};
+        if (values.length === headers.length) {
+            headers.forEach((header, index) => {
+                row[header] = values[index].replace(/"/g, '').trim();
+            });
+        }
+        return row;
+    }).filter(row => Object.keys(row).length > 0);
+}
+
+// --- RENDERING FUNCTIONS ---
+function renderTableHeader(isSimulatedView = false) {
+    const pickOrSeed = isSimulatedView ? 'Pick' : 'Seed';
+    document.getElementById('lottery-table-head').innerHTML = `
+        <tr>
+            <th scope="col">${pickOrSeed}</th>
+            <th scope="col">Team</th>
+            <th scope="col" class="text-center hidden-mobile">Record</th>
+            <th scope="col" class="text-center">#1 Pick Odds</th>
+            <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
+        </tr>
+    `;
+}
+
+function getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded) {
+    const teamName = ownerTeam ? ownerTeam.team_name : 'Unknown';
+    const originalTeamName = originalTeam ? originalTeam.team_name : 'Unknown';
+    const teamLogoUrl = ownerId ? `icons/${ownerId}.webp` : '';
+
+    if (isTraded) {
+        return `
+            <a href="team.html?id=${ownerId}" class="team-cell">
+                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                <div class="team-cell-content">
+                    <span class="font-semibold">${teamName}</span>
+                    <span class="original-team-traded">${originalTeamName}</span>
+                </div>
+            </a>
+        `;
+    } else {
+        return `
+            <a href="team.html?id=${ownerId}" class="team-cell">
+                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                <span class="font-semibold whitespace-nowrap">${teamName}</span>
+            </a>
+        `;
+    }
+}
+
+
+function renderLotteryOddsTable() {
+    renderTableHeader(false);
+    const tableBody = document.getElementById('lottery-table-body');
+    let html = '';
+
+    initialLotteryTeams.forEach(team => {
+        const ownerId = pickOwnership[team.team_id] || team.team_id;
+        const ownerTeam = teamDataMap[ownerId];
+        const isTraded = team.team_id !== ownerId;
+        const teamCellHtml = getTeamCellHtml(ownerTeam, team, ownerId, isTraded);
+
+        html += `
+            <tr>
+                <td class="font-semibold">${team.seed}</td>
+                <td>${teamCellHtml}</td>
+                <td class="text-center hidden-mobile">${team.wins} - ${team.losses}</td>
+                <td class="text-center">${team.pct1st.toFixed(2)}%</td>
+                <td class="text-center hidden-mobile">${team.pctTop4.toFixed(2)}%</td>
+            </tr>
+        `;
+    });
+    tableBody.innerHTML = html;
+}
+
+function renderSimulatedResults(finalOrder) {
+    renderTableHeader(true);
+    const tableBody = document.getElementById('lottery-table-body');
+    let html = '';
+
+    finalOrder.forEach((originalTeam, index) => {
+        const pickNumber = index + 1;
+        const ownerId = pickOwnership[originalTeam.team_id] || originalTeam.team_id;
+        const ownerTeam = teamDataMap[ownerId];
+        const isTraded = originalTeam.team_id !== ownerId;
+        const movement = originalTeam.seed - pickNumber;
+
+        let movementHtml;
+        if (movement > 0) {
+            movementHtml = `<span class="move-up">▲ ${movement}</span>`;
+        } else if (movement < 0) {
+            movementHtml = `<span class="move-down">▼ ${Math.abs(movement)}</span>`;
+        } else {
+            movementHtml = ``; // No indicator for no move
+        }
+        
+        const teamCellHtml = getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded);
+
+        html += `
+            <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
+                <td class="font-semibold">
+                    <div style="display: flex; align-items: center; white-space: nowrap;">
+                        <span>${pickNumber}</span>
+                        ${movementHtml}
+                    </div>
+                </td>
+                <td>${teamCellHtml}</td>
+                <td class="text-center hidden-mobile">${originalTeam.wins} - ${originalTeam.losses}</td>
+                <td class="text-center">${originalTeam.pct1st.toFixed(2)}%</td>
+                <td class="text-center hidden-mobile">${originalTeam.pctTop4.toFixed(2)}%</td>
+            </tr>
+        `;
+    });
+    tableBody.innerHTML = html;
+}
+
+
+// --- SIMULATION LOGIC ---
+function runSimulation() {
+    const combinations = [];
+    initialLotteryTeams.forEach(team => {
+        for (let i = 0; i < team.chances; i++) {
+            combinations.push(team.seed);
+        }
+    });
+
+    const top4WinningSeeds = [];
+    while (top4WinningSeeds.length < 4) {
+        const randomIndex = Math.floor(Math.random() * combinations.length);
+        const winningSeed = combinations[randomIndex];
+        if (!top4WinningSeeds.includes(winningSeed)) {
+            top4WinningSeeds.push(winningSeed);
+        }
+    }
+    
+    const lotteryWinners = top4WinningSeeds.map(seed => initialLotteryTeams.find(t => t.seed === seed));
+    const remainingTeams = initialLotteryTeams
+        .filter(team => !top4WinningSeeds.includes(team.seed))
+        .sort((a, b) => a.seed - b.seed);
+
+    const finalOrder = [...lotteryWinners, ...remainingTeams];
+    renderSimulatedResults(finalOrder);
+}
+
+// --- UI AND EVENT HANDLING ---
+const buttonContainer = document.getElementById('button-container');
+
+function renderInitialButtons() {
+    buttonContainer.innerHTML = `
+        <button id="simulateBtn" class="action-button">
+            Simulate Lottery
+        </button>
+    `;
+}
+
+function renderSimulatedButtons() {
+    buttonContainer.innerHTML = `
+        <button id="simulateAgainBtn" class="action-button">
+            Simulate Again
+        </button>
+        <button id="resetBtn" class="action-button">
+            Reset
+        </button>
+    `;
+}
+
+function resetView() {
+    document.getElementById('table-title').textContent = 'S8 Lottery Odds';
+    document.getElementById('table-description').textContent = 'S8 lottery odds for the 14 (projected) non-playoff teams.';
+    renderLotteryOddsTable();
+    renderInitialButtons();
+}
+
+function handleFirstSimulation() {
+    document.getElementById('table-title').textContent = 'Lottery Simulation';
+    document.getElementById('table-description').textContent = 'Projected draft order based on the simulation.';
+    runSimulation();
+    renderSimulatedButtons();
+}
+
+function setupButtonListeners() {
+    buttonContainer.addEventListener('click', (event) => {
+        const button = event.target.closest('button');
+        if (!button) return;
+
+        const buttonId = button.id;
+        if (buttonId === 'simulateBtn') {
+            handleFirstSimulation();
+        } else if (buttonId === 'simulateAgainBtn') {
+            runSimulation();
+        } else if (buttonId === 'resetBtn') {
+            resetView();
+        }
+    });
+}
+
+
+// --- INITIALIZATION ---
+async function initializeApp() {
+    const tableBody = document.getElementById('lottery-table-body');
+    tableBody.innerHTML = `<tr><td colspan="5"><div class="loading">Loading Team Data...</div></td></tr>`;
+    renderTableHeader();
+    renderInitialButtons();
+    document.getElementById('simulateBtn').disabled = true;
+
+    // Set initial titles
+    document.getElementById('table-title').textContent = 'S8 Lottery Odds';
+    document.getElementById('table-description').textContent = 'S8 lottery odds for the 14 (projected) non-playoff teams.';
+
+    const [allTeams, draftPicks] = await Promise.all([
+        fetchSheetData('Teams'),
+        fetchSheetData('Draft_Capital')
+    ]);
+
+    if (!allTeams || !draftPicks) {
+        // Error is already handled inside fetchSheetData
+        renderInitialButtons(); // Render buttons even on fail, but they will be disabled.
+        return;
+    }
+
+    const sortedTeams = allTeams
+        .filter(t => t.team_id && t.team_id !== 'RETIRED' && t.team_id !== 'FREE_AGENT')
+        .map(t => ({ ...t, wins: parseInt(t.wins, 10), losses: parseInt(t.losses, 10) }))
+        .sort((a, b) => a.wins - b.wins || a.team_name.localeCompare(b.team_name));
+
+    initialLotteryTeams = sortedTeams.slice(0, 14).map((team, index) => ({
+        ...team,
+        seed: index + 1,
+        ...lotteryOdds[index]
+    }));
+
+    teamDataMap = allTeams.reduce((acc, team) => {
+        acc[team.team_id] = team;
+        return acc;
+    }, {});
+    
+    draftPicks.filter(p => parseInt(p.season) === DRAFT_SEASON && parseInt(p.round) === 1)
+        .forEach(pick => { pickOwnership[pick.original_team] = pick.current_owner; });
+
+    renderLotteryOddsTable();
+    document.getElementById('simulateBtn').disabled = false;
+    setupButtonListeners();
+
+    // Nav Toggle JS
+    const navToggle = document.querySelector('.nav-toggle');
+    const navMenu = document.getElementById('nav-menu');
+    const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+
+    if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+            const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
+            navToggle.setAttribute('aria-expanded', !isExpanded);
+            navMenu.classList.toggle('active');
+        });
+    }
+
+    if(dropdownBtn) {
+        dropdownBtn.addEventListener('click', function(event) {
+            // Check if we are in mobile view (nav-toggle is visible)
+            if (window.getComputedStyle(navToggle).display !== 'none') {
+                event.preventDefault(); // Prevent link navigation
+                this.parentElement.classList.toggle('active');
+            }
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+</script>
+
+</body>
+</html>
