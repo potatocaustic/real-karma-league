@@ -603,7 +603,7 @@ async function initializeApp() {
     const excludedTeamIds = new Set(['EGM', 'WGM', 'RSE', 'RSW', 'EAST', 'WEST', 'RETIRED', 'FREE_AGENT']);
     const excludedTeamNames = new Set(['East GMs', 'West GMs', 'East Rising Stars', 'West Rising Stars', 'East All-Stars', 'West All-Stars']);
 
-    // Filter out excluded teams, parse wins/losses, and sort by record.
+    // Filter out excluded teams, parse data, and sort by the new logic.
     const sortedTeams = allTeams
         .filter(t => {
             if (!t.team_id) return false; // Always exclude if no team_id
@@ -611,8 +611,35 @@ async function initializeApp() {
             if (t.team_name && excludedTeamNames.has(t.team_name)) return false; // Exclude if name is in the set
             return true; // Otherwise, include the team
         })
-        .map(t => ({ ...t, wins: parseInt(t.wins, 10) || 0, losses: parseInt(t.losses, 10) || 0 }))
-        .sort((a, b) => a.wins - b.wins || a.team_name.localeCompare(b.team_name));
+        .map(t => ({ 
+            ...t, 
+            wins: parseInt(t.wins, 10) || 0, 
+            losses: parseInt(t.losses, 10) || 0,
+            pam: parseFloat(t.pam || 0)
+        }))
+        .sort((a, b) => {
+            const totalGamesA = a.wins + a.losses;
+            const winPctA = totalGamesA > 0 ? a.wins / totalGamesA : 0;
+            
+            const totalGamesB = b.wins + b.losses;
+            const winPctB = totalGamesB > 0 ? b.wins / totalGamesB : 0;
+
+            // Primary sort: Ascending win percentage (lower is better seed)
+            if (winPctA !== winPctB) {
+                return winPctA - winPctB;
+            }
+
+            // Tie-breaker 1: For teams with 0 wins, more losses is worse (gets better seed)
+            if (winPctA === 0) { // This implies winPctB is also 0
+                if (a.losses !== b.losses) {
+                    return b.losses - a.losses; // Higher losses come first
+                }
+            }
+            
+            // Tie-breaker 2: Ascending PAM (lower is better seed)
+            return a.pam - b.pam;
+        });
+
 
     // Take the bottom 14 teams for the lottery pool.
     initialLotteryTeams = sortedTeams.slice(0, 14).map((team, index) => ({
