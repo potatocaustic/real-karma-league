@@ -1197,10 +1197,17 @@
           document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
           return;
         }
+        
+        // Define sets of team IDs and names to exclude.
+        const excludedTeamIds = new Set(['EGM', 'WGM', 'RSE', 'RSW', 'EAST', 'WEST', 'RETIRED', 'FREE_AGENT']);
+        const excludedTeamNames = new Set(['East GMs', 'West GMs', 'East Rising Stars', 'West Rising Stars', 'East All-Stars', 'West All-Stars']);
 
+        // Filter out the excluded teams
         allTeamsData = fetchedTeamsData.filter(team => {
-            const id = team.team_id ? team.team_id.trim().toUpperCase() : '';
-            return id !== 'RETIRED' && id !== 'FREE_AGENT';
+            if (!team.team_id) return false;
+            if (excludedTeamIds.has(team.team_id.trim().toUpperCase())) return false;
+            if (team.team_name && excludedTeamNames.has(team.team_name)) return false;
+            return true;
         });
 
         if (!allTeamsData || allTeamsData.length === 0) {
