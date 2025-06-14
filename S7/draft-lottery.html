@@ -598,23 +598,36 @@ async function initializeApp() {
         renderInitialButtons(); // Render buttons even on fail, but they will be disabled.
         return;
     }
+    
+    // Define sets of team IDs and names to exclude from the lottery.
+    const excludedTeamIds = new Set(['EGM', 'WGM', 'RSE', 'RSW', 'EAST', 'WEST', 'RETIRED', 'FREE_AGENT']);
+    const excludedTeamNames = new Set(['East GMs', 'West GMs', 'East Rising Stars', 'West Rising Stars', 'East All-Stars', 'West All-Stars']);
 
+    // Filter out excluded teams, parse wins/losses, and sort by record.
     const sortedTeams = allTeams
-        .filter(t => t.team_id && t.team_id !== 'RETIRED' && t.team_id !== 'FREE_AGENT')
-        .map(t => ({ ...t, wins: parseInt(t.wins, 10), losses: parseInt(t.losses, 10) }))
+        .filter(t => {
+            if (!t.team_id) return false; // Always exclude if no team_id
+            if (excludedTeamIds.has(t.team_id)) return false; // Exclude if ID is in the set
+            if (t.team_name && excludedTeamNames.has(t.team_name)) return false; // Exclude if name is in the set
+            return true; // Otherwise, include the team
+        })
+        .map(t => ({ ...t, wins: parseInt(t.wins, 10) || 0, losses: parseInt(t.losses, 10) || 0 }))
         .sort((a, b) => a.wins - b.wins || a.team_name.localeCompare(b.team_name));
 
+    // Take the bottom 14 teams for the lottery pool.
     initialLotteryTeams = sortedTeams.slice(0, 14).map((team, index) => ({
         ...team,
         seed: index + 1,
         ...lotteryOdds[index]
     }));
 
+    // Create a map for quick team data lookup by ID.
     teamDataMap = allTeams.reduce((acc, team) => {
         acc[team.team_id] = team;
         return acc;
     }, {});
     
+    // Process draft pick ownership for the relevant season and round.
     draftPicks.filter(p => parseInt(p.season) === DRAFT_SEASON && parseInt(p.round) === 1)
         .forEach(pick => { pickOwnership[pick.original_team] = pick.current_owner; });
 
