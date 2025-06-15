@@ -5,19 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RKL Draft Lottery Simulator</title>
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <style>
         /* General Styles from other pages */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
-        h1, h2, h3 { color: #333; }
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; transition: background-color 0.3s, color 0.3s; }
+        h1, h2, h3 { color: #333; transition: color 0.3s; }
         main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
         .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
         .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
 
         /* Header & Nav */
-        header { background-color: #333; color: #fff; padding: 1rem; text-align: center; }
+        header { background-color: #333; color: #fff; padding: 1rem; text-align: center; position: relative; }
         header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
         .header-logo { width: 40px; height: 40px; object-fit: cover; }
+        .header-text { }
+        #theme-toggle-btn { position: absolute; top: 1.2rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; line-height: 1; z-index: 102; }
+        #theme-toggle-btn .moon-icon { display: none; }
         nav { position: relative; }
         .nav-toggle { display: none; background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 0.5rem 1rem; position: absolute; top: -2.8rem; right: 1rem; }
         nav ul { display: flex; justify-content: center; list-style: none; margin-top: 1rem; flex-wrap: wrap; }
@@ -26,145 +38,31 @@
         nav ul li a:hover { color: #ccc; }
 
         /* Dropdown Menu Styles */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown .dropbtn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #fff;
-            text-decoration: none;
-            font-size: 1.1rem;
-            font-family: inherit;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #333;
-            min-width: 180px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 101;
-            border-radius: 4px;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            padding-top: 0.5rem;
-        }
-
-        .dropdown-content a {
-            color: white;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            text-align: left;
-            font-size: 1rem;
-        }
-
-        .dropdown-content a:hover {
-            background-color: #555;
-            color: #fff;
-        }
-
-        .dropdown:hover .dropdown-content {
-            display: block; /* Show on desktop hover */
-        }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown .dropbtn { background: none; border: none; cursor: pointer; color: #fff; text-decoration: none; font-size: 1.1rem; font-family: inherit; }
+        .dropdown-content { display: none; position: absolute; background-color: #333; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 101; border-radius: 4px; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 0.5rem; }
+        .dropdown-content a { color: white; padding: 12px 16px; text-decoration: none; display: block; text-align: left; font-size: 1rem; }
+        .dropdown-content a:hover { background-color: #555; color: #fff; }
+        .dropdown:hover .dropdown-content { display: block; }
 
         /* Page-specific styles */
-        .page-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-        .page-header h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-        .page-header p {
-            color: #555;
-        }
+        .page-header { text-align: center; margin-bottom: 2rem; }
+        .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+        .page-header p { color: #555; transition: color 0.3s; }
 
-        .quick-links-container {
-            text-align: center;
-            margin-bottom: 2rem;
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .quick-link-btn {
-            background-color: #fff;
-            color: #333;
-            border: 1px solid #ddd;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-        }
-        .quick-link-btn:hover {
-            background-color: #f8f9fa;
-            border-color: #ccc;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
+        .quick-links-container { text-align: center; margin-bottom: 2rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+        .quick-link-btn { background-color: #fff; color: #333; border: 1px solid #ddd; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .quick-link-btn:hover { background-color: #f8f9fa; border-color: #ccc; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 
-        .lottery-container {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            overflow: hidden;
-            width: 100%;
-            max-width: 960px; /* Equivalent to max-w-5xl */
-            margin: 0 auto 2rem auto;
-        }
+        .lottery-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; width: 100%; max-width: 960px; margin: 0 auto 2rem auto; transition: background-color 0.3s, box-shadow 0.3s; }
+        .lottery-header { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+        .lottery-card-title { font-size: 1.4rem; font-weight: 600; margin: 0; }
+        .button-container { display: flex; flex-direction: column; gap: 0.5rem; }
 
-        .lottery-header {
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .lottery-card-title {
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .button-container {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .action-button {
-            border: none;
-            color: white;
-            font-weight: bold;
-            padding: 0.75rem 2rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .action-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-        .action-button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .action-button:disabled {
-            background-color: #999;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
+        .action-button { border: none; color: white; font-weight: bold; padding: 0.75rem 2rem; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .action-button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .action-button:active { transform: translateY(0); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .action-button:disabled { background-color: #999; cursor: not-allowed; transform: none; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         #simulateBtn { background-color: #2563eb; }
         #simulateBtn:hover:not(:disabled) { background-color: #1d4ed8; }
         #simulateAgainBtn { background-color: #16a34a; }
@@ -174,7 +72,7 @@
         
         .table-container { overflow-x: auto; }
         .lottery-table { width: 100%; border-collapse: collapse; }
-        .lottery-table th, .lottery-table td { text-align: left; padding: 1rem 1.25rem; border-bottom: 1px solid #eee; }
+        .lottery-table th, .lottery-table td { text-align: left; padding: 1rem 1.25rem; border-bottom: 1px solid #eee; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
         .lottery-table th { background-color: #f8f9fa; text-transform: uppercase; font-size: 0.8rem; color: #444; }
         .lottery-table td { color: #333; }
         .lottery-table tr:hover { background-color: #f8f9fa; }
@@ -194,29 +92,52 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         .hidden-mobile { display: table-cell; }
-
         footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
+
+        /* Dark Mode Styles */
+        .dark-mode body { background-color: #121212; color: #e0e0e0; }
+        .dark-mode h1, .dark-mode h2, .dark-mode h3 { color: #f5f5f5; }
+        .dark-mode #theme-toggle-btn .sun-icon { display: none; }
+        .dark-mode #theme-toggle-btn .moon-icon { display: block; }
+        .dark-mode .page-header p { color: #aaa; }
+        .dark-mode .quick-link-btn { background-color: #2c2c2c; color: #e0e0e0; border-color: #444; }
+        .dark-mode .quick-link-btn:hover { background-color: #383838; border-color: #666; }
+        .dark-mode .lottery-container { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .dark-mode .lottery-table th, .dark-mode .lottery-table td { border-bottom-color: #333; }
+        .dark-mode .lottery-table th { background-color: #2c2c2c; color: #bbb; }
+        .dark-mode .lottery-table td { color: #e0e0e0; }
+        .dark-mode .lottery-table tr:hover { background-color: #2c2c2c; }
+        .dark-mode .team-cell { color: #e0e0e0; }
+        .dark-mode .team-cell:hover { color: #8ab4f8; }
+        .dark-mode .move-up { color: #66bb6a; }
+        .dark-mode .move-down { color: #ef5350; }
+        .dark-mode #simulateBtn { background-color: #3b82f6; }
+        .dark-mode #simulateBtn:hover:not(:disabled) { background-color: #60a5fa; }
+        .dark-mode #simulateAgainBtn { background-color: #22c55e; }
+        .dark-mode #simulateAgainBtn:hover { background-color: #4ade80; }
+        .dark-mode #resetBtn { background-color: #9ca3af; }
+        .dark-mode #resetBtn:hover { background-color: #d1d5db; }
+        .dark-mode .action-button:disabled { background-color: #4b5563; }
+        .dark-mode .error { background-color: #5d1c21; color: #f8d7da; }
+        .dark-mode .dropdown-content { background-color: #444; }
+        .dark-mode .dropdown-content a:hover { background-color: #666; }
+        .dark-mode nav ul.active { background-color: #444; }
+        .dark-mode nav ul li a:hover { background-color: #555; }
+        .dark-mode .dropdown.active .dropdown-content { background-color: #4a4a4a; }
+
 
         /* Responsive Styles */
         @media (min-width: 640px) { /* sm breakpoint */
-            .lottery-header {
-                flex-direction: row;
-                justify-content: space-between; /* Align title and buttons */
-                align-items: center;
-            }
-            .button-container {
-                flex-direction: row;
-            }
+            .lottery-header { flex-direction: row; justify-content: space-between; align-items: center; }
+            .button-container { flex-direction: row; }
         }
-
         @media (max-width: 768px) { /* md breakpoint */
             .hidden-mobile { display: none; }
             .lottery-table th, .lottery-table td { padding: 0.8rem 0.6rem; }
         }
-
         @media (max-width: 600px) {
+            #theme-toggle-btn { left: 1rem; right: auto; }
             .header-text { display: none; }
             .header-logo { width: 50px; height: 50px; }
             .nav-toggle { display: block; }
@@ -226,50 +147,24 @@
             nav ul li a { display: block; padding: 0.8rem 1rem; }
             nav ul li a:hover { background-color: #555; }
             main { padding: 1rem; }
-
-            /* Mobile Dropdown Overrides */
-            .dropdown {
-                display: block;
-                width: 100%;
-            }
-            .dropdown .dropbtn {
-                width: 100%;
-                padding: 0.8rem 1rem;
-            }
-             .dropdown .dropbtn:hover {
-                background-color: #555;
-            }
-            .dropdown-content {
-                position: static;
-                display: none;
-                box-shadow: none;
-                background-color: #4a4a4a; /* Slightly different shade */
-                border-radius: 0;
-                padding-top: 0;
-                transform: none;
-                left: auto;
-                top: auto;
-            }
-            .dropdown-content a {
-                padding-left: 2.5rem; /* Indent nested links */
-            }
-            .dropdown.active .dropdown-content {
-                display: block; /* Show on mobile click via JS */
-            }
-            /* Hide hover effect on mobile */
-            .dropdown:hover .dropdown-content {
-                display: none;
-            }
-            .dropdown.active:hover .dropdown-content {
-                 display: block;
-            }
+            .dropdown { display: block; width: 100%; }
+            .dropdown .dropbtn { width: 100%; padding: 0.8rem 1rem; }
+            .dropdown .dropbtn:hover { background-color: #555; }
+            .dropdown-content { position: static; display: none; box-shadow: none; background-color: #4a4a4a; border-radius: 0; padding-top: 0; transform: none; left: auto; top: auto; }
+            .dropdown-content a { padding-left: 2.5rem; }
+            .dropdown.active .dropdown-content { display: block; }
+            .dropdown:hover .dropdown-content { display: none; }
+            .dropdown.active:hover .dropdown-content { display: block; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Header -->
     <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
@@ -296,7 +191,6 @@
       </nav>
     </header>
 
-    <!-- Main Content -->
     <main>
         
         <div class="page-header">
@@ -312,35 +206,29 @@
         <div class="lottery-container">
             <div class="lottery-header">
                 <h3 class="lottery-card-title">Season 8 Draft</h3>
-                <!-- Button Container -->
                 <div id="button-container" class="button-container">
-                    <!-- Buttons are injected here by JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- Lottery Table -->
             <div class="table-container">
                 <table id="lottery-table" class="lottery-table">
                     <thead id="lottery-table-head">
-                        <!-- Header content is generated by JS -->
-                    </thead>
+                        </thead>
                     <tbody id="lottery-table-body">
-                        <!-- Body content is generated by JS -->
-                    </tbody>
+                        </tbody>
                 </table>
             </div>
         </div>
 
     </main>
 
-    <!-- Footer -->
     <footer>
         <p>@caustic on Real</p>
     </footer>
 
 <script>
 // --- DATA AND CONFIGURATION ---
-const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+const SHEET_ID = '1zb1x8r4OlRTVg9W5WMZF-ootyfsMg2yx2_3rcUhmIrc';
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
 
 const lotteryOdds = [
@@ -578,6 +466,20 @@ function setupButtonListeners() {
 
 // --- INITIALIZATION ---
 async function initializeApp() {
+    // --- Theme Toggler ---
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if(themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark-mode');
+            
+            let theme = 'light';
+            if (document.documentElement.classList.contains('dark-mode')) {
+                theme = 'dark';
+            }
+            localStorage.setItem('theme', theme);
+        });
+    }
+
     const tableBody = document.getElementById('lottery-table-body');
     tableBody.innerHTML = `<tr><td colspan="5"><div class="loading">Loading Team Data...</div></td></tr>`;
     renderTableHeader();

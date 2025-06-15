@@ -3,7 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title id="page-title">RKL Season 7 Player</title> <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <title id="page-title">RKL Season 7 Player</title> 
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <style>
       /* Reset and General Styles */
       * {
@@ -17,10 +27,12 @@
         background-color: #f4f4f4;
         color: #333;
         line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
       }
       
       h1, h2, h3 {
         color: #333;
+        transition: color 0.3s;
       }
 
       /* Header styling */
@@ -29,6 +41,7 @@
         color: #fff;
         padding: 1rem;
         text-align: center;
+        position: relative;
       }
       
       header h1 { /* This is for the main page title in the header block */
@@ -50,6 +63,21 @@
       .header-text {
         /* Default display */
       }
+
+      #theme-toggle-btn {
+        position: absolute;
+        top: 1.2rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        line-height: 1;
+        z-index: 102;
+      }
+      #theme-toggle-btn .moon-icon { display: none; }
       
       /* Navigation styling */
       nav {
@@ -143,6 +171,11 @@
 
       /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
+        #theme-toggle-btn {
+          left: 1rem;
+          right: auto;
+        }
+
         .header-text {
           display: none; 
         }
@@ -240,6 +273,7 @@
         padding: 2rem;
         margin-bottom: 2rem;
         text-align: center;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .player-main-info {
@@ -258,6 +292,7 @@
         object-fit: cover;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         flex-shrink: 0;
+        transition: border-color 0.3s;
       }
 
       .player-details h2 { /* Player's name */
@@ -271,6 +306,7 @@
         font-size: 1.2rem;
         color: #666;
         margin-bottom: 0.5rem;
+        transition: color 0.3s;
       }
 
       .team-info { 
@@ -311,6 +347,7 @@
         font-size: 0.95rem;
         color: #777;
         margin-top: 0.3rem;
+        transition: color 0.3s;
       }
 
 
@@ -349,6 +386,7 @@
         font-size: 2rem;
         font-weight: bold;
         color: #333;
+        transition: color 0.3s;
       }
 
       .stat-label {
@@ -356,6 +394,7 @@
         color: #666;
         margin-top: 0.5rem;
         flex-grow: 1; 
+        transition: color 0.3s;
       }
 
       .stat-rank {
@@ -363,6 +402,7 @@
         color: #007bff;
         margin-top: 0.3rem;
         font-weight: 500;
+        transition: color 0.3s;
       }
       .stat-rank.unranked-gp-required { 
         color: #dc3545; 
@@ -404,6 +444,7 @@
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .section-header {
@@ -431,6 +472,7 @@
         font-weight: bold;
         border-bottom: 2px solid #ddd;
         font-size: 0.9rem;
+        transition: background-color 0.3s, border-color 0.3s;
       }
       .performance-table th:first-child { text-align: left; width: 25%; }
       .performance-table th:nth-child(2),
@@ -440,6 +482,7 @@
         border-bottom: 1px solid #eee;
         font-size: 0.9rem;
         text-align: center;
+        transition: border-color 0.3s;
       }
       .performance-table td:first-child { text-align: left; }
       .performance-table tr:hover { background-color: #f8f9fa; }
@@ -463,7 +506,7 @@
         justify-content: space-between; 
         align-items: center; 
         padding: 1rem; border-bottom: 1px solid #eee;
-        transition: background-color 0.2s; cursor: pointer;
+        transition: background-color 0.2s, border-color 0.3s; cursor: pointer;
       }
       .game-item:hover { background-color: #f8f9fa; }
       .game-item:last-child { border-bottom: none; }
@@ -509,35 +552,37 @@
         font-weight: bold;
         padding: 0 0.25rem; 
         flex-shrink: 0; 
+        transition: color 0.3s;
       }
       .game-history-date { 
         font-size: 0.8rem; color: #666; margin-top: 0.3rem;
         text-align: left; 
+        transition: color 0.3s;
       }
       
       .game-performance { text-align: right; min-width: 100px; flex-shrink: 0; }
       .performance-score { font-weight: bold; font-size: 1.1rem; }
-      .performance-rank { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
+      .performance-rank { font-size: 0.8rem; color: #666; margin-top: 0.2rem; transition: color 0.3s;}
       .captain-performance { color: #ffc107; font-weight: bold; }
 
       /* Modal styles */
       .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
-      .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+      .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: background-color 0.3s; }
       .modal-header { background-color: #333; color: white; padding: 1.5rem; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
       .modal-header h3 { color: white; margin: 0; font-size: 1.4rem; }
       .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; transition: background-color 0.3s; }
       .close-btn:hover { background-color: rgba(255,255,255,0.1); }
       .modal-body { padding: 2rem; }
       .game-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-      .team-breakdown { background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+      .team-breakdown { background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
       .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
-      .modal-team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column;}
+      .modal-team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; transition: background-color 0.3s;}
       .modal-team-header.winner { background-color: #28a745; }
       .modal-team-header .team-logo { width: 48px; height: 48px; border-radius: 4px; } 
-      .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; }
+      .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
       .lineup-table { width: 100%; border-collapse: collapse; }
-      .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; }
-      .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; }
+      .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; transition: background-color 0.3s, border-color 0.3s;}
+      .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; transition: border-color 0.3s;}
       .lineup-table th:first-child, .lineup-table td:first-child { text-align: left; }
       .captain-row { background-color: #fff3cd !important; font-weight: bold; }
       .captain-badge { background-color: #ffc107; color: #333; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 0.5rem; }
@@ -546,12 +591,62 @@
       .player-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
       .player-link:hover { color: #0056b3; text-decoration: underline; }
       .points-cell { text-align: center; font-weight: bold; }
-      .rank-cell { text-align: center; color: #666; } 
+      .rank-cell { text-align: center; color: #666; transition: color 0.3s; } 
 
       .loading { text-align: center; padding: 2rem; color: #666; }
       .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem 0; }
       .back-button { background-color: #007bff; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 4px; text-decoration: none; font-size: 1rem; display: inline-block; margin-bottom: 2rem; transition: background-color 0.3s;}
       .back-button:hover { background-color: #0056b3; text-decoration: none; color: white; }
+
+      /* Dark Mode Styles */
+      .dark-mode body { background-color: #121212; color: #e0e0e0; }
+      .dark-mode h1, .dark-mode h2, .dark-mode h3 { color: #f5f5f5; }
+      .dark-mode #theme-toggle-btn .sun-icon { display: none; }
+      .dark-mode #theme-toggle-btn .moon-icon { display: block; }
+      .dark-mode .back-button { background-color: #3b82f6; }
+      .dark-mode .back-button:hover { background-color: #60a5fa; }
+      .dark-mode .player-header, .dark-mode .performance-section, .dark-mode .modal-content { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+      .dark-mode .team-logo-large { border-color: #444; }
+      .dark-mode .player-subtitle, .dark-mode .player-previous-teams { color: #aaa; }
+      .dark-mode .team-info { color: #8ab4f8; }
+      .dark-mode .team-info:hover { color: #a7c7fa; }
+      .dark-mode .player-previous-teams a { color: #999; }
+      .dark-mode .stat-card { background-color: #2c2c2c; border-color: #444; }
+      .dark-mode .stat-card:hover { border-color: #bb86fc; }
+      .dark-mode .stat-value { color: #e0e0e0; }
+      .dark-mode .stat-label { color: #aaa; }
+      .dark-mode .stat-rank { color: #bb86fc; }
+      .dark-mode .stat-rank.unranked-gp-required { color: #ef5350; }
+      .dark-mode .positive { color: #66bb6a; }
+      .dark-mode .negative { color: #ef5350; }
+      .dark-mode .performance-table th { background-color: #2c2c2c; border-bottom-color: #444; }
+      .dark-mode .performance-table td { border-bottom-color: #333; }
+      .dark-mode .performance-table tr:hover, .dark-mode .game-item:hover { background-color: #2c2c2c; }
+      .dark-mode .performance-table tr.clickable-row:hover { background-color: #383838; }
+      .dark-mode .captain-row { background-color: #4a4100 !important; }
+      .dark-mode .captain-badge-small { background-color: #ffe082; color: #121212; }
+      .dark-mode .game-history-vs-separator { color: #888; }
+      .dark-mode .game-history-date, .dark-mode .performance-rank { color: #aaa; }
+      .dark-mode .captain-performance { color: #ffe082; }
+      .dark-mode .modal-content { background-color: #1e1e1e; }
+      .dark-mode .close-btn:hover { background-color: rgba(255,255,255,0.2); }
+      .dark-mode .team-breakdown { background-color: #2c2c2c; border-color: #444; }
+      .dark-mode .team-breakdown.winner { border-color: #66bb6a; }
+      .dark-mode .modal-team-header.winner { background-color: #2e7d32; }
+      .dark-mode .team-total { background-color: #333; border-bottom-color: #444; }
+      .dark-mode .lineup-table th { background-color: #2c2c2c; border-bottom-color: #444; }
+      .dark-mode .lineup-table td { border-color: #333; }
+      .dark-mode .lineup-table tr:hover { background-color: #383838; }
+      .dark-mode .captain-row { background-color: #4a4100 !important; }
+      .dark-mode .player-link { color: #8ab4f8; }
+      .dark-mode .player-link:hover { color: #a7c7fa; }
+      .dark-mode .rank-cell { color: #aaa; }
+      .dark-mode .error { background-color: #5d1c21; color: #f8d7da; }
+      .dark-mode .dropdown-content { background-color: #444; }
+      .dark-mode .dropdown-content a:hover { background-color: #666; }
+      .dark-mode nav ul.active { background-color: #444; }
+      .dark-mode nav ul li a:hover { background-color: #555; }
+      .dark-mode .dropdown.active .dropdown-content { background-color: #4a4a4a; }
 
       @media (max-width: 768px) {
         .content-grid { grid-template-columns: 1fr; }
@@ -559,31 +654,13 @@
         .team-logo-large { width: 80px; height: 80px; }
         .player-stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); } 
         .performance-table th, .performance-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem; }
-        
-        .game-item { 
-          /* Keep as flex row for mobile to have performance on right */
-        }
-        .game-history-main-content {
-          /* width: auto; /* Default, flex-grow will handle */
-        }
-        .game-history-matchup-teams {
-            flex-direction: column; 
-            align-items: flex-start; 
-            gap: 0.2rem; 
-        }
-        .game-history-vs-separator {
-            display: none; 
-        }
-        .game-history-team-entry {
-            width: 100%; 
-        }
+        .game-item { }
+        .game-history-main-content { }
+        .game-history-matchup-teams { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
+        .game-history-vs-separator { display: none; }
+        .game-history-team-entry { width: 100%; }
         .game-history-date { text-align: left; width: 100%;} 
-        .game-performance { 
-            text-align: right; 
-            flex-shrink: 0; 
-        } 
-
-        .opponent-logo { width: 28px; height: 28px; } 
+        .game-performance { text-align: right; flex-shrink: 0; } 
         .modal-content { margin: 1rem; width: calc(100% - 2rem); }
         .game-details-grid { grid-template-columns: 1fr; gap: 1rem; }
         .modal-body { padding: 1rem; }
@@ -593,7 +670,6 @@
       @media (max-width: 480px) {
         .player-stats-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
         .performance-table th:nth-child(4), .performance-table td:nth-child(4) { display: none; }
-        .opponent-logo { width: 24px; height: 24px; }
         .game-history-team-name { font-size: 0.85rem; }
         .game-history-date { font-size: 0.75rem; }
         .performance-score { font-size: 0.9rem; }
@@ -605,8 +681,34 @@
   </head>
   <body>
     <header>
-       <nav>
-        </nav>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+       </nav>
     </header>
     
     <main>
@@ -1186,14 +1288,39 @@
       }
       
       document.addEventListener('DOMContentLoaded', () => {
+        // --- Theme Toggler ---
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark-mode');
+                
+                let theme = 'light';
+                if (document.documentElement.classList.contains('dark-mode')) {
+                    theme = 'dark';
+                }
+                localStorage.setItem('theme', theme);
+            });
+        }
+
         loadPlayerData();
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
+        const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+
         if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
                 const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
                 navToggle.setAttribute('aria-expanded', !isExpanded);
                 navMenu.classList.toggle('active');
+            });
+        }
+
+        if(dropdownBtn) {
+            dropdownBtn.addEventListener('click', function(event) {
+                if (window.getComputedStyle(navToggle).display !== 'none') {
+                    event.preventDefault(); 
+                    this.parentElement.classList.toggle('active');
+                }
             });
         }
       });

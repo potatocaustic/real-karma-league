@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 7 Schedule & Results</title>
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <style>
       /* Reset and General Styles */
       * {
@@ -18,10 +27,12 @@
         background-color: #f4f4f4;
         color: #333;
         line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
       }
       
       h1, h2, h3 {
         color: #333;
+        transition: color 0.3s;
       }
 
       /* Header styling */
@@ -30,9 +41,10 @@
         color: #fff;
         padding: 1rem;
         text-align: center;
+        position: relative;
       }
       
-      header h1 { /* This is for the main page title in the header block */
+      header h1 {
         color: white !important;
         font-size: 2rem; 
         margin: 0;
@@ -42,23 +54,36 @@
         gap: 0.75rem; 
       }
       
-      .header-logo { /* For the logo in the main page title */
+      .header-logo {
         width: 40px; 
         height: 40px;
         object-fit: cover;
       }
 
-      .header-text {
-        /* Default display */
+      .header-text {}
+
+      #theme-toggle-btn {
+        position: absolute;
+        top: 1.2rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        line-height: 1;
+        z-index: 102;
       }
+      #theme-toggle-btn .moon-icon { display: none; }
       
       /* Navigation styling */
       nav {
-        position: relative; /* For dropdown positioning context */
+        position: relative;
       }
 
       .nav-toggle {
-        display: none; /* Hidden by default, shown on mobile */
+        display: none;
         background: none;
         border: none;
         color: white;
@@ -66,7 +91,7 @@
         cursor: pointer;
         padding: 0.5rem 1rem;
         position: absolute; 
-        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        top: -2.8rem; 
         right: 1rem;
       }
       
@@ -122,6 +147,7 @@
           left: 50%;
           transform: translateX(-50%);
           padding-top: 0.5rem;
+          transition: background-color 0.3s;
       }
 
       .dropdown-content a {
@@ -142,8 +168,12 @@
           display: block; /* Show on desktop hover */
       }
 
-      /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
+        #theme-toggle-btn {
+          left: 1rem;
+          right: auto;
+        }
+
         .header-text {
           display: none; 
         }
@@ -153,11 +183,11 @@
         }
 
         .nav-toggle {
-          display: block; /* Show hamburger on mobile */
+          display: block;
         }
         
         nav ul {
-          display: none; /* Hide nav list by default on mobile */
+          display: none;
           position: absolute;
           top: calc(100% - 1rem); 
           left: 0;
@@ -173,7 +203,7 @@
         }
 
         nav ul.active {
-          display: flex; /* Show when active */
+          display: flex;
         }
         
         nav ul li {
@@ -189,7 +219,6 @@
             background-color: #555;
         }
         
-        /* Mobile Dropdown Overrides */
         .dropdown {
             display: block;
             width: 100%;
@@ -213,10 +242,10 @@
             top: auto;
         }
         .dropdown-content a {
-            padding-left: 2.5rem; /* Indent nested links */
+            padding-left: 2.5rem;
         }
         .dropdown.active .dropdown-content {
-            display: block; /* Show on mobile click via JS */
+            display: block;
         }
         .dropdown:hover .dropdown-content {
             display: none;
@@ -251,6 +280,7 @@
         padding: 1.5rem;
         margin-bottom: 2rem;
         text-align: center;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .week-buttons {
@@ -306,6 +336,7 @@
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .games-header {
@@ -328,13 +359,13 @@
         opacity: 0.9;
       }
 
-      /* Summary stats */
       .week-summary {
         background-color: #e9ecef;
         padding: 1rem;
         border-radius: 6px;
         margin-bottom: 1rem; 
         text-align: center;
+        transition: background-color 0.3s;
       }
 
       .summary-stats {
@@ -354,11 +385,13 @@
         font-size: 1.5rem;
         font-weight: bold;
         color: #333;
+        transition: color 0.3s;
       }
 
       .stat-label {
         font-size: 0.9rem;
         color: #666;
+        transition: color 0.3s;
       }
       
       .week-standouts-section {
@@ -366,13 +399,15 @@
         padding: 1.5rem;
         border-radius: 8px; 
         margin-bottom: 2rem; 
-        border: 1px solid #cfe2f3; 
+        border: 1px solid #cfe2f3;
+        transition: background-color 0.3s, border-color 0.3s;
       }
       .week-standouts-section h4 {
         text-align: center;
         margin-bottom: 1.5rem;
         font-size: 1.4em; 
         color: #0056b3; 
+        transition: color 0.3s;
       }
       .standouts-grid {
         display: grid;
@@ -387,6 +422,7 @@
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         display: flex;
         flex-direction: column;
+        transition: background-color 0.3s, border-color 0.3s;
       }
       .standout-item h5 {
         font-size: 1rem; 
@@ -396,12 +432,14 @@
         padding-bottom: 0.75rem;
         display: flex;
         align-items: center;
+        transition: color 0.3s, border-color 0.3s;
       }
       .standout-item p {
         font-size: 0.9rem;
         color: #555;
         line-height: 1.5;
         flex-grow: 1; 
+        transition: color 0.3s;
       }
       .standout-item p .player-link, .standout-item p .team-link { 
         font-weight: 500;
@@ -431,11 +469,10 @@
         font-size: 0.8rem;
         color: #777;
         margin-top: 0.3rem;
-        display: block; 
+        display: block;
+        transition: color 0.3s;
       }
 
-
-      /* Games by date */
       .games-by-date {
         padding: 1rem;
       }
@@ -452,6 +489,7 @@
         font-weight: bold;
         font-size: 1.1rem;
         color: #333;
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
       }
 
       .games-grid {
@@ -550,6 +588,7 @@
         color: #666;
         line-height: 1;
         margin-top: 0.2rem;
+        transition: color 0.3s;
       }
 
       .team-score {
@@ -558,6 +597,7 @@
         font-size: 1.2rem;
         margin-left: 1rem;
         flex-shrink: 0;
+        transition: color 0.3s;
       }
 
       .team-score.winner {
@@ -569,6 +609,7 @@
         margin-top: 0.5rem;
         font-size: 0.9rem;
         color: #666;
+        transition: color 0.3s;
       }
 
       .game-status.completed {
@@ -582,16 +623,16 @@
       }
 
       .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
-      .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+      .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: background-color 0.3s; }
       .modal-header { background-color: #333; color: white; padding: 1.5rem; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
       .modal-header h3 { color: white; margin: 0; font-size: 1.4rem; }
       .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; transition: background-color 0.3s; }
       .close-btn:hover { background-color: rgba(255,255,255,0.1); }
       .modal-body { padding: 2rem; }
       .game-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-      .team-breakdown { background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; }
+      .team-breakdown { background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
       .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
-      .team-breakdown .team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; }
+      .team-breakdown .team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; transition: background-color 0.3s; }
       .team-breakdown .team-header.winner { background-color: #28a745; }
       .team-breakdown .team-header h4 { color: white; margin: 0; font-size: 1.2rem; }
       .modal-team-header .team-logo {
@@ -603,12 +644,12 @@
         border-radius: 50%;
         object-fit: cover;
       }
-      .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; }
+      .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
       .lineup-table { width: 100%; border-collapse: collapse; }
-      .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; }
+      .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; transition: background-color 0.3s, border-color 0.3s; }
       .lineup-table th:first-child { text-align: left; width: 50%; }
       .lineup-table th:nth-child(2), .lineup-table th:nth-child(3) { width: 25%; }
-      .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; }
+      .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; transition: border-color 0.3s; }
       .lineup-table td:first-child { text-align: left; }
       .lineup-table tr:hover { background-color: white; }
       .captain-row { background-color: #fff3cd !important; font-weight: bold; }
@@ -623,6 +664,81 @@
       .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
       .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
       .no-games { text-align: center; padding: 3rem; color: #666; font-style: italic; }
+
+      /* Dark Mode Styles */
+      .dark-mode body {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+      .dark-mode h1, .dark-mode h2, .dark-mode h3 {
+        color: #f5f5f5;
+      }
+      .dark-mode #theme-toggle-btn .sun-icon { display: none; }
+      .dark-mode #theme-toggle-btn .moon-icon { display: block; }
+      .dark-mode .page-header p { color: #aaa; }
+      .dark-mode .week-selector, .dark-mode .games-container, .dark-mode .modal-content, .dark-mode .standout-item {
+        background-color: #1e1e1e;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      .dark-mode .week-btn {
+        background-color: #2c2c2c;
+        border-color: #444;
+        color: #e0e0e0;
+      }
+      .dark-mode .week-btn:hover {
+        background-color: #383838;
+        border-color: #bb86fc;
+      }
+      .dark-mode .week-btn.active {
+        background-color: #bb86fc;
+        border-color: #bb86fc;
+        color: #121212;
+      }
+      .dark-mode .week-btn.completed {
+        background-color: #2e7d32;
+        border-color: #2e7d32;
+      }
+      .dark-mode .week-btn.completed.active {
+        background-color: #1b5e20;
+        border-color: #1b5e20;
+      }
+      .dark-mode .week-summary, .dark-mode .date-header {
+        background-color: #2c2c2c;
+      }
+      .dark-mode .stat-number, .dark-mode .date-header { color: #f5f5f5; }
+      .dark-mode .stat-label, .dark-mode .team-record, .dark-mode .game-status, .dark-mode .standout-item .meta-info { color: #aaa; }
+      .dark-mode .week-standouts-section { background-color: #1a2333; border-color: #2c3a56; }
+      .dark-mode .week-standouts-section h4 { color: #8ab4f8; }
+      .dark-mode .standout-item { border-color: #333; }
+      .dark-mode .standout-item h5 { color: #e0e0e0; border-bottom-color: #333; }
+      .dark-mode .standout-item p { color: #ccc; }
+      .dark-mode .standout-item p .player-link, .dark-mode .standout-item p .team-link { color: #8ab4f8; }
+      .dark-mode .game-card { background-color: #2c2c2c; border-color: #444; }
+      .dark-mode .game-card:hover { background-color: #383838; }
+      .dark-mode .game-card.completed { border-left-color: #66bb6a; }
+      .dark-mode .game-card.completed:hover { background-color: #3a4a3a; }
+      .dark-mode .game-card.upcoming { border-left-color: #fdd835; }
+      .dark-mode .team-score { color: #e0e0e0; }
+      .dark-mode .team.winner, .dark-mode .team-score.winner { color: #66bb6a; }
+      .dark-mode .modal-content { background-color: #1e1e1e; }
+      .dark-mode .close-btn:hover { background-color: rgba(255,255,255,0.2); }
+      .dark-mode .team-breakdown { background-color: #2c2c2c; border-color: #444; }
+      .dark-mode .team-breakdown.winner { border-color: #66bb6a; }
+      .dark-mode .team-breakdown .team-header.winner { background-color: #2e7d32; }
+      .dark-mode .team-total { background-color: #333; border-bottom-color: #444; }
+      .dark-mode .lineup-table th { background-color: #2c2c2c; border-bottom-color: #444; }
+      .dark-mode .lineup-table td { border-bottom-color: #333; }
+      .dark-mode .lineup-table tr:hover { background-color: #383838; }
+      .dark-mode .captain-row { background-color: #4a4100 !important; }
+      .dark-mode .player-link { color: #8ab4f8; }
+      .dark-mode .player-link:hover { color: #a7c7fa; }
+      .dark-mode .error { background-color: #5d1c21; color: #f8d7da; }
+      .dark-mode .dropdown-content { background-color: #444; }
+      .dark-mode .dropdown-content a:hover { background-color: #666; }
+      .dark-mode nav ul.active { background-color: #444; }
+      .dark-mode nav ul li a:hover { background-color: #555; }
+      .dark-mode .dropdown.active .dropdown-content { background-color: #4a4a4a; }
+
 
       @media (max-width: 768px) {
         .week-buttons { gap: 0.3rem; }
@@ -657,6 +773,10 @@
   </head>
   <body>
     <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
@@ -1317,6 +1437,19 @@
        }
       
       document.addEventListener('DOMContentLoaded', () => {
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark-mode');
+                
+                let theme = 'light';
+                if (document.documentElement.classList.contains('dark-mode')) {
+                    theme = 'dark';
+                }
+                localStorage.setItem('theme', theme);
+            });
+        }
+        
         loadData();
         // Nav Toggle JS
         const navToggle = document.querySelector('.nav-toggle');

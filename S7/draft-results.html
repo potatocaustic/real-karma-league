@@ -5,19 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL S7 Draft Results</title>
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <style>
       /* General Styles from other pages */
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; }
-      h1, h2, h3 { color: #333; }
+      body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; transition: background-color 0.3s, color 0.3s; }
+      h1, h2, h3 { color: #333; transition: color 0.3s; }
       main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
       .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
       .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
 
       /* Header & Nav */
-      header { background-color: #333; color: #fff; padding: 1rem; text-align: center; }
+      header { background-color: #333; color: #fff; padding: 1rem; text-align: center; position: relative; }
       header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
       .header-logo { width: 40px; height: 40px; object-fit: cover; }
+      .header-text { }
+      #theme-toggle-btn { position: absolute; top: 1.2rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; line-height: 1; z-index: 102; }
+      #theme-toggle-btn .moon-icon { display: none; }
       nav { position: relative; }
       .nav-toggle { display: none; background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 0.5rem 1rem; position: absolute; top: -2.8rem; right: 1rem; }
       nav ul { display: flex; justify-content: center; list-style: none; margin-top: 1rem; flex-wrap: wrap; }
@@ -26,118 +38,67 @@
       nav ul li a:hover { color: #ccc; }
 
       /* Dropdown Menu Styles */
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown .dropbtn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #fff;
-            text-decoration: none;
-            font-size: 1.1rem;
-            font-family: inherit;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #333;
-            min-width: 180px;
-            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-            z-index: 101;
-            border-radius: 4px;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            padding-top: 0.5rem;
-        }
-
-        .dropdown-content a {
-            color: white;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            text-align: left;
-            font-size: 1rem;
-        }
-
-        .dropdown-content a:hover {
-            background-color: #555;
-            color: #fff;
-        }
-
-        .dropdown:hover .dropdown-content {
-            display: block; /* Show on desktop hover */
-        }
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown .dropbtn { background: none; border: none; cursor: pointer; color: #fff; text-decoration: none; font-size: 1.1rem; font-family: inherit; }
+        .dropdown-content { display: none; position: absolute; background-color: #333; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 101; border-radius: 4px; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 0.5rem; }
+        .dropdown-content a { color: white; padding: 12px 16px; text-decoration: none; display: block; text-align: left; font-size: 1rem; }
+        .dropdown-content a:hover { background-color: #555; color: #fff; }
+        .dropdown:hover .dropdown-content { display: block; }
 
       /* Page-specific styles */
       .page-header { text-align: center; margin-bottom: 2rem; }
       .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
       
       /* Quick Links */
-      .quick-links-container {
-          text-align: center;
-          margin-bottom: 2rem;
-          display: flex;
-          justify-content: center;
-          gap: 1rem;
-          flex-wrap: wrap;
-      }
-      .quick-link-btn {
-          background-color: #fff;
-          color: #333;
-          border: 1px solid #ddd;
-          padding: 0.75rem 1.5rem;
-          border-radius: 8px;
-          text-decoration: none;
-          font-weight: 600;
-          transition: all 0.2s ease;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      }
-      .quick-link-btn:hover {
-          background-color: #f8f9fa;
-          border-color: #ccc;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      }
+      .quick-links-container { text-align: center; margin-bottom: 2rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+      .quick-link-btn { background-color: #fff; color: #333; border: 1px solid #ddd; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+      .quick-link-btn:hover { background-color: #f8f9fa; border-color: #ccc; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
 
-      .results-container {
-        overflow-x: auto; /* Keep for horizontal scrolling on small screens */
-      }
+      .results-container { overflow-x: auto; }
       .results-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; }
       .results-header h3 { color: white; margin: 0; font-size: 1.4rem; }
       
-      .results-table {
-        width: auto; 
-        margin: 0 auto; 
-        border-collapse: collapse;
-        table-layout: auto; 
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        overflow: hidden; 
-      }
-      .results-table th { background-color: #f8f9fa; padding: 1rem 1rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; white-space: nowrap; }
+      .results-table { width: auto; margin: 0 auto; border-collapse: collapse; table-layout: auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; transition: background-color 0.3s, box-shadow 0.3s; }
+      .results-table th { background-color: #f8f9fa; padding: 1rem 1rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; white-space: nowrap; transition: background-color 0.3s, border-color 0.3s; }
       .results-table th.sortable { cursor: pointer; }
       .results-table th.sortable:hover { background-color: #e9ecef; }
       .results-table th .sort-indicator { font-size: 0.8em; margin-left: 5px; }
       
-      .results-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; text-align: center; }
+      .results-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; text-align: center; transition: border-color 0.3s; }
       .results-table tr:hover { background-color: #f8f9fa; }
 
       .results-table td.team-cell, .results-table td.player-cell { text-align: left; }
       .team-cell-content { display: flex; align-items: center; gap: 0.75rem; }
       .team-logo { width: 24px; height: 24px; border-radius: 2px; flex-shrink: 0; }
-      .player-link, .team-link { color: #007bff; text-decoration: none; font-weight: 500; }
+      .player-link, .team-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s; }
       .player-link:hover, .team-link:hover { text-decoration: underline; }
       
       .mobile-only { display: none; }
       .desktop-only { display: table-cell; }
 
       footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
+      
+      /* Dark Mode Styles */
+      .dark-mode body { background-color: #121212; color: #e0e0e0; }
+      .dark-mode h1, .dark-mode h2, .dark-mode h3 { color: #f5f5f5; }
+      .dark-mode #theme-toggle-btn .sun-icon { display: none; }
+      .dark-mode #theme-toggle-btn .moon-icon { display: block; }
+      .dark-mode .quick-link-btn { background-color: #2c2c2c; color: #e0e0e0; border-color: #444; }
+      .dark-mode .quick-link-btn:hover { background-color: #383838; border-color: #666; }
+      .dark-mode .results-table { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+      .dark-mode .results-table th { background-color: #2c2c2c; border-bottom-color: #444; }
+      .dark-mode .results-table th.sortable:hover { background-color: #383838; }
+      .dark-mode .results-table td { border-bottom-color: #333; }
+      .dark-mode .results-table tr:hover { background-color: #2c2c2c; }
+      .dark-mode .player-link, .dark-mode .team-link { color: #8ab4f8; }
+      .dark-mode .player-link:hover, .dark-mode .team-link:hover { color: #a7c7fa; }
+      .dark-mode .error { background-color: #5d1c21; color: #f8d7da; }
+      .dark-mode .dropdown-content { background-color: #444; }
+      .dark-mode .dropdown-content a:hover { background-color: #666; }
+      .dark-mode nav ul.active { background-color: #444; }
+      .dark-mode nav ul li a:hover { background-color: #555; }
+      .dark-mode .dropdown.active .dropdown-content { background-color: #4a4a4a; }
+
 
       /* Responsive Styles */
       @media (max-width: 768px) {
@@ -147,19 +108,19 @@
         .desktop-only { display: none; }
         .mobile-only { display: table-cell; }
 
-        /* Truncate long names on mobile */
         .results-table .team-link,
         .results-table .player-link {
             display: inline-block;
-            max-width: 90px; /* Adjusted this value to be more aggressive */
+            max-width: 90px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            vertical-align: middle; /* Aligns truncated text with the team logo */
+            vertical-align: middle;
         }
       }
 
       @media (max-width: 600px) {
+        #theme-toggle-btn { left: 1rem; right: auto; }
         .header-text { display: none; }
         .header-logo { width: 50px; height: 50px; }
         .nav-toggle { display: block; }
@@ -170,46 +131,23 @@
         nav ul li a:hover { background-color: #555; }
         main { padding: 1rem; }
 
-        /* Mobile Dropdown Overrides */
-        .dropdown {
-            display: block;
-            width: 100%;
-        }
-        .dropdown .dropbtn {
-            width: 100%;
-            padding: 0.8rem 1rem;
-        }
-        .dropdown .dropbtn:hover {
-            background-color: #555;
-        }
-        .dropdown-content {
-            position: static;
-            display: none;
-            box-shadow: none;
-            background-color: #4a4a4a;
-            border-radius: 0;
-            padding-top: 0;
-            transform: none;
-            left: auto;
-            top: auto;
-        }
-        .dropdown-content a {
-            padding-left: 2.5rem; /* Indent nested links */
-        }
-        .dropdown.active .dropdown-content {
-            display: block; /* Show on mobile click via JS */
-        }
-        .dropdown:hover .dropdown-content {
-            display: none;
-        }
-        .dropdown.active:hover .dropdown-content {
-            display: block;
-        }
+        .dropdown { display: block; width: 100%; }
+        .dropdown .dropbtn { width: 100%; padding: 0.8rem 1rem; }
+        .dropdown .dropbtn:hover { background-color: #555; }
+        .dropdown-content { position: static; display: none; box-shadow: none; background-color: #4a4a4a; border-radius: 0; padding-top: 0; transform: none; left: auto; top: auto; }
+        .dropdown-content a { padding-left: 2.5rem; }
+        .dropdown.active .dropdown-content { display: block; }
+        .dropdown:hover .dropdown-content { display: none; }
+        .dropdown.active:hover .dropdown-content { display: block; }
       }
     </style>
   </head>
   <body>
     <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
@@ -535,6 +473,20 @@
 
 
       document.addEventListener('DOMContentLoaded', () => {
+        // --- Theme Toggler ---
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark-mode');
+                
+                let theme = 'light';
+                if (document.documentElement.classList.contains('dark-mode')) {
+                    theme = 'dark';
+                }
+                localStorage.setItem('theme', theme);
+            });
+        }
+        
         loadDataAndDisplay();
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');

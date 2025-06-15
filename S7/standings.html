@@ -3,8 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Season 7 Standings</title>
+    <title>Real Karma League S7</title>
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <style>
       /* Reset and General Styles */
       * {
@@ -18,10 +27,12 @@
         background-color: #f4f4f4;
         color: #333;
         line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
       }
       
       h1, h2, h3 {
         color: #333;
+        transition: color 0.3s;
       }
 
       /* Header styling */
@@ -30,6 +41,7 @@
         color: #fff;
         padding: 1rem;
         text-align: center;
+        position: relative;
       }
       
       header h1 {
@@ -48,23 +60,41 @@
         object-fit: cover;
       }
 
-      .header-text {}
-      
+      .header-text {
+        /* Default display */
+      }
+
+      #theme-toggle-btn {
+        position: absolute;
+        top: 1.2rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        line-height: 1;
+        z-index: 102;
+      }
+      #theme-toggle-btn .moon-icon { display: none; }
+
+
       /* Navigation styling */
       nav {
-        position: relative;
+        position: relative; /* For dropdown positioning context */
       }
 
       .nav-toggle {
-        display: none;
+        display: none; /* Hidden by default, shown on mobile */
         background: none;
         border: none;
         color: white;
         font-size: 1.8rem;
         cursor: pointer;
         padding: 0.5rem 1rem;
-        position: absolute; 
-        top: -2.8rem; 
+        position: absolute; /* Position toggle button if needed */
+        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
         right: 1rem;
       }
       
@@ -120,6 +150,7 @@
           left: 50%;
           transform: translateX(-50%);
           padding-top: 0.5rem;
+          transition: background-color 0.3s;
       }
 
       .dropdown-content a {
@@ -140,31 +171,59 @@
           display: block; /* Show on desktop hover */
       }
 
+      /* Mobile navigation & header adjustments */
+      @media (max-width: 600px) {
+        #theme-toggle-btn {
+          left: 1rem;
+          right: auto;
+        }
 
-      @media (max-width: 600px) { /* This breakpoint is for very small specific tweaks if needed */
-        .header-text { display: none; }
-        .header-logo { width: 50px; height: 50px; }
-        .nav-toggle { display: block; }
+        .header-text {
+          display: none; 
+        }
+        .header-logo {
+          width: 50px; 
+          height: 50px;
+        }
+
+        .nav-toggle {
+          display: block; /* Show hamburger on mobile */
+        }
+        
         nav ul {
-          display: none;
+          display: none; /* Hide nav list by default on mobile */
           position: absolute;
-          top: calc(100% - 1rem); 
-          left: 0; right: 0;
-          background-color: #444; 
+          top: calc(100% - 1rem); /* Position below the header (adjust if nav is not directly in header) */
+          left: 0;
+          right: 0;
+          background-color: #444; /* Dropdown background */
           flex-direction: column;
           align-items: center;
-          gap: 0rem; 
+          gap: 0rem; /* Remove gap, handled by li padding */
           margin-top: 0;
           padding: 0.5rem 0;
           box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-          z-index: 100; 
+          z-index: 100; /* Ensure dropdown is on top */
         }
-        nav ul.active { display: flex; }
-        nav ul li { margin: 0; width: 100%; text-align: center; }
-        nav ul li a { display: block; padding: 0.8rem 1rem; }
-        nav ul li a:hover { background-color: #555; }
+
+        nav ul.active {
+          display: flex; /* Show when active */
+        }
         
-        /* Add inside your mobile media query */
+        nav ul li {
+          margin: 0;
+          width: 100%;
+          text-align: center;
+        }
+        nav ul li a {
+            display: block;
+            padding: 0.8rem 1rem;
+        }
+        nav ul li a:hover {
+            background-color: #555;
+        }
+        
+        /* Mobile Dropdown Overrides */
         .dropdown {
             display: block;
             width: 100%;
@@ -208,6 +267,7 @@
         margin: 0 auto;
       }
 
+      /* Page header */
       .page-header {
         text-align: center;
         margin-bottom: 2rem;
@@ -215,303 +275,701 @@
 
       .page-header h2 {
         font-size: 2.5rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
       }
-      #pageDescription {
-        font-size: 0.95em;
-        color: #555;
-      }
-      
-      .hidden { display: none !important; }
 
-      .view-toggle-button {
-        padding: 0.6rem 1.2rem;
-        font-size: 1rem;
-        cursor: pointer;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        transition: background-color 0.2s ease;
-        margin: 0 5px; 
-      }
-      .view-toggle-button:hover { background-color: #0056b3; }
-      .page-buttons-container { 
+      .season-info {
+        background-color: #fff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
         text-align: center;
-        margin-bottom: 1.5rem;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
-      .standings-container {
+      /* Quick Navigation */
+      .quick-nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .nav-card {
+        background-color: #fff;
+        padding: 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .nav-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+
+      .nav-card a {
+        text-decoration: none;
+        color: #333;
+        font-weight: bold;
+        font-size: 1.1rem;
+      }
+
+      .nav-card:hover a {
+        color: #007bff;
+      }
+
+      /* Main content grid */
+      .main-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2rem;
         margin-bottom: 2rem;
       }
 
-      .conference-section { 
+      /* Standings preview */
+      .standings-preview {
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        overflow: hidden; /* Ensures box shadow is neat if table overflows slightly */
-      }
-      
-      #fullLeagueViewContainer .conference-section,
-      #powerRankingsViewContainer .conference-section { 
-        max-width: 700px; 
-        margin-left: auto;  
-        margin-right: auto; 
+        overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
-      .conference-header {
+      .standings-header {
         background-color: #333;
         color: white;
-        padding: 1.5rem;
+        padding: 1rem;
         text-align: center;
       }
 
-      .conference-header h3 { /* Base style for h3 in conference headers */
+      .standings-header h3 {
         color: white;
-        font-size: 1.5rem;
         margin: 0;
-      }
-      
-      .power-rankings-summary {
-        padding: 0.8rem 1rem;
-        text-align: center;
-        background-color: #f0f0f0;
-        border-bottom: 1px solid #ddd;
-        font-size: 0.9em;
-      }
-      .summary-item {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 0.5rem;
-        line-height: 1.4;
-      }
-      .summary-item:last-child {
-        margin-bottom: 0;
-      }
-      .summary-team-logo {
-        width: 20px;
-        height: 20px;
-        border-radius: 2px;
-        margin-right: 8px;
-        flex-shrink: 0;
-      }
-      .summary-item strong {
-          font-weight: 600;
-      }
-      .summary-team-link {
-          color: inherit; 
-          text-decoration: none;
-      }
-      .summary-team-link:hover {
-          text-decoration: underline;
+        font-size: 1.4rem;
       }
 
+      .conference-standings {
+        padding: 1rem;
+      }
+
+      .conference-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+        color: #333;
+        border-bottom: 2px solid #333;
+        padding-bottom: 0.5rem;
+        transition: color 0.3s, border-color 0.3s;
+      }
 
       .standings-table {
         width: 100%;
         border-collapse: collapse;
-        table-layout: fixed; 
+        margin-bottom: 1.5rem;
+        table-layout: fixed;
+      }
+
+      .standings-table th,
+      .standings-table td {
+        padding: 0.5rem;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+        transition: border-color 0.3s;
       }
 
       .standings-table th {
         background-color: #f8f9fa;
-        padding: 1rem 0.5rem;
-        text-align: center; 
         font-weight: bold;
-        border-bottom: 2px solid #ddd;
         font-size: 0.9rem;
-        cursor: pointer; 
-        position: relative; 
+        transition: background-color 0.3s;
       }
-       .standings-table th .sort-indicator {
-        font-size: 0.8em;
-        margin-left: 5px;
-        position: absolute;
-        right: 5px; 
-        top: 50%;
-        transform: translateY(-50%);
-      }
-      .standings-table th.no-sort { cursor: default; }
-
-      /* Default column widths for 5-column standings tables (Non-PR) - DESKTOP */
-      #conferenceViewContainer .standings-table th:nth-child(1), 
-      #conferenceViewContainer .standings-table td:nth-child(1),
-      #fullLeagueViewContainer .standings-table th:nth-child(1), 
-      #fullLeagueViewContainer .standings-table td:nth-child(1) { width: 15%; text-align: center; }
-
-      #conferenceViewContainer .standings-table th:nth-child(2), 
-      #conferenceViewContainer .standings-table td:nth-child(2),
-      #fullLeagueViewContainer .standings-table th:nth-child(2), 
-      #fullLeagueViewContainer .standings-table td:nth-child(2) { width: 35%; text-align: left; }
-
-      #conferenceViewContainer .standings-table th:nth-child(3), 
-      #conferenceViewContainer .standings-table td:nth-child(3),
-      #fullLeagueViewContainer .standings-table th:nth-child(3), 
-      #fullLeagueViewContainer .standings-table td:nth-child(3) { width: 20%; text-align: center; }
-      
-      #conferenceViewContainer .standings-table th:nth-child(4), 
-      #conferenceViewContainer .standings-table td:nth-child(4),
-      #fullLeagueViewContainer .standings-table th:nth-child(4), 
-      #fullLeagueViewContainer .standings-table td:nth-child(4) { width: 15%; text-align: center; }
-
-      #conferenceViewContainer .standings-table th:nth-child(5), 
-      #conferenceViewContainer .standings-table td:nth-child(5),
-      #fullLeagueViewContainer .standings-table th:nth-child(5), 
-      #fullLeagueViewContainer .standings-table td:nth-child(5) { width: 15%; text-align: center; }
-      
-      /* Column widths for 5-column Power Rankings table - DESKTOP */
-      #powerRankingsViewContainer .standings-table th:nth-child(1), 
-      #powerRankingsViewContainer .standings-table td:nth-child(1) { width: 12%; text-align: center; }
-
-      #powerRankingsViewContainer .standings-table th:nth-child(2), 
-      #powerRankingsViewContainer .standings-table td:nth-child(2) { width: 33%; text-align: left; }
-
-      #powerRankingsViewContainer .standings-table th:nth-child(3), 
-      #powerRankingsViewContainer .standings-table td:nth-child(3) { width: 18%; text-align: center; }
-
-      #powerRankingsViewContainer .standings-table th:nth-child(4), 
-      #powerRankingsViewContainer .standings-table td:nth-child(4) { width: 15%; text-align: center; }
-
-      #powerRankingsViewContainer .standings-table th:nth-child(5), 
-      #powerRankingsViewContainer .standings-table td:nth-child(5) { width: 22%; text-align: center; }
 
       .standings-table td {
-        padding: 0.8rem 0.5rem;
-        border-bottom: 1px solid #eee;
-        font-size: 0.9rem;
-        vertical-align: middle;
+        font-size: 0.85rem;
       }
 
-      .standings-table tr:hover { background-color: #f8f9fa; }
-      .rank-cell { font-weight: bold; }
+      .standings-table th:first-child,      
+      .standings-table td:first-child {
+        width: 40%; 
+      }
 
-      .team-cell {
+      .standings-table th:nth-child(2),   
+      .standings-table td:nth-child(2) {
+        width: 20%;
+        text-align: center;
+      }
+
+      .standings-table th:nth-child(3),   
+      .standings-table td:nth-child(3) {
+        width: 20%;
+        text-align: center;
+      }
+      
+      .standings-table th:nth-child(4),   
+      .standings-table td:nth-child(4) {
+        width: 20%;
+        text-align: center;
+      }
+
+      .team-link {
+        color: inherit;
+        text-decoration: none;
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        cursor: pointer;
         transition: color 0.2s ease;
       }
-      .team-cell:hover { color: #007bff; }
-      .team-logo { width: 24px; height: 24px; border-radius: 2px; flex-shrink: 0; }
-      .team-name { font-weight: 500; flex-grow: 1; word-break: break-word; /* Help long team names wrap */ }
-      .record-cell { font-weight: 500; }
-      .pam-cell { font-weight: 500; }
-      .pam-positive { color: #28a745; font-weight: 600;}
-      .pam-negative { color: #dc3545; font-weight: 600;}
 
-      .playoff-seed, .playin-seed, .eliminated-seed {
-        width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; margin: 0 auto;
-        border-radius: 50%; 
+      .team-link:hover {
+        color: #007bff;
+        text-decoration: none;
       }
-      .playoff-seed { background-color: #28a745; color: white; }
-      .playin-seed { background-color: #ffc107; color: #333; }
-      .eliminated-seed { background-color: #dc3545; color: white; }
-      
-      .rank-badge { 
-        width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; margin: 0 auto;
-        border-radius: 4px; 
+
+      .team-logo {
+        width: 20px;
+        height: 20px;
+        vertical-align: middle;
       }
-      .gold-badge { background-color: gold; color: #333; }
-      .silver-badge { background-color: silver; color: #333; }
-      .bronze-badge { background-color: #cd7f32; color: white; }
 
-      .eliminated { opacity: 0.6; }
+      .view-full {
+        text-align: center;
+        padding: 1rem;
+        border-top: 1px solid #ddd;
+      }
 
-      .playoff-legend {
+      .view-full a {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: bold;
+      }
+
+      /* Recent games */
+      .recent-games {
         background-color: #fff;
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
-      .legend-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; text-align: center; }
-      .legend-items { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; }
-      .legend-item { display: flex; align-items: center; gap: 0.5rem; }
-      .legend-color { width: 20px; height: 20px; border-radius: 50%; }
-      .playoff-color { background-color: #28a745; }
-      .playin-color { background-color: #ffc107; }
-      .eliminated-color { background-color: #dc3545; }
+
+      .games-header {
+        background-color: #333;
+        color: white;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .games-header h3 {
+        color: white;
+        margin: 0;
+        font-size: 1.4rem;
+      }
+
+      .games-list {
+        padding: 1rem;
+      }
+
+      .game-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #ddd;
+        transition: background-color 0.2s, border-color 0.3s;
+        cursor: pointer;
+      }
+
+      .game-item:hover {
+        background-color: #f8f9fa;
+      }
+
+      .game-item:last-child {
+        border-bottom: none;
+      }
+
+      .game-matchup {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+      }
+
+      .team {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 120px;
+        max-width: 180px;
+        flex: 1;
+      }
+
+      .team-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        flex: 1;
+        max-width: calc(100% - 70px);
+      }
+
+      .team-name {
+        font-weight: 500;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .team-record {
+        font-size: 0.8rem;
+        color: #666;
+        transition: color 0.3s;
+      }
+
+      .team-score {
+        font-weight: bold;
+        color: #333;
+        margin-left: auto;
+        min-width: 35px;
+        text-align: right;
+        flex-shrink: 0;
+        transition: color 0.3s;
+      }
+
+      .vs {
+        font-weight: bold;
+        color: #666;
+        margin: 0 0.5rem;
+        transition: color 0.3s;
+      }
+
+      .game-date {
+        color: #666;
+        font-size: 0.8rem;
+        text-align: center;
+        min-width: 60px;
+        transition: color 0.3s;
+      }
+
+      .recent-games .team-score.winner {
+        color: #28a745;
+      }
       
-      .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
-      .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
+      .game-item .team-logo {
+        width: 28px;
+        height: 28px;
+        vertical-align: middle;
+      }
 
-      @media (max-width: 768px) { /* Main mobile breakpoint */
-        .standings-container { grid-template-columns: 1fr; gap: 1.5rem; }
-        #fullLeagueViewContainer .conference-section,
-        #powerRankingsViewContainer .conference-section { max-width: 100%; }
-        .standings-table th .sort-indicator { display: none; }
-        .page-buttons-container { display: flex; flex-direction: column; gap: 0.5rem; }
-        .view-toggle-button { width: 80%; margin: 0 auto; }
-        .prev-rank-col { display: none; } /* Hides "Prev" column in Power Rankings on mobile */
+      /* Modal styles */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
+      }
 
-        /* Hide Med Rank header column for Conference and Full League views on mobile */
-        #conferenceViewContainer .standings-table thead th:nth-child(5),
-        #fullLeagueViewContainer .standings-table thead th:nth-child(5) {
-            display: none;
+      .modal-content { 
+        background-color: #fff;
+        margin: 2rem auto;
+        border-radius: 8px;
+        width: 95%;
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        transition: background-color 0.3s;
+      }
+
+      .modal-header {
+        background-color: #333;
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .modal-header h3 {
+        color: white;
+        margin: 0;
+        font-size: 1.4rem;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+      }
+
+      .close-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+      .modal-body {
+        padding: 2rem;
+      }
+      
+      #game-details-content-area {
+      }
+
+      .game-details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+      }
+
+      .team-breakdown {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #ddd;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+
+      .team-breakdown.winner {
+        border-color: #28a745;
+        border-width: 2px;
+      }
+
+      .modal-team-header { 
+        background-color: #333;
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        flex-direction: column;
+        transition: background-color 0.3s;
+      }
+
+      .modal-team-header.winner { 
+        background-color: #28a745;
+      }
+
+      .modal-team-header h4 { 
+        color: white;
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      .modal-team-header .team-logo { 
+        width: 48px;
+        height: 48px;
+        border-radius: 4px;
+      }
+
+      .team-total {
+        background-color: #e9ecef;
+        padding: 1rem;
+        text-align: center;
+        font-weight: bold;
+        font-size: 1.1rem;
+        border-bottom: 2px solid #ddd;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+
+      .lineup-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .lineup-table th {
+        background-color: #f8f9fa;
+        padding: 0.8rem 0.5rem;
+        text-align: center;
+        font-weight: bold;
+        border-bottom: 2px solid #ddd;
+        font-size: 0.9rem;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+
+      .lineup-table th:first-child {
+        text-align: left;
+        width: 50%;
+      }
+
+      .lineup-table th:nth-child(2),
+      .lineup-table th:nth-child(3) {
+        width: 25%;
+      }
+
+      .lineup-table td {
+        padding: 0.8rem 0.5rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.9rem;
+        text-align: center;
+        transition: border-color 0.3s;
+      }
+
+      .lineup-table td:first-child {
+        text-align: left;
+      }
+
+      .lineup-table tr:hover {
+        background-color: white;
+      }
+
+      .captain-row {
+        background-color: #fff3cd !important;
+        font-weight: bold;
+      }
+
+      .captain-badge {
+        background-color: #ffc107;
+        color: #333;
+        padding: 0.2rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: bold;
+        margin-left: 0.5rem;
+      }
+
+      .captain-bonus {
+        font-size: 0.75rem;
+        color: #ffc107;
+        font-weight: 500;
+        margin-top: 0.2rem;
+      }
+
+      .player-name-cell {
+        font-weight: 500;
+      }
+
+      .player-link {
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      .player-link:hover {
+        color: #0056b3;
+        text-decoration: underline;
+      }
+
+      .points-cell {
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .rank-cell { 
+        text-align: center;
+        color: #666;
+      }
+
+      .desktop-only-col {
+      }
+      
+      .loading {
+        text-align: center;
+        padding: 2rem;
+        color: #666;
+      }
+
+      .error {
+        text-align: center;
+        padding: 2rem;
+        color: #dc3545;
+        background-color: #f8d7da;
+        border-radius: 4px;
+        margin: 1rem 0;
+      }
+
+      /* Dark Mode Styles */
+      .dark-mode body {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+      .dark-mode h1, .dark-mode h2, .dark-mode h3 {
+        color: #f5f5f5;
+      }
+      .dark-mode #theme-toggle-btn .sun-icon { display: none; }
+      .dark-mode #theme-toggle-btn .moon-icon { display: block; }
+
+      .dark-mode .season-info,
+      .dark-mode .nav-card,
+      .dark-mode .standings-preview,
+      .dark-mode .recent-games {
+        background-color: #1e1e1e;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      .dark-mode .nav-card a {
+        color: #e0e0e0;
+      }
+      .dark-mode .nav-card:hover a {
+        color: #bb86fc;
+      }
+      .dark-mode .conference-title {
+        color: #f5f5f5;
+        border-bottom-color: #444;
+      }
+      .dark-mode .standings-table th {
+        background-color: #2c2c2c;
+      }
+      .dark-mode .standings-table td,
+      .dark-mode .view-full {
+        border-color: #333;
+      }
+      .dark-mode .team-link:hover {
+        color: #bb86fc;
+      }
+      .dark-mode .game-item {
+        border-color: #333;
+      }
+      .dark-mode .game-item:hover {
+        background-color: #2c2c2c;
+      }
+      .dark-mode .team-record,
+      .dark-mode .vs,
+      .dark-mode .game-date,
+      .dark-mode .rank-cell {
+        color: #aaa;
+      }
+      .dark-mode .team-score {
+        color: #e0e0e0;
+      }
+      .dark-mode .recent-games .team-score.winner {
+        color: #66bb6a;
+      }
+      .dark-mode .modal-content {
+        background-color: #1e1e1e;
+      }
+      .dark-mode .close-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+      .dark-mode .team-breakdown {
+        background-color: #2c2c2c;
+        border-color: #444;
+      }
+      .dark-mode .team-breakdown.winner {
+        border-color: #66bb6a;
+      }
+      .dark-mode .modal-team-header.winner {
+        background-color: #2e7d32;
+      }
+      .dark-mode .team-total {
+        background-color: #333;
+        border-bottom-color: #444;
+      }
+      .dark-mode .lineup-table th {
+        background-color: #2c2c2c;
+        border-bottom-color: #444;
+      }
+      .dark-mode .lineup-table td {
+        border-color: #333;
+      }
+      .dark-mode .lineup-table tr:hover {
+        background-color: #383838;
+      }
+      .dark-mode .captain-row {
+        background-color: #4a4100 !important;
+      }
+      .dark-mode .captain-badge {
+        background-color: #ffe082;
+        color: #121212;
+      }
+      .dark-mode .player-link,
+      .dark-mode .view-full a {
+        color: #8ab4f8;
+      }
+      .dark-mode .player-link:hover,
+      .dark-mode .view-full a:hover {
+        color: #a7c7fa;
+      }
+      .dark-mode .error {
+        background-color: #5d1c21;
+        color: #f8d7da;
+      }
+      .dark-mode .dropdown-content {
+          background-color: #444;
+      }
+      .dark-mode .dropdown-content a:hover {
+          background-color: #666;
+      }
+      .dark-mode nav ul.active {
+          background-color: #444;
+      }
+      .dark-mode nav ul li a:hover {
+        background-color: #555;
+      }
+      .dark-mode .dropdown.active .dropdown-content {
+          background-color: #4a4a4a;
+      }
+
+      @media (max-width: 768px) {
+        .main-grid {
+          grid-template-columns: 1fr;
         }
-
-        /* Hide Med Rank data cells for Conference and Full League views on mobile */
-        #eastern-standings td:nth-child(5),
-        #western-standings td:nth-child(5),
-        #full-league-standings td:nth-child(5) {
-            display: none;
+        .quick-nav {
+          grid-template-columns: repeat(2, 1fr);
         }
-
-        /* Adjust column widths for Conference and Full League tables on mobile (now 4 columns) */
-        /* Headers */
-        #conferenceViewContainer .standings-table thead th:nth-child(1),
-        #fullLeagueViewContainer .standings-table thead th:nth-child(1) { width: 20%; } /* Rank */
-
-        #conferenceViewContainer .standings-table thead th:nth-child(2), /* Team */
-        #fullLeagueViewContainer .standings-table thead th:nth-child(2) { width: 42%; } /* Adjusted */
-
-        #conferenceViewContainer .standings-table thead th:nth-child(3),
-        #fullLeagueViewContainer .standings-table thead th:nth-child(3) { width: 20%; } /* Record */
-
-        #conferenceViewContainer .standings-table thead th:nth-child(4), /* PAM */
-        #fullLeagueViewContainer .standings-table thead th:nth-child(4) { width: 18%; } /* Adjusted */
-
-        /* Data Cells for Conference and Full League (using tbody IDs) */
-        #eastern-standings td:nth-child(1),
-        #western-standings td:nth-child(1),
-        #full-league-standings td:nth-child(1) { width: 20%; } /* Rank */
-
-        #eastern-standings td:nth-child(2), /* Team */
-        #western-standings td:nth-child(2),
-        #full-league-standings td:nth-child(2) { width: 42%; } /* Adjusted */
-
-        #eastern-standings td:nth-child(3),
-        #western-standings td:nth-child(3),
-        #full-league-standings td:nth-child(3) { width: 20%; } /* Record */
-
-        #eastern-standings td:nth-child(4), /* PAM */
-        #western-standings td:nth-child(4),
-        #full-league-standings td:nth-child(4) { width: 18%; } /* Adjusted */
-        
-        /* Power Rankings table column widths on mobile (already 4 visible columns due to .prev-rank-col hidden) */
-        #powerRankingsViewContainer .standings-table th:nth-child(1),
-        #powerRankingsViewContainer .standings-table td:nth-child(1) { width: 15%; } /* Rank */
-        #powerRankingsViewContainer .standings-table th:nth-child(2),
-        #powerRankingsViewContainer .standings-table td:nth-child(2) { width: 40%; } /* Team */
-        #powerRankingsViewContainer .standings-table th:nth-child(3),
-        #powerRankingsViewContainer .standings-table td:nth-child(3) { width: 20%; } /* Record */
-        /* Prev (th:nth-child(4)) is hidden by .prev-rank-col */
-        #powerRankingsViewContainer .standings-table th:nth-child(5),
-        #powerRankingsViewContainer .standings-table td:nth-child(5) { width: 25%; } /* Change */
-        
-        .team-name {
-          font-size: 0.85rem; /* Slightly smaller for mobile to prevent wrapping */
+        .desktop-only-col {
+          display: none;
         }
-        
-        /* Adjust Power Rankings title font size on mobile */
-        #powerRankingsViewContainer .conference-header h3 {
-          font-size: 1.1rem; 
+        .standings-table th:first-child,      
+        .standings-table td:first-child {
+          width: 60%; 
         }
+        .standings-table th:nth-child(2),   
+        .standings-table td:nth-child(2) {
+          width: 20%;
+        }
+        .standings-table th:nth-child(3),   
+        .standings-table td:nth-child(3) {
+          width: 20%;
+        }
+        .standings-table th,
+        .standings-table td {
+          padding: 0.3rem;
+          font-size: 0.8rem;
+        }
+        .team-logo { 
+          width: 16px;
+          height: 16px;
+        }
+        .game-item .team-logo { 
+          width: 32px;
+          height: 32px;
+        }
+        .game-matchup { flex-direction: column; gap: 0.75rem; align-items: stretch;}
+        .team { min-width: auto; width: 100%;}
+        .team-info { flex: 1; }
+        .team-name { font-size: 0.85rem;}
+        .team-record {font-size: 0.75rem;}
+        .vs { display: none; }
+        .game-item { padding: 0.75rem;}
+        .game-date { text-align: left; margin-top: 0.5rem; font-size: 0.75rem;}
+        .modal-content { margin: 1rem; width: calc(100% - 2rem);}
+        .game-details-grid { grid-template-columns: 1fr; gap: 1rem;}
+        .modal-body { padding: 1rem;}
+        .lineup-table th, .lineup-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem;}
+        .modal-team-header .team-logo { width: 36px; height: 36px;} 
+        .modal-header { padding: 1rem;}
+        .modal-header h3 { font-size: 1.1rem; line-height: 1.3; word-break: break-word; hyphens: auto;}
+      }
+
+      @media (max-width: 480px) {
+        .quick-nav {
+          grid-template-columns: 1fr;
+        }
+        .modal-header { padding: 0.8rem; }
+        .modal-header h3 { font-size: 1rem; line-height: 1.2;}
       }
 
       footer {
@@ -525,6 +983,10 @@
   </head>
   <body>
     <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
@@ -553,763 +1015,488 @@
     
     <main>
       <div class="page-header">
-        <h2 id="standingsPageTitle">Conference Standings</h2> 
-        <p id="pageDescription">Updated after each completed game. Click headers to sort (where applicable).</p> 
+        <h2>RKL Season 7</h2>
       </div>
 
-      <div class="page-buttons-container">
-        <button id="viewToggleButton1" class="view-toggle-button">Show Full League Standings</button>
-        <button id="viewToggleButton2" class="view-toggle-button">Show Power Rankings</button>
-      </div>
-
-      <div id="conferenceViewContainer">
-        <div class="playoff-legend">
-          <div class="legend-title">Playoff Picture (Conferences)</div>
-          <div class="legend-items">
-            <div class="legend-item">
-              <div class="legend-color playoff-color"></div>
-              <span>Playoffs (Seeds 1-6)</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-color playin-color"></div>
-              <span>Play-in (Seeds 7-10)</span>
-            </div>
-            <div class="legend-item">
-              <div class="legend-color eliminated-color"></div>
-              <span>Out (Seeds 11+)</span>
-            </div>
-          </div>
+      <div class="season-info">
+        <p><strong>Current Week:</strong> <span id="current-week">Loading...</span></p>
+        <div id="season-stats">
+          <p>Loading season statistics...</p>
         </div>
+      </div>
 
-        <div class="standings-container">
-          <div class="conference-section">
-            <div class="conference-header">
-              <h3>Eastern Conference</h3>
-            </div>
-            <table class="standings-table">
+      <div class="quick-nav">
+        <div class="nav-card"><a href="standings.html">📊 Standings & Rankings</a></div>
+        <div class="nav-card"><a href="leaderboards.html">🏆 Player Leaderboards</a></div>
+        <div class="nav-card"><a href="schedule.html">📅 Schedule & Results</a></div>
+        <div class="nav-card"><a href="transactions.html">🔄 Transactions</a></div>
+        <div class="nav-card"><a href="teams.html">👥 Team Pages</a></div>
+        <div class="nav-card"><a href="draft-capital.html">📋 Draft Central</a></div>
+      </div>
+
+      <div class="main-grid">
+        <div class="standings-preview">
+          <div class="standings-header"><h3>League Leaders</h3></div>
+          <div class="conference-standings">
+            <div class="conference-title">Eastern Conference</div>
+            <table class="standings-table" id="eastern-standings-table">
               <thead>
                 <tr>
-                  <th class="no-sort">Rank<span class="sort-indicator"></span></th>
-                  <th class="no-sort">Team<span class="sort-indicator"></span></th>
-                  <th onclick="handleSort('Eastern', 'record')">Record<span class="sort-indicator"></span></th>
-                  <th onclick="handleSort('Eastern', 'pam')">PAM<span class="sort-indicator"></span></th>
-                  <th onclick="handleSort('Eastern', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+                  <th>Team</th>
+                  <th>W-L</th>
+                  <th>PAM</th>
+                  <th class="desktop-only-col">Med Rank</th>
                 </tr>
               </thead>
               <tbody id="eastern-standings">
-                <tr>
-                  <td colspan="5" class="loading mobile-colspan-adjust">Loading Eastern Conference standings...</td>
-                </tr>
+                <tr><td colspan="4" class="loading">Loading standings...</td></tr>
               </tbody>
             </table>
-          </div>
-
-          <div class="conference-section">
-            <div class="conference-header">
-              <h3>Western Conference</h3>
-            </div>
-            <table class="standings-table">
+            
+            <div class="conference-title">Western Conference</div>
+            <table class="standings-table" id="western-standings-table">
               <thead>
                 <tr>
-                  <th class="no-sort">Rank<span class="sort-indicator"></span></th>
-                  <th class="no-sort">Team<span class="sort-indicator"></span></th>
-                  <th onclick="handleSort('Western', 'record')">Record<span class="sort-indicator"></span></th>
-                  <th onclick="handleSort('Western', 'pam')">PAM<span class="sort-indicator"></span></th>
-                  <th onclick="handleSort('Western', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+                  <th>Team</th>
+                  <th>W-L</th>
+                  <th>PAM</th>
+                  <th class="desktop-only-col">Med Rank</th>
                 </tr>
               </thead>
               <tbody id="western-standings">
-                <tr>
-                  <td colspan="5" class="loading mobile-colspan-adjust">Loading Western Conference standings...</td>
-                </tr>
+                <tr><td colspan="4" class="loading">Loading standings...</td></tr>
               </tbody>
             </table>
           </div>
+          <div class="view-full"><a href="standings.html">View Full Standings →</a></div>
+        </div>
+
+        <div class="recent-games">
+          <div class="games-header"><h3>Recent Games</h3></div>
+          <div class="games-list" id="recent-games"><div class="loading">Loading recent games...</div></div>
+          <div class="view-full"><a href="schedule.html">View Full Schedule →</a></div>
         </div>
       </div>
-
-      <div id="fullLeagueViewContainer" class="hidden">
-        <div class="conference-section"> 
-          <div class="conference-header">
-            <h3>Full League (All Teams)</h3>
-          </div>
-          <table class="standings-table">
-            <thead>
-              <tr>
-                <th class="no-sort">Rank<span class="sort-indicator"></span></th>
-                <th class="no-sort">Team<span class="sort-indicator"></span></th>
-                <th onclick="handleSort('FullLeague', 'record')">Record<span class="sort-indicator"></span></th>
-                <th onclick="handleSort('FullLeague', 'pam')">PAM<span class="sort-indicator"></span></th>
-                <th onclick="handleSort('FullLeague', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
-              </tr>
-            </thead>
-            <tbody id="full-league-standings">
-              <tr>
-                <td colspan="5" class="loading mobile-colspan-adjust">Loading Full League standings...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div id="powerRankingsViewContainer" class="hidden">
-        <div class="conference-section"> 
-          <div class="conference-header">
-            <h3>Power Rankings v3 (Week 6)</h3> </div>
-          <div id="powerRankingsSummary" class="power-rankings-summary">
-            Loading summary...
-          </div>
-          <table class="standings-table"> 
-            <thead>
-              <tr>
-                <th class="no-sort">Rank<span class="sort-indicator"></span></th>
-                <th class="no-sort">Team<span class="sort-indicator"></span></th>
-                <th class="no-sort">Record<span class="sort-indicator"></span></th>
-                <th class="no-sort prev-rank-col">Prev<span class="sort-indicator"></span></th>
-                <th class="no-sort">Change<span class="sort-indicator"></span></th>
-              </tr>
-            </thead>
-            <tbody id="power-rankings-standings">
-              <tr>
-                <td colspan="5" class="loading">Loading Power Rankings...</td> </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
     </main>
+
+    <div id="game-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-title">Game Details</h3>
+          <button class="close-btn" onclick="closeGameModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="game-details-content-area">
+                <div class="loading">Loading game details...</div>
+            </div>
+        </div>
+      </div>
+    </div>
     
-    <footer>
-      <p>@caustic on Real</p>
-    </footer>
+    <footer><p>@caustic on Real</p></footer>
 
     <script>
-      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
       const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+      
+      let allTeams = [];
 
-      let allTeamsData = [];
-      let easternTeamsData = [];
-      let westernTeamsData = [];
-      let fullLeagueTeamsData = [];
-      let powerRankingsData = []; 
-
-      let currentView = 'conferences'; 
-      let viewButton1, viewButton2; 
-
-      const sortState = {
-        Eastern: { column: 'record', direction: 'asc' },
-        Western: { column: 'record', direction: 'asc' },
-        FullLeague: { column: 'record', direction: 'asc'}
-      };
-
-      function getUrlParameter(name) {
-        const urlParams = new URLSearchParams(window.location.search);
-        return urlParams.get(name);
+      function getTeamName(teamId, teamsArray = allTeams) { 
+        const team = teamsArray.find(t => t.team_id === teamId);
+        return team ? team.team_name : teamId;
       }
-
-      function getColspanForMobile() {
-        // Only returns 4 for views where Med Rank is hidden on mobile
-        if ((currentView === 'conferences' || currentView === 'fullLeague') && window.innerWidth <= 768) {
-          return 4;
-        }
-        return 5; // Default for desktop or Power Rankings view
+      
+      function formatInThousands(value) {
+        const num = parseFloat(value);
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+        return Math.round(num).toLocaleString(); 
       }
-
+      
+      function parseNumber(value) {
+        if (!value) return 0;
+        const cleaned = value.toString().replace(/,/g, '');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      
       async function fetchSheetData(sheetName) {
         try {
           const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
-          if (!response.ok) {
-            throw new Error(`Network response was not ok for ${sheetName}: ${response.statusText}`);
-          }
           const csvText = await response.text();
-          if (!csvText) { 
-            console.warn(`Empty CSV data received from ${sheetName}`);
-            return [];
-          }
           return parseCSV(csvText);
         } catch (error) {
           console.error(`Error fetching ${sheetName}:`, error);
-          let colspan = 5; 
-          // Adjust colspan for specific views if on mobile
-          if (sheetName === 'Teams' && (document.getElementById('eastern-standings') || document.getElementById('full-league-standings'))) {
-             colspan = getColspanForMobile();
-          }
-          
-          const errorMsgHtml = (colspanVal) => `<tr><td colspan="${colspanVal}" class="error">Error loading data from ${sheetName}</td></tr>`;
-          
-          if (sheetName === 'Teams') { 
-            ['eastern-standings', 'western-standings', 'full-league-standings'].forEach(id => {
-                const tableBody = document.getElementById(id);
-                if (tableBody) {
-                    tableBody.innerHTML = errorMsgHtml(getColspanForMobile());
-                }
-            });
-            const prTableBody = document.getElementById('power-rankings-standings');
-            if (prTableBody) { 
-                 prTableBody.innerHTML = errorMsgHtml(5); 
-            }
-            const summaryContainer = document.getElementById('powerRankingsSummary');
-            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Core team data failed to load.</span></div>';
-
-          } else if (sheetName === 'TPR') {
-            const tableBody = document.getElementById('power-rankings-standings');
-            if (tableBody) tableBody.innerHTML = errorMsgHtml(5); 
-            const summaryContainer = document.getElementById('powerRankingsSummary');
-            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Power rankings data failed to load.</span></div>';
-          }
           return null;
         }
       }
-
+      
       function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
-        if (lines.length === 0) return [];
-        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const headers = parseCSVLine(lines[0]);
         const data = [];
         for (let i = 1; i < lines.length; i++) {
-          const values = [];
-          let currentVal = '';
-          let inQuotes = false;
-          for (let j = 0; j < lines[i].length; j++) {
-            const char = lines[i][j];
-            if (char === '"') {
-                if (inQuotes && j + 1 < lines[i].length && lines[i][j+1] === '"') {
-                    currentVal += '"'; 
-                    j++; 
-                    continue;
-                }
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-              values.push(currentVal.trim()); 
-              currentVal = '';
-            } else {
-              currentVal += char;
-            }
-          }
-          values.push(currentVal.trim());
-          
-          const processedValues = values.map(v => v.replace(/^"|"$/g, ''));
-
-          if (processedValues.length === headers.length) {
-            const row = {};
-            headers.forEach((header, index) => { row[header] = processedValues[index] || ''; });
-            data.push(row);
-          } else {
-            console.warn('Skipping mismatched CSV line:', lines[i], 'Expected', headers.length, 'got', processedValues.length, 'values:', processedValues);
-          }
+          const values = parseCSVLine(lines[i]);
+          const row = {};
+          headers.forEach((header, index) => { row[header] = values[index] || '';});
+          data.push(row);
         }
         return data;
       }
-
-      function getPlayoffIndicator(rank) {
-        if (rank <= 0) return '-';
-        if (rank <= 6) return `<div class="playoff-seed">${rank}</div>`;
-        else if (rank <= 10) return `<div class="playin-seed">${rank}</div>`;
-        else return `<div class="eliminated-seed">${rank}</div>`;
-      }
-
-      function getPAMClass(pam) {
-        const pamValue = parseFloat(pam);
-        if (pamValue > 0) return 'pam-positive';
-        if (pamValue < 0) return 'pam-negative';
-        return '';
-      }
-
-      function handleTeamClick(teamId) {
-        if (teamId && teamId !== 'null' && teamId !== 'undefined' && teamId.trim() !== '') {
-             window.location.href = `team.html?id=${teamId}`;
-        } else {
-            console.warn('handleTeamClick called with invalid teamId:', teamId);
+      
+      function parseCSVLine(line) {
+        const result = []; let current = ''; let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') inQuotes = !inQuotes;
+          else if (char === ',' && !inQuotes) { result.push(current.trim()); current = '';}
+          else current += char;
         }
-      }
-
-      function updateSortIndicators(tableType) {
-        let tableElementId;
-        if (tableType === 'Eastern') tableElementId = 'eastern-standings';
-        else if (tableType === 'Western') tableElementId = 'western-standings';
-        else if (tableType === 'FullLeague') tableElementId = 'full-league-standings';
-        else return; 
-        const table = document.getElementById(tableElementId)?.closest('table');
-        if (!table) return;
-        const headers = table.querySelectorAll('thead th[onclick]');
-        headers.forEach(th => {
-          const columnAttr = th.getAttribute('onclick');
-          if (!columnAttr) return;
-          const columnMatch = columnAttr.match(/'([^']+)'.*?'([^']+)'/);
-          if (!columnMatch || columnMatch.length < 3) return;
-          const column = columnMatch[2];
-          const indicator = th.querySelector('.sort-indicator');
-          if (indicator) {
-            if (sortState[tableType] && sortState[tableType].column === column) {
-              if (column === 'med_starter_rank') indicator.textContent = sortState[tableType].direction === 'asc_rank' ? '▲' : '▼';
-              else indicator.textContent = sortState[tableType].direction === 'asc' ? '▲' : '▼';
-            } else indicator.textContent = '';
-          }
-        });
-      }
-
-      function renderStandings(tableType, teamsToRender) {
-        let tableBodyId;
-        if (tableType === 'Eastern') tableBodyId = 'eastern-standings';
-        else if (tableType === 'Western') tableBodyId = 'western-standings';
-        else if (tableType === 'FullLeague') tableBodyId = 'full-league-standings';
-        else return;
-        const tableBody = document.getElementById(tableBodyId);
-        if (!tableBody) {
-            console.error(`Table body not found for ${tableBodyId}`);
-            return;
-        }
-
-        const colspan = getColspanForMobile(); 
-        if (!teamsToRender || teamsToRender.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="${colspan}" class="loading">No teams to display for ${tableType}.</td></tr>`;
-            return;
-        }
-
-        const sortedTeamsForDisplay = [...teamsToRender].sort((a, b) => {
-          if (!sortState[tableType]) return 0; 
-          const currentSortColumn = sortState[tableType].column;
-          const currentSortDirection = sortState[tableType].direction;
-          let valA, valB;
-          switch (currentSortColumn) {
-            case 'pam':
-              valA = parseFloat(a.pam || 0); valB = parseFloat(b.pam || 0);
-              return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1);
-            case 'med_starter_rank':
-              valA = parseFloat(a.med_starter_rank || 9999); valB = parseFloat(b.med_starter_rank || 9999);
-              if (window.innerWidth > 768) {
-                return (valA - valB) * (currentSortDirection === 'asc_rank' ? 1 : -1);
-              }
-              return 0; 
-            case 'record': default:
-              if (tableType === 'FullLeague') { valA = a.officialFullLeagueRank; valB = b.officialFullLeagueRank; }
-              else { valA = a.officialRecordRank; valB = b.officialRecordRank; }
-              return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1) ;
-          }
-        });
-        const html = sortedTeamsForDisplay.map(team => {
-          const wins = parseInt(team.wins || 0); const losses = parseInt(team.losses || 0);
-          const pam = parseFloat(team.pam || 0); const medRank = parseFloat(team.med_starter_rank || 0);
-          let rankCellContent; let trClass = '';
-          if (tableType === 'FullLeague') {
-            rankCellContent = team.officialFullLeagueRank;
-          } else {
-            rankCellContent = getPlayoffIndicator(team.officialRecordRank);
-            if (team.officialRecordRank > 10) trClass = 'eliminated';
-          }
-          
-          const medRankColumnHtml = (window.innerWidth > 768 && (tableType === 'Eastern' || tableType === 'Western' || tableType === 'FullLeague')) ? 
-            `<td class="rank-cell">${medRank > 0 ? Math.round(medRank) : '-'}</td>` : '';
-
-          return `
-            <tr class="${trClass}">
-              <td class="rank-cell">${rankCellContent}</td>
-              <td>
-                <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
-                  <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                  <span class="team-name">${team.team_name}</span>
-                </div>
-              </td>
-              <td class="record-cell">${wins}-${losses}</td>
-              <td class="pam-cell ${getPAMClass(pam)}">${Math.round(pam).toLocaleString()}</td>
-              ${medRankColumnHtml}
-            </tr>`;
-        }).join('');
-        tableBody.innerHTML = html;
-        updateSortIndicators(tableType);
-      }
-
-      function getChangeIndicator(delta) {
-        const deltaValue = parseInt(delta);
-        if (isNaN(deltaValue)) return `<span>–</span>`; 
-        if (deltaValue > 0) return `<span class="pam-positive">▲ ${deltaValue}</span>`;
-        if (deltaValue < 0) return `<span class="pam-negative">▼ ${Math.abs(deltaValue)}</span>`;
-        return `<span>–</span>`;
-      }
-
-      function getRankDisplay(rank) {
-        if (rank === 1) return `<span class="rank-badge gold-badge">1</span>`;
-        if (rank === 2) return `<span class="rank-badge silver-badge">2</span>`;
-        if (rank === 3) return `<span class="rank-badge bronze-badge">3</span>`;
-        return rank; 
-      }
-
-      function renderPowerRankings(teamsToRender) {
-        const tableBody = document.getElementById('power-rankings-standings');
-        if (!tableBody) {
-            console.error("Table body not found for power-rankings-standings");
-            return;
-        }
-        if (!teamsToRender || teamsToRender.length === 0) {
-            if (tableBody.innerHTML.includes('class="loading"')) { 
-                 tableBody.innerHTML = `<tr><td colspan="5" class="loading">No teams to display for Power Rankings.</td></tr>`;
-            }
-            return;
-        }
-        
-        const html = teamsToRender.map(team => {
-            const record = `${team.wins}-${team.losses}`;
-            const prevRankDisplay = team.prev_rank !== null && !isNaN(team.prev_rank) ? team.prev_rank : '-';
-            return `
-                <tr>
-                    <td class="rank-cell">${getRankDisplay(team.rank)}</td>
-                    <td>
-                        <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
-                            <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                            <span class="team-name">${team.team_name}</span>
-                        </div>
-                    </td>
-                    <td class="record-cell">${record}</td>
-                    <td class="rank-cell prev-rank-col">${prevRankDisplay}</td>
-                    <td class="record-cell">${getChangeIndicator(team.delta)}</td>
-                </tr>`;
-        }).join('');
-        tableBody.innerHTML = html;
-      }
-
-      function handleSort(tableType, column) {
-        if (column === 'med_starter_rank' && window.innerWidth <= 768 && (tableType === 'Eastern' || tableType === 'Western' || tableType === 'FullLeague')) {
-            return; 
-        }
-
-        if (!sortState[tableType]) { 
-            if (column === 'med_starter_rank') sortState[tableType] = { column, direction: 'asc_rank' };
-            else if (column === 'record') sortState[tableType] = { column, direction: 'asc' };
-            else sortState[tableType] = { column, direction: 'desc' };
-        }
-
-        const currentSort = sortState[tableType]; let newDirection;
-        if (currentSort.column === column) {
-          if (column === 'med_starter_rank') newDirection = currentSort.direction === 'asc_rank' ? 'desc_rank' : 'asc_rank';
-          else newDirection = currentSort.direction === 'desc' ? 'asc' : 'desc';
-        } else {
-          if (column === 'med_starter_rank') newDirection = 'asc_rank';
-          else if (column === 'record') newDirection = 'asc';
-          else newDirection = 'desc';
-        }
-        sortState[tableType] = { column, direction: newDirection };
-        let teamsToRender;
-        if (tableType === 'Eastern') teamsToRender = easternTeamsData;
-        else if (tableType === 'Western') teamsToRender = westernTeamsData;
-        else if (tableType === 'FullLeague') teamsToRender = fullLeagueTeamsData;
-        else return;
-        renderStandings(tableType, teamsToRender);
+        result.push(current.trim());
+        return result.map(field => field.replace(/^"(.*)"$/, '$1'));
       }
       
-      function updateButtonStates() {
-        if (!viewButton1 || !viewButton2) {
-            console.error("View toggle buttons not found in updateButtonStates");
-            return;
-        }
-        let action1, text1, action2, text2;
-
-        if (currentView === 'conferences') {
-            text1 = 'Show Full League Standings';
-            action1 = showFullLeagueView;
-            text2 = 'Show Power Rankings';
-            action2 = showPowerRankingsView;
-        } else if (currentView === 'fullLeague') {
-            text1 = 'Show Conference Standings';
-            action1 = showConferenceView;
-            text2 = 'Show Power Rankings';
-            action2 = showPowerRankingsView;
-        } else { // currentView === 'powerRankings'
-            text1 = 'Show Conference Standings';
-            action1 = showConferenceView;
-            text2 = 'Show Full League Standings';
-            action2 = showFullLeagueView;
-        }
-
-        viewButton1.textContent = text1;
-        viewButton1.onclick = action1; 
-
-        viewButton2.textContent = text2;
-        viewButton2.onclick = action2; 
-      }
-
-      function showConferenceView() {
-          currentView = 'conferences';
-          document.getElementById('conferenceViewContainer').classList.remove('hidden');
-          document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-          document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Conference Standings';
-          document.getElementById('pageDescription').textContent = 'Updated after each completed game. Click headers to sort (where applicable).';
-          const playoffLegend = document.querySelector('.playoff-legend');
-          if (playoffLegend) playoffLegend.classList.remove('hidden');
-          updateColspanForLoadingPlaceholders();
-          renderStandings('Eastern', easternTeamsData);
-          renderStandings('Western', westernTeamsData);
-          updateButtonStates();
-      }
-
-      function showFullLeagueView() {
-          currentView = 'fullLeague';
-          document.getElementById('conferenceViewContainer').classList.add('hidden');
-          document.getElementById('fullLeagueViewContainer').classList.remove('hidden');
-          document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Full League Standings';
-          document.getElementById('pageDescription').textContent = 'Updated after each completed game. Click headers to sort (where applicable).';
-          const playoffLegend = document.querySelector('.playoff-legend');
-          if (playoffLegend) playoffLegend.classList.add('hidden');
-          updateColspanForLoadingPlaceholders();
-          renderStandings('FullLeague', fullLeagueTeamsData);
-          updateButtonStates();
-      }
-
-      function showPowerRankingsView() {
-          currentView = 'powerRankings';
-          document.getElementById('conferenceViewContainer').classList.add('hidden');
-          document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-          document.getElementById('powerRankingsViewContainer').classList.remove('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Power Rankings'; 
-          document.getElementById('pageDescription').textContent = 'Courtesy of @four. Updated every three weeks.';
-          const playoffLegend = document.querySelector('.playoff-legend');
-          if (playoffLegend) playoffLegend.classList.add('hidden');
-          calculateAndDisplayPowerRankingsSummary(); 
-          updateButtonStates();
+      function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       }
       
-      function updateColspanForLoadingPlaceholders() {
-        const colspan = getColspanForMobile();
-        document.querySelectorAll('.mobile-colspan-adjust').forEach(td => {
-            if (td.innerHTML.includes('Loading') || td.innerHTML.includes('Error')) {
-                td.setAttribute('colspan', colspan);
-            }
-        });
+      function formatDateShort(dateString) {
+        const date = new Date(dateString);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const year = String(date.getFullYear()).slice(-2);
+        return `${month}/${day}/${year}`;
       }
-
-
-      function calculateAndDisplayPowerRankingsSummary() {
-        const summaryContainer = document.getElementById('powerRankingsSummary');
-        if (!summaryContainer) return;
-
-        if (!powerRankingsData || powerRankingsData.length === 0) {
-            summaryContainer.innerHTML = '<div class="summary-item"><span>No power ranking data available to determine risers/fallers.</span></div>';
-            return;
-        }
-
-        let biggestRisers = [];
-        let maxRise = 0; 
-        let biggestFallers = [];
-        let maxFall = 0; 
-
-        powerRankingsData.forEach(team => {
-            const delta = parseInt(team.delta) || 0;
-            
-            // Riser logic
-            if (delta > 0) {
-              if (delta > maxRise) {
-                maxRise = delta;
-                biggestRisers = [team]; // New leader, start a new list
-              } else if (delta === maxRise) {
-                biggestRisers.push(team); // Tied, add to the list
-              }
-            }
-            
-            // Faller logic
-            if (delta < 0) {
-              if (delta < maxFall) {
-                maxFall = delta;
-                biggestFallers = [team]; // New leader, start a new list
-              } else if (delta === maxFall) {
-                biggestFallers.push(team); // Tied, add to the list
-              }
-            }
-        });
-
-        let riserHtml = '';
-        if (biggestRisers.length > 0) {
-            riserHtml = biggestRisers.map(riser => `
-                <div class="summary-item">
-                    <img src="icons/${riser.team_id}.webp" alt="${riser.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
-                    <span>Biggest Riser: 
-                        <strong class="pam-positive"><a href="team.html?id=${riser.team_id}" class="summary-team-link">${riser.team_name}</a></strong> (+<strong class="pam-positive">${riser.delta}</strong>) 📈
-                    </span>
-                </div>
-            `).join('');
-        } else {
-             riserHtml = '<div class="summary-item"><span>No significant risers this period.</span></div>';
-        }
-
-
-        let fallerHtml = '';
-        if (biggestFallers.length > 0) {
-            fallerHtml = biggestFallers.map(faller => `
-                <div class="summary-item">
-                    <img src="icons/${faller.team_id}.webp" alt="${faller.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
-                    <span>Biggest Faller: 
-                        <strong class="pam-negative"><a href="team.html?id=${faller.team_id}" class="summary-team-link">${faller.team_name}</a></strong> (<strong class="pam-negative">${faller.delta}</strong>) 📉
-                    </span>
-                </div>
-            `).join('');
-        } else {
-            fallerHtml = '<div class="summary-item"><span>No significant fallers this period.</span></div>';
-        }
-        
-        summaryContainer.innerHTML = riserHtml + fallerHtml;
-    }
-
-
-      async function loadStandings() {
-        const viewParam = getUrlParameter('view');
-        const sortByParam = getUrlParameter('sortBy');
-        let sortDirectionParam = getUrlParameter('sortDirection');
-        const playoffLegend = document.querySelector('.playoff-legend'); 
-
-        viewButton1 = document.getElementById('viewToggleButton1');
-        viewButton2 = document.getElementById('viewToggleButton2');
-        
-        updateColspanForLoadingPlaceholders(); 
-
-
-        if (!viewButton1 || !viewButton2) {
-            console.error("Toggle buttons not found on page load.");
-            document.getElementById('conferenceViewContainer').classList.add('hidden');
-            document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-            document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-            if(playoffLegend) playoffLegend.classList.add('hidden');
-            const buttonsContainer = document.querySelector('.page-buttons-container');
-            if (buttonsContainer) buttonsContainer.classList.add('hidden');
-            document.getElementById('standingsPageTitle').textContent = 'Page Error: UI Elements Missing';
-            return;
-        }
-
-        if (viewParam === 'fullLeague' && sortByParam) {
-            let effectiveSortDirection = sortDirectionParam;
-            if (!effectiveSortDirection) {
-                if (sortByParam === 'med_starter_rank') effectiveSortDirection = 'asc_rank';
-                else if (sortByParam === 'pam') effectiveSortDirection = 'desc';
-                else effectiveSortDirection = 'asc';
-            } else {
-                if (sortByParam === 'med_starter_rank') {
-                    if (sortDirectionParam.toLowerCase() === 'asc') effectiveSortDirection = 'asc_rank';
-                    else if (sortDirectionParam.toLowerCase() === 'desc') effectiveSortDirection = 'desc_rank';
-                }
-            }
-            sortState.FullLeague = { column: sortByParam, direction: effectiveSortDirection };
-        }
-
-        let fetchedTeamsData = await fetchSheetData('Teams');
-        if (!fetchedTeamsData) {
-          console.error("Failed to fetch main Teams data. Standings cannot be loaded.");
-          document.querySelector('.page-buttons-container').classList.add('hidden');
-          if(playoffLegend) playoffLegend.classList.add('hidden');
-          document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
+      
+      async function loadStandingsPreview() {
+        const teamsData = await fetchSheetData('Teams'); 
+        if (!teamsData) {
+          document.getElementById('eastern-standings').innerHTML = '<tr><td colspan="4" class="error">Error loading standings</td></tr>';
+          document.getElementById('western-standings').innerHTML = '<tr><td colspan="4" class="error">Error loading standings</td></tr>';
           return;
         }
         
-        // Define sets of team IDs and names to exclude.
-        const excludedTeamIds = new Set(['EGM', 'WGM', 'RSE', 'RSW', 'EAST', 'WEST', 'RETIRED', 'FREE_AGENT']);
-        const excludedTeamNames = new Set(['East GMs', 'West GMs', 'East Rising Stars', 'West Rising Stars', 'East All-Stars', 'West All-Stars']);
+        if (allTeams.length === 0) allTeams = teamsData; 
+        
+        const easternTeams = teamsData.filter(team => team.conference === 'Eastern')
+          .sort((a, b) => {
+            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
+            if (winsB !== winsA) return winsB - winsA;
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+          }).slice(0, 5);
+          
+        const westernTeams = teamsData.filter(team => team.conference === 'Western')
+          .sort((a, b) => {
+            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
+            if (winsB !== winsA) return winsB - winsA;
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+          }).slice(0, 5);
+        
+        const easternHTML = easternTeams.map(team => {
+          const medRank = parseFloat(team.med_starter_rank || 0);
+          return `
+          <tr>
+            <td>
+              <a href="team.html?id=${team.team_id}" class="team-link">
+                <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                ${team.team_name}
+              </a>
+            </td>
+            <td>${team.wins || 0}-${team.losses || 0}</td>
+            <td>${Math.round(parseFloat(team.pam || 0)).toLocaleString()}</td>
+            <td class="desktop-only-col">${medRank > 0 ? Math.round(medRank) : '-'}</td>
+          </tr>
+        `}).join('');
+        
+        const westernHTML = westernTeams.map(team => {
+          const medRank = parseFloat(team.med_starter_rank || 0);
+          return `
+          <tr>
+            <td>
+              <a href="team.html?id=${team.team_id}" class="team-link">
+                <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                ${team.team_name}
+              </a>
+            </td>
+            <td>${team.wins || 0}-${team.losses || 0}</td>
+            <td>${Math.round(parseFloat(team.pam || 0)).toLocaleString()}</td>
+            <td class="desktop-only-col">${medRank > 0 ? Math.round(medRank) : '-'}</td>
+          </tr>
+        `}).join('');
+        
+        document.getElementById('eastern-standings').innerHTML = easternHTML;
+        document.getElementById('western-standings').innerHTML = westernHTML;
+      }
+      
+      async function loadRecentGames() { 
+        const scheduleData = await fetchSheetData('Schedule'); 
+        const teamsData = await fetchSheetData('Teams'); 
+        
+        if (!scheduleData || !teamsData) {
+          document.getElementById('recent-games').innerHTML = '<div class="error">Error loading recent games</div>';
+          return;
+        }
+        
+        if (allTeams.length === 0) allTeams = teamsData; 
+        
+        const completedGames = scheduleData
+          .filter(game => game.completed === 'TRUE')
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 5); 
+        
+        if (completedGames.length === 0) {
+          document.getElementById('recent-games').innerHTML = '<div class="loading">No completed games yet</div>';
+          return;
+        }
+        
+        const gamesHTML = completedGames.map(game => {
+          const team1Score = parseFloat(game.team1_score || 0);
+          const team2Score = parseFloat(game.team2_score || 0);
+          const winner = game.winner;
+          const team1Name = getTeamName(game.team1_id, allTeams); 
+          const team2Name = getTeamName(game.team2_id, allTeams); 
+          
+          const team1Data = allTeams.find(t => t.team_id === game.team1_id);
+          const team2Data = allTeams.find(t => t.team_id === game.team2_id);
+          const team1Record = team1Data ? `${team1Data.wins || 0}-${team1Data.losses || 0}` : '';
+          const team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
+          
+          return `
+            <div class="game-item" onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')">
+              <div class="game-matchup">
+                <div class="team ${winner === game.team1_id ? 'winner' : ''}">
+                  <img src="icons/${game.team1_id}.webp" alt="${game.team1_id}" class="team-logo" onerror="this.style.display='none'">
+                  <div class="team-info">
+                    <span class="team-name">${team1Name}</span>
+                    <span class="team-record">${team1Record}</span>
+                  </div>
+                  <span class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</span>
+                </div>
+                <span class="vs">vs</span>
+                <div class="team ${winner === game.team2_id ? 'winner' : ''}">
+                  <img src="icons/${game.team2_id}.webp" alt="${game.team2_id}" class="team-logo" onerror="this.style.display='none'">
+                  <div class="team-info">
+                    <span class="team-name">${team2Name}</span>
+                    <span class="team-record">${team2Record}</span>
+                  </div>
+                  <span class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</span>
+                </div>
+              </div>
+              <div class="game-date">
+                ${formatDate(game.date)}
+              </div>
+            </div>
+          `;
+        }).join('');
+        document.getElementById('recent-games').innerHTML = gamesHTML;
+      }
+      
+      async function loadSeasonInfo() {
+        // Modified to fetch 'Lineups' instead of 'Players' for totalKarma calculation.
+        // If 'Players' data was used for other things in this function, you'd fetch it as well.
+        // For this specific change, we're assuming 'Players' fetched here was only for the old totalKarma.
+        const [schedule, transactions, lineupsSheetData] = await Promise.all([ // Changed 'players' to 'lineupsSheetData'
+          fetchSheetData('Schedule'),
+          fetchSheetData('Transaction_Log'),
+          fetchSheetData('Lineups') // Fetch data from the 'Lineups' sheet
+        ]);
 
-        // Filter out the excluded teams
-        allTeamsData = fetchedTeamsData.filter(team => {
-            if (!team.team_id) return false;
-            if (excludedTeamIds.has(team.team_id.trim().toUpperCase())) return false;
-            if (team.team_name && excludedTeamNames.has(team.team_name)) return false;
-            return true;
+        if (!schedule) {
+          document.getElementById('current-week').textContent = 'Unknown';
+          document.getElementById('season-stats').innerHTML = '<p>Error loading season information (schedule missing)</p>'; // Added more specific error
+          return;
+        }
+
+        const gamesByWeek = {};
+        schedule.forEach(game => {
+          const week = parseInt(game.week);
+          if (!gamesByWeek[week]) { gamesByWeek[week] = { total: 0, completed: 0 };}
+          gamesByWeek[week].total++;
+          if (game.completed === 'TRUE') { gamesByWeek[week].completed++;}
         });
 
-        if (!allTeamsData || allTeamsData.length === 0) {
-            const colspanForError = getColspanForMobile();
-            const errorMsg = `<tr><td colspan="${colspanForError}" class="error">No valid team data available after filtering.</td></tr>`;
-            const prErrorMsg = `<tr><td colspan="5" class="error">No valid team data available.</td></tr>`; 
-            ['eastern-standings', 'western-standings', 'full-league-standings'].forEach(id => {
-                const tableBody = document.getElementById(id);
-                if (tableBody) tableBody.innerHTML = errorMsg;
-            });
-            const prTableBody = document.getElementById('power-rankings-standings');
-            if(prTableBody) prTableBody.innerHTML = prErrorMsg; 
-            const summaryContainer = document.getElementById('powerRankingsSummary');
-            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Team data unavailable.</span></div>';
+        let currentWeek = 1;
+        const weeks = Object.keys(gamesByWeek).map(w => parseInt(w)).sort((a, b) => a - b);
 
-            document.getElementById('conferenceViewContainer').classList.add('hidden');
-            document.getElementById('fullLeagueViewContainer').classList.add('hidden');
-            document.getElementById('powerRankingsViewContainer').classList.add('hidden');
-            if(playoffLegend) playoffLegend.classList.add('hidden');
-            document.querySelector('.page-buttons-container').classList.add('hidden');
-            document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
-            return;
+        for (const week of weeks) {
+          if (gamesByWeek[week].completed < gamesByWeek[week].total) { currentWeek = week; break;}
+          currentWeek = week;
         }
+        document.getElementById('current-week').textContent = `Week ${currentWeek}`;
 
-        let rawEasternTeams = allTeamsData.filter(team => team.conference === 'Eastern');
-        let rawWesternTeams = allTeamsData.filter(team => team.conference === 'Western');
+        const totalGames = schedule.length;
+        const completedGames = schedule.filter(game => game.completed === 'TRUE').length;
 
-        easternTeamsData = rawEasternTeams
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-          })
-          .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
-
-        westernTeamsData = rawWesternTeams
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-          })
-          .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
-
-        fullLeagueTeamsData = [...allTeamsData]
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-          })
-          .map((team, index) => ({ ...team, officialFullLeagueRank: index + 1 }));
-        
-        let rawPowerRankings = await fetchSheetData('TPR');
-        const prTableBody = document.getElementById('power-rankings-standings');
-        const summaryContainer = document.getElementById('powerRankingsSummary');
-
-        if (rawPowerRankings && rawPowerRankings.length > 0) {
-            powerRankingsData = rawPowerRankings.map(prTeam => {
-                const officialTeam = allTeamsData.find(t => t.team_id === prTeam.team_id);
-                const displayName = officialTeam ? officialTeam.team_name : prTeam.team_name; 
-                const wins = officialTeam ? (officialTeam.wins || 0) : 0;
-                const losses = officialTeam ? (officialTeam.losses || 0) : 0;
-
-                return {
-                    rank: parseInt(prTeam.power_rank),
-                    team_name: displayName, 
-                    team_id: prTeam.team_id,      
-                    prev_rank: prTeam.prev_power ? parseInt(prTeam.prev_power) : null,
-                    delta: parseInt(prTeam.power_delta) || 0,
-                    wins: wins,
-                    losses: losses
-                };
-            }).filter(team => team.team_id && team.team_id.trim() !== '' && !isNaN(team.rank))
-              .sort((a, b) => a.rank - b.rank);
-
-            if (powerRankingsData.length === 0 && rawPowerRankings.length > 0) {
-                 console.warn("Power rankings data fetched, but no teams could be fully processed.");
-                 if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="5" class="error">Could not process power ranking data.</td></tr>`;
-                 if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Could not process power ranking data.</span></div>';
+        let uniqueTransactionCount = 0;
+        if (transactions) {
+          const uniqueTransactionIds = new Set();
+          transactions.forEach(transaction => {
+            if (transaction.transaction_id &&
+                transaction.transaction_type &&
+                !transaction.notes?.toLowerCase().includes('pre-database') &&
+                !transaction.notes?.toLowerCase().includes('preseason')) {
+              uniqueTransactionIds.add(transaction.transaction_id);
             }
-        } else if (rawPowerRankings && rawPowerRankings.length === 0) { 
-            if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="5" class="loading">No power ranking data available in the sheet.</td></tr>`;
-            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>No power ranking data available in the sheet.</span></div>';
-        } else if (!rawPowerRankings) { 
-            console.log("TPR sheet fetch failed, error message already handled.");
+          });
+          uniqueTransactionCount = uniqueTransactionIds.size;
         }
 
-        renderStandings('Eastern', easternTeamsData);
-        renderStandings('Western', westernTeamsData);
-        renderStandings('FullLeague', fullLeagueTeamsData);
-        renderPowerRankings(powerRankingsData); 
-        
-        if (viewParam === 'fullLeague') {
-            showFullLeagueView();
-        } else if (viewParam === 'powerRankings') {
-            showPowerRankingsView();
+        // Calculate totalKarma from the 'Lineups' sheet, summing 'points_raw'
+        let totalKarma = 0;
+        if (lineupsSheetData) {
+          totalKarma = lineupsSheetData.reduce((sum, lineupEntry) => {
+            // Using the existing parseNumber function to convert 'points_raw' to a number
+            return sum + parseNumber(lineupEntry.points_raw || 0);
+          }, 0);
         } else {
-            showConferenceView(); 
+          // Handle case where lineupsSheetData might not be loaded
+          console.error("Lineups data could not be loaded for totalKarma calculation.");
+          document.getElementById('season-stats').innerHTML = `
+            <p><strong>${completedGames} of ${totalGames}</strong> regular season games complete</p>
+            <p><strong>${uniqueTransactionCount}</strong> transactions made (excludes pre-database moves)</p>
+            <p><strong>Error loading total karma</strong></p> 
+          `; // Update UI to show error
+          return; // Exit if no lineups data
         }
-        updateColspanForLoadingPlaceholders();
 
+        document.getElementById('season-stats').innerHTML = `
+          <p><strong>${completedGames} of ${totalGames}</strong> regular season games complete</p>
+          <p><strong>${uniqueTransactionCount}</strong> transactions made (excludes pre-database moves)</p>
+          <p><strong>${Math.round(totalKarma).toLocaleString()}</strong> total karma earned</p> 
+        `; 
+      }
+      
+      async function showGameDetails(team1Id, team2Id, date) {
+        const modal = document.getElementById('game-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalContentArea = document.getElementById('game-details-content-area'); 
+        
+        modal.style.display = 'block';
+        const team1Name = getTeamName(team1Id, allTeams);
+        const team2Name = getTeamName(team2Id, allTeams);
+        modalTitle.textContent = `${team1Name} vs ${team2Name} - ${formatDateShort(date)}`;
+        modalContentArea.innerHTML = '<div class="loading">Loading game details...</div>';
+        
+        const scheduleData = await fetchSheetData('Schedule');
+        if (!scheduleData) {
+          modalContentArea.innerHTML = '<div class="error">Error loading schedule data for modal.</div>';
+          return;
+        }
+        
+        const game = scheduleData.find(g => 
+          g.team1_id === team1Id && 
+          g.team2_id === team2Id && 
+          g.date === date
+        );
+        
+        if (!game) {
+          modalContentArea.innerHTML = '<div class="error">Game details not found.</div>';
+          return;
+        }
+        
+        const lineupsData = await fetchSheetData('Lineups');
+        if (!lineupsData) {
+          modalContentArea.innerHTML = '<div class="error">Error loading lineup data for modal.</div>';
+          return;
+        }
+        
+        const team1AllLineups = lineupsData.filter(lineup => 
+          lineup.team_id === team1Id && lineup.date === date
+        );
+        const team2AllLineups = lineupsData.filter(lineup => 
+          lineup.team_id === team2Id && lineup.date === date
+        );
+        
+        const sortLineup = (a,b) => {
+            const aCaptain = a.captain === 'TRUE' || a.captain === true || a.captain === 'true';
+            const bCaptain = b.captain === 'TRUE' || b.captain === true || b.captain === 'true';
+            if (aCaptain && !bCaptain) return -1;
+            if (!aCaptain && bCaptain) return 1;
+            return parseNumber(b.points_raw) - parseNumber(a.points_raw); // Sorting within lineup still uses points_raw for display order
+        };
+
+        const team1Lineups = team1AllLineups.filter(l => (l.started === 'TRUE' || l.started === true || l.started === 'true' || l.started === 1 || l.started === '1')).sort(sortLineup);
+        const team2Lineups = team2AllLineups.filter(l => (l.started === 'TRUE' || l.started === true || l.started === 'true' || l.started === 1 || l.started === '1')).sort(sortLineup);
+        
+        // **MODIFIED LINES BELOW**
+        const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+        const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+        // **MODIFIED LINES ABOVE**
+        const winner = game.winner;
+        
+        const generateLineupTable = (lineups, teamIdForTable, total, isWinner) => {
+          const teamDataForTable = allTeams.find(t => t.team_id === teamIdForTable); 
+          const teamRecord = teamDataForTable ? `${teamDataForTable.wins || 0}-${teamDataForTable.losses || 0}` : '';
+          
+          if (lineups.length === 0) {
+            return `
+              <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+                <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
+                  <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
+                  <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
+                </div>
+                <div class="team-total">Total: ${Math.round(total).toLocaleString()}</div>
+                <div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div>
+              </div>`;
+          }
+          const lineupRows = lineups.map(player => {
+            const isCaptain = player.captain === 'TRUE' || player.captain === true || player.captain === 'true';
+            const pointsRaw = parseNumber(player.points_raw); // points_raw for individual display
+            const globalRank = parseNumber(player.global_rank);
+            const captainBonus = isCaptain ? Math.round(parseNumber(player.points_final) - pointsRaw) : 0; // Calculate bonus based on points_final and points_raw for display
+            return `
+              <tr class="${isCaptain ? 'captain-row' : ''}">
+                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${player.player_handle || 'Unknown'}</a>${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td>
+                <td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain && captainBonus > 0 ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td>
+                <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
+              </tr>`;}).join('');
+          return `
+            <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+              <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
+                <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
+                <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
+              </div>
+              <div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div>
+              <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
+            </div>`;};
+        
+        modalContentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, winner === team2Id)}</div>`;
+      }
+      
+      function closeGameModal() { 
+        document.getElementById('game-modal').style.display = 'none';
+      }
+      window.onclick = function(event) { 
+        const modal = document.getElementById('game-modal');
+        if (event.target === modal) {closeGameModal();}
+      }
+      
+      function initializePage() {
+        // --- Theme Toggler ---
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark-mode');
+                
+                let theme = 'light';
+                if (document.documentElement.classList.contains('dark-mode')) {
+                    theme = 'dark';
+                }
+                localStorage.setItem('theme', theme);
+            });
+        }
+        
+        loadStandingsPreview(); 
+        Promise.all([
+          loadRecentGames(),
+          loadSeasonInfo()
+        ]);
+        
+        // --- Mobile Navigation ---
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
+        const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+
         if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
                 const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
@@ -1317,18 +1504,18 @@
                 navMenu.classList.toggle('active');
             });
         }
-      }
-      window.addEventListener('resize', () => {
-        if (currentView === 'conferences') {
-            renderStandings('Eastern', easternTeamsData); 
-            renderStandings('Western', westernTeamsData); 
-        } else if (currentView === 'fullLeague') {
-            renderStandings('FullLeague', fullLeagueTeamsData); 
+        
+        if(dropdownBtn) {
+            dropdownBtn.addEventListener('click', function(event) {
+                // Check if we are in mobile view (nav-toggle is visible)
+                if (window.getComputedStyle(navToggle).display !== 'none') {
+                    event.preventDefault(); // Prevent link navigation
+                    this.parentElement.classList.toggle('active');
+                }
+            });
         }
-        updateColspanForLoadingPlaceholders();
-      });
-
-      document.addEventListener('DOMContentLoaded', loadStandings);
+      }
+      document.addEventListener('DOMContentLoaded', initializePage);
     </script>
   </body>
 </html>

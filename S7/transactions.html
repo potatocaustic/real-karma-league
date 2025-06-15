@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 7 Transactions</title>
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <style>
       /* Reset and General Styles */
       * {
@@ -18,10 +27,12 @@
         background-color: #f4f4f4;
         color: #333;
         line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
       }
       
       h1, h2, h3 {
         color: #333;
+        transition: color 0.3s;
       }
 
       /* Header styling */
@@ -30,9 +41,10 @@
         color: #fff;
         padding: 1rem;
         text-align: center;
+        position: relative;
       }
       
-      header h1 { /* This is for the main page title in the header block */
+      header h1 {
         color: white !important;
         font-size: 2rem; 
         margin: 0;
@@ -42,23 +54,36 @@
         gap: 0.75rem; 
       }
       
-      .header-logo { /* For the logo in the main page title */
+      .header-logo {
         width: 40px; 
         height: 40px;
         object-fit: cover;
       }
 
-      .header-text {
-        /* Default display */
+      .header-text {}
+
+      #theme-toggle-btn {
+        position: absolute;
+        top: 1.2rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        line-height: 1;
+        z-index: 102;
       }
+      #theme-toggle-btn .moon-icon { display: none; }
       
       /* Navigation styling */
       nav {
-        position: relative; /* For dropdown positioning context */
+        position: relative;
       }
 
       .nav-toggle {
-        display: none; /* Hidden by default, shown on mobile */
+        display: none;
         background: none;
         border: none;
         color: white;
@@ -66,7 +91,7 @@
         cursor: pointer;
         padding: 0.5rem 1rem;
         position: absolute; 
-        top: -2.8rem; /* Adjust based on your header's h1 size and padding */
+        top: -2.8rem; 
         right: 1rem;
       }
       
@@ -122,6 +147,7 @@
           left: 50%;
           transform: translateX(-50%);
           padding-top: 0.5rem;
+          transition: background-color 0.3s;
       }
 
       .dropdown-content a {
@@ -142,8 +168,12 @@
           display: block; /* Show on desktop hover */
       }
 
-      /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
+        #theme-toggle-btn {
+          left: 1rem;
+          right: auto;
+        }
+
         .header-text {
           display: none; 
         }
@@ -153,11 +183,11 @@
         }
 
         .nav-toggle {
-          display: block; /* Show hamburger on mobile */
+          display: block;
         }
         
         nav ul {
-          display: none; /* Hide nav list by default on mobile */
+          display: none;
           position: absolute;
           top: calc(100% - 1rem); 
           left: 0;
@@ -173,7 +203,7 @@
         }
 
         nav ul.active {
-          display: flex; /* Show when active */
+          display: flex;
         }
         
         nav ul li {
@@ -189,7 +219,6 @@
             background-color: #555;
         }
         
-        /* Mobile Dropdown Overrides */
         .dropdown {
             display: block;
             width: 100%;
@@ -213,10 +242,10 @@
             top: auto;
         }
         .dropdown-content a {
-            padding-left: 2.5rem; /* Indent nested links */
+            padding-left: 2.5rem;
         }
         .dropdown.active .dropdown-content {
-            display: block; /* Show on mobile click via JS */
+            display: block;
         }
         .dropdown:hover .dropdown-content {
             display: none;
@@ -250,6 +279,7 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         padding: 1.5rem;
         margin-bottom: 2rem;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .filter-row {
@@ -277,6 +307,7 @@
         border-radius: 4px;
         font-size: 1rem;
         min-width: 150px;
+        transition: background-color 0.3s, border-color 0.3s, color 0.3s;
       }
       .filter-group select:disabled {
         background-color: #e9ecef;
@@ -290,6 +321,7 @@
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .transactions-header {
@@ -314,7 +346,7 @@
       .transaction-item {
         padding: 1.5rem;
         border-bottom: 1px solid #eee;
-        transition: background-color 0.2s;
+        transition: background-color 0.2s, border-bottom-color 0.3s;
       }
 
       .transaction-item:hover {
@@ -356,6 +388,7 @@
       .transaction-date {
         font-size: 0.9rem;
         color: #666;
+        transition: color 0.3s;
       }
 
       .transaction-details {
@@ -383,16 +416,14 @@
           font-weight: 500;
       }
 
-      .player-stats-inline { font-size: 0.85em; color: #555; }
+      .player-stats-inline { font-size: 0.85em; color: #555; transition: color 0.3s; }
       .gm-name { font-weight: bold; color: #17a2b8; } 
 
 
       .draft-pick {
-        /* font-family: monospace; */ 
         font-size: 0.9rem;
       }
 
-      /* Multi-transaction group */
       .multi-transaction {
         border-left: 4px solid #007bff;
       }
@@ -422,6 +453,7 @@
         padding: 1rem;
         border-radius: 6px;
         border: 1px solid #ddd;
+        transition: background-color 0.3s, border-color 0.3s;
       }
 
       .trade-arrow {
@@ -430,11 +462,11 @@
         font-weight: bold;
         text-align: center;
         margin-top: 1.5rem; 
-        /* Ensure it aligns well if it's the only thing in an 'auto' column */
         display: flex; 
         align-items: center;
         justify-content: center;
-        min-height: 50px; /* Adjust as needed based on trade-side content height */
+        min-height: 50px;
+        transition: color 0.3s;
       }
 
 
@@ -458,6 +490,7 @@
         padding: 0.3rem 0;
         border-bottom: 1px solid #eee;
         font-size: 0.9rem;
+        transition: border-color 0.3s;
       }
 
       .trade-assets li:last-child {
@@ -469,15 +502,81 @@
       .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
       .no-transactions { text-align: center; padding: 3rem; color: #666; font-style: italic; }
 
-      /* Mobile responsive */
+      /* Dark Mode Styles */
+      .dark-mode body {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+      .dark-mode h1, .dark-mode h2, .dark-mode h3 {
+        color: #f5f5f5;
+      }
+      .dark-mode #theme-toggle-btn .sun-icon { display: none; }
+      .dark-mode #theme-toggle-btn .moon-icon { display: block; }
+      .dark-mode .page-header p, .dark-mode .transaction-date, .dark-mode .player-stats-inline {
+        color: #aaa;
+      }
+      .dark-mode .filter-controls, .dark-mode .transactions-container {
+        background-color: #1e1e1e;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      .dark-mode .filter-group select {
+        background-color: #2c2c2c;
+        border-color: #444;
+        color: #e0e0e0;
+      }
+      .dark-mode .transaction-item {
+        border-bottom-color: #333;
+      }
+      .dark-mode .transaction-item:hover {
+        background-color: #2c2c2c;
+      }
+      .dark-mode .player-name-link, .dark-mode .team-name-link {
+        color: #8ab4f8;
+      }
+      .dark-mode .player-name-link:hover, .dark-mode .team-name-link:hover {
+        color: #a7c7fa;
+      }
+      .dark-mode .gm-name {
+        color: #4dd0e1;
+      }
+      .dark-mode .trade-side {
+        background-color: #2c2c2c;
+        border-color: #444;
+      }
+      .dark-mode .trade-assets li {
+        border-bottom-color: #383838;
+      }
+      .dark-mode .trade-arrow {
+        color: #8ab4f8;
+      }
+      .dark-mode .error {
+        background-color: #5d1c21;
+        color: #f8d7da;
+      }
+      .dark-mode .dropdown-content {
+          background-color: #444;
+      }
+      .dark-mode .dropdown-content a:hover {
+          background-color: #666;
+      }
+      .dark-mode nav ul.active {
+          background-color: #444;
+      }
+      .dark-mode nav ul li a:hover {
+        background-color: #555;
+      }
+      .dark-mode .dropdown.active .dropdown-content {
+          background-color: #4a4a4a;
+      }
+
+
       @media (max-width: 768px) {
         .filter-row { flex-direction: column; align-items: stretch; }
         .filter-group { width: 100%; }
         .filter-group select { min-width: auto; width: 100%; }
         .transaction-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-        .trade-parts { grid-template-columns: 1fr; gap: 1rem; } /* This ensures vertical stacking */
+        .trade-parts { grid-template-columns: 1fr; gap: 1rem; }
         
-        /* Ensure multi-team grids also stack on mobile */
         .trade-parts.three-team-grid,
         .trade-parts.four-team-grid {
             grid-template-columns: 1fr;
@@ -487,7 +586,7 @@
             text-align: center; 
             transform: rotate(90deg); 
             margin-top: 0; margin-bottom: 0.5rem;
-            min-height: auto; /* Reset min-height for mobile */
+            min-height: auto;
         }
       }
 
@@ -497,6 +596,10 @@
   </head>
   <body>
     <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
@@ -1126,15 +1229,40 @@
       }
       
       document.addEventListener('DOMContentLoaded', () => {
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark-mode');
+                
+                let theme = 'light';
+                if (document.documentElement.classList.contains('dark-mode')) {
+                    theme = 'dark';
+                }
+                localStorage.setItem('theme', theme);
+            });
+        }
+
         loadData();
         // Nav Toggle JS
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
+        const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+
         if (navToggle && navMenu) {
             navToggle.addEventListener('click', () => {
                 const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
                 navToggle.setAttribute('aria-expanded', !isExpanded);
                 navMenu.classList.toggle('active');
+            });
+        }
+        
+        if(dropdownBtn) {
+            dropdownBtn.addEventListener('click', function(event) {
+                // Check if we are in mobile view (nav-toggle is visible)
+                if (window.getComputedStyle(navToggle).display !== 'none') {
+                    event.preventDefault(); // Prevent link navigation
+                    this.parentElement.classList.toggle('active');
+                }
             });
         }
       });

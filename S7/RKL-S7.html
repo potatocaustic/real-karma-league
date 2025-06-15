@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Real Karma League S7</title>
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
     <style>
       /* Reset and General Styles */
       * {
@@ -18,10 +27,12 @@
         background-color: #f4f4f4;
         color: #333;
         line-height: 1.6;
+        transition: background-color 0.3s, color 0.3s;
       }
       
       h1, h2, h3 {
         color: #333;
+        transition: color 0.3s;
       }
 
       /* Header styling */
@@ -30,6 +41,7 @@
         color: #fff;
         padding: 1rem;
         text-align: center;
+        position: relative;
       }
       
       header h1 {
@@ -51,6 +63,22 @@
       .header-text {
         /* Default display */
       }
+
+      #theme-toggle-btn {
+        position: absolute;
+        top: 1.2rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        line-height: 1;
+        z-index: 102;
+      }
+      #theme-toggle-btn .moon-icon { display: none; }
+
 
       /* Navigation styling */
       nav {
@@ -122,6 +150,7 @@
           left: 50%;
           transform: translateX(-50%);
           padding-top: 0.5rem;
+          transition: background-color 0.3s;
       }
 
       .dropdown-content a {
@@ -144,6 +173,11 @@
 
       /* Mobile navigation & header adjustments */
       @media (max-width: 600px) {
+        #theme-toggle-btn {
+          left: 1rem;
+          right: auto;
+        }
+
         .header-text {
           display: none; 
         }
@@ -251,6 +285,7 @@
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         margin-bottom: 2rem;
         text-align: center;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       /* Quick Navigation */
@@ -300,6 +335,7 @@
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .standings-header {
@@ -326,6 +362,7 @@
         color: #333;
         border-bottom: 2px solid #333;
         padding-bottom: 0.5rem;
+        transition: color 0.3s, border-color 0.3s;
       }
 
       .standings-table {
@@ -340,12 +377,14 @@
         padding: 0.5rem;
         text-align: left;
         border-bottom: 1px solid #ddd;
+        transition: border-color 0.3s;
       }
 
       .standings-table th {
         background-color: #f8f9fa;
         font-weight: bold;
         font-size: 0.9rem;
+        transition: background-color 0.3s;
       }
 
       .standings-table td {
@@ -413,6 +452,7 @@
         border-radius: 8px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
       }
 
       .games-header {
@@ -438,7 +478,7 @@
         align-items: center;
         padding: 1rem;
         border-bottom: 1px solid #ddd;
-        transition: background-color 0.2s;
+        transition: background-color 0.2s, border-color 0.3s;
         cursor: pointer;
       }
 
@@ -485,6 +525,7 @@
       .team-record {
         font-size: 0.8rem;
         color: #666;
+        transition: color 0.3s;
       }
 
       .team-score {
@@ -494,12 +535,14 @@
         min-width: 35px;
         text-align: right;
         flex-shrink: 0;
+        transition: color 0.3s;
       }
 
       .vs {
         font-weight: bold;
         color: #666;
         margin: 0 0.5rem;
+        transition: color 0.3s;
       }
 
       .game-date {
@@ -507,6 +550,7 @@
         font-size: 0.8rem;
         text-align: center;
         min-width: 60px;
+        transition: color 0.3s;
       }
 
       .recent-games .team-score.winner {
@@ -541,6 +585,7 @@
         max-height: 90vh;
         overflow-y: auto;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        transition: background-color 0.3s;
       }
 
       .modal-header {
@@ -592,6 +637,7 @@
         border-radius: 8px;
         overflow: hidden;
         border: 1px solid #ddd;
+        transition: background-color 0.3s, border-color 0.3s;
       }
 
       .team-breakdown.winner {
@@ -609,6 +655,7 @@
         justify-content: center;
         gap: 1rem;
         flex-direction: column;
+        transition: background-color 0.3s;
       }
 
       .modal-team-header.winner { 
@@ -634,6 +681,7 @@
         font-weight: bold;
         font-size: 1.1rem;
         border-bottom: 2px solid #ddd;
+        transition: background-color 0.3s, border-color 0.3s;
       }
 
       .lineup-table {
@@ -648,6 +696,7 @@
         font-weight: bold;
         border-bottom: 2px solid #ddd;
         font-size: 0.9rem;
+        transition: background-color 0.3s, border-color 0.3s;
       }
 
       .lineup-table th:first-child {
@@ -665,6 +714,7 @@
         border-bottom: 1px solid #eee;
         font-size: 0.9rem;
         text-align: center;
+        transition: border-color 0.3s;
       }
 
       .lineup-table td:first-child {
@@ -741,6 +791,127 @@
         margin: 1rem 0;
       }
 
+      /* Dark Mode Styles */
+      .dark-mode body {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+      .dark-mode h1, .dark-mode h2, .dark-mode h3 {
+        color: #f5f5f5;
+      }
+      .dark-mode #theme-toggle-btn .sun-icon { display: none; }
+      .dark-mode #theme-toggle-btn .moon-icon { display: block; }
+
+      .dark-mode .season-info,
+      .dark-mode .nav-card,
+      .dark-mode .standings-preview,
+      .dark-mode .recent-games {
+        background-color: #1e1e1e;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      .dark-mode .nav-card a {
+        color: #e0e0e0;
+      }
+      .dark-mode .nav-card:hover a {
+        color: #bb86fc;
+      }
+      .dark-mode .conference-title {
+        color: #f5f5f5;
+        border-bottom-color: #444;
+      }
+      .dark-mode .standings-table th {
+        background-color: #2c2c2c;
+      }
+      .dark-mode .standings-table td,
+      .dark-mode .view-full {
+        border-color: #333;
+      }
+      .dark-mode .team-link:hover {
+        color: #bb86fc;
+      }
+      .dark-mode .game-item {
+        border-color: #333;
+      }
+      .dark-mode .game-item:hover {
+        background-color: #2c2c2c;
+      }
+      .dark-mode .team-record,
+      .dark-mode .vs,
+      .dark-mode .game-date,
+      .dark-mode .rank-cell {
+        color: #aaa;
+      }
+      .dark-mode .team-score {
+        color: #e0e0e0;
+      }
+      .dark-mode .recent-games .team-score.winner {
+        color: #66bb6a;
+      }
+      .dark-mode .modal-content {
+        background-color: #1e1e1e;
+      }
+      .dark-mode .close-btn:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+      .dark-mode .team-breakdown {
+        background-color: #2c2c2c;
+        border-color: #444;
+      }
+      .dark-mode .team-breakdown.winner {
+        border-color: #66bb6a;
+      }
+      .dark-mode .modal-team-header.winner {
+        background-color: #2e7d32;
+      }
+      .dark-mode .team-total {
+        background-color: #333;
+        border-bottom-color: #444;
+      }
+      .dark-mode .lineup-table th {
+        background-color: #2c2c2c;
+        border-bottom-color: #444;
+      }
+      .dark-mode .lineup-table td {
+        border-color: #333;
+      }
+      .dark-mode .lineup-table tr:hover {
+        background-color: #383838;
+      }
+      .dark-mode .captain-row {
+        background-color: #4a4100 !important;
+      }
+      .dark-mode .captain-badge {
+        background-color: #ffe082;
+        color: #121212;
+      }
+      .dark-mode .player-link,
+      .dark-mode .view-full a {
+        color: #8ab4f8;
+      }
+      .dark-mode .player-link:hover,
+      .dark-mode .view-full a:hover {
+        color: #a7c7fa;
+      }
+      .dark-mode .error {
+        background-color: #5d1c21;
+        color: #f8d7da;
+      }
+      .dark-mode .dropdown-content {
+          background-color: #444;
+      }
+      .dark-mode .dropdown-content a:hover {
+          background-color: #666;
+      }
+      .dark-mode nav ul.active {
+          background-color: #444;
+      }
+      .dark-mode nav ul li a:hover {
+        background-color: #555;
+      }
+      .dark-mode .dropdown.active .dropdown-content {
+          background-color: #4a4a4a;
+      }
+
       @media (max-width: 768px) {
         .main-grid {
           grid-template-columns: 1fr;
@@ -812,6 +983,10 @@
   </head>
   <body>
     <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
@@ -1296,14 +1471,28 @@
         if (event.target === modal) {closeGameModal();}
       }
       
-      async function initializePage() {
-        await loadStandingsPreview(); 
-        await Promise.all([
+      function initializePage() {
+        // --- Theme Toggler ---
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        if(themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark-mode');
+                
+                let theme = 'light';
+                if (document.documentElement.classList.contains('dark-mode')) {
+                    theme = 'dark';
+                }
+                localStorage.setItem('theme', theme);
+            });
+        }
+        
+        loadStandingsPreview(); 
+        Promise.all([
           loadRecentGames(),
           loadSeasonInfo()
         ]);
         
-        // Dropdown menu toggle functionality
+        // --- Mobile Navigation ---
         const navToggle = document.querySelector('.nav-toggle');
         const navMenu = document.getElementById('nav-menu');
         const dropdownBtn = document.querySelector('.dropdown .dropbtn');
