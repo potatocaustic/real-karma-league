@@ -1,0 +1,155 @@
+/* Reset and General Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+  line-height: 1.6;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+h1, h2, h3 {
+  color: #333;
+  transition: color 0.3s;
+}
+
+main {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header styling */
+header {
+  background-color: #333;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+  position: relative;
+}
+
+header h1 {
+  color: white !important;
+  font-size: 2rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.header-logo {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+}
+
+/* Navigation styling */
+nav {
+  position: relative;
+}
+
+nav ul {
+  display: flex;
+  justify-content: center;
+  list-style: none;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+nav ul li {
+  margin: 0.5rem 1rem;
+}
+
+nav ul li a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+  white-space: nowrap;
+}
+
+nav ul li a:hover {
+  color: #ccc;
+}
+
+/* NEW: Styles for Login Form */
+.login-container {
+    padding: 2rem;
+    max-width: 450px;
+    margin: 2rem auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-container h2 {
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.login-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 1rem;
+    width: 100%;
+}
+
+.login-btn:hover {
+    background-color: #0056b3;
+}
+
+#error-message {
+    color: #dc3545;
+    margin-top: 1rem;
+    font-weight: 500;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  margin-top: 3rem;
+  padding: 1rem;
+  background-color: #333;
+  color: #fff;
+}
+
+/* Dark Mode Styles (optional but recommended for consistency) */
+.dark-mode body { background-color: #121212; color: #e0e0e0; }
+.dark-mode h1, .dark-mode h2, .dark-mode h3 { color: #f5f5f5; }
+.dark-mode .login-container { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+.dark-mode .form-group input { background-color: #2c2c2c; border-color: #444; color: #e0e0e0; }
+.dark-mode .login-btn { background-color: #bb86fc; color: #121212; }
+.dark-mode .login-btn:hover { background-color: #a764fc; }
+.dark-mode #error-message { color: #ef5350; }

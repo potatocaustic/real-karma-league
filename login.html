@@ -4,29 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RKL GM Login</title>
-    <link rel="stylesheet" href="/css/your-styles.css">
+    <link rel="stylesheet" href="/css/global-styles.css">
 </head>
 <body>
 
     <header>
-        <h1>Real Karma League</h1>
+      <h1>
+        <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <ul id="nav-menu">
+            <li><a href="/S7/RKL-S7.html">S7 Home</a></li>
+            </ul>
+      </nav>
     </header>
 
-    <main style="padding: 2rem; max-width: 400px; margin: auto; text-align: center;">
-        <h2>GM Login</h2>
-        <div class="filter-group" style="margin-bottom: 1rem;">
-            <label for="username" style="display: block; margin-bottom: 0.5rem;">Username</label>
-            <input type="text" id="username" placeholder="Enter your username">
+    <main>
+        <div class="login-container">
+            <h2>GM Login</h2>
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter your username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+            
+            <button id="login-btn" class="login-btn">Log In</button>
+            
+            <div id="error-message"></div>
         </div>
-        <div class="filter-group" style="margin-bottom: 1rem;">
-            <label for="password" style="display: block; margin-bottom: 0.5rem;">Password</label>
-            <input type="password" id="password" placeholder="Enter your password">
-        </div>
-        
-        <button id="login-btn" class="toggle-btn active">Log In</button>
-        
-        <div id="error-message" style="color: #dc3545; margin-top: 1rem;"></div>
     </main>
+
+    <footer>
+      <p>@caustic on Real</p>
+    </footer>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js" defer></script>
@@ -37,5 +51,7 @@
     <script src="/js/main.js" defer></script>
     <script src="/js/login.js" defer></script>
 
+</body>
+</html>
 </body>
 </html>
