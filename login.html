@@ -1,24 +1,36 @@
-<h2>GM Login</h2>
-<input type="text" id="username" placeholder="Username">
-<input type="password" id="password" placeholder="Password">
-<button id="login-btn">Log In</button>
-<div id="error-message"></div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RKL GM Login</title>
+    <link rel="stylesheet" href="/css/your-styles.css">
+</head>
+<body>
 
-<script src="firebase-init.js"></script>
-<script>
-  document.getElementById('login-btn').addEventListener('click', () => {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const errorDiv = document.getElementById('error-message');
+    <header>
+        <h1>Real Karma League</h1>
+    </header>
 
-    auth.signInWithEmailAndPassword(email, password)
-      .then((userCredential) => {
-        // Sign-in successful.
-        // Redirect to the trade block page.
-        window.location.href = 'trade-block.html';
-      })
-      .catch((error) => {
-        errorDiv.textContent = error.message;
-      });
-  });
-</script>
+    <main style="padding: 2rem; max-width: 400px; margin: auto; text-align: center;">
+        <h2>GM Login</h2>
+        <div class="filter-group" style="margin-bottom: 1rem;">
+            <label for="username" style="display: block; margin-bottom: 0.5rem;">Username</label>
+            <input type="text" id="username" placeholder="Enter your username">
+        </div>
+        <div class="filter-group" style="margin-bottom: 1rem;">
+            <label for="password" style="display: block; margin-bottom: 0.5rem;">Password</label>
+            <input type="password" id="password" placeholder="Enter your password">
+        </div>
+        
+        <button id="login-btn" class="toggle-btn active">Log In</button>
+        
+        <div id="error-message" style="color: #dc3545; margin-top: 1rem;"></div>
+    </main>
+
+    <script src="/js/firebase-init.js" defer></script>
+    <script src="/js/main.js" defer></script>
+    <script src="/js/login.js" defer></script>
+
+</body>
+</html>
