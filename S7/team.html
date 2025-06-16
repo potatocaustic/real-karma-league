@@ -504,6 +504,36 @@
       .pick-origin-stats { font-size: 0.75rem; color: #007bff; margin-left: 0.5rem; }
       .game-item[onclick] { cursor: pointer; transition: all 0.3s ease; }
       .game-item[onclick]:hover { background-color: #e8f5e8 !important; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+      
+      /* NEW: Draft Capital Summary Styles */
+      .draft-summary {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+        border: 1px solid #ddd;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      .draft-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1rem;
+        text-align: center;
+      }
+      .draft-summary-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        transition: color 0.3s;
+      }
+      .draft-summary-label {
+        font-size: 0.9rem;
+        color: #666;
+        transition: color 0.3s;
+      }
+      .draft-summary-value.total { color: #333; }
+      .draft-summary-value.own { color: #28a745; }
+      .draft-summary-value.acquired { color: #007bff; }
+      .draft-summary-value.forfeiture { color: #dc3545; }
 
       /* Modal styles */
       .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
@@ -558,7 +588,7 @@
       .dark-mode .back-button:hover { background-color: #60a5fa; }
       .dark-mode .team-header-content, .dark-mode .roster-section, .dark-mode .schedule-section, .dark-mode .draft-capital { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
       .dark-mode .team-logo-large { border-color: #444; }
-      .dark-mode .team-subtitle, .dark-mode .stat-label, .dark-mode .player-stats, .dark-mode .team-record-game, .dark-mode .vs-text, .dark-mode .date-badge, .dark-mode .pick-origin, .dark-mode .pick-status { color: #aaa; }
+      .dark-mode .team-subtitle, .dark-mode .stat-label, .dark-mode .player-stats, .dark-mode .team-record-game, .dark-mode .vs-text, .dark-mode .date-badge, .dark-mode .pick-origin, .dark-mode .pick-status, .dark-mode .draft-summary-label { color: #aaa; }
       .dark-mode .gm-info, .dark-mode .stat-rank, .dark-mode .player-name, .dark-mode .pick-origin a { color: #8ab4f8; }
       .dark-mode .stat-card { background-color: #2c2c2c; border-color: #444; }
       .dark-mode .stat-value, .dark-mode .player-rel, .dark-mode .player-war { color: #e0e0e0; }
@@ -571,6 +601,8 @@
       .dark-mode .game-item:hover { background-color: #2c2c2c !important; }
       .dark-mode .game-info-table { background-color: #2c2c2c; border-right-color: #444; }
       .dark-mode .week-cell { border-bottom-color: #444; }
+      /* UPDATED: Set losing score to white as requested */
+      .dark-mode .score.loss { color: #e0e0e0; }
       .dark-mode .team-name.loss, .dark-mode .team-score.loss { color: #ef5350; }
       .dark-mode .team-name.upcoming, .dark-mode .team-score.upcoming { color: #e0e0e0; }
       .dark-mode .pick-item, .dark-mode .pick-item-enhanced { border-bottom-color: #333; }
@@ -579,6 +611,15 @@
       .dark-mode .pick-item-enhanced[style*="#fff3cd"] { background-color: #4a4100 !important; }
       .dark-mode .pick-item-enhanced[style*="#f8d7da"] { background-color: #5d1c21 !important; }
       .dark-mode .draft-capital .season-group .season-header { }
+      /* NEW: Dark mode styles for draft summary */
+      .dark-mode .draft-summary {
+        background-color: #2c2c2c;
+        border-color: #444;
+      }
+      .dark-mode .draft-summary-value.total { color: #e0e0e0; }
+      .dark-mode .draft-summary-value.own { color: #66bb6a; }
+      .dark-mode .draft-summary-value.acquired { color: #8ab4f8; }
+      .dark-mode .draft-summary-value.forfeiture { color: #ef5350; }
       .dark-mode .modal-content { background-color: #1e1e1e; }
       .dark-mode .close-btn:hover { background-color: rgba(255,255,255,0.2); }
       .dark-mode .team-breakdown { background-color: #2c2c2c; border-color: #444; }
@@ -1583,25 +1624,26 @@
         const summaryOwnPicks = teamPicks.filter(p => p.original_team === teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
         const summaryAcquiredPicks = teamPicks.filter(p => p.original_team !== teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
         
+        // UPDATED: Removed inline styles and switched to CSS classes for better theme handling
         const summaryHTML = `
-          <div class="draft-summary" style="background-color: #f8f9fa; padding: 1.5rem; border-radius: 6px; margin-bottom: 1.5rem; border: 1px solid #ddd;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; text-align: center;">
-              <div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #333;">${totalPicks}</div>
-                <div style="font-size: 0.9rem; color: #666;">Total Picks</div>
+          <div class="draft-summary">
+            <div class="draft-summary-grid">
+              <div class="draft-summary-item">
+                <div class="draft-summary-value total">${totalPicks}</div>
+                <div class="draft-summary-label">Total Picks</div>
               </div>
-              <div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${summaryOwnPicks}</div>
-                <div style="font-size: 0.9rem; color: #666;">Own Picks</div>
+              <div class="draft-summary-item">
+                <div class="draft-summary-value own">${summaryOwnPicks}</div>
+                <div class="draft-summary-label">Own Picks</div>
               </div>
-              <div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;">${summaryAcquiredPicks}</div>
-                <div style="font-size: 0.9rem; color: #666;">Acquired</div>
+              <div class="draft-summary-item">
+                <div class="draft-summary-value acquired">${summaryAcquiredPicks}</div>
+                <div class="draft-summary-label">Acquired</div>
               </div>
               ${summaryPendingForfeitureCount > 0 ? `
-                <div>
-                  <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">${summaryPendingForfeitureCount}</div>
-                  <div style="font-size: 0.9rem; color: #666;">Pending Forfeiture</div>
+                <div class="draft-summary-item">
+                  <div class="draft-summary-value forfeiture">${summaryPendingForfeitureCount}</div>
+                  <div class="draft-summary-label">Pending Forfeiture</div>
                 </div>
               ` : ''}
             </div>
