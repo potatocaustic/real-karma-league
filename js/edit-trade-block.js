@@ -6,17 +6,20 @@ const editTitle = document.getElementById('edit-title');
 const urlParams = new URLSearchParams(window.location.search);
 const teamId = urlParams.get('team');
 
-if (!teamId) {
-    formContainer.innerHTML = '<div class="error">No team specified.</div>';
-} else {
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            authorizeAndLoadForm(user, teamId);
-        } else {
-            window.location.href = '/login.html';
-        }
-    });
-}
+document.addEventListener('DOMContentLoaded', () => {
+    if (!teamId) {
+        formContainer.innerHTML = '<div class="error">No team specified.</div>';
+    } else {
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                authorizeAndLoadForm(user, teamId);
+            } else {
+                window.location.href = '/login.html';
+            }
+        });
+    }
+});
+
 
 async function authorizeAndLoadForm(user, teamId) {
     try {
@@ -50,10 +53,10 @@ async function authorizeAndLoadForm(user, teamId) {
         let availablePlayers = playersSnap.docs.map(doc => ({ handle: doc.id, ...doc.data() }));
         let availablePicks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // --- NEW: Sort players by WAR descending ---
+        // Sort players by WAR descending
         availablePlayers.sort((a, b) => (b.WAR || 0) - (a.WAR || 0));
 
-        // --- NEW: Sort picks by season, then round ---
+        // Sort picks by season, then round
         availablePicks.sort((a, b) => {
             const seasonA = parseInt(a.season || 0);
             const seasonB = parseInt(b.season || 0);
@@ -74,7 +77,7 @@ async function authorizeAndLoadForm(user, teamId) {
 }
 
 function renderForm(blockData, players, picks, teamsMap) {
-    // --- UPDATED: Helper to format a pick description with full team name ---
+    // Helper to format a pick description with full team name
     const formatPick = (pick) => {
         const originalTeamInfo = teamsMap.get(pick.original_team);
         const teamName = originalTeamInfo ? originalTeamInfo.team_name : pick.original_team;
@@ -85,33 +88,38 @@ function renderForm(blockData, players, picks, teamsMap) {
     
     const playersHtml = players.map(p => `
         <tr>
-            <td><input type="checkbox" data-player-handle="${p.handle}" ${blockData.on_the_block.includes(p.handle) ? 'checked' : ''}></td>
-            <td>${p.handle}</td>
-            <td class="mobile-hide">${p.games_played || 0}</td>
-            <td class="mobile-hide">${p.REL ? parseFloat(p.REL).toFixed(3) : 'N/A'}</td>
-            <td>${p.WAR ? parseFloat(p.WAR).toFixed(2) : 'N/A'}</td>
+            <td class="col-checkbox"><input type="checkbox" data-player-handle="${p.handle}" ${blockData.on_the_block.includes(p.handle) ? 'checked' : ''}></td>
+            <td class="col-name">${p.handle}</td>
+            <td class="col-stat-gp mobile-hide">${p.games_played || 0}</td>
+            <td class="col-stat-small mobile-hide">${p.REL ? p.REL.toFixed(3) : 'N/A'}</td>
+            <td class="col-stat-small">${p.WAR ? p.WAR.toFixed(2) : 'N/A'}</td>
         </tr>
-    `).join('');
+    `).join('') || '<tr><td colspan="5" style="text-align:center;">No players on roster.</td></tr>';
 
     const picksHtml = picks.map(p => {
-        // --- NEW: Get original owner's record ---
         const originalOwnerInfo = teamsMap.get(p.original_team);
         const ownerRecord = originalOwnerInfo ? `${originalOwnerInfo.wins}-${originalOwnerInfo.losses}` : 'N/A';
         
         return `
         <tr>
-            <td><input type="checkbox" data-pick-id="${p.id}" ${blockData.picks_available_ids.includes(p.id) ? 'checked' : ''}></td>
-            <td>${formatPick(p)}</td>
-            <td class="mobile-hide">${ownerRecord}</td>
+            <td class="col-checkbox"><input type="checkbox" data-pick-id="${p.id}" ${blockData.picks_available_ids.includes(p.id) ? 'checked' : ''}></td>
+            <td class="col-name">${formatPick(p)}</td>
+            <td class="col-record mobile-hide">${ownerRecord}</td>
         </tr>`
-    }).join('');
+    }).join('') || '<tr><td colspan="3" style="text-align:center;">No draft picks owned.</td></tr>';
 
     const formHtml = `
         <form id="trade-block-form">
             <h4>Players on the Block</h4>
             <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1.5rem;">
                 <table class="checklist-table">
-                    <thead><tr><th>&nbsp;</th><th>Player</th><th class="mobile-hide">GP</th><th class="mobile-hide">REL</th><th>WAR</th></tr></thead>
+                    <thead><tr>
+                        <th class="col-checkbox">&nbsp;</th>
+                        <th class="col-name">Player</th>
+                        <th class="col-stat-gp mobile-hide">GP</th>
+                        <th class="col-stat-small mobile-hide">REL</th>
+                        <th class="col-stat-small">WAR</th>
+                    </tr></thead>
                     <tbody>${playersHtml}</tbody>
                 </table>
             </div>
@@ -119,7 +127,11 @@ function renderForm(blockData, players, picks, teamsMap) {
             <h4>Draft Picks Available</h4>
             <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1.5rem;">
                 <table class="checklist-table">
-                     <thead><tr><th>&nbsp;</th><th>Pick</th><th class="mobile-hide">Original Owner Record</th></tr></thead>
+                     <thead><tr>
+                        <th class="col-checkbox">&nbsp;</th>
+                        <th class="col-name">Pick</th>
+                        <th class="col-record mobile-hide">Record</th>
+                     </tr></thead>
                      <tbody>${picksHtml}</tbody>
                 </table>
             </div>
@@ -136,7 +148,39 @@ function renderForm(blockData, players, picks, teamsMap) {
     addSaveHandler();
 }
 
-// The addSaveHandler function remains the same as before
 function addSaveHandler() {
-    //...
+    const form = document.getElementById('trade-block-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const selectedPlayers = Array.from(document.querySelectorAll('input[data-player-handle]:checked')).map(cb => cb.dataset.playerHandle);
+            const selectedPicks = Array.from(document.querySelectorAll('input[data-pick-id]:checked')).map(cb => cb.dataset.pickId);
+            const seekingText = document.getElementById('seeking').value;
+
+            const updatedData = {
+                on_the_block: selectedPlayers,
+                picks_available_ids: selectedPicks,
+                seeking: seekingText,
+                last_updated: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                const saveButton = form.querySelector('button[type="submit"]');
+                saveButton.textContent = 'Saving...';
+                saveButton.disabled = true;
+
+                await db.collection("tradeblocks").doc(teamId).set(updatedData, { merge: true });
+                
+                alert("Trade block saved successfully!");
+                window.location.href = '/S7/trade-block.html';
+            } catch (error) {
+                console.error("Error saving trade block:", error);
+                alert("Error: Could not save trade block. Check console for details.");
+                const saveButton = form.querySelector('button[type="submit"]');
+                saveButton.textContent = 'Save Changes';
+                saveButton.disabled = false;
+            }
+        });
+    }
 }

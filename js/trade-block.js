@@ -1,19 +1,52 @@
 // /js/trade-block.js
 
 const container = document.getElementById('trade-blocks-container');
+const adminControlsContainer = document.getElementById('admin-controls');
 
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        await displayAllTradeBlocks(user.uid);
-    } else {
-        if (!window.location.pathname.endsWith('login.html')) {
-            window.location.href = '/login.html';
+// Initialize Firebase Functions for the admin kill switch
+const functions = firebase.functions();
+
+document.addEventListener('DOMContentLoaded', () => {
+    auth.onAuthStateChanged(async (user) => {
+        if (user) {
+            await displayAllTradeBlocks(user.uid);
+        } else {
+            if (!window.location.pathname.endsWith('login.html')) {
+                window.location.href = '/login.html';
+            }
         }
-    }
+    });
 });
+
 
 async function displayAllTradeBlocks(currentUserId) {
     try {
+        // First, check the trade deadline status from Firestore
+        const settingsDoc = await db.collection('settings').doc('tradeBlock').get();
+        const tradeBlockStatus = settingsDoc.exists ? settingsDoc.data().status : 'open';
+        
+        const adminDoc = await db.collection("admins").doc(currentUserId).get();
+        const isAdmin = adminDoc.exists;
+        
+        // Show admin controls regardless of deadline status
+        if (isAdmin && adminControlsContainer) {
+            adminControlsContainer.style.display = 'block';
+            adminControlsContainer.innerHTML = `
+                <div class="admin-controls-container">
+                    <span>Admin Controls:</span>
+                    <button id="deadline-btn" class="edit-btn deadline-btn">Activate Trade Deadline</button>
+                    <button id="reopen-btn" class="edit-btn reopen-btn">Re-Open Trading</button>
+                </div>
+            `;
+        }
+
+        if (tradeBlockStatus === 'closed') {
+            container.innerHTML = '<p style="text-align: center; font-weight: bold; font-size: 1.2rem;">Trade Deadline Passed - Trade Block Unavailable</p>';
+            addUniversalClickListener(isAdmin); // Add listener even when closed so admin can re-open
+            return; // Stop further execution
+        }
+
+        // Fetch all data only if the deadline has not passed
         const [tradeBlocksSnap, teamsSnap, draftPicksSnap, playersSnap] = await Promise.all([
             db.collection("tradeblocks").get(),
             db.collection("teams").get(),
@@ -27,9 +60,6 @@ async function displayAllTradeBlocks(currentUserId) {
 
         container.innerHTML = '';
 
-        const adminDoc = await db.collection("admins").doc(currentUserId).get();
-        const isAdmin = adminDoc.exists;
-
         let currentUserTeamId = null;
         for (const [teamId, teamData] of teamsMap.entries()) {
             if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
@@ -41,7 +71,7 @@ async function displayAllTradeBlocks(currentUserId) {
             handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, isAdmin, currentUserId, currentUserTeamId);
         }
         
-        addUniversalClickListener(currentUserTeamId);
+        addUniversalClickListener(isAdmin, currentUserTeamId);
 
     } catch (error) {
         console.error("Error displaying trade blocks:", error);
@@ -55,10 +85,10 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     if (isAdmin) {
         let adminSetupHtml = '<div class="trade-blocks-container"><h4>Admin: Create a Trade Block for a Team</h4>';
         teamsMap.forEach((team, teamId) => {
-            if (teamId.toUpperCase() !== "FA") {
+            if (team.team_id && team.team_id.toUpperCase() !== "FA") {
                 adminSetupHtml += `
-                    <div class="trade-block-card" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
-                        <span><img src="/S7/icons/${teamId}.webp" class="team-logo" style="margin-right: 0.5rem;" onerror="this.style.display=\'none\'">${team.team_name}</span>
+                    <div class="admin-setup-item">
+                        <span><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'">${team.team_name}</span>
                         <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
                     </div>`;
             }
@@ -82,19 +112,26 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         
         const picksWithDescriptions = (blockData.picks_available_ids || []).map(pickId => {
             const pickInfo = draftPicksMap.get(pickId);
-            return pickInfo ? pickInfo.description : `${pickId} (Unknown Pick)`;
+            if (pickInfo) {
+                const originalTeamInfo = teamsMap.get(pickInfo.original_team);
+                const teamName = originalTeamInfo ? originalTeamInfo.team_name : pickInfo.original_team;
+                const round = pickInfo.round;
+                const roundSuffix = round == 1 ? 'st' : round == 2 ? 'nd' : round == 3 ? 'rd' : 'th';
+                return `S${pickInfo.season} ${teamName} ${round}${roundSuffix}`;
+            }
+            return `${pickId} (Unknown Pick)`;
         }).join('<br>') || 'N/A';
 
         const playersWithStats = (blockData.on_the_block || []).map(handle => {
             const p = playersMap.get(handle);
             if (!p) return `<li>${handle} (stats not found)</li>`;
-            return `<li>${handle} (GP: ${p.games_played || 0}, REL: ${p.REL ? parseFloat(p.REL).toFixed(3) : 'N/A'}, WAR: ${p.WAR ? parseFloat(p.WAR).toFixed(2) : 'N/A'})</li>`;
+            return `<li>${handle} (GP: ${p.games_played || 0}, REL: ${p.REL ? p.REL.toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
         }).join('') || '<li>N/A</li>';
 
         const blockHtml = `
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
-                    <h4><img src="/S7/icons/${teamId}.webp" class="team-logo" style="margin-right: 0.5rem;" onerror="this.style.display='none'">${teamData.team_name}</h4>
+                    <h4><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
                 <div class="trade-block-content">
@@ -123,12 +160,51 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
     }
 }
 
-function addUniversalClickListener() {
-    container.addEventListener('click', (event) => {
+// Add one universal event listener to the body to handle all clicks
+let isListenerAttached = false;
+function addUniversalClickListener(isAdmin, currentUserTeamId) {
+    if (isListenerAttached) return;
+    isListenerAttached = true;
+    
+    document.body.addEventListener('click', (event) => {
         const target = event.target.closest('button');
-        if (target && target.dataset.teamId) {
-            const teamIdToEdit = target.dataset.teamId;
+        if (!target) return;
+
+        const teamIdToEdit = target.dataset.teamId;
+
+        if (teamIdToEdit) {
             window.location.href = `/S7/edit-trade-block.html?team=${teamIdToEdit}`;
+            return;
+        }
+
+        if (isAdmin) {
+            if (target.id === 'deadline-btn') {
+                if (confirm('Are you sure you want to CLEAR ALL trade blocks and activate the deadline? This cannot be undone.')) {
+                    const clearBlocks = functions.httpsCallable('clearAllTradeBlocks');
+                    target.textContent = 'Processing...';
+                    target.disabled = true;
+                    clearBlocks().then(result => {
+                        alert(result.data.message);
+                        window.location.reload();
+                    }).catch(error => {
+                        alert(`Error: ${error.message}`);
+                        target.textContent = 'Activate Trade Deadline';
+                        target.disabled = false;
+                    });
+                }
+            } else if (target.id === 'reopen-btn') {
+                const reopenBlocks = functions.httpsCallable('reopenTradeBlocks');
+                target.textContent = 'Processing...';
+                target.disabled = true;
+                reopenBlocks().then(result => {
+                    alert(result.data.message);
+                    window.location.reload();
+                }).catch(error => {
+                    alert(`Error: ${error.message}`);
+                    target.textContent = 'Re-Open Trading';
+                    target.disabled = false;
+                });
+            }
         }
     });
 }

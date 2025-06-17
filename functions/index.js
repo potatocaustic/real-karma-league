@@ -41,23 +41,22 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             return parseCSV(csvText);
         };
 
-        // --- Fetch all three sheets in parallel ---
         const [playersRaw, draftPicksRaw, teamsRaw] = await Promise.all([
             fetchAndParseSheet("Players"),
             fetchAndParseSheet("Draft_Capital"),
             fetchAndParseSheet("Teams")
         ]);
 
-        // --- 1. Process and Sync Teams ---
+        // 1. Process and Sync Teams
         const teamsBatch = db.batch();
         teamsRaw.forEach(team => {
             if (team.team_id) {
                 const docRef = db.collection("teams").doc(team.team_id);
                 const teamData = {
-                    team_id: team.team_id,
-                    team_name: team.team_name,
-                    gm_uid: team.gm_uid,
-                    gm_handle: team.gm_handle,
+                    team_id: team.team_id || '',
+                    team_name: team.team_name || '',
+                    gm_uid: team.gm_uid || '',
+                    gm_handle: team.gm_handle || '',
                     wins: parseNumber(team.wins),
                     losses: parseNumber(team.losses)
                 };
@@ -67,14 +66,14 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
         
-        // --- 2. Process and Sync Players ---
+        // 2. Process and Sync Players
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
             if (player.player_handle) {
                 const docRef = db.collection("players").doc(player.player_handle);
                 const playerData = {
-                    current_team_id: player.current_team_id,
-                    player_handle: player.player_handle,
+                    current_team_id: player.current_team_id || '',
+                    player_handle: player.player_handle || '',
                     games_played: parseNumber(player.games_played),
                     REL: parseNumber(player.rel_median),
                     WAR: parseNumber(player.WAR)
@@ -85,13 +84,15 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await playersBatch.commit();
         console.log(`Successfully synced ${playersRaw.length} players.`);
 
-        // --- 3. Process and Sync Draft Picks ---
+        // 3. Process and Sync Draft Picks
         const picksBatch = db.batch();
         draftPicksRaw.forEach(pick => {
             if (pick.pick_id) {
                 const docRef = db.collection("draftPicks").doc(pick.pick_id);
-                // The { merge: true } option is important to avoid overwriting unrelated fields
-                picksBatch.set(docRef, pick, { merge: true });
+                const pickData = { ...pick };
+                pickData.season = parseNumber(pick.season);
+                pickData.round = parseNumber(pick.round);
+                picksBatch.set(docRef, pickData, { merge: true });
             }
         });
         await picksBatch.commit();
@@ -103,4 +104,44 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         console.error("Error during sync:", error);
         res.status(500).send("Sync failed. Check function logs for details.");
     }
+});
+
+
+// --- NEW: Callable Function to clear all trade blocks ---
+exports.clearAllTradeBlocks = functions.https.onCall(async (data, context) => {
+    if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    const adminDoc = await db.collection('admins').doc(context.auth.uid).get();
+    if (!adminDoc.exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Only an admin can perform this action.');
+    }
+
+    const tradeBlocksSnap = await db.collection('tradeblocks').get();
+    const settingsRef = db.collection('settings').doc('tradeBlock');
+    
+    // Set the deadline status to "closed"
+    await settingsRef.set({ status: 'closed' });
+
+    if (tradeBlocksSnap.empty) {
+        return { message: 'Trade blocks were already empty. Deadline is now active.' };
+    }
+
+    const batch = db.batch();
+    tradeBlocksSnap.docs.forEach(doc => {
+        batch.delete(doc.ref);
+    });
+    
+    await batch.commit();
+    return { message: `Successfully deleted ${tradeBlocksSnap.size} trade blocks and activated deadline.` };
+});
+
+// --- NEW: Callable Function to re-open the trade block ---
+exports.reopenTradeBlocks = functions.https.onCall(async (data, context) => {
+    if (!context.auth || !(await db.collection('admins').doc(context.auth.uid).get()).exists) {
+        throw new functions.https.HttpsError('permission-denied', 'Only an admin can perform this action.');
+    }
+    
+    await db.collection('settings').doc('tradeBlock').set({ status: 'open' });
+    return { message: 'Trade blocks have been re-opened.' };
 });

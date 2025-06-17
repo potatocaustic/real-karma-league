@@ -1,4 +1,4 @@
-// js/main.js
+// /js/main.js
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -8,19 +8,19 @@ document.addEventListener('DOMContentLoaded', () => {
         auth.onAuthStateChanged(user => {
             if (user) {
                 // User is signed in.
-                db.collection("teams").where("gm_uid", "==", user.uid).limit(1).get().then(snapshot => {
-                    let welcomeMsg = "Welcome!"; 
-                    
-                    if (!snapshot.empty) {
-                        const teamData = snapshot.docs[0].data();
-                        welcomeMsg = `Welcome, ${teamData.gm_handle}!`;
+                // Check if the user is an admin first.
+                db.collection("admins").doc(user.uid).get().then(adminDoc => {
+                    let welcomeMsg = "Welcome!";
+                    if (adminDoc.exists) {
+                        welcomeMsg = "Welcome, Admin!";
                         authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
                         addLogoutListener();
                     } else {
-                        // If not a GM, check if they are an Admin
-                        db.collection("admins").doc(user.uid).get().then(adminDoc => {
-                            if (adminDoc.exists) {
-                                welcomeMsg = "Welcome, Admin!";
+                        // If not an admin, check if they are a GM.
+                        db.collection("teams").where("gm_uid", "==", user.uid).limit(1).get().then(snapshot => {
+                            if (!snapshot.empty) {
+                                const teamData = snapshot.docs[0].data();
+                                welcomeMsg = `Welcome, ${teamData.gm_handle}!`;
                             }
                             authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
                             addLogoutListener();
