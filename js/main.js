@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // User is signed in.
                 // Check if the user is an admin first.
                 db.collection("admins").doc(user.uid).get().then(adminDoc => {
-                    let welcomeMsg = "Welcome!";
+                    let welcomeMsg = "Welcome!"; 
+                    
                     if (adminDoc.exists) {
                         welcomeMsg = "Welcome, Admin!";
                         authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
