@@ -139,7 +139,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         const blockHtml = `
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
-                    {/* CORRECTED team link parameter from 'team_id' to 'id' */}
                     <a href="/S7/team.html?id=${teamId}">
                         <h4><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
                     </a>
