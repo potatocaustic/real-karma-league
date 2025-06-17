@@ -4,7 +4,8 @@ const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
 
 // Initialize Firebase Functions for the admin kill switch
-const functions = firebase.functions();
+// Explicitly connect to the 'us-central1' region to ensure auth tokens are sent correctly.
+const functions = firebase.app().functions('us-central1');
 
 // Define teams to exclude from trade block functionality
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
@@ -132,7 +133,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         const playersWithStats = (blockData.on_the_block || []).map(handle => {
             const p = playersMap.get(handle);
             if (!p) return `<li>${handle} (stats not found)</li>`;
-            // CORRECTED player link parameter from 'player_handle' to 'player'
             return `<li><a href="/S7/player.html?player=${handle}">${handle}</a> (GP: ${p.games_played || 0}, REL: ${p.REL ? p.REL.toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
         }).join('') || '<li>N/A</li>';
 
