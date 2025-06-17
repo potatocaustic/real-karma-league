@@ -1,16 +1,15 @@
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
-const fetch = require("node-fetch"); // Use node-fetch for making HTTP requests
+const fetch = require("node-fetch");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// A simple CSV parser function
+// A simple CSV parser function to handle Google's gviz output
 function parseCSV(csvText) {
     const lines = csvText.trim().split('\n');
     const headers = lines.shift().split(',').map(h => h.replace(/"/g, '').trim());
     const data = lines.map(line => {
-        // This simple regex handles values that may or may not be quoted
         const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
         const row = {};
         for (let i = 0; i < headers.length; i++) {
@@ -42,23 +41,40 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             return parseCSV(csvText);
         };
 
-        // --- Fetch both sheets in parallel ---
-        const [playersRaw, draftPicksRaw] = await Promise.all([
+        // --- Fetch all three sheets in parallel ---
+        const [playersRaw, draftPicksRaw, teamsRaw] = await Promise.all([
             fetchAndParseSheet("Players"),
-            fetchAndParseSheet("Draft_Capital")
+            fetchAndParseSheet("Draft_Capital"),
+            fetchAndParseSheet("Teams")
         ]);
 
-        // --- Process and Sync Players ---
-        console.log("Processing player stats...");
+        // --- 1. Process and Sync Teams ---
+        const teamsBatch = db.batch();
+        teamsRaw.forEach(team => {
+            if (team.team_id) {
+                const docRef = db.collection("teams").doc(team.team_id);
+                const teamData = {
+                    team_id: team.team_id,
+                    team_name: team.team_name,
+                    gm_uid: team.gm_uid,
+                    gm_handle: team.gm_handle,
+                    wins: parseNumber(team.wins),
+                    losses: parseNumber(team.losses)
+                };
+                teamsBatch.set(docRef, teamData, { merge: true });
+            }
+        });
+        await teamsBatch.commit();
+        console.log(`Successfully synced ${teamsRaw.length} teams.`);
+        
+        // --- 2. Process and Sync Players ---
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
             if (player.player_handle) {
                 const docRef = db.collection("players").doc(player.player_handle);
-                // Create a clean object with only the data we need
                 const playerData = {
                     current_team_id: player.current_team_id,
                     player_handle: player.player_handle,
-                    // Pulling directly from the columns you specified
                     games_played: parseNumber(player.games_played),
                     REL: parseNumber(player.rel_median),
                     WAR: parseNumber(player.WAR)
@@ -69,22 +85,22 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await playersBatch.commit();
         console.log(`Successfully synced ${playersRaw.length} players.`);
 
-        // --- Process and Sync Draft Picks ---
+        // --- 3. Process and Sync Draft Picks ---
         const picksBatch = db.batch();
         draftPicksRaw.forEach(pick => {
             if (pick.pick_id) {
                 const docRef = db.collection("draftPicks").doc(pick.pick_id);
-                // The { merge: true } option ensures we just update/add, not overwrite other fields if they exist
+                // The { merge: true } option is important to avoid overwriting unrelated fields
                 picksBatch.set(docRef, pick, { merge: true });
             }
         });
         await picksBatch.commit();
         console.log(`Successfully synced ${draftPicksRaw.length} draft picks.`);
 
-        res.status(200).send("Sync completed successfully using direct sheet values!");
+        res.status(200).send("Sync completed successfully for teams, players, and picks!");
 
     } catch (error) {
         console.error("Error during sync:", error);
-        res.status(500).send("Sync failed. Check function logs.");
+        res.status(500).send("Sync failed. Check function logs for details.");
     }
 });
