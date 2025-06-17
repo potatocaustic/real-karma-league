@@ -132,13 +132,15 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         const playersWithStats = (blockData.on_the_block || []).map(handle => {
             const p = playersMap.get(handle);
             if (!p) return `<li>${handle} (stats not found)</li>`;
-            return `<li><a href="/S7/player.html?player_handle=${handle}">${handle}</a> (GP: ${p.games_played || 0}, REL: ${p.REL ? p.REL.toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
+            // CORRECTED player link parameter from 'player_handle' to 'player'
+            return `<li><a href="/S7/player.html?player=${handle}">${handle}</a> (GP: ${p.games_played || 0}, REL: ${p.REL ? p.REL.toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
         }).join('') || '<li>N/A</li>';
 
         const blockHtml = `
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
-                    <a href="/S7/team.html?team_id=${teamId}">
+                    {/* CORRECTED team link parameter from 'team_id' to 'id' */}
+                    <a href="/S7/team.html?id=${teamId}">
                         <h4><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
                     </a>
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
