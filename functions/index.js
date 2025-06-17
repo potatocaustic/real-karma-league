@@ -111,8 +111,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
 });
 
 
-// --- UPDATED: Callable Function to clear all trade blocks ---
-exports.clearAllTradeBlocks = functions.region('us-central1').https.onCall(async (data, context) => {
+// --- NEW: Callable Function to clear all trade blocks ---
+exports.clearAllTradeBlocks = functions.https.onCall(async (data, context) => {
     // ... (rest of the function is unchanged)
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -141,8 +141,8 @@ exports.clearAllTradeBlocks = functions.region('us-central1').https.onCall(async
     return { message: `Successfully deleted ${tradeBlocksSnap.size} trade blocks and activated deadline.` };
 });
 
-// --- UPDATED: Callable Function to re-open the trade block ---
-exports.reopenTradeBlocks = functions.region('us-central1').https.onCall(async (data, context) => {
+// --- NEW: Callable Function to re-open the trade block ---
+exports.reopenTradeBlocks = functions.https.onCall(async (data, context) => {
     // ... (rest of the function is unchanged)
     if (!context.auth || !(await db.collection('admins').doc(context.auth.uid).get()).exists) {
         throw new functions.https.HttpsError('permission-denied', 'Only an admin can perform this action.');

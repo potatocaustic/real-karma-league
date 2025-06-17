@@ -3,8 +3,8 @@
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
 
-// Explicitly connect to the 'us-central1' region to ensure auth tokens are sent correctly.
-const functions = firebase.app().functions('us-central1');
+// UPDATED: Initialize functions without a hardcoded region.
+const functions = firebase.app().functions();
 
 // Define teams to exclude from trade block functionality
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
