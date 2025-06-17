@@ -140,8 +140,10 @@ function renderForm(blockData, players, picks, teamsMap) {
                 <label for="seeking">Seeking:</label>
                 <textarea id="seeking" rows="3">${blockData.seeking || ''}</textarea>
             </div>
-            <button type="submit" class="edit-btn">Save Changes</button>
-            <a href="/S7/trade-block.html" class="edit-btn cancel-btn">Cancel</a>
+            <div class="form-buttons-container">
+                <button type="submit" class="edit-btn">Save Changes</button>
+                <a href="/S7/trade-block.html" class="edit-btn cancel-btn">Cancel</a>
+            </div>
         </form>
     `;
     formContainer.innerHTML = formHtml;

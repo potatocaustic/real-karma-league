@@ -6,6 +6,9 @@ const adminControlsContainer = document.getElementById('admin-controls');
 // Initialize Firebase Functions for the admin kill switch
 const functions = firebase.functions();
 
+// Define teams to exclude from trade block functionality
+const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+
 document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(async (user) => {
         if (user) {
@@ -85,7 +88,8 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     if (isAdmin) {
         let adminSetupHtml = '<div class="trade-blocks-container"><h4>Admin: Create a Trade Block for a Team</h4>';
         teamsMap.forEach((team, teamId) => {
-            if (team.team_id && team.team_id.toUpperCase() !== "FA") {
+            // Exclude specified teams
+            if (team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())) {
                 adminSetupHtml += `
                     <div class="admin-setup-item">
                         <span><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'">${team.team_name}</span>
@@ -105,8 +109,10 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
 }
 
 function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, isAdmin, currentUserId, currentUserTeamId) {
+    const existingBlockTeamIds = new Set();
     tradeBlocksSnap.forEach(doc => {
         const teamId = doc.id;
+        existingBlockTeamIds.add(teamId); // Keep track of teams that have a block
         const blockData = doc.data();
         const teamData = teamsMap.get(teamId) || { team_name: teamId };
         
@@ -135,7 +141,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
                 <div class="trade-block-content">
-                    <p><strong>On The Block:</strong></p><ul>${playersWithStats}</ul><hr>
+                    <p><strong>Players Available:</strong></p><ul class="player-list">${playersWithStats}</ul><hr>
                     <p><strong>Picks Available:</strong><br>${picksWithDescriptions}</p><hr>
                     <p><strong>Seeking:</strong><br>${blockData.seeking || 'N/A'}</p>
                 </div>
@@ -157,6 +163,27 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             <button class="edit-btn" data-team-id="${currentUserTeamId}" data-action="setup">Set Up My Trade Block</button>
         </div>`;
         container.innerHTML += setupButtonHtml;
+    }
+    
+    // For Admins: Show teams that do NOT have a trade block yet
+    if (isAdmin) {
+        let adminSetupHtml = '';
+        const teamsWithoutBlocks = Array.from(teamsMap.entries()).filter(([teamId, team]) =>
+            !existingBlockTeamIds.has(teamId) && team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())
+        );
+
+        if (teamsWithoutBlocks.length > 0) {
+            adminSetupHtml += '<div class="trade-blocks-container" style="margin-top: 2rem;"><h4>Admin: Create a Trade Block for a Team</h4>';
+            teamsWithoutBlocks.forEach(([teamId, team]) => {
+                adminSetupHtml += `
+                    <div class="admin-setup-item">
+                        <span><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'">${team.team_name}</span>
+                        <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
+                    </div>`;
+            });
+            adminSetupHtml += '</div>';
+        }
+        container.innerHTML += adminSetupHtml;
     }
 }
 

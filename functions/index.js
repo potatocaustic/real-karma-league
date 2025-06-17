@@ -48,9 +48,12 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         ]);
 
         // 1. Process and Sync Teams
+        const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
         const teamsBatch = db.batch();
+        let syncedTeamCount = 0;
         teamsRaw.forEach(team => {
-            if (team.team_id) {
+            // Only sync if team_id exists and is not in the exclusion list
+            if (team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())) {
                 const docRef = db.collection("teams").doc(team.team_id);
                 const teamData = {
                     team_id: team.team_id || '',
@@ -61,10 +64,11 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
                     losses: parseNumber(team.losses)
                 };
                 teamsBatch.set(docRef, teamData, { merge: true });
+                syncedTeamCount++;
             }
         });
         await teamsBatch.commit();
-        console.log(`Successfully synced ${teamsRaw.length} teams.`);
+        console.log(`Successfully synced ${syncedTeamCount} teams.`);
         
         // 2. Process and Sync Players
         const playersBatch = db.batch();
@@ -109,6 +113,7 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
 
 // --- NEW: Callable Function to clear all trade blocks ---
 exports.clearAllTradeBlocks = functions.https.onCall(async (data, context) => {
+    // ... (rest of the function is unchanged)
     if (!context.auth) {
         throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -138,6 +143,7 @@ exports.clearAllTradeBlocks = functions.https.onCall(async (data, context) => {
 
 // --- NEW: Callable Function to re-open the trade block ---
 exports.reopenTradeBlocks = functions.https.onCall(async (data, context) => {
+    // ... (rest of the function is unchanged)
     if (!context.auth || !(await db.collection('admins').doc(context.auth.uid).get()).exists) {
         throw new functions.https.HttpsError('permission-denied', 'Only an admin can perform this action.');
     }
