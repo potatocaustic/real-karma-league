@@ -121,9 +121,10 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             if (pickInfo) {
                 const originalTeamInfo = teamsMap.get(pickInfo.original_team);
                 const teamName = originalTeamInfo ? originalTeamInfo.team_name : pickInfo.original_team;
+                const ownerRecord = originalTeamInfo ? `(${originalTeamInfo.wins}-${originalTeamInfo.losses})` : '';
                 const round = pickInfo.round;
                 const roundSuffix = round == 1 ? 'st' : round == 2 ? 'nd' : round == 3 ? 'rd' : 'th';
-                return `S${pickInfo.season} ${teamName} ${round}${roundSuffix}`;
+                return `S${pickInfo.season} ${teamName} ${round}${roundSuffix} ${ownerRecord}`;
             }
             return `${pickId} (Unknown Pick)`;
         }).join('<br>') || 'N/A';
@@ -131,13 +132,15 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         const playersWithStats = (blockData.on_the_block || []).map(handle => {
             const p = playersMap.get(handle);
             if (!p) return `<li>${handle} (stats not found)</li>`;
-            return `<li>${handle} (GP: ${p.games_played || 0}, REL: ${p.REL ? p.REL.toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
+            return `<li><a href="/S7/player.html?player_handle=${handle}">${handle}</a> (GP: ${p.games_played || 0}, REL: ${p.REL ? p.REL.toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
         }).join('') || '<li>N/A</li>';
 
         const blockHtml = `
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
-                    <h4><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
+                    <a href="/S7/team.html?team_id=${teamId}">
+                        <h4><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
+                    </a>
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
                 <div class="trade-block-content">
