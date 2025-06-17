@@ -3,8 +3,7 @@
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
 
-// UPDATED: Initialize functions without a hardcoded region.
-const functions = firebase.app().functions();
+// NOTE: The "const functions = ..." line has been removed from here.
 
 // Define teams to exclude from trade block functionality
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
@@ -219,6 +218,10 @@ function addUniversalClickListener(isAdmin, currentUserTeamId) {
                 if (confirm(confirmMsg)) {
                     target.textContent = 'Processing...';
                     target.disabled = true;
+                    
+                    // UPDATED: Initialize functions here and explicitly set the region.
+                    const functions = firebase.app().functions('us-central1');
+
                     // Force a token refresh before calling the function
                     currentUser.getIdToken(true).then(() => {
                         const action = functions.httpsCallable(callableName);
