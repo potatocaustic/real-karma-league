@@ -530,3 +530,8 @@ footer a {
 .dark-mode .edit-form-container textarea { background-color: #2c2c2c; border-color: #444; color: #e0e0e0; }
 .dark-mode .checklist-table th { background-color: #2c2c2c; }
 .dark-mode .checklist-table td { border-bottom-color: #333; }
+
+.trade-block-header .team-logo {
+    width: 28px;
+    height: 28px;
+}
