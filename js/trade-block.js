@@ -3,7 +3,6 @@
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
 
-// Initialize Firebase Functions for the admin kill switch
 // Explicitly connect to the 'us-central1' region to ensure auth tokens are sent correctly.
 const functions = firebase.app().functions('us-central1');
 
@@ -93,7 +92,7 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
             if (team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())) {
                 adminSetupHtml += `
                     <div class="admin-setup-item">
-                        <span><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'">${team.team_name}</span>
+                        <span><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${team.team_name}</span>
                         <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
                     </div>`;
             }
@@ -209,32 +208,45 @@ function addUniversalClickListener(isAdmin, currentUserTeamId) {
         }
 
         if (isAdmin) {
-            if (target.id === 'deadline-btn') {
-                if (confirm('Are you sure you want to CLEAR ALL trade blocks and activate the deadline? This cannot be undone.')) {
-                    const clearBlocks = functions.httpsCallable('clearAllTradeBlocks');
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser) {
+                alert("Authentication error. Please refresh the page and log in again.");
+                return;
+            }
+
+            // Generic function to handle the callable function logic
+            const handleAdminAction = (callableName, confirmMsg, buttonText) => {
+                if (confirm(confirmMsg)) {
                     target.textContent = 'Processing...';
                     target.disabled = true;
-                    clearBlocks().then(result => {
+                    // Force a token refresh before calling the function
+                    currentUser.getIdToken(true).then(() => {
+                        const action = functions.httpsCallable(callableName);
+                        return action();
+                    }).then(result => {
                         alert(result.data.message);
                         window.location.reload();
                     }).catch(error => {
+                        console.error("Function call failed:", error);
                         alert(`Error: ${error.message}`);
-                        target.textContent = 'Activate Trade Deadline';
+                        target.textContent = buttonText;
                         target.disabled = false;
                     });
                 }
+            };
+
+            if (target.id === 'deadline-btn') {
+                handleAdminAction(
+                    'clearAllTradeBlocks',
+                    'Are you sure you want to CLEAR ALL trade blocks and activate the deadline? This cannot be undone.',
+                    'Activate Trade Deadline'
+                );
             } else if (target.id === 'reopen-btn') {
-                const reopenBlocks = functions.httpsCallable('reopenTradeBlocks');
-                target.textContent = 'Processing...';
-                target.disabled = true;
-                reopenBlocks().then(result => {
-                    alert(result.data.message);
-                    window.location.reload();
-                }).catch(error => {
-                    alert(`Error: ${error.message}`);
-                    target.textContent = 'Re-Open Trading';
-                    target.disabled = false;
-                });
+                handleAdminAction(
+                    'reopenTradeBlocks',
+                    'Are you sure you want to re-open trading for all teams?',
+                    'Re-Open Trading'
+                );
             }
         }
     });
