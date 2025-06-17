@@ -1,33 +1,32 @@
-// edit-trade-block.js
+// /js/edit-trade-block.js
 
 const formContainer = document.getElementById('form-container');
 const editTitle = document.getElementById('edit-title');
 
-// Get the team ID from the URL (e.g., from "?team=AVI")
 const urlParams = new URLSearchParams(window.location.search);
 const teamId = urlParams.get('team');
 
-// Immediately check if a team ID was provided in the URL
 if (!teamId) {
     formContainer.innerHTML = '<div class="error">No team specified.</div>';
 } else {
-    // Check for logged-in user
     auth.onAuthStateChanged(user => {
         if (user) {
-            // Verify this user has permission to edit this specific block
             authorizeAndLoadForm(user, teamId);
         } else {
-            // Not logged in, redirect to login
-            window.location.href = 'login.html';
+            window.location.href = '/login.html';
         }
     });
 }
 
 async function authorizeAndLoadForm(user, teamId) {
     try {
-        // Check for admin or correct GM
-        const teamDoc = await db.collection("teams").doc(teamId).get();
-        const adminDoc = await db.collection("admins").doc(user.uid).get();
+        const [teamDoc, adminDoc, playersSnap, picksSnap, blockDoc] = await Promise.all([
+            db.collection("teams").doc(teamId).get(),
+            db.collection("admins").doc(user.uid).get(),
+            db.collection("players").where("current_team_id", "==", teamId).get(),
+            db.collection("draftPicks").where("current_owner", "==", teamId).get(),
+            db.collection("tradeblocks").doc(teamId).get()
+        ]);
 
         if (!teamDoc.exists) {
             formContainer.innerHTML = '<div class="error">Team not found.</div>';
@@ -42,13 +41,13 @@ async function authorizeAndLoadForm(user, teamId) {
             return;
         }
 
-        // Permission granted! Now, fetch the trade block data
         editTitle.textContent = `Edit ${teamData.team_name} Trade Block`;
-        const blockDoc = await db.collection("tradeblocks").doc(teamId).get();
         const blockData = blockDoc.exists ? blockDoc.data() : { on_the_block: [], picks_available_ids: [], seeking: '' };
+        
+        const availablePlayers = playersSnap.docs.map(doc => ({ handle: doc.id, ...doc.data() }));
+        const availablePicks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Render the form and pre-fill it with data
-        renderForm(blockData);
+        renderForm(blockData, availablePlayers, availablePicks);
 
     } catch (error) {
         console.error("Authorization or loading error:", error);
@@ -56,29 +55,58 @@ async function authorizeAndLoadForm(user, teamId) {
     }
 }
 
-function renderForm(data) {
-    // Using .join('\n') to put each item on a new line in the textarea
+function renderForm(blockData, players, picks) {
+    // Helper to format a pick description
+    const formatPick = (pick) => {
+        const teamName = pick.original_team; // In this context, showing original owner is good
+        const round = pick.round;
+        return `S${pick.season} ${teamName} ${round}${round == 1 ? 'st' : round == 2 ? 'nd' : round == 3 ? 'rd' : 'th'}`;
+    };
+    
+    const playersHtml = players.map(p => `
+        <tr>
+            <td><input type="checkbox" data-player-handle="${p.handle}" ${blockData.on_the_block.includes(p.handle) ? 'checked' : ''}></td>
+            <td>${p.handle}</td>
+            <td class="mobile-hide">${p.games_played || 0}</td>
+            <td class="mobile-hide">${p.REL ? parseFloat(p.REL).toFixed(3) : 'N/A'}</td>
+            <td>${p.WAR ? parseFloat(p.WAR).toFixed(2) : 'N/A'}</td>
+        </tr>
+    `).join('');
+
+    const picksHtml = picks.map(p => `
+        <tr>
+            <td><input type="checkbox" data-pick-id="${p.id}" ${blockData.picks_available_ids.includes(p.id) ? 'checked' : ''}></td>
+            <td>${formatPick(p)}</td>
+        </tr>
+    `).join('');
+
     const formHtml = `
         <form id="trade-block-form">
-            <div class="filter-group">
-                <label for="on-the-block">Players on the Block (one per line):</label>
-                <textarea id="on-the-block" rows="5">${data.on_the_block.join('\n')}</textarea>
+            <h4>Players on the Block</h4>
+            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1.5rem;">
+                <table class="checklist-table">
+                    <thead><tr><th>&nbsp;</th><th>Player</th><th class="mobile-hide">GP</th><th class="mobile-hide">REL</th><th>WAR</th></tr></thead>
+                    <tbody>${playersHtml}</tbody>
+                </table>
             </div>
-            <div class="filter-group">
-                <label for="picks-available">Pick IDs Available (one per line):</label>
-                <textarea id="picks-available" rows="5">${data.picks_available_ids.join('\n')}</textarea>
+
+            <h4>Draft Picks Available</h4>
+            <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 1.5rem;">
+                <table class="checklist-table">
+                     <thead><tr><th>&nbsp;</th><th>Pick</th></tr></thead>
+                     <tbody>${picksHtml}</tbody>
+                </table>
             </div>
-            <div class="filter-group">
+
+            <div class="form-group">
                 <label for="seeking">Seeking:</label>
-                <textarea id="seeking" rows="3">${data.seeking}</textarea>
+                <textarea id="seeking" rows="3">${blockData.seeking}</textarea>
             </div>
-            <button type="submit" class="toggle-btn active">Save Changes</button>
-            <a href="trade-block.html" class="toggle-btn">Cancel</a>
+            <button type="submit" class="edit-btn">Save Changes</button>
+            <a href="/S7/trade-block.html" class="edit-btn cancel-btn">Cancel</a>
         </form>
     `;
     formContainer.innerHTML = formHtml;
-
-    // Add the save logic after the form is on the page
     addSaveHandler();
 }
 
@@ -87,26 +115,24 @@ function addSaveHandler() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Convert the textarea text back into clean arrays
-        const players = document.getElementById('on-the-block').value.split('\n').map(s => s.trim()).filter(Boolean);
-        const picks = document.getElementById('picks-available').value.split('\n').map(s => s.trim()).filter(Boolean);
+        const selectedPlayers = Array.from(document.querySelectorAll('input[data-player-handle]:checked')).map(cb => cb.dataset.playerHandle);
+        const selectedPicks = Array.from(document.querySelectorAll('input[data-pick-id]:checked')).map(cb => cb.dataset.pickId);
         const seekingText = document.getElementById('seeking').value;
 
         const updatedData = {
-            on_the_block: players,
-            picks_available_ids: picks,
+            on_the_block: selectedPlayers,
+            picks_available_ids: selectedPicks,
             seeking: seekingText,
             last_updated: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         try {
-            // Attempt to save the data. Firestore security rules will do the final validation.
             await db.collection("tradeblocks").doc(teamId).set(updatedData, { merge: true });
             alert("Trade block saved successfully!");
-            window.location.href = 'trade-block.html';
+            window.location.href = '/S7/trade-block.html';
         } catch (error) {
             console.error("Error saving trade block:", error);
-            alert("Error: Could not save trade block. You may not own one of the assets listed. Please check your entries and try again.");
+            alert("Error: Could not save trade block.");
         }
     });
 }

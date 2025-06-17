@@ -9,43 +9,21 @@
 </head>
 <body>
     <header>
-      <button id="theme-toggle-btn" aria-label="Toggle Theme">
-        <span class="sun-icon">☀️</span>
-        <span class="moon-icon">🌙</span>
-      </button>
-      <h1>
-        <img src="/S7/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
-        <span class="header-text">Real Karma League</span>
-      </h1>
-      <nav>
-        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-        <ul id="nav-menu">
-            <li><a href="/S7/RKL-S7.html">S7 Home</a></li>
-            <li><a href="/S7/standings.html">Standings & Rankings</a></li>
-            <li><a href="/S7/leaderboards.html">Leaderboards</a></li>
-            <li><a href="/S7/schedule.html">Schedule</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="/S7/draft-capital.html">Draft Capital</a>
-                    <a href="/S7/draft-results.html">Draft Results</a>
-                    <a href="/S7/draft-lottery.html">Draft Lottery</a>
-                </div>
-            </li>
-            <li><a href="/S7/transactions.html">Transactions</a></li>
-            <li><a href="/S7/teams.html">Teams</a></li>
-            <li><a href="/S7/changelog.html">Changelog</a></li>
-        </ul>
-      </nav>
-    </header>
+      <div id="auth-status"></div>
+      </header>
 
     <main>
         <div id="form-container" class="edit-form-container">
             <h2 id="edit-title">Edit Trade Block</h2>
-            <div class="loading">Verifying permissions and loading data...</div>
+            <div class="loading">Verifying permissions and loading assets...</div>
         </div>
     </main>
     
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="/S7/trade-block.html">GM Portal</a>
+    </footer>
+
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js" defer></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js" defer></script>

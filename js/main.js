@@ -1,63 +1,66 @@
-// js/main.js
+// /js/main.js
 
 // --- Authentication State Manager ---
-// This part checks if a user is logged in and can be expanded later
-// to change the text of a login/logout link in the nav bar.
+const authStatusDiv = document.getElementById('auth-status');
 auth.onAuthStateChanged(user => {
   if (user) {
-    // User is signed in.
-    console.log("User is logged in:", user.uid);
-    // You could add logic here to change a "Login" link to "Logout"
+    // User is signed in. Display their status and a logout button.
+    db.collection("teams").where("gm_uid", "==", user.uid).get().then(snapshot => {
+        let welcomeMsg = "Welcome, GM!";
+        if (!snapshot.empty) {
+            const teamData = snapshot.docs[0].data();
+            welcomeMsg = `Logged in as ${teamData.team_name}`;
+        }
+        authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
+
+        // Add event listener for the new logout button
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                auth.signOut().then(() => {
+                    // Redirect to home page after logout
+                    window.location.href = '/';
+                });
+            });
+        }
+    });
+
   } else {
-    // User is signed out.
-    console.log("User is signed out.");
+    // User is signed out. Display a login link.
+    authStatusDiv.innerHTML = '<a href="/login.html">GM Login</a>';
   }
 });
 
 
 // --- Theme Toggler Functionality ---
-// This code is pulled directly from your other pages.
 const themeToggleBtn = document.getElementById('theme-toggle-btn');
 if(themeToggleBtn) {
-    // Apply the saved theme on initial load
     const currentTheme = localStorage.getItem('theme');
     if (currentTheme === 'dark') {
         document.documentElement.classList.add('dark-mode');
     }
-
-    // Add click listener to toggle theme
     themeToggleBtn.addEventListener('click', () => {
         document.documentElement.classList.toggle('dark-mode');
-        
-        let theme = 'light';
-        if (document.documentElement.classList.contains('dark-mode')) {
-            theme = 'dark';
-        }
+        let theme = document.documentElement.classList.contains('dark-mode') ? 'dark' : 'light';
         localStorage.setItem('theme', theme);
     });
 }
 
 
 // --- Mobile Navigation Menu Toggle ---
-// This code is also pulled from your other pages.
 const navToggle = document.querySelector('.nav-toggle');
 const navMenu = document.getElementById('nav-menu');
 const dropdownBtn = document.querySelector('.dropdown .dropbtn');
 
 if (navToggle && navMenu) {
     navToggle.addEventListener('click', () => {
-        const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
-        navToggle.setAttribute('aria-expanded', !isExpanded);
         navMenu.classList.toggle('active');
     });
 }
-
-// Logic for mobile dropdowns
 if(dropdownBtn) {
     dropdownBtn.addEventListener('click', function(event) {
-        // Check if we are in mobile view (nav-toggle is visible)
         if (window.getComputedStyle(navToggle).display !== 'none') {
-            event.preventDefault(); // Prevent link navigation
+            event.preventDefault();
             this.parentElement.classList.toggle('active');
         }
     });

@@ -74,10 +74,6 @@ footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: 
 .dark-mode nav ul li a:hover { background-color: #555; }
 .dark-mode .dropdown.active .dropdown-content { background-color: #4a4a4a; }
 
-/* =================================== */
-/* Styles for Trade Block Pages       */
-/* =================================== */
-
 /* Main container for all the blocks */
 .trade-blocks-container {
     max-width: 900px;
@@ -175,3 +171,61 @@ footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: 
 .dark-mode .trade-block-content p strong { color: #e0e0e0; }
 .dark-mode .edit-form-container { background-color: #1e1e1e; }
 .dark-mode .edit-form-container textarea { background-color: #2c2c2c; border-color: #444; color: #e0e0e0; }
+
+/* Checklist Table for Edit Page */
+.checklist-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+}
+.checklist-table th, .checklist-table td {
+    padding: 0.8rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+.checklist-table th {
+    background-color: #f8f9fa;
+    font-size: 0.9rem;
+}
+.checklist-table td {
+    font-size: 0.95rem;
+}
+/* Hide less critical columns on mobile */
+.mobile-hide {
+    display: table-cell;
+}
+@media (max-width: 768px) {
+    .mobile-hide {
+        display: none;
+    }
+}
+
+/* Auth Status in Header */
+#auth-status {
+    position: absolute;
+    top: 0.5rem;
+    left: 1rem;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+#auth-status a {
+    color: #fff;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-left: 0.5rem;
+}
+
+/* Footer Link */
+footer a {
+    color: #fff;
+    text-decoration: underline;
+    margin-top: 0.5rem;
+    display: inline-block;
+}
+
+/* Dark Mode Additions */
+.dark-mode .checklist-table th { background-color: #2c2c2c; }
+.dark-mode .checklist-table td { border-bottom-color: #333; }
+.dark-mode #auth-status { color: #aaa; }
+.dark-mode #auth-status a { color: #f5f5f5; }
+.dark-mode footer a { color: #f5f5f5; }
