@@ -1,67 +1,109 @@
-// /js/main.js
+// js/main.js
 
-// --- Authentication State Manager ---
-const authStatusDiv = document.getElementById('auth-status');
-auth.onAuthStateChanged(user => {
-  if (user) {
-    // User is signed in. Display their status and a logout button.
-    db.collection("teams").where("gm_uid", "==", user.uid).get().then(snapshot => {
-        let welcomeMsg = "Welcome, GM!";
-        if (!snapshot.empty) {
-            const teamData = snapshot.docs[0].data();
-            welcomeMsg = `Logged in as ${teamData.team_name}`;
-        }
-        authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
+document.addEventListener('DOMContentLoaded', () => {
 
-        // Add event listener for the new logout button
+    // --- Authentication State Manager ---
+    const authStatusDiv = document.getElementById('auth-status');
+    if (authStatusDiv) {
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is signed in.
+                db.collection("teams").where("gm_uid", "==", user.uid).limit(1).get().then(snapshot => {
+                    let welcomeMsg = "Welcome!"; 
+                    
+                    if (!snapshot.empty) {
+                        const teamData = snapshot.docs[0].data();
+                        welcomeMsg = `Welcome, ${teamData.gm_handle}!`;
+                        authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
+                        addLogoutListener();
+                    } else {
+                        // If not a GM, check if they are an Admin
+                        db.collection("admins").doc(user.uid).get().then(adminDoc => {
+                            if (adminDoc.exists) {
+                                welcomeMsg = "Welcome, Admin!";
+                            }
+                            authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
+                            addLogoutListener();
+                        });
+                    }
+                });
+
+            } else {
+                // User is signed out. Display a login link.
+                authStatusDiv.innerHTML = '<a href="/login.html">GM Login</a>';
+            }
+        });
+    }
+
+    function addLogoutListener() {
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
                 auth.signOut().then(() => {
-                    // Redirect to home page after logout
-                    window.location.href = '/';
+                    console.log('User signed out successfully.');
+                    window.location.href = '/'; // Redirect to home page after logout
+                }).catch((error) => {
+                    console.error('Sign out error:', error);
                 });
             });
         }
-    });
-
-  } else {
-    // User is signed out. Display a login link.
-    authStatusDiv.innerHTML = '<a href="/login.html">GM Login</a>';
-  }
-});
-
-
-// --- Theme Toggler Functionality ---
-const themeToggleBtn = document.getElementById('theme-toggle-btn');
-if(themeToggleBtn) {
-    const currentTheme = localStorage.getItem('theme');
-    if (currentTheme === 'dark') {
-        document.documentElement.classList.add('dark-mode');
     }
-    themeToggleBtn.addEventListener('click', () => {
-        document.documentElement.classList.toggle('dark-mode');
-        let theme = document.documentElement.classList.contains('dark-mode') ? 'dark' : 'light';
-        localStorage.setItem('theme', theme);
-    });
-}
 
 
-// --- Mobile Navigation Menu Toggle ---
-const navToggle = document.querySelector('.nav-toggle');
-const navMenu = document.getElementById('nav-menu');
-const dropdownBtn = document.querySelector('.dropdown .dropbtn');
+    // --- Theme Toggler Functionality ---
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    if(themeToggleBtn) {
+        // Apply the saved theme on initial load
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
 
-if (navToggle && navMenu) {
-    navToggle.addEventListener('click', () => {
-        navMenu.classList.toggle('active');
-    });
-}
-if(dropdownBtn) {
-    dropdownBtn.addEventListener('click', function(event) {
-        if (window.getComputedStyle(navToggle).display !== 'none') {
-            event.preventDefault();
-            this.parentElement.classList.toggle('active');
-        }
-    });
-}
+        // Add click listener to toggle theme
+        themeToggleBtn.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark-mode');
+            let theme = 'light';
+            if (document.documentElement.classList.contains('dark-mode')) {
+                theme = 'dark';
+            }
+            localStorage.setItem('theme', theme);
+        });
+    }
+
+
+    // --- Mobile Navigation Menu Toggle ---
+    const navToggle = document.querySelector('.nav-toggle');
+    const navMenu = document.getElementById('nav-menu');
+    const dropdowns = document.querySelectorAll('.dropdown');
+
+    if (navToggle && navMenu) {
+        navToggle.addEventListener('click', () => {
+            navMenu.classList.toggle('active');
+        });
+    }
+
+    // Logic for mobile dropdowns
+    if (dropdowns.length > 0) {
+        dropdowns.forEach(dropdown => {
+            const btn = dropdown.querySelector('.dropbtn');
+            if (btn) {
+                btn.addEventListener('click', function(event) {
+                    // Check if we are in mobile view (nav-toggle is visible)
+                    if (window.getComputedStyle(navToggle).display !== 'none') {
+                        event.preventDefault(); // Prevent link navigation
+                        // Close other open dropdowns
+                        dropdowns.forEach(d => {
+                            if (d !== dropdown) {
+                                d.classList.remove('active');
+                            }
+                        });
+                        // Toggle the current one
+                        dropdown.classList.toggle('active');
+                    }
+                });
+            }
+        });
+    }
+});
