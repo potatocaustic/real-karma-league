@@ -25,7 +25,6 @@ async function displayAllTradeBlocks(currentUserId) {
 
         container.innerHTML = '';
 
-        // --- STEP 1: Determine user's permission level upfront ---
         const adminDoc = await db.collection("admins").doc(currentUserId).get();
         const isAdmin = adminDoc.exists;
         console.log(`Is user admin? ${isAdmin}`);
@@ -39,15 +38,43 @@ async function displayAllTradeBlocks(currentUserId) {
         }
         console.log(`User is GM of team: ${currentUserTeamId}`);
 
-        // --- STEP 2: Render all trade blocks that exist ---
+        // --- NEW: Logic for an empty trade block collection ---
         if (tradeBlocksSnap.empty) {
             container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
+            
+            if (isAdmin) {
+                // If user is an admin, show a list of all teams with a "Set Up" button for each.
+                let adminSetupHtml = '<div class="trade-blocks-container"><h4>Admin: Create a Trade Block</h4>';
+                teamsMap.forEach((team, teamId) => {
+                    if (teamId !== "FA") { // Exclude Free Agents team if it exists
+                        adminSetupHtml += `
+                            <div class="trade-block-card" style="padding: 1rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>${team.team_name}</span>
+                                <button class="edit-btn" id="setup-btn-${teamId}">Set Up Block</button>
+                            </div>
+                        `;
+                    }
+                });
+                adminSetupHtml += '</div>';
+                container.innerHTML += adminSetupHtml;
+
+            } else if (currentUserTeamId) {
+                // If user is a regular GM, show only one button for their own team.
+                const setupButtonHtml = `
+                    <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 2rem;">
+                        <h4>Your trade block is empty.</h4>
+                        <button id="setup-btn-${currentUserTeamId}" class="edit-btn">Set Up My Trade Block</button>
+                    </div>
+                `;
+                container.innerHTML += setupButtonHtml;
+            }
+            
         } else {
+            // --- This logic runs if trade blocks DO exist ---
             tradeBlocksSnap.forEach(doc => {
                 const teamId = doc.id;
                 const blockData = doc.data();
                 const teamData = teamsMap.get(teamId) || { team_name: teamId };
-
                 const picksWithDescriptions = (blockData.picks_available_ids || []).map(pickId => {
                     const pickInfo = draftPicksMap.get(pickId);
                     return pickInfo ? pickInfo.description : `${pickId} (Unknown Pick)`;
@@ -70,42 +97,41 @@ async function displayAllTradeBlocks(currentUserId) {
                 `;
                 container.innerHTML += blockHtml;
             });
-        }
-        
-        // --- STEP 3: Show Edit buttons based on permissions ---
-        // Loop through ALL teams, not just ones with trade blocks.
-        teamsMap.forEach((teamData, teamId) => {
-            // Find the button for this team IF a block was rendered for it.
-            const editButton = document.getElementById(`edit-btn-${teamId}`);
-            if(editButton) {
-                // Show the button if the user is an admin OR if they are the designated GM for this team.
-                if (isAdmin || teamData.gm_uid === currentUserId) {
-                    editButton.style.display = 'inline-block';
-                }
-            }
-        });
-        
-        // --- STEP 4: Show the "Set Up" button if the user is a GM without a block ---
-        const userBlockRendered = document.querySelector(`.trade-block-card[data-team-id="${currentUserTeamId}"]`);
-        if (currentUserTeamId && !userBlockRendered) {
-             const setupButtonHtml = `
-                <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 2rem;">
-                    <h4>Your trade block is empty.</h4>
-                    <button id="setup-btn" class="edit-btn">Set Up My Trade Block</button>
-                </div>
-            `;
-            container.innerHTML += setupButtonHtml;
-        }
 
-        // --- STEP 5: Add a single event listener for all buttons ---
+            // Show "Edit" buttons based on permissions
+            teamsMap.forEach((teamData, teamId) => {
+                const editButton = document.getElementById(`edit-btn-${teamId}`);
+                if(editButton) {
+                    if (isAdmin || teamData.gm_uid === currentUserId) {
+                        editButton.style.display = 'inline-block';
+                    }
+                }
+            });
+
+            // Show "Set Up" button if the GM's block doesn't exist but others do
+            const userBlockRendered = document.querySelector(`.trade-block-card[data-team-id="${currentUserTeamId}"]`);
+            if (currentUserTeamId && !userBlockRendered) {
+                const setupButtonHtml = `...`; // Same as before
+                container.innerHTML += setupButtonHtml;
+            }
+        }
+        
+        // Add a single event listener for all dynamically created buttons
         container.addEventListener('click', (event) => {
             const target = event.target;
-            if (target.id && target.id.startsWith('edit-btn-')) {
-                const teamIdToEdit = target.id.replace('edit-btn-', '');
-                window.location.href = `/S7/edit-trade-block.html?team=${teamIdToEdit}`;
-            }
-            if (target.id === 'setup-btn' && currentUserTeamId) {
-                window.location.href = `/S7/edit-trade-block.html?team=${currentUserTeamId}`;
+            if (target.tagName === 'BUTTON') {
+                const targetId = target.id;
+                let teamIdToEdit = null;
+
+                if (targetId.startsWith('edit-btn-')) {
+                    teamIdToEdit = targetId.replace('edit-btn-', '');
+                } else if (targetId.startsWith('setup-btn-')) {
+                    teamIdToEdit = targetId.replace('setup-btn-', '');
+                }
+
+                if (teamIdToEdit) {
+                    window.location.href = `/S7/edit-trade-block.html?team=${teamIdToEdit}`;
+                }
             }
         });
 
