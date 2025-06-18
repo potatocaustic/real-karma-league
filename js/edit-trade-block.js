@@ -158,28 +158,36 @@ function addSaveHandler() {
 
             const selectedPlayers = Array.from(document.querySelectorAll('input[data-player-handle]:checked')).map(cb => cb.dataset.playerHandle);
             const selectedPicks = Array.from(document.querySelectorAll('input[data-pick-id]:checked')).map(cb => cb.dataset.pickId);
-            const seekingText = document.getElementById('seeking').value;
+            const seekingText = document.getElementById('seeking').value.trim();
 
-            const updatedData = {
-                on_the_block: selectedPlayers,
-                picks_available_ids: selectedPicks,
-                seeking: seekingText,
-                last_updated: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            const isBlockEmpty = selectedPlayers.length === 0 && selectedPicks.length === 0 && seekingText === '';
+
+            const saveButton = form.querySelector('button[type="submit"]');
+            saveButton.textContent = 'Saving...';
+            saveButton.disabled = true;
 
             try {
-                const saveButton = form.querySelector('button[type="submit"]');
-                saveButton.textContent = 'Saving...';
-                saveButton.disabled = true;
-
-                await db.collection("tradeblocks").doc(teamId).set(updatedData, { merge: true });
+                if (isBlockEmpty) {
+                    // If all fields are empty, delete the trade block document
+                    await db.collection("tradeblocks").doc(teamId).delete();
+                    alert("Trade block cleared and removed successfully!");
+                } else {
+                    // Otherwise, update the document as usual
+                    const updatedData = {
+                        on_the_block: selectedPlayers,
+                        picks_available_ids: selectedPicks,
+                        seeking: seekingText,
+                        last_updated: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await db.collection("tradeblocks").doc(teamId).set(updatedData, { merge: true });
+                    alert("Trade block saved successfully!");
+                }
                 
-                alert("Trade block saved successfully!");
                 window.location.href = '/S7/trade-block.html';
+
             } catch (error) {
-                console.error("Error saving trade block:", error);
+                console.error("Error saving/deleting trade block:", error);
                 alert("Error: Could not save trade block. Check console for details.");
-                const saveButton = form.querySelector('button[type="submit"]');
                 saveButton.textContent = 'Save Changes';
                 saveButton.disabled = false;
             }
