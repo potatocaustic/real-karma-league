@@ -16,7 +16,7 @@
       })();
     </script>
     <style>
-      /* Main content */
+      /* Page-specific styles for schedule.html */
       main {
         padding: 2rem;
         max-width: 1200px;
@@ -422,8 +422,6 @@
       .player-link:hover { color: #0056b3; text-decoration: underline; }
       .points-cell { text-align: center; font-weight: bold; }
 
-      .loading { text-align: center; padding: 3rem; color: #666; font-size: 1.1rem; }
-      .error { text-align: center; padding: 2rem; color: #dc3545; background-color: #f8d7da; border-radius: 4px; margin: 1rem; }
       .no-games { text-align: center; padding: 3rem; color: #666; font-style: italic; }
 
       /* Dark Mode Styles */
@@ -726,7 +724,7 @@
                 if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
                     const tempDate = new Date(Date.UTC(year, month, day)); 
                     if (!isNaN(tempDate.getTime())) {
-                        return `${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}/${String(year).slice(-2)}`;
+                        return `<span class="math-inline">\{String\(month \+ 1\)\.padStart\(2, '0'\)\}/</span>{String(day).padStart(2, '0')}/${String(year).slice(-2)}`;
                     }
                 }
             }
@@ -735,7 +733,7 @@
         const month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
         const day = String(date.getUTCDate()).padStart(2, '0');
         const year = String(date.getUTCFullYear()).slice(-2);
-        return `${month}/${day}/${year}`;
+        return `<span class="math-inline">\{month\}/</span>{day}/${year}`;
        }
       
       function getTeamName(teamId) {
@@ -833,7 +831,7 @@
           const completedCount = weekGames.filter(game => game.completed === 'TRUE').length;
           const isCompleted = weekGames.length > 0 && completedCount === weekGames.length; 
           const weekText = week === 'ALLSTAR' ? 'ALLSTAR' : `Week ${week}`;
-          return `<div class="week-btn ${String(week) === String(currentWeek) ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-week="${week}">${weekText}</div>`;
+          return `<div class="week-btn ${String(week) === String(currentWeek) ? 'active' : ''} <span class="math-inline">\{isCompleted ? 'completed' \: ''\}" data\-week\="</span>{week}">${weekText}</div>`;
         }).join('');
         document.getElementById('week-buttons').innerHTML = weekButtonsHTML;
         document.querySelectorAll('.week-btn').forEach(btn => {
@@ -925,29 +923,29 @@
               const winner = game.winner;
               const team1Data = allTeams.find(t => t.team_id === game.team1_id);
               const team2Data = allTeams.find(t => t.team_id === game.team2_id);
-              const team1Record = team1Data ? `${team1Data.wins || 0}-${team1Data.losses || 0}` : '';
-              const team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
+              const team1Record = team1Data ? `<span class="math-inline">\{team1Data\.wins \|\| 0\}\-</span>{team1Data.losses || 0}` : '';
+              const team2Record = team2Data ? `<span class="math-inline">\{team2Data\.wins \|\| 0\}\-</span>{team2Data.losses || 0}` : '';
               
-              const clickHandler = isCompleted ? `onclick="showGameDetails('${escapeHTML(game.team1_id)}', '${escapeHTML(game.team2_id)}', '${escapeHTML(game.date)}')" ` : '';
+              const clickHandler = isCompleted ? `onclick="showGameDetails('<span class="math-inline">\{escapeHTML\(game\.team1\_id\)\}', '</span>{escapeHTML(game.team2_id)}', '${escapeHTML(game.date)}')" ` : '';
 
               return `
                 <div class="game-card ${isCompleted ? 'completed' : 'upcoming'}" ${clickHandler}>
                   <div class="game-teams">
-                    <div class="team ${winner === game.team1_id ? 'winner' : ''}">
-                      <div class="team-left">
-                        <img src="icons/${escapeHTML(game.team1_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team1_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                        <div class="team-info">
-                          <div class="team-name">${escapeHTML(getTeamName(game.team1_id))}</div>
+                    <div class="team <span class="math-inline">\{winner \=\=\= game\.team1\_id ? 'winner' \: ''\}"\>
+<div class\="team\-left"\>
+<img src\="icons/</span>{escapeHTML(game.team1_id)}.<span class="math-inline">\{logoExt\}" alt\="</span>{escapeHTML(getTeamName(game.team1_id))}" class="<span class="math-inline">\{logoClass\}" onerror\="this\.onerror\=null; this\.src\='icons/FA\.webp';"\>
+<div class\="team\-info"\>
+<div class\="team\-name"\></span>{escapeHTML(getTeamName(game.team1_id))}</div>
                           <div class="team-record">${escapeHTML(team1Record)}</div>
                         </div>
                       </div>
                       ${isCompleted ? `<div class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</div>` : ''}
                     </div>
-                    <div class="team ${winner === game.team2_id ? 'winner' : ''}">
-                      <div class="team-left">
-                        <img src="icons/${escapeHTML(game.team2_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team2_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                        <div class="team-info">
-                          <div class="team-name">${escapeHTML(getTeamName(game.team2_id))}</div>
+                    <div class="team <span class="math-inline">\{winner \=\=\= game\.team2\_id ? 'winner' \: ''\}"\>
+<div class\="team\-left"\>
+<img src\="icons/</span>{escapeHTML(game.team2_id)}.<span class="math-inline">\{logoExt\}" alt\="</span>{escapeHTML(getTeamName(game.team2_id))}" class="<span class="math-inline">\{logoClass\}" onerror\="this\.onerror\=null; this\.src\='icons/FA\.webp';"\>
+<div class\="team\-info"\>
+<div class\="team\-name"\></span>{escapeHTML(getTeamName(game.team2_id))}</div>
                           <div class="team-record">${escapeHTML(team2Record)}</div>
                         </div>
                       </div>
@@ -959,7 +957,7 @@
                   </div>
                 </div>`;
             }).join('');
-            return `<div class="date-section"><div class="date-header">${formatDate(date)}</div><div class="games-grid">${gamesHTML}</div></div>`;
+            return `<div class="date-section"><div class="date-header"><span class="math-inline">\{formatDate\(date\)\}</div\><div class\="games\-grid"\></span>{gamesHTML}</div></div>`;
           }).join('');
         document.getElementById('games-content').innerHTML = datesHTML;
       }
@@ -1037,19 +1035,19 @@
         });
         
         document.getElementById('best-team-perf').innerHTML = bestTeam.game_key_date ? 
-          `<a href="team.html?id=${escapeHTML(bestTeam.team_id)}" class="team-link">${escapeHTML(bestTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('${escapeHTML(bestTeam.game_key_t1)}', '${escapeHTML(bestTeam.game_key_t2)}', '${escapeHTML(bestTeam.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">+${bestTeam.percentage_diff.toFixed(1)}% vs median</span></a>` : 
+          `<a href="team.html?id=<span class="math-inline">\{escapeHTML\(bestTeam\.team\_id\)\}" class\="team\-link"\></span>{escapeHTML(bestTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('<span class="math-inline">\{escapeHTML\(bestTeam\.game\_key\_t1\)\}', '</span>{escapeHTML(bestTeam.game_key_t2)}', '<span class="math-inline">\{escapeHTML\(bestTeam\.game\_key\_date\)\}'\); return false;" class\="standout\-metric\-link"\><span class\="detail\-positive"\>\+</span>{bestTeam.percentage_diff.toFixed(1)}% vs median</span></a>` : 
           'Not enough data.';
         
         document.getElementById('worst-team-perf').innerHTML = (worstTeam.game_key_date && worstTeam.percentage_diff !== Infinity && worstTeam.percentage_diff < 0) ?
-          `<a href="team.html?id=${escapeHTML(worstTeam.team_id)}" class="team-link">${escapeHTML(worstTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('${escapeHTML(worstTeam.game_key_t1)}', '${escapeHTML(worstTeam.game_key_t2)}', '${escapeHTML(worstTeam.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-negative">${worstTeam.percentage_diff.toFixed(1)}% vs median</span></a>` :
+          `<a href="team.html?id=<span class="math-inline">\{escapeHTML\(worstTeam\.team\_id\)\}" class\="team\-link"\></span>{escapeHTML(worstTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('<span class="math-inline">\{escapeHTML\(worstTeam\.game\_key\_t1\)\}', '</span>{escapeHTML(worstTeam.game_key_t2)}', '<span class="math-inline">\{escapeHTML\(worstTeam\.game\_key\_date\)\}'\); return false;" class\="standout\-metric\-link"\><span class\="detail\-negative"\></span>{worstTeam.percentage_diff.toFixed(1)}% vs median</span></a>` :
           'No team significantly below median.';
 
         document.getElementById('best-player-perf').innerHTML = (bestPlayer.players.length > 0 && bestPlayer.game_key_date) ?
-          `${bestPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('${escapeHTML(bestPlayer.game_key_t1)}', '${escapeHTML(bestPlayer.game_key_t2)}', '${escapeHTML(bestPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">Rank ${bestPlayer.rank}</span></a>` :
+          `${bestPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('<span class="math-inline">\{escapeHTML\(bestPlayer\.game\_key\_t1\)\}', '</span>{escapeHTML(bestPlayer.game_key_t2)}', '${escapeHTML(bestPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">Rank ${bestPlayer.rank}</span></a>` :
           'No ranked player data.';
         
         document.getElementById('worst-player-perf').innerHTML = (worstPlayer.players.length > 0 && worstPlayer.game_key_date) ?
-          `${worstPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('${escapeHTML(worstPlayer.game_key_t1)}', '${escapeHTML(worstPlayer.game_key_t2)}', '${escapeHTML(worstPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span></a>` :
+          `${worstPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('<span class="math-inline">\{escapeHTML\(worstPlayer\.game\_key\_t1\)\}', '</span>{escapeHTML(worstPlayer.game_key_t2)}', '${escapeHTML(worstPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span></a>` :
           'No ranked player data.';
       }
       
@@ -1102,14 +1100,14 @@
           const logoExt = isAllstarTeam ? 'png' : 'webp';
           const logoClass = 'team-logo' + (isAllstarTeam ? ' allstar' : '');
           const headerOnClick = isAllstarTeam ? '' : `onclick="window.location.href='team.html?id=${escapeHTML(teamIdForTable)}'" style="cursor: pointer;"`;
-          const teamRecord = teamData ? `${teamData.wins || 0}-${teamData.losses || 0}` : 'N/A';
+          const teamRecord = teamData ? `<span class="math-inline">\{teamData\.wins \|\| 0\}\-</span>{teamData.losses || 0}` : 'N/A';
           
           if (lineups.length === 0) { 
             return `
               <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                <div class="team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
-                  <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                  <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
+                <div class="team-header ${isWinner ? 'winner' : ''}" <span class="math-inline">\{headerOnClick\}\>
+<img src\="icons/</span>{escapeHTML(teamIdForTable)}.<span class="math-inline">\{logoExt\}" alt\="</span>{escapeHTML(getTeamName(teamIdForTable))}" class="<span class="math-inline">\{logoClass\}" onerror\="this\.onerror\=null; this\.src\='icons/FA\.webp';"\>
+<div\><h4\></span>{escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
                 </div>
                 <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
                 <div style="padding: 1rem; text-align: center; color: #666;">No detailed lineup data available for this game.</div>
@@ -1126,9 +1124,9 @@
             const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0; 
             
             return `
-              <tr class="${isCaptain ? 'captain-row' : ''}">
-                <td class="player-name-cell">
-                  <a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">
+              <tr class="<span class="math-inline">\{isCaptain ? 'captain\-row' \: ''\}"\>
+<td class\="player\-name\-cell"\>
+<a href\="player\.html?player\=</span>{encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">
                     ${escapeHTML(player.player_handle || 'Unknown')}
                   </a>
                   ${allStarBadge}
@@ -1145,14 +1143,14 @@
           
           return `
             <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-              <div class="team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
-                 <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
+              <div class="team-header ${isWinner ? 'winner' : ''}" <span class="math-inline">\{headerOnClick\}\>
+<img src\="icons/</span>{escapeHTML(teamIdForTable)}.<span class="math-inline">\{logoExt\}" alt\="</span>{escapeHTML(getTeamName(teamIdForTable))}" class="<span class="math-inline">\{logoClass\}" onerror\="this\.onerror\=null; this\.src\='icons/FA\.webp';"\>
+<div\><h4\></span>{escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
               </div>
-              <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
-              <table class="lineup-table">
-                <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
-                <tbody>${lineupRows}</tbody>
+              <div class="team-total">Total: <span class="math-inline">\{formatInThousands\(totalScoreFromSchedule\)\}</div\>
+<table class\="lineup\-table"\>
+<thead\><tr\><th\>Player</th\><th\>Points</th\><th\>Rank</th\></tr\></thead\>
+<tbody\></span>{lineupRows}</tbody>
               </table>
             </div>
           `;
