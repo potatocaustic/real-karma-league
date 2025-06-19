@@ -721,10 +721,40 @@
             }
         }
 
-        const aboveMedianPctPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
-        const aboveMedianPctPlayers = [...aboveMedianPctPool].sort((a, b) => parseFloat(b.aag_median_pct || 0) - parseFloat(a.aag_median_pct || 0));
-        rankNum = aboveMedianPctPlayers.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
-        rankings.aboveMedianPct = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (aboveMedianPctPool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
+        // Games Above Median Ranking
+        const gamesAboveMedianPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
+        const sortedPool = [...gamesAboveMedianPool].sort((a, b) => {
+            const valA = parseInt(a.aag_median || 0);
+            const valB = parseInt(b.aag_median || 0);
+            if (valB !== valA) return valB - valA;
+
+            const pctA = parseFloat(a.aag_median_pct || 0);
+            const pctB = parseFloat(b.aag_median_pct || 0);
+            return pctB - pctA;
+        });
+
+        if (sortedPool.length > 0) {
+            // Assign ranks, handling ties
+            sortedPool[0].rank = 1;
+            for (let i = 1; i < sortedPool.length; i++) {
+                const current = sortedPool[i];
+                const prev = sortedPool[i-1];
+                if (parseInt(current.aag_median || 0) === parseInt(prev.aag_median || 0) && parseFloat(current.aag_median_pct || 0) === parseFloat(prev.aag_median_pct || 0)) {
+                    current.rank = prev.rank;
+                } else {
+                    current.rank = i + 1;
+                }
+            }
+
+            const rankedPlayer = sortedPool.find(p => p.player_handle === playerDataToRank.player_handle);
+            if (rankedPlayer && rankedPlayer.rank > 0) {
+                 rankings.gamesAboveMedian = `${getOrdinal(rankedPlayer.rank)} Overall`;
+            } else {
+                 rankings.gamesAboveMedian = "Unranked";
+            }
+        } else {
+            rankings.gamesAboveMedian = "Unranked";
+        }
 
         return rankings;
        }
@@ -835,7 +865,7 @@
         const warValue = playerData.WAR || 0;
         const relMedian = playerData.calculated_rel_median || 0;
         const gemValue = playerData.gem || 0;
-        const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100;
+        const gamesAboveMedian = playerData.aag_median || 0;
         
         let medianRankValueForDisplay = '-';
         if (playerData.calculated_median_rank !== Infinity && playerData.calculated_median_rank > 0) {
@@ -854,7 +884,7 @@
             <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Gameday Rank</div><div class="${rankClass(rankings.medianRank)}">${rankings.medianRank}</div></div></a>
           <a href="leaderboards.html?category=gem" class="stat-card-link"><div class="stat-card">
             <div class="stat-value">${gemValue > 0 ? gemValue.toFixed(1) : '-'}</div><div class="stat-label">GEM</div><div class="${rankClass(rankings.gem)}">${rankings.gem}</div></div></a>
-          <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${aboveMedianPct.toFixed(1)}%</div><div class="stat-label">% Games Above Median</div><div class="${rankClass(rankings.aboveMedianPct)}">${rankings.aboveMedianPct}</div></div></a>
+          <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="${rankClass(rankings.gamesAboveMedian)}">${rankings.gamesAboveMedian || 'Unranked'}</div></div></a>
           `;
         document.getElementById('player-stats').style.display = 'grid';
        }
