@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Stats Glossary</title>
+    <link rel="stylesheet" href="../css/global-styles.css" />
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
       // Apply theme from local storage before page loads to prevent flashing
@@ -15,81 +16,67 @@
       })();
     </script>
     <style>
-      /* General Styles from other pages */
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: Arial, sans-serif; background-color: #f4f4f4; color: #333; line-height: 1.6; transition: background-color 0.3s, color 0.3s; }
-      h1, h2, h3, h4 { color: #333; transition: color 0.3s; }
-      main { padding: 2rem; max-width: 900px; margin: 0 auto; }
+      /* Page-specific styles for stats-glossary.html */
+      main { 
+        max-width: 900px;
+      }
 
-      /* Header & Nav */
-      header { background-color: #333; color: #fff; padding: 1rem; text-align: center; position: relative; }
-      header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
-      .header-logo { width: 40px; height: 40px; object-fit: cover; }
-      #theme-toggle-btn { position: absolute; top: 1.2rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; line-height: 1; z-index: 102; }
-      #theme-toggle-btn .moon-icon { display: none; }
-      nav { position: relative; }
-      .nav-toggle { display: none; background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 0.5rem 1rem; position: absolute; top: -2.8rem; right: 1rem; }
-      nav ul { display: flex; justify-content: center; list-style: none; margin-top: 1rem; flex-wrap: wrap; }
-      nav ul li { margin: 0.5rem 1rem; }
-      nav ul li a { color: #fff; text-decoration: none; font-size: 1.1rem; transition: color 0.3s ease; white-space: nowrap; }
-      nav ul li a:hover { color: #ccc; }
-
-      /* Dropdown Menu Styles */
-      .dropdown { position: relative; display: inline-block; }
-      .dropdown .dropbtn { background: none; border: none; cursor: pointer; color: #fff; text-decoration: none; font-size: 1.1rem; font-family: inherit; }
-      .dropdown-content { display: none; position: absolute; background-color: #333; min-width: 180px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 101; border-radius: 4px; top: 100%; left: 50%; transform: translateX(-50%); padding-top: 0.5rem; }
-      .dropdown-content a { color: white; padding: 12px 16px; text-decoration: none; display: block; text-align: left; font-size: 1rem; }
-      .dropdown-content a:hover { background-color: #555; color: #fff; }
-      .dropdown:hover .dropdown-content { display: block; }
-
-      /* Page-specific styles */
-      .page-header { text-align: center; margin-bottom: 2.5rem; }
-      .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+      .page-header { 
+        margin-bottom: 2.5rem; 
+      }
+      .page-header h2 { 
+        font-size: 2.5rem; 
+        margin-bottom: 1rem; 
+      }
       
-      .glossary-section { margin-bottom: 2rem; }
-      .glossary-term { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.08); padding: 1.5rem 2rem; margin-bottom: 1.5rem; transition: background-color 0.3s, box-shadow 0.3s; }
-      .glossary-term h3 { font-size: 1.75rem; margin-bottom: 1rem; color: #007bff; transition: color 0.3s; }
-      .glossary-term p { margin-bottom: 1rem; }
-      .glossary-term .formula { background-color: #e9ecef; padding: 0.75rem; border-radius: 4px; font-family: 'Courier New', Courier, monospace; font-size: 0.95rem; white-space: pre; overflow-x: auto; transition: background-color 0.3s, color 0.3s; }
+      .glossary-section { 
+        margin-bottom: 2rem; 
+      }
+      .glossary-term { 
+        background-color: #fff; 
+        border-radius: 8px; 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08); 
+        padding: 1.5rem 2rem; 
+        margin-bottom: 1.5rem; 
+        transition: background-color 0.3s, box-shadow 0.3s; 
+      }
+      .glossary-term h3 { 
+        font-size: 1.75rem; 
+        margin-bottom: 1rem; 
+        color: #007bff; 
+        transition: color 0.3s; 
+      }
+      .glossary-term p { 
+        margin-bottom: 1rem; 
+      }
+      .glossary-term .formula { 
+        background-color: #e9ecef; 
+        padding: 0.75rem; 
+        border-radius: 4px; 
+        font-family: 'Courier New', Courier, monospace; 
+        font-size: 0.95rem; 
+        white-space: pre; 
+        overflow-x: auto; 
+        transition: background-color 0.3s, color 0.3s; 
+      }
       
-      footer { text-align: center; margin-top: 3rem; padding: 1rem; background-color: #333; color: #fff; }
+      /* Page-specific dark mode styles */
+      .dark-mode .glossary-term { 
+        background-color: #1e1e1e; 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.5); 
+      }
+      .dark-mode .glossary-term h3 { 
+        color: #8ab4f8; 
+      }
+      .dark-mode .glossary-term .formula { 
+        background-color: #2c2c2c; 
+        color: #e0e0e0; 
+      }
 
-      /* Dark Mode Styles */
-      .dark-mode body { background-color: #121212; color: #e0e0e0; }
-      .dark-mode h1, .dark-mode h2, .dark-mode h3, .dark-mode h4 { color: #f5f5f5; }
-      .dark-mode #theme-toggle-btn .sun-icon { display: none; }
-      .dark-mode #theme-toggle-btn .moon-icon { display: block; }
-      .dark-mode .glossary-term { background-color: #1e1e1e; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
-      .dark-mode .glossary-term h3 { color: #8ab4f8; }
-      .dark-mode .glossary-term .formula { background-color: #2c2c2c; color: #e0e0e0; }
-      .dark-mode .dropdown-content { background-color: #444; }
-      .dark-mode .dropdown-content a:hover { background-color: #666; }
-      .dark-mode nav ul.active { background-color: #444; }
-      .dark-mode nav ul li a:hover { background-color: #555; }
-      .dark-mode .dropdown.active .dropdown-content { background-color: #4a4a4a; }
-
-      /* Responsive Styles */
+      /* Page-specific responsive styles */
       @media (max-width: 600px) {
-        #theme-toggle-btn { left: 1rem; right: auto; }
-        .header-text { display: none; }
-        .header-logo { width: 50px; height: 50px; }
-        .nav-toggle { display: block; }
-        nav ul { display: none; position: absolute; top: calc(100% - 1rem); left: 0; right: 0; background-color: #444; flex-direction: column; align-items: center; gap: 0; margin-top: 0; padding: 0.5rem 0; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 100; }
-        nav ul.active { display: flex; }
-        nav ul li { margin: 0; width: 100%; text-align: center; }
-        nav ul li a { display: block; padding: 0.8rem 1rem; }
-        nav ul li a:hover { background-color: #555; }
         main { padding: 1rem; }
         .glossary-term { padding: 1.5rem; }
-
-        .dropdown { display: block; width: 100%; }
-        .dropdown .dropbtn { width: 100%; padding: 0.8rem 1rem; }
-        .dropdown .dropbtn:hover { background-color: #555; }
-        .dropdown-content { position: static; display: none; box-shadow: none; background-color: #4a4a4a; border-radius: 0; padding-top: 0; transform: none; left: auto; top: auto; }
-        .dropdown-content a { padding-left: 2.5rem; }
-        .dropdown.active .dropdown-content { display: block; }
-        .dropdown:hover .dropdown-content { display: none; }
-        .dropdown.active:hover .dropdown-content { display: block; }
       }
     </style>
   </head>
@@ -170,46 +157,11 @@
         </div>
     </main>
     
-    <footer><p>@caustic on Real</p></footer>
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="trade-block.html">GM Portal</a>
+    </footer>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        // --- Theme Toggler ---
-        const themeToggleBtn = document.getElementById('theme-toggle-btn');
-        if(themeToggleBtn) {
-            themeToggleBtn.addEventListener('click', () => {
-                document.documentElement.classList.toggle('dark-mode');
-                
-                let theme = 'light';
-                if (document.documentElement.classList.contains('dark-mode')) {
-                    theme = 'dark';
-                }
-                localStorage.setItem('theme', theme);
-            });
-        }
-
-        const navToggle = document.querySelector('.nav-toggle');
-        const navMenu = document.getElementById('nav-menu');
-        const dropdownBtn = document.querySelector('.dropdown .dropbtn');
-
-        if (navToggle && navMenu) {
-            navToggle.addEventListener('click', () => {
-                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true' || false;
-                navToggle.setAttribute('aria-expanded', !isExpanded);
-                navMenu.classList.toggle('active');
-            });
-        }
-        
-        if(dropdownBtn) {
-            dropdownBtn.addEventListener('click', function(event) {
-                // Check if we are in mobile view (nav-toggle is visible)
-                if (window.getComputedStyle(navToggle).display !== 'none') {
-                    event.preventDefault(); // Prevent link navigation
-                    this.parentElement.classList.toggle('active');
-                }
-            });
-        }
-      });
-    </script>
+    <script src="../js/main.js" defer></script>
   </body>
 </html>
