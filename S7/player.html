@@ -349,7 +349,7 @@
       .player-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
       .player-link:hover { color: #0056b3; text-decoration: underline; }
       .points-cell { text-align: center; font-weight: bold; }
-      .rank-cell { text-align: center; color: #666; transition: color 0.3s; } 
+      .rank-cell { text-align: center; color: #666; transition: color 0.3s;} 
 
       .back-button { background-color: #007bff; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 4px; text-decoration: none; font-size: 1rem; display: inline-block; margin-bottom: 2rem; transition: background-color 0.3s;}
       .back-button:hover { background-color: #0056b3; text-decoration: none; color: white; }
@@ -659,10 +659,10 @@
         });
       }
 
-
       function calculatePlayerRankings(playerDataToRank, allActivePlayers, is3GPMinimumActive) { 
         const rankings = {};
         const playerGamesPlayed = parseInt(playerDataToRank.games_played || 0);
+        let rankNum; // Reusable rank number
 
         const getSpecificStatRankingPool = (players) => {
             if (is3GPMinimumActive) {
@@ -671,8 +671,6 @@
             return players.filter(p => parseInt(p.games_played || 0) > 0);
         };
         
-        let rankNum; // Reusable rank number
-
         // WAR Ranking
         const warPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) >= 1);
         const warPlayersSorted = [...warPool].sort((a, b) => (b.WAR || 0) - (a.WAR || 0));
@@ -721,10 +719,19 @@
             }
         }
 
-        const aboveMedianPctPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
-        const aboveMedianPctPlayers = [...aboveMedianPctPool].sort((a, b) => parseFloat(b.aag_median_pct || 0) - parseFloat(a.aag_median_pct || 0));
-        rankNum = aboveMedianPctPlayers.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
-        rankings.aboveMedianPct = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : (aboveMedianPctPool.some(p=>p.player_handle === playerDataToRank.player_handle) ? 'Not Ranked' : 'Unranked');
+        // Games Above Median Ranking
+        const gamesAboveMedianPool = allActivePlayers.filter(p => parseInt(p.games_played || 0) > 0);
+        const gamesAboveMedianPlayers = [...gamesAboveMedianPool].sort((a, b) => {
+            const valA = a.aag_median || 0;
+            const valB = b.aag_median || 0;
+            if (valB !== valA) return valB - valA;
+            // Tie-breaker using percentage
+            const pctA = a.aag_median_pct || 0;
+            const pctB = b.aag_median_pct || 0;
+            return pctB - pctA;
+        });
+        rankNum = gamesAboveMedianPlayers.findIndex(p => p.player_handle === playerDataToRank.player_handle) + 1;
+        rankings.gamesAboveMedian = rankNum > 0 ? `${getOrdinal(rankNum)} Overall` : 'Unranked';
 
         return rankings;
        }
@@ -835,7 +842,7 @@
         const warValue = playerData.WAR || 0;
         const relMedian = playerData.calculated_rel_median || 0;
         const gemValue = playerData.gem || 0;
-        const aboveMedianPct = parseFloat(playerData.aag_median_pct || 0) * 100;
+        const gamesAboveMedian = playerData.aag_median || 0;
         
         let medianRankValueForDisplay = '-';
         if (playerData.calculated_median_rank !== Infinity && playerData.calculated_median_rank > 0) {
@@ -854,7 +861,8 @@
             <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Gameday Rank</div><div class="${rankClass(rankings.medianRank)}">${rankings.medianRank}</div></div></a>
           <a href="leaderboards.html?category=gem" class="stat-card-link"><div class="stat-card">
             <div class="stat-value">${gemValue > 0 ? gemValue.toFixed(1) : '-'}</div><div class="stat-label">GEM</div><div class="${rankClass(rankings.gem)}">${rankings.gem}</div></div></a>
-          <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${aboveMedianPct.toFixed(1)}%</div><div class="stat-label">% Games Above Median</div><div class="${rankClass(rankings.aboveMedianPct)}">${rankings.aboveMedianPct}</div></div></a>
+          <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card">
+            <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="${rankClass(rankings.gamesAboveMedian)}">${rankings.gamesAboveMedian}</div></div></a>
           `;
         document.getElementById('player-stats').style.display = 'grid';
        }
