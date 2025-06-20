@@ -773,11 +773,23 @@
         displayWeek(currentWeek); 
       }
       
-      function determineCurrentWeek(schedule) { 
+      function determineCurrentWeek(schedule) {
+        // First, create a chronologically sorted list of all unique weeks.
+        const numericWeeks = [...new Set(schedule.map(game => parseInt(game.week)).filter(w => !isNaN(w)))].sort((a, b) => a - b);
+        const hasAllstarWeek = schedule.some(g => g.week === 'ALLSTAR');
+        
+        let allAvailableWeeks = [...numericWeeks];
+        if (hasAllstarWeek) {
+            // Splice ALLSTAR week into the array after week 8.
+            const allstarBreakIndex = allAvailableWeeks.indexOf(8) + 1;
+            allAvailableWeeks.splice(allstarBreakIndex, 0, 'ALLSTAR');
+        }
+
+        // Next, get the completion status for each week.
         const gamesByWeek = {};
         schedule.forEach(game => {
           const week = game.week;
-          if (week) { 
+          if (week) {
             if (!gamesByWeek[week]) {
               gamesByWeek[week] = { total: 0, completed: 0 };
             }
@@ -787,13 +799,18 @@
             }
           }
         });
-        const numericWeeks = Object.keys(gamesByWeek).map(w => parseInt(w)).filter(w => !isNaN(w)).sort((a, b) => a - b);
-        for (const week of numericWeeks) {
-          if (gamesByWeek[week].completed < gamesByWeek[week].total) {
+
+        // Iterate through the correctly ordered list of weeks.
+        for (const week of allAvailableWeeks) {
+          const weekStats = gamesByWeek[String(week)]; // Use string for object key access.
+          // If a week has scheduled games and is not fully completed, this is our target week.
+          if (weekStats && weekStats.completed < weekStats.total) {
             return week;
           }
         }
-        return numericWeeks.length > 0 ? numericWeeks[numericWeeks.length - 1] : 1;
+
+        // If all weeks are completed, default to the last one in the ordered list.
+        return allAvailableWeeks.length > 0 ? allAvailableWeeks[allAvailableWeeks.length - 1] : 1;
        }
       
       function setupWeekSelector() { 
