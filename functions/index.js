@@ -48,14 +48,16 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             teamsRaw,
             scheduleRaw,
             lineupsRaw,
-            weeklyAveragesRaw
+            weeklyAveragesRaw,
+            transactionsLogRaw // --- NEWLY ADDED ---
         ] = await Promise.all([
             fetchAndParseSheet("Players"),
             fetchAndParseSheet("Draft_Capital"),
             fetchAndParseSheet("Teams"),
             fetchAndParseSheet("Schedule"),
             fetchAndParseSheet("Lineups"),
-            fetchAndParseSheet("Weekly_Averages")
+            fetchAndParseSheet("Weekly_Averages"),
+            fetchAndParseSheet("Transaction_Log") // --- NEWLY ADDED ---
         ]);
         console.log("All sheets fetched successfully.");
 
@@ -66,15 +68,14 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const scheduleBatch = db.batch();
         scheduleRaw.forEach(game => {
             if (game.date && game.team1_id && game.team2_id) {
-                // ** FIX 1: Add a fallback for the season to prevent "undefined" **
-                const season = game.season || '7'; // Defaults to season 7 if missing from sheet
+                const season = game.season || '7'; 
                 const gameId = `S${season}_W${game.week}_${game.team1_id}_vs_${game.team2_id}`;
 
                 const docRef = db.collection("schedule").doc(gameId);
                 const gameData = { ...game };
                 gameData.teams_in_game = [game.team1_id, game.team2_id]; 
                 gameData.week = parseNumber(game.week);
-                gameData.season = parseNumber(season); // Use the sanitized season variable
+                gameData.season = parseNumber(season); 
                 gameData.team1_score = parseNumber(game.team1_score);
                 gameData.team2_score = parseNumber(game.team2_score);
                 scheduleBatch.set(docRef, gameData, { merge: true });
@@ -88,7 +89,6 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const lineupsBatch = db.batch();
         lineupsRaw.forEach(lineup => {
             if (lineup.date && lineup.player_handle && lineup.team_id) {
-                // ** FIX 2: Replace slashes in the date for the document ID **
                 const lineupId = `${lineup.date.replace(/\//g, "-")}_${lineup.team_id}_${lineup.player_handle}`;
 
                 const docRef = db.collection("lineups").doc(lineupId);
@@ -102,6 +102,23 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         });
         await lineupsBatch.commit();
         console.log(`Successfully synced ${lineupsRaw.length} lineup entries.`);
+
+
+        // --- Sync Transaction_Log collection --- // --- NEWLY ADDED SECTION ---
+        const transactionsBatch = db.batch();
+        transactionsLogRaw.forEach(transaction => {
+            // Since a single transaction can have multiple rows (one for each asset),
+            // we let Firestore auto-generate a unique document ID for each row.
+            // We only process rows that have a transaction_id.
+            if (transaction.transaction_id) {
+                const docRef = db.collection("transaction_log").doc(); // Auto-generates ID
+                transactionsBatch.set(docRef, transaction);
+            }
+        });
+        await transactionsBatch.commit();
+        console.log(`Successfully synced ${transactionsLogRaw.length} transaction log entries.`);
+        // --- END OF NEWLY ADDED SECTION ---
+
 
         // (Section for syncing weeklyAverages is correct and remains unchanged)
         // ...
