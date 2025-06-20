@@ -16,7 +16,7 @@
       })();
     </script>
     <style>
-      /* Page-specific styles for team.html */
+      /* Page-specific styles for team.html (styles are unchanged) */
       .team-header-content {
         background-color: #fff;
         border-radius: 8px;
@@ -320,7 +320,7 @@
       .back-button:hover { background-color: #0056b3; text-decoration: none; color: white; }
       .desktop-only-roster-logo { width: 30px; height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
-      /* Dark Mode Styles */
+      /* Dark Mode Styles (styles are unchanged) */
       .dark-mode .back-button { background-color: #3b82f6; }
       .dark-mode .back-button:hover { background-color: #60a5fa; }
       .dark-mode .team-header-content, .dark-mode .roster-section, .dark-mode .schedule-section, .dark-mode .draft-capital { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
@@ -369,6 +369,7 @@
       .dark-mode .player-link:hover { color: #a7c7fa; }
       .dark-mode .rank-cell { color: #aaa; }
 
+      /* Responsive Styles (styles are unchanged) */
       @media (max-width: 768px) {
         .content-grid { grid-template-columns: 1fr; }
         .team-main-info { flex-direction: column; gap: 1rem; }
@@ -422,7 +423,7 @@
         <span class="moon-icon">🌙</span>
       </button>
       <h1>
-        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
       </h1>
       <nav>
@@ -531,9 +532,9 @@
       let allLineups = []; 
       let allDraftPicks = []; 
       let processedPlayersData = [];
-      let rosterSortState = { column: 'rel', direction: 'desc' }; // Default sort
+      let rosterSortState = { column: 'rel', direction: 'desc' };
 
-      // --- Helper Functions (Identical to original, no changes needed) ---
+      // --- Helper Functions (Full code included) ---
       function formatInThousands(value) {
         const num = parseFloat(value);
         if (num >= 1000) {
@@ -556,7 +557,7 @@
         const year = String(date.getUTCFullYear()).slice(-2);
         return `${month}/${day}/${year}`;
       }
-
+      
       function parseNumber(value) {
         if (!value) return 0;
         const cleaned = value.toString().replace(/,/g, '');
@@ -749,77 +750,7 @@
         }
         loadRoster();
       }
-
-      // --- Firestore Data Fetching ---
-      async function fetchCollection(collectionName) {
-        try {
-            const snapshot = await db.collection(collectionName).get();
-            return snapshot.docs.map(doc => doc.data());
-        } catch (error) {
-            console.error(`Error fetching ${collectionName}:`, error);
-            return []; // Return empty array on error to prevent crashes
-        }
-      }
       
-      async function loadTeamData() {
-        teamId = getUrlParameter('id');
-        if (!teamId) {
-          document.getElementById('team-main-info').innerHTML = '<div class="error">No team specified</div>';
-          return;
-        }
-
-        // Use Promise.all to fetch all necessary data concurrently from Firestore
-        const [
-          teamsResult, 
-          playersResult, 
-          weeklyAveragesResult, 
-          transactionsLogResult, 
-          lineupsResult, 
-          scheduleResult, 
-          draftPicksResult
-        ] = await Promise.all([
-          fetchCollection('teams'),
-          fetchCollection('players'),
-          fetchCollection('weekly_averages'),
-          fetchCollection('transaction_log'),
-          fetchCollection('lineups'),
-          fetchCollection('schedule'),
-          fetchCollection('draft_capital')
-        ]);
-        
-        // Assign fetched data to global variables
-        allTeams = teamsResult;
-        allWeeklyAverages = weeklyAveragesResult;
-        allTransactionsLogData = transactionsLogResult;
-        allLineups = lineupsResult;
-        allScheduleData = scheduleResult;
-        allDraftPicks = draftPicksResult;
-
-        // Process data (this logic remains the same)
-        processedPlayersData = calculateRELForAllPlayers(playersResult, allWeeklyAverages, allLineups);
-        teamData = allTeams.find(team => team.team_id === teamId);
-
-        if (!teamData) {
-          document.getElementById('team-main-info').innerHTML = '<div class="error">Team not found</div>';
-          return;
-        }
-
-        teamData.calculated_total_transactions = countTransactionsForTeam(teamData.team_id, allTransactionsLogData);
-        
-        const activeTeamsForRanking = allTeams.filter(t => t.team_id && t.team_id.toUpperCase() !== 'RETIRED' && t.team_id.toUpperCase() !== 'FREE_AGENT' && t.conference);
-        const rankings = calculateTeamRankings(teamData, activeTeamsForRanking);
-        
-        displayTeamHeader(rankings); 
-        
-        // Load page sections
-        await Promise.all([
-          loadRoster(),
-          loadSchedule(),
-          loadDraftCapital() 
-        ]);
-      }
-      
-      // --- Display Functions (Identical to original, no changes needed) ---
       function displayTeamHeader(rankings) {
         document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
         
@@ -830,7 +761,7 @@
         
         document.getElementById('team-main-info').innerHTML = `
           <div style="display: flex; align-items: center; gap: 1.5rem;">
-            <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
+            <img src="../icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
             <div class="team-details">
               <h2>${escapeHTML(teamData.team_name)}</h2>
               <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
@@ -909,7 +840,7 @@
           return `
             <div class="player-item">
               <div class="roster-player-logo-col desktop-only-roster-logo">
-                <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="roster-team-logo-inline" onerror="this.style.display='none'">
+                <img src="../icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="roster-team-logo-inline" onerror="this.style.display='none'">
               </div>
               <div class="player-info">
                 <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a>
@@ -942,7 +873,7 @@
         }
         
         const teamGames = allScheduleData
-          .filter(game => game.teams_in_game && game.teams_in_game.includes(teamId)) // Use teams_in_game array for querying
+          .filter(game => game.teams_in_game && game.teams_in_game.includes(teamId))
           .sort((a, b) => new Date(a.date) - new Date(b.date)); 
         
         if (teamGames.length === 0) {
@@ -995,18 +926,18 @@
               <div class="game-info-table"><div class="week-cell"><div class="week-badge">${gameWeek}</div></div><div class="date-cell"><div class="date-badge">${gameDateFormatted}</div></div></div>
               <div class="game-content-table">
                 <div class="team-section left">
-                  <img src="icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-game" onerror="this.style.display='none'"><div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div>
+                  <img src="../icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-game" onerror="this.style.display='none'"><div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div>
                 </div>
                 <div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div>
                 <div class="team-section right">
-                  <img src="icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo-game" ${logoClickHandlers} onerror="this.style.display='none'"><div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div>
+                  <img src="../icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo-game" ${logoClickHandlers} onerror="this.style.display='none'"><div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div>
                 </div>
               </div>
               <div class="game-matchup"> 
                 <div class="week-badge">${gameWeek}</div> 
-                <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}"><img src="icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span></div>
+                <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}"><img src="../icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span></div>
                 <span class="vs">vs</span>
-                <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}"><img src="icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo" ${logoClickHandlers} onerror="this.style.display='none'"><div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span></div>
+                <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}"><img src="../icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo" ${logoClickHandlers} onerror="this.style.display='none'"><div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span></div>
               </div>
             </div>`;
         }).join('');
@@ -1111,7 +1042,7 @@
           const teamDetailsForModal = allTeams.find(t => t.team_id === idOfTeam); 
           const teamRecord = teamDetailsForModal ? `${teamDetailsForModal.wins || 0}-${teamDetailsForModal.losses || 0}` : '';
           
-          if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><img src="icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'"><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
+          if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><img src="../icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'"><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
           
           const lineupRows = lineupsForTable.map(player => {
             const isCaptain = player.captain === 'TRUE';
@@ -1125,7 +1056,7 @@
             return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
           }).join('');
           
-          return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><img src="icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'"><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
+          return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><img src="../icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'"><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
         };
         
         modalContentEl.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
@@ -1139,14 +1070,78 @@
         if (event.target === document.getElementById('game-modal')) closeGameModal();
       }
       
-      document.addEventListener('DOMContentLoaded', () => {
-          // Wait for firebase-init.js to initialize Firebase
-          const firebaseAppCheck = setInterval(() => {
-              if (window.db) {
-                  clearInterval(firebaseAppCheck);
-                  loadTeamData();
-              }
-          }, 100);
+      // --- Firestore Data Fetching ---
+      async function fetchCollection(collectionName) {
+        try {
+            const snapshot = await db.collection(collectionName).get();
+            return snapshot.docs.map(doc => doc.data());
+        } catch (error) {
+            console.error(`Error fetching ${collectionName}:`, error);
+            const mainContent = document.querySelector('main');
+            if(mainContent) {
+                mainContent.innerHTML = `<div class="error">Failed to load data from collection: ${collectionName}. Check Firestore permissions and connectivity.</div>` + mainContent.innerHTML;
+            }
+            throw error;
+        }
+      }
+      
+      // --- Main Data Loading Orchestrator ---
+      async function loadTeamData() {
+        try {
+            teamId = getUrlParameter('id');
+            if (!teamId) {
+              document.getElementById('team-main-info').innerHTML = '<div class="error">No team specified in URL.</div>';
+              return;
+            }
+
+            const [
+              teamsResult, playersResult, weeklyAveragesResult, 
+              transactionsLogResult, lineupsResult, scheduleResult, draftPicksResult
+            ] = await Promise.all([
+              fetchCollection('teams'), fetchCollection('players'), fetchCollection('weekly_averages'),
+              fetchCollection('transaction_log'), fetchCollection('lineups'), fetchCollection('schedule'),
+              fetchCollection('draft_capital')
+            ]);
+            
+            allTeams = teamsResult;
+            allWeeklyAverages = weeklyAveragesResult;
+            allTransactionsLogData = transactionsLogResult;
+            allLineups = lineupsResult;
+            allScheduleData = scheduleResult;
+            allDraftPicks = draftPicksResult;
+
+            processedPlayersData = calculateRELForAllPlayers(playersResult, allWeeklyAverages, allLineups);
+            teamData = allTeams.find(team => team.team_id === teamId);
+
+            if (!teamData) {
+              document.getElementById('team-main-info').innerHTML = '<div class="error">Team not found for ID: ' + escapeHTML(teamId) + '</div>';
+              return;
+            }
+
+            teamData.calculated_total_transactions = countTransactionsForTeam(teamData.team_id, allTransactionsLogData);
+            
+            const activeTeamsForRanking = allTeams.filter(t => t.team_id && t.team_id.toUpperCase() !== 'RETIRED' && t.team_id.toUpperCase() !== 'FREE_AGENT' && t.conference);
+            const rankings = calculateTeamRankings(teamData, activeTeamsForRanking);
+            
+            displayTeamHeader(rankings); 
+            
+            await Promise.all([
+              loadRoster(),
+              loadSchedule(),
+              loadDraftCapital() 
+            ]);
+        } catch (error) {
+            console.error("A critical error occurred during data loading:", error);
+        }
+      }
+
+      // --- NEW, ROBUST INITIALIZATION ---
+      let hasLoaded = false;
+      auth.onAuthStateChanged(user => {
+          if (!hasLoaded) {
+              hasLoaded = true;
+              loadTeamData();
+          }
       });
     </script>
   </body>
