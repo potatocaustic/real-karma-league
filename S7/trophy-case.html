@@ -258,10 +258,13 @@
           grid-template-columns: 1fr;
         }
         .all-star-list-header {
-            grid-template-columns: auto 1fr 55px 55px; /* Mobile: Icon, Player, REL, WAR */
+            grid-template-columns: auto 1fr auto auto; /* Mobile: Icon, Player, REL, WAR */
         }
         .all-star-item {
-            grid-template-columns: auto 1fr 55px 55px; /* Mobile: Icon, Player, REL, WAR */
+            grid-template-columns: auto 1fr auto auto; /* Mobile: Icon, Player, REL, WAR */
+        }
+        .all-star-list-header .stat-col-header, .all-star-stat {
+            text-align: right; /* Revert to right-align on mobile */
         }
         .gem-col {
             display: none; /* Hide GEM column on mobile */
@@ -274,8 +277,8 @@
   <body>
     <header>
       <button id="theme-toggle-btn" aria-label="Toggle Theme">
-        <span class="sun-icon">笘 ｸ/span>
-        <span class="moon-icon">嫌</span>
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
       </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.onerror=null; this.src='../rklfavicon.ico';">
@@ -606,7 +609,7 @@
             
             // --- Render Cards ---
             const champTeamData = allTeamsData.find(t => t.team_name === champRow.team_name);
-            awardsHTML += createAwardCard('醇 League Champions 醇', {
+            awardsHTML += createAwardCard('🏆 League Champions 🏆', {
                 name: champRow.team_name, detail: 'Season 7', link: `team.html?id=${champTeamData?.team_id}`, logoId: champTeamData?.team_id, stats: createTeamStatsString(champTeamData)
             });
             
@@ -673,7 +676,7 @@
         } else {
             let tbdAwardsHTML = '';
             const awardTitles = [
-                '醇 League Champions 醇', 'Regular Season Title', 'Best Performance (Team)', 'Best Performance (Player)',
+                '🏆 League Champions 🏆', 'Regular Season Title', 'Best Performance (Team)', 'Best Performance (Player)',
                 'League MVP', 'Finals MVP', 'Rookie of the Year', 'Sixth Man of the Year', 'GM of the Year'
             ];
             awardTitles.forEach(title => {
