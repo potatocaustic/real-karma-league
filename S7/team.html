@@ -935,15 +935,17 @@
           document.getElementById('team-schedule').innerHTML = gamesHTML;
         }
         
-        /**
-         * [REVISED] Added item-specific error handling to prevent one bad item
-         * from breaking the entire section.
-         */
         async function loadDraftCapital() {
             try {
                 if (!allDraftPicks) { document.getElementById('draft-picks').innerHTML = '<div class="error">Error loading draft capital data</div>'; return; }
                 
-                const teamPicks = allDraftPicks.filter(pick => pick.current_owner === teamId).sort((a, b) => (parseInt(a.season || 0) - parseInt(b.season || 0)) || (parseInt(a.round || 0) - parseInt(b.round || 0)));
+                // [FIXED] Made the filter more robust to handle potential whitespace or case differences in data.
+                const teamPicks = allDraftPicks.filter(pick => {
+                    if (!pick.current_owner || typeof pick.current_owner !== 'string' || !teamId) {
+                        return false;
+                    }
+                    return pick.current_owner.trim().toUpperCase() === teamId.toUpperCase();
+                }).sort((a, b) => (parseInt(a.season || 0) - parseInt(b.season || 0)) || (parseInt(a.round || 0) - parseInt(b.round || 0)));
                 
                 if (teamPicks.length === 0) { 
                     document.getElementById('draft-picks').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No draft picks owned</div>'; 
@@ -960,7 +962,6 @@
                     const picks = picksBySeason[season];
                     const seasonColor = getSeasonColor(parseInt(season));
 
-                    // Add item-level try-catch
                     const picksHTML = picks.map(pick => {
                       try {
                         const isOriginalOwnerOfPick = pick.original_team === teamId;
