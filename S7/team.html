@@ -937,14 +937,17 @@
         
         async function loadDraftCapital() {
             try {
-                if (!allDraftPicks) { document.getElementById('draft-picks').innerHTML = '<div class="error">Error loading draft capital data</div>'; return; }
+                if (!allDraftPicks) {
+                    document.getElementById('draft-picks').innerHTML = '<div class="error">Error loading draft capital data</div>';
+                    return;
+                }
                 
-                // [FIXED] Made the filter more robust to handle potential whitespace or case differences in data.
                 const teamPicks = allDraftPicks.filter(pick => {
+                    // [FIX] Add robust checking for the current_owner field
                     if (!pick.current_owner || typeof pick.current_owner !== 'string' || !teamId) {
                         return false;
                     }
-                    return pick.current_owner.trim().toUpperCase() === teamId.toUpperCase();
+                    return pick.current_owner.trim().toUpperCase() === teamId.trim().toUpperCase();
                 }).sort((a, b) => (parseInt(a.season || 0) - parseInt(b.season || 0)) || (parseInt(a.round || 0) - parseInt(b.round || 0)));
                 
                 if (teamPicks.length === 0) { 
