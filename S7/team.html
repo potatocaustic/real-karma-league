@@ -15,6 +15,9 @@
         }
       })();
     </script>
+    
+    <style id="team-icon-styles"></style>
+
     <style>
       /* Page-specific styles for team.html (styles are unchanged) */
       .team-header-content {
@@ -188,9 +191,7 @@
       .roster-player-logo-col {
         display: flex; align-items: center; justify-content: center;
       }
-      .roster-team-logo-inline {
-        width: 24px; height: 24px; border-radius: 3px;
-      }
+      
       .player-item:hover { background-color: #f8f9fa; }
       .player-item:last-child { border-bottom: none; }
       .player-info { display: flex; flex-direction: column; min-width: 0; padding-left: 0; }
@@ -227,7 +228,6 @@
       .scores-section { display: flex; align-items: center; gap: 0.75rem; font-weight: bold; font-size: 1.1rem; white-space: nowrap; min-width: 120px; justify-content: center; }
       .score { min-width: 40px; text-align: center; }
       .vs-text { color: #666; font-weight: 500; font-size: 1rem; transition: color 0.3s; }
-      .team-logo-game { width: 32px; height: 32px; border-radius: 50% !important; object-fit: cover; background-color: #fff; border: 1px solid #ddd; flex-shrink: 0; }
       .team-name-game { font-weight: 500; font-size: 0.95rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .team-record-game { font-size: 0.8rem; color: #666; line-height: 1; margin-top: 0.2rem; white-space: nowrap; transition: color 0.3s; }
       .win { color: #28a745; }
@@ -235,7 +235,6 @@
       .upcoming { color: #333; font-weight: 500; }
       .team-matchup, .team, .team-info, .vs { display: none; }
       .game-matchup .week-badge { display: none; }
-      .team-logo { width: 20px; height: 20px; vertical-align: middle; } 
       .week-badge { background-color: #007bff; color: white; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; border: 1px solid white; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); }
       .date-badge { font-size: 0.65rem; color: #666; font-weight: 500; transition: color 0.3s; }
 
@@ -293,7 +292,6 @@
       .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
       .modal-team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; transition: background-color 0.3s;}
       .modal-team-header.winner { background-color: #28a745; }
-      .modal-team-header .team-logo { width: 48px; height: 48px; border-radius: 4px; } 
       .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; transition: background-color 0.3s, border-color 0.3s;}
       .lineup-table { width: 100%; border-collapse: collapse; }
       .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; transition: background-color 0.3s, border-color 0.3s;}
@@ -444,7 +442,6 @@
         .team-score { font-weight: bold; color: #333; margin-left: auto; min-width: 35px; text-align: right; flex-shrink: 0; }
         .team-score.win { color: #28a745; } .team-score.loss { color: #dc3545; } .team-score.upcoming { color: #333; }
         .vs { display: none; }
-        .team-logo { width: 32px; height: 32px; vertical-align: middle; } 
         
         .modal-content { margin: 1rem; width: calc(100% - 2rem); }
         .modal-body { padding: 1rem; }
@@ -587,6 +584,37 @@
         let allDraftPicks = []; 
         let processedPlayersData = [];
         let rosterSortState = { column: 'rel', direction: 'desc' };
+        
+        // --- NEW HELPER FUNCTION ---
+        function generateIconStylesheet(allTeams) {
+            const iconStyles = allTeams.map(team => {
+                if (!team.team_id) return '';
+                const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`; 
+                return `
+                    .${className} {
+                        background-image: url('icons/${team.team_id}.webp');
+                    }
+                `;
+            }).join('');
+
+            const styleElement = document.getElementById('team-icon-styles');
+            if (styleElement) {
+                styleElement.innerHTML = `
+                    .team-logo-css {
+                        width: 24px;
+                        height: 24px;
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                        display: inline-block;
+                        vertical-align: middle;
+                        flex-shrink: 0;
+                        border-radius: 4px;
+                    }
+                    ${iconStyles}
+                `;
+            }
+        }
 
         // --- Helper Functions (Full code included) ---
         function normalizeDate(dateInput) {
@@ -865,6 +893,7 @@
               return rosterSortState.direction === 'desc' ? -comparison : comparison;
           });
           
+          const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
           const rosterHTML = teamPlayers.map(player => {
             const relMedian = parseFloat(player.REL || 0);
             const gamesPlayed = parseInt(player.games_played || 0);
@@ -882,7 +911,7 @@
             return `
               <div class="player-item">
                 <div class="roster-player-logo-col desktop-only-roster-logo">
-                  <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="roster-team-logo-inline" onerror="this.style.display='none'">
+                  <div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div>
                 </div>
                 <div class="player-info">
                   <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a>
@@ -923,6 +952,7 @@
             return;
           }
           
+          const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
           const gamesHTML = teamGames.map(game => {
             const isTeam1 = game.team1_id === teamId;
             const opponentId = isTeam1 ? game.team2_id : game.team1_id;
@@ -963,24 +993,34 @@
               teamScoreText = '-'; oppScoreText = '-'; teamScoreClass = 'upcoming'; oppScoreClass = 'upcoming';
               logoClickHandlers = `onclick="window.location.href='team.html?id=${opponentId}'" style="cursor: pointer;"`;
             }
+
+            const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
             
             return `
               <div class="game-item" ${clickHandler}>
                 <div class="game-info-table"><div class="week-cell"><div class="week-badge">${gameWeek}</div></div><div class="date-cell"><div class="date-badge">${gameDateFormatted}</div></div></div>
                 <div class="game-content-table">
                   <div class="team-section left">
-                    <img src="icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-game" onerror="this.style.display='none'"><div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div>
+                    <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div>
+                    <div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div>
                   </div>
                   <div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div>
                   <div class="team-section right">
-                    <img src="icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo-game" ${logoClickHandlers} onerror="this.style.display='none'"><div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div>
+                    <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;" ${logoClickHandlers}></div>
+                    <div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div>
                   </div>
                 </div>
                 <div class="game-matchup"> 
                   <div class="week-badge">${gameWeek}</div> 
-                  <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}"><img src="icons/${teamId}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span></div>
+                  <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}">
+                    <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px;"></div>
+                    <div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span>
+                  </div>
                   <span class="vs">vs</span>
-                  <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}"><img src="icons/${opponentId}.webp" alt="${escapeHTML(opponentName)}" class="team-logo" ${logoClickHandlers} onerror="this.style.display='none'"><div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span></div>
+                  <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}">
+                    <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px;" ${logoClickHandlers}></div>
+                    <div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span>
+                  </div>
                 </div>
               </div>`;
           }).join('');
@@ -1055,18 +1095,18 @@
                           originDisplayHTML = `<div class="pick-origin"><a href="${transactionsLink}" title="View transaction">${originTextContent}</a></div>`;
                       } else { throw new Error("No valid transaction link found"); }
                     } catch (e) {
-                      // FIX 1: Removed the inline style="color: #666;" from this div to allow dark mode CSS to apply.
                       originDisplayHTML = `<div class="pick-origin">${originTextContent}</div>`;
                     }
                   } else if (isOriginalOwnerOfPick) { 
                       originDisplayHTML = `<div class="pick-origin">Original Pick</div>`;
                   }
-
+                  
+                  const originalTeamIdClassName = `icon-${pick.original_team.replace(/[^a-zA-Z0-9]/g, '')}`;
                   return `
                     <div class="${containerClass}">
                       <div class="pick-main-info">
                         <a href="team.html?id=${pick.original_team}">
-                          <img src="icons/${pick.original_team}.webp" class="pick-team-logo" onerror="this.style.display='none'">
+                          <div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div>
                         </a>
                         <div class="pick-text-content">
                           <span class="pick-description">${pickDescriptionText}</span>
@@ -1121,8 +1161,9 @@
           const generateLineupTable = (lineupsForTable, idOfTeam, total, isWinner) => { 
             const teamDetailsForModal = allTeams.find(t => t.team_id === idOfTeam); 
             const teamRecord = teamDetailsForModal ? `${teamDetailsForModal.wins || 0}-${teamDetailsForModal.losses || 0}` : '';
-            
-            if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><img src="icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'"><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
+            const teamIdClassName = `icon-${idOfTeam.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+            if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
             
             const lineupRows = lineupsForTable.map(player => {
               const isCaptain = player.captain === 'TRUE';
@@ -1136,7 +1177,7 @@
               return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
             }).join('');
             
-            return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><img src="icons/${idOfTeam}.webp" alt="${escapeHTML(getTeamName(idOfTeam))}" class="team-logo" onerror="this.style.display='none'"><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
+            return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
           };
           
           modalContentEl.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
@@ -1182,6 +1223,9 @@
               ]);
               
               allTeams = teamsResult;
+              // --- Generate the CSS for all team icons at once ---
+              generateIconStylesheet(allTeams);
+
               allWeeklyAverages = weeklyAveragesResult;
               allTransactionsLogData = transactionsLogResult;
               allLineups = lineupsResult;
