@@ -138,7 +138,7 @@
       }
       .all-star-list-header {
         display: grid;
-        grid-template-columns: auto 1fr auto auto auto; /* Icon, Player, REL, WAR, GEM */
+        grid-template-columns: auto 1fr 55px 55px 55px; /* Icon, Player, REL, WAR, GEM */
         gap: 1rem;
         padding: 0.5rem 1rem;
         background-color: #f8f9fa;
@@ -153,7 +153,7 @@
         grid-column: 2;
       }
       .all-star-list-header .stat-col-header {
-        text-align: right;
+        text-align: center;
       }
 
       .all-star-list {
@@ -162,7 +162,7 @@
       }
       .all-star-item {
         display: grid;
-        grid-template-columns: auto 1fr auto auto auto; /* Icon, Player, REL, WAR, GEM */
+        grid-template-columns: auto 1fr 55px 55px 55px; /* Icon, Player, REL, WAR, GEM */
         gap: 1rem;
         align-items: center;
         padding: 0.75rem 1rem;
@@ -196,7 +196,7 @@
         transition: color 0.3s;
       }
       .all-star-stat {
-          text-align: right;
+          text-align: center;
           font-weight: bold;
           font-size: 1.1rem;
       }
@@ -258,10 +258,10 @@
           grid-template-columns: 1fr;
         }
         .all-star-list-header {
-            grid-template-columns: auto 1fr auto auto; /* Mobile: Icon, Player, REL, WAR */
+            grid-template-columns: auto 1fr 55px 55px; /* Mobile: Icon, Player, REL, WAR */
         }
         .all-star-item {
-            grid-template-columns: auto 1fr auto auto; /* Mobile: Icon, Player, REL, WAR */
+            grid-template-columns: auto 1fr 55px 55px; /* Mobile: Icon, Player, REL, WAR */
         }
         .gem-col {
             display: none; /* Hide GEM column on mobile */
@@ -274,8 +274,8 @@
   <body>
     <header>
       <button id="theme-toggle-btn" aria-label="Toggle Theme">
-        <span class="sun-icon">☀️</span>
-        <span class="moon-icon">🌙</span>
+        <span class="sun-icon">笘 ｸ/span>
+        <span class="moon-icon">嫌</span>
       </button>
       <h1>
         <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.onerror=null; this.src='../rklfavicon.ico';">
@@ -606,7 +606,7 @@
             
             // --- Render Cards ---
             const champTeamData = allTeamsData.find(t => t.team_name === champRow.team_name);
-            awardsHTML += createAwardCard('🏆 League Champions 🏆', {
+            awardsHTML += createAwardCard('醇 League Champions 醇', {
                 name: champRow.team_name, detail: 'Season 7', link: `team.html?id=${champTeamData?.team_id}`, logoId: champTeamData?.team_id, stats: createTeamStatsString(champTeamData)
             });
             
@@ -673,7 +673,7 @@
         } else {
             let tbdAwardsHTML = '';
             const awardTitles = [
-                '🏆 League Champions 🏆', 'Regular Season Title', 'Best Performance (Team)', 'Best Performance (Player)',
+                '醇 League Champions 醇', 'Regular Season Title', 'Best Performance (Team)', 'Best Performance (Player)',
                 'League MVP', 'Finals MVP', 'Rookie of the Year', 'Sixth Man of the Year', 'GM of the Year'
             ];
             awardTitles.forEach(title => {
