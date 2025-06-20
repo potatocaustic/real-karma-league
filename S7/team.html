@@ -308,6 +308,46 @@
       .points-cell { text-align: center; font-weight: bold; }
       .rank-cell { text-align: center; color: #666; transition: color 0.3s;} 
 
+      /* Creates a flex container for the new logo and the text block */
+      .pick-main-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem; /* Space between logo and text */
+        flex: 1;
+        min-width: 0;
+      }
+
+      /* Styles the original owner's team logo */
+      .pick-team-logo {
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+        flex-shrink: 0;
+      }
+
+      /* A wrapper for the pick description and origin text */
+      .pick-text-content {
+        min-width: 0;
+      }
+
+      /* This makes the sub-label text lighter in dark mode for better visibility */
+      .dark-mode .pick-origin {
+        color: #bbb;
+      }
+      .dark-mode .pick-origin a {
+        color: #8ab4f8; /* Ensures links within the origin text are still blue */
+      }
+
+      /* This handles the new layout on mobile devices */
+      @media (max-width: 768px) {
+        .pick-main-info {
+          justify-content: center;
+        }
+        .pick-text-content {
+          text-align: center;
+        }
+      }
+
       .pick-item-enhanced { transition: background-color 0.2s ease; display: flex; justify-content: space-between; align-items: center; padding: 0.8rem; border-bottom: 1px solid #eee; transition: background-color 0.3s, border-color 0.3s; }
       .pick-item-enhanced > div:first-child { text-align: left; }
       .pick-item-enhanced:hover { background-color: #f8f9fa !important; }
@@ -982,18 +1022,15 @@
                   let transactionForLink = null;
                   let originTextContent = '';
 
-                  // --- START: MODIFIED LOGIC FOR STYLING ---
                   let containerClass = 'pick-item-enhanced';
                   let statusText = 'Acquired';
 
                   if (isPendingForfeiture) {
                       statusText = 'Pending Forfeiture';
-                      containerClass += ' pick-forfeiture'; // Use a class for the background
+                      containerClass += ' pick-forfeiture';
                   } else if (isOriginalOwnerOfPick) {
-                      // Use a span with a class for the green text
                       statusText = `<span class="pick-status-own">Own Pick</span>`;
                   }
-                  // --- END: MODIFIED LOGIC FOR STYLING ---
 
                   if (!isOriginalOwnerOfPick && !isPendingForfeiture) { 
                     let viaTeamId = null;
@@ -1021,15 +1058,18 @@
                       originDisplayHTML = `<div class="pick-origin" style="color: #666;">${originTextContent}</div>`;
                     }
                   } else if (isOriginalOwnerOfPick) { 
-                      originDisplayHTML = `<div class="pick-origin" style="color: #666;">Original Pick</div>`;
+                      originDisplayHTML = `<div class="pick-origin">Original Pick</div>`;
                   }
 
-                  // Use the new containerClass and statusText variables here, removing the inline style
+                  // --- This is the updated HTML structure with the logo ---
                   return `
                     <div class="${containerClass}">
-                      <div>
-                        <span class="pick-description">${pickDescriptionText}</span>
-                        ${originDisplayHTML}
+                      <div class="pick-main-info">
+                        <img src="icons/${pick.original_team}.webp" class="pick-team-logo" onerror="this.style.display='none'">
+                        <div class="pick-text-content">
+                          <span class="pick-description">${pickDescriptionText}</span>
+                          ${originDisplayHTML}
+                        </div>
                       </div>
                       <div class="pick-status">
                         ${statusText}
