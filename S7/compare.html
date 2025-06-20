@@ -124,71 +124,116 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
+
+        /* NEW/UPDATED Styles for Results */
         .results-container {
             margin-top: 2rem;
             opacity: 0;
             transform: translateY(20px);
             transition: opacity 0.5s ease, transform 0.5s ease;
+            border-top: 1px solid #eee;
+            padding-top: 2rem;
+        }
+        .dark-mode .results-container {
+            border-top-color: #333;
         }
         .results-container.visible {
             opacity: 1;
             transform: translateY(0);
         }
-        .results-header {
-            text-align: center;
-            margin-bottom: 1.5rem;
+        .results-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
         }
-        .results-header h3 {
-            font-size: 1.8rem;
-            margin-bottom: 0.5rem;
-        }
-        .results-header .entity-names {
+        .entity-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
             font-size: 1.2rem;
-            color: #666;
+            font-weight: bold;
+            width: 40%;
         }
-        .dark-mode .results-header .entity-names {
+        .entity-header.entity1 { align-items: flex-start; text-align: left;}
+        .entity-header.entity2 { align-items: flex-end; text-align: right;}
+        .entity-header .icon-name-wrapper {
+             display: flex;
+             align-items: center;
+             gap: 1rem;
+        }
+         .entity-header.entity2 .icon-name-wrapper {
+             flex-direction: row-reverse;
+         }
+
+        .entity-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ddd;
+        }
+        .dark-mode .entity-icon {
+            border-color: #444;
+        }
+        .results-vs-separator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #6c757d;
+        }
+        .dark-mode .results-vs-separator {
             color: #aaa;
         }
-        .comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
         }
-        .comparison-table th, .comparison-table td {
-            padding: 1rem;
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            align-items: center;
             text-align: center;
-            border-bottom: 1px solid #eee;
-        }
-        .dark-mode .comparison-table th, .dark-mode .comparison-table td {
-            border-bottom-color: #333;
-        }
-        .comparison-table th {
+            padding: 0.75rem;
+            border-radius: 6px;
             background-color: #f8f9fa;
-            font-weight: bold;
+            border: 1px solid #eee;
         }
-        .dark-mode .comparison-table th {
+        .dark-mode .comparison-row {
             background-color: #2c2c2c;
+            border-color: #333;
         }
-        .comparison-table th:first-child,
-        .comparison-table td:first-child {
-            text-align: left;
-            font-weight: 500;
-        }
-        .winner {
-            background-color: #e8f5e9;
+        .metric-value {
+            font-size: 1.5rem;
             font-weight: bold;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .metric-label {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #666;
+        }
+        .dark-mode .metric-label {
+            color: #aaa;
+        }
+        .metric-value.winner {
+            background-color: #d4edda;
             color: #155724;
         }
-        .dark-mode .winner {
+        .dark-mode .metric-value.winner {
             background-color: #2e7d32;
             color: #e8f5e9;
         }
-        .tie {
+        .metric-value.tie {
             background-color: #fff3cd;
         }
-        .dark-mode .tie {
+        .dark-mode .metric-value.tie {
             background-color: #4a4100;
         }
+
 
         @media (max-width: 600px) {
             .selectors-grid {
@@ -200,11 +245,25 @@
                 transform: rotate(90deg);
                 margin: 0.5rem auto;
             }
-            .comparison-table {
-                font-size: 0.9rem;
+            .entity-header {
+                font-size: 1rem;
             }
-            .comparison-table th, .comparison-table td {
-                padding: 0.75rem 0.5rem;
+            .entity-icon {
+                width: 40px;
+                height: 40px;
+            }
+             .entity-header .icon-name-wrapper {
+                gap: 0.5rem;
+             }
+            .comparison-row {
+                grid-template-columns: 1fr 1fr 1fr;
+                padding: 0.5rem;
+            }
+            .metric-value {
+                font-size: 1.1rem;
+            }
+            .metric-label {
+                font-size: 0.8rem;
             }
         }
     </style>

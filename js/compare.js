@@ -42,22 +42,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Parses a CSV string into an array of objects.
+     * Parses a CSV string into an array of objects, handling quoted fields.
      * @param {string} csvText The CSV string to parse.
      * @returns {Array<Object>} The parsed data.
      */
     function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
+        // Standardize headers: remove quotes, trim whitespace
         const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
         const data = [];
 
         for (let i = 1; i < lines.length; i++) {
-            // This regex handles comma-separated values, including those enclosed in quotes.
-            const values = lines[i].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-            if(values.length === headers.length) {
+             // Regex to handle commas within quoted fields
+            const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            
+            if (values.length === headers.length) {
                 const row = {};
                 headers.forEach((header, index) => {
                     let value = (values[index] || '').trim();
+                    // Remove quotes from start and end of the value
                     if (value.startsWith('"') && value.endsWith('"')) {
                         value = value.slice(1, -1);
                     }
@@ -68,6 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return data;
     }
+
 
     /**
      * Parses a string into a number, handling commas and empty values.
@@ -86,7 +90,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     /**
      * Calculates advanced statistics for all players.
-     * This function is adapted from other pages to ensure metric consistency.
      * @param {Array<Object>} players - Raw player data.
      * @param {Array<Object>} weeklyAverages - Data for weekly average scores.
      * @param {Array<Object>} lineups - All lineup data for the season.
@@ -140,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0;
-            const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
             const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
 
             const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerRawKarmaForREL / avgMedianKarma) : 0;
@@ -160,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 t100_finishes: t100_finishes,
                 games_played: parseNumber(player.games_played),
                 WAR: parseNumber(player.WAR),
-                GEM: parseNumber(player.GEM)
+                GEM: parseNumber(player.GEM) // Pass GEM through from the sheet
             };
         });
     }
@@ -180,7 +182,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const valueField = type === 'players' ? 'player_handle' : 'team_id';
         const textField = type === 'players' ? 'player_handle' : 'team_name';
 
-        // Sort data alphabetically
         const sortedData = [...data].sort((a, b) => a[textField].localeCompare(b[textField]));
 
         let optionsHTML = '<option value="">Select...</option>';
@@ -218,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Displays the comparison results in a table.
+     * Displays the comparison results in a grid format.
      */
     function displayComparison() {
         const val1 = document.getElementById('select-1').value;
@@ -236,12 +237,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const name1 = currentComparisonType === 'players' ? data1.player_handle : data1.team_name;
         const name2 = currentComparisonType === 'players' ? data2.player_handle : data2.team_name;
 
+        const icon1_id = currentComparisonType === 'players' ? data1.current_team_id : data1.team_id;
+        const icon2_id = currentComparisonType === 'players' ? data2.current_team_id : data2.team_id;
+        
+        const icon1_src = `../S7/icons/${icon1_id || 'FA'}.webp`;
+        const icon2_src = `../S7/icons/${icon2_id || 'FA'}.webp`;
+
         const metrics = currentComparisonType === 'players' ? 
             [
                 { label: 'Games Played', field: 'games_played', higherIsBetter: true, format: (v) => v },
                 { label: 'REL Median', field: 'calculated_rel_median', higherIsBetter: true, format: (v) => v.toFixed(3) },
                 { label: 'WAR', field: 'WAR', higherIsBetter: true, format: (v) => v.toFixed(2) },
-                { label: 'GEM', field: 'gem', higherIsBetter: false, format: (v) => v > 0 ? v.toFixed(1) : '-' },
+                { label: 'GEM', field: 'GEM', higherIsBetter: false, format: (v) => v > 0 ? v.toFixed(1) : '-' },
                 { label: 'Median Gameday Rank', field: 'calculated_median_rank', higherIsBetter: false, format: (v) => v === Infinity ? '-' : Math.round(v) },
                 { label: 'Games Above Median', field: 'aag_median', higherIsBetter: true, format: (v) => v },
                 { label: 'T100 Finishes', field: 't100_finishes', higherIsBetter: true, format: (v) => v }
@@ -249,53 +256,76 @@ document.addEventListener('DOMContentLoaded', () => {
             [
                 { label: 'Record', field: 'wins', higherIsBetter: true, format: (v, d) => `${d.wins}-${d.losses}` },
                 { label: 'PAM', field: 'pam', higherIsBetter: true, format: (v) => Math.round(v).toLocaleString() },
-                { label: 'apPAM', field: 'apPAM', higherIsBetter: true, format: (v) => v ? Math.round(v).toLocaleString() : '-' },
+                { label: 'apPAM', field: 'apPAM', higherIsBetter: true, format: (v) => v ? (parseFloat(v) * 100).toFixed(2) + '%' : '-' },
                 { label: 'Median Starter Rank', field: 'med_starter_rank', higherIsBetter: false, format: (v) => v > 0 ? Math.round(v) : '-' },
                 { label: 'tREL', field: 'tREL', higherIsBetter: true, format: (v) => v ? parseFloat(v).toFixed(3) : '-' }
             ];
 
-        const tableRows = metrics.map(metric => {
-            const val1 = (metric.field === 'wins') ? (parseNumber(data1.wins) / (parseNumber(data1.wins) + parseNumber(data1.losses))) || 0 : parseNumber(data1[metric.field]);
-            const val2 = (metric.field === 'wins') ? (parseNumber(data2.wins) / (parseNumber(data2.wins) + parseNumber(data2.losses))) || 0 : parseNumber(data2[metric.field]);
-            
-            // Special handling for metrics where lower is better
-            const isVal1Winner = metric.higherIsBetter ? val1 > val2 : (val1 > 0 && (val1 < val2 || val2 <= 0));
-            const isVal2Winner = metric.higherIsBetter ? val2 > val1 : (val2 > 0 && (val2 < val1 || val1 <= 0));
-            const isTie = val1 === val2;
+        const metricRowsHTML = metrics.map(metric => {
+            let metricVal1, metricVal2;
 
+            if (metric.field === 'wins') {
+                const totalGames1 = parseNumber(data1.wins) + parseNumber(data1.losses);
+                const totalGames2 = parseNumber(data2.wins) + parseNumber(data2.losses);
+                metricVal1 = totalGames1 > 0 ? parseNumber(data1.wins) / totalGames1 : 0;
+                metricVal2 = totalGames2 > 0 ? parseNumber(data2.wins) / totalGames2 : 0;
+            } else {
+                metricVal1 = parseNumber(data1[metric.field]);
+                metricVal2 = parseNumber(data2[metric.field]);
+            }
+            
+            const displayVal1 = metric.format(parseNumber(data1[metric.field]), data1);
+            const displayVal2 = metric.format(parseNumber(data2[metric.field]), data2);
+
+            let isVal1Winner, isVal2Winner;
+            const isTie = metricVal1 === metricVal2;
+
+            if (metric.higherIsBetter) {
+                isVal1Winner = metricVal1 > metricVal2;
+                isVal2Winner = metricVal2 > metricVal1;
+            } else { // Lower is better
+                const hasVal1 = metricVal1 > 0 && metricVal1 !== Infinity;
+                const hasVal2 = metricVal2 > 0 && metricVal2 !== Infinity;
+                isVal1Winner = hasVal1 && (!hasVal2 || metricVal1 < metricVal2);
+                isVal2Winner = hasVal2 && (!hasVal1 || metricVal2 < metricVal1);
+            }
+            
             const class1 = isTie ? 'tie' : (isVal1Winner ? 'winner' : '');
             const class2 = isTie ? 'tie' : (isVal2Winner ? 'winner' : '');
             
             return `
-                <tr>
-                    <td>${metric.label}</td>
-                    <td class="${class1}">${metric.format(parseNumber(data1[metric.field]), data1)}</td>
-                    <td class="${class2}">${metric.format(parseNumber(data2[metric.field]), data2)}</td>
-                </tr>
+                <div class="comparison-row">
+                    <div class="metric-value value1 ${class1}">${displayVal1}</div>
+                    <div class="metric-label">${metric.label}</div>
+                    <div class="metric-value value2 ${class2}">${displayVal2}</div>
+                </div>
             `;
         }).join('');
 
         const resultsHTML = `
-            <div class="results-header">
-                <h3>Comparison Result</h3>
-                <div class="entity-names">${name1} vs ${name2}</div>
+            <div class="results-header-flex">
+                <div class="entity-header entity1">
+                   <div class="icon-name-wrapper">
+                     <img src="${icon1_src}" class="entity-icon" onerror="this.onerror=null; this.src='../S7/icons/FA.webp'">
+                     <span>${name1}</span>
+                   </div>
+                </div>
+                <div class="results-vs-separator">VS</div>
+                <div class="entity-header entity2">
+                   <div class="icon-name-wrapper">
+                    <span>${name2}</span>
+                    <img src="${icon2_src}" class="entity-icon" onerror="this.onerror=null; this.src='../S7/icons/FA.webp'">
+                   </div>
+                </div>
             </div>
-            <table class="comparison-table">
-                <thead>
-                    <tr>
-                        <th>Metric</th>
-                        <th>${name1}</th>
-                        <th>${name2}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
-            </table>
+            <div class="comparison-grid">
+                ${metricRowsHTML}
+            </div>
         `;
         resultsContainer.innerHTML = resultsHTML;
         resultsContainer.classList.add('visible');
     }
+
 
     // --- Initialization and Event Handling ---
     
@@ -311,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ]);
 
         if (!players || !teams || !lineups || !weeklyAverages) {
-            // Error message is already shown by fetchSheetData
             return;
         }
 
@@ -341,6 +370,5 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSelectors(currentComparisonType);
     }
 
-    // Start the application
     initializeApp();
 });
