@@ -524,7 +524,8 @@
     <script src="../js/main.js" defer></script>
     
     <script>
-      const db = firebase.firestore(); // This will now work!
+      // The line "const db = firebase.firestore()" has been removed from here.
+      // 'db' is already defined globally by firebase-init.js.
       let teamId = null;
       let teamData = null;
       let allTeamsData = [];
