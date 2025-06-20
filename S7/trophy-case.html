@@ -138,7 +138,7 @@
       }
       .all-star-list-header {
         display: grid;
-        grid-template-columns: auto 1fr auto auto; /* Added column for WAR */
+        grid-template-columns: auto 1fr auto auto auto; /* Icon, Player, REL, WAR, GEM */
         gap: 1rem;
         padding: 0.5rem 1rem;
         background-color: #f8f9fa;
@@ -162,7 +162,7 @@
       }
       .all-star-item {
         display: grid;
-        grid-template-columns: auto 1fr auto auto; /* Added column for WAR */
+        grid-template-columns: auto 1fr auto auto auto; /* Icon, Player, REL, WAR, GEM */
         gap: 1rem;
         align-items: center;
         padding: 0.75rem 1rem;
@@ -249,7 +249,7 @@
       .dark-mode .lineup-table tr:hover { background-color: #383838; }
       .dark-mode .captain-row { background-color: #4a4100 !important; }
 
-      .war-col {
+      .gem-col, .war-col {
           /* Default state is visible */
       }
 
@@ -258,13 +258,13 @@
           grid-template-columns: 1fr;
         }
         .all-star-list-header {
-            grid-template-columns: auto 1fr auto; /* Mobile: 3 columns */
+            grid-template-columns: auto 1fr auto auto; /* Mobile: Icon, Player, REL, WAR */
         }
         .all-star-item {
-            grid-template-columns: auto 1fr auto; /* Mobile: 3 columns */
+            grid-template-columns: auto 1fr auto auto; /* Mobile: Icon, Player, REL, WAR */
         }
-        .war-col {
-            display: none; /* Hide WAR column on mobile */
+        .gem-col {
+            display: none; /* Hide GEM column on mobile */
         }
         .modal-content { margin: 1rem; width: calc(100% - 2rem); }
         .game-details-grid { grid-template-columns: 1fr; gap: 1rem; }
@@ -448,7 +448,7 @@
             median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
           }
           
-          return { ...player, calculated_rel_median: rel_median, calculated_median_rank: median_rank, WAR: parseNumber(player.WAR) };
+          return { ...player, calculated_rel_median: rel_median, calculated_median_rank: median_rank, WAR: parseNumber(player.WAR), GEM: parseNumber(player.GEM) };
         });
       }
 
@@ -520,8 +520,9 @@
                 <div class="all-star-header"><h3>Eastern Conference All-Stars</h3></div>
                 <div class="all-star-list-header">
                     <span class="player-col-header">Player</span>
-                    <span class="stat-col-header">REL Median</span>
+                    <span class="stat-col-header">REL</span>
                     <span class="stat-col-header war-col">WAR</span>
+                    <span class="stat-col-header gem-col">GEM</span>
                 </div>
                 <ul class="all-star-list" id="all-stars-east"></ul>
               </div>
@@ -529,8 +530,9 @@
                 <div class="all-star-header"><h3>Western Conference All-Stars</h3></div>
                 <div class="all-star-list-header">
                     <span class="player-col-header">Player</span>
-                    <span class="stat-col-header">REL Median</span>
+                    <span class="stat-col-header">REL</span>
                     <span class="stat-col-header war-col">WAR</span>
+                    <span class="stat-col-header gem-col">GEM</span>
                 </div>
                 <ul class="all-star-list" id="all-stars-west"></ul>
               </div>
@@ -701,6 +703,7 @@
             const medianRankDisplay = playerStats.calculated_median_rank !== Infinity ? Math.round(playerStats.calculated_median_rank) : '-';
             const relMedianDisplay = playerStats.calculated_rel_median.toFixed(3);
             const warDisplay = (playerStats.WAR || 0).toFixed(2);
+            const gemDisplay = (playerStats.GEM || 0) > 0 ? (playerStats.GEM).toFixed(1) : '-';
             
             return `
                 <li class="all-star-item">
@@ -711,6 +714,7 @@
                     </div>
                     <div class="all-star-stat">${relMedianDisplay}</div>
                     <div class="all-star-stat war-col">${warDisplay}</div>
+                    <div class="all-star-stat gem-col">${gemDisplay}</div>
                 </li>
             `;
         };
