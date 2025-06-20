@@ -138,7 +138,7 @@
       }
       .all-star-list-header {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto 1fr auto auto; /* Added column for WAR */
         gap: 1rem;
         padding: 0.5rem 1rem;
         background-color: #f8f9fa;
@@ -152,7 +152,7 @@
         text-align: left;
         grid-column: 2;
       }
-      .all-star-list-header .rel-col-header {
+      .all-star-list-header .stat-col-header {
         text-align: right;
       }
 
@@ -162,7 +162,7 @@
       }
       .all-star-item {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto 1fr auto auto; /* Added column for WAR */
         gap: 1rem;
         align-items: center;
         padding: 0.75rem 1rem;
@@ -195,7 +195,7 @@
         color: #666;
         transition: color 0.3s;
       }
-      .all-star-rel {
+      .all-star-stat {
           text-align: right;
           font-weight: bold;
           font-size: 1.1rem;
@@ -249,9 +249,22 @@
       .dark-mode .lineup-table tr:hover { background-color: #383838; }
       .dark-mode .captain-row { background-color: #4a4100 !important; }
 
+      .war-col {
+          /* Default state is visible */
+      }
+
       @media (max-width: 768px) {
         .all-stars-container {
           grid-template-columns: 1fr;
+        }
+        .all-star-list-header {
+            grid-template-columns: auto 1fr auto; /* Mobile: 3 columns */
+        }
+        .all-star-item {
+            grid-template-columns: auto 1fr auto; /* Mobile: 3 columns */
+        }
+        .war-col {
+            display: none; /* Hide WAR column on mobile */
         }
         .modal-content { margin: 1rem; width: calc(100% - 2rem); }
         .game-details-grid { grid-template-columns: 1fr; gap: 1rem; }
@@ -265,7 +278,7 @@
         <span class="moon-icon">🌙</span>
       </button>
       <h1>
-        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.onerror=null; this.src='../rklfavicon.ico';">
         <span class="header-text">Real Karma League</span>
       </h1>
       <nav>
@@ -435,7 +448,7 @@
             median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
           }
           
-          return { ...player, calculated_rel_median: rel_median, calculated_median_rank: median_rank };
+          return { ...player, calculated_rel_median: rel_median, calculated_median_rank: median_rank, WAR: parseNumber(player.WAR) };
         });
       }
 
@@ -505,12 +518,20 @@
             <div class="all-stars-container">
               <div class="all-star-team">
                 <div class="all-star-header"><h3>Eastern Conference All-Stars</h3></div>
-                <div class="all-star-list-header"><span class="player-col-header">Player</span><span class="rel-col-header">REL Median</span></div>
+                <div class="all-star-list-header">
+                    <span class="player-col-header">Player</span>
+                    <span class="stat-col-header">REL Median</span>
+                    <span class="stat-col-header war-col">WAR</span>
+                </div>
                 <ul class="all-star-list" id="all-stars-east"></ul>
               </div>
               <div class="all-star-team">
                 <div class="all-star-header"><h3>Western Conference All-Stars</h3></div>
-                <div class="all-star-list-header"><span class="player-col-header">Player</span><span class="rel-col-header">REL Median</span></div>
+                <div class="all-star-list-header">
+                    <span class="player-col-header">Player</span>
+                    <span class="stat-col-header">REL Median</span>
+                    <span class="stat-col-header war-col">WAR</span>
+                </div>
                 <ul class="all-star-list" id="all-stars-west"></ul>
               </div>
             </div>`;
@@ -679,6 +700,7 @@
             
             const medianRankDisplay = playerStats.calculated_median_rank !== Infinity ? Math.round(playerStats.calculated_median_rank) : '-';
             const relMedianDisplay = playerStats.calculated_rel_median.toFixed(3);
+            const warDisplay = (playerStats.WAR || 0).toFixed(2);
             
             return `
                 <li class="all-star-item">
@@ -687,7 +709,8 @@
                         <a href="player.html?player=${encodeURIComponent(playerStats.player_handle)}">${playerStats.player_handle}</a>
                         <span class="all-star-stats">Med Rank: ${medianRankDisplay}</span>
                     </div>
-                    <div class="all-star-rel">${relMedianDisplay}</div>
+                    <div class="all-star-stat">${relMedianDisplay}</div>
+                    <div class="all-star-stat war-col">${warDisplay}</div>
                 </li>
             `;
         };
