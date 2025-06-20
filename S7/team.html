@@ -1055,17 +1055,19 @@
                           originDisplayHTML = `<div class="pick-origin"><a href="${transactionsLink}" title="View transaction">${originTextContent}</a></div>`;
                       } else { throw new Error("No valid transaction link found"); }
                     } catch (e) {
-                      originDisplayHTML = `<div class="pick-origin" style="color: #666;">${originTextContent}</div>`;
+                      // FIX 1: Removed the inline style="color: #666;" from this div to allow dark mode CSS to apply.
+                      originDisplayHTML = `<div class="pick-origin">${originTextContent}</div>`;
                     }
                   } else if (isOriginalOwnerOfPick) { 
                       originDisplayHTML = `<div class="pick-origin">Original Pick</div>`;
                   }
 
-                  // --- This is the updated HTML structure with the logo ---
                   return `
                     <div class="${containerClass}">
                       <div class="pick-main-info">
-                        <img src="icons/${pick.original_team}.webp" class="pick-team-logo" onerror="this.style.display='none'">
+                        <a href="team.html?id=${pick.original_team}">
+                          <img src="icons/${pick.original_team}.webp" class="pick-team-logo" onerror="this.style.display='none'">
+                        </a>
                         <div class="pick-text-content">
                           <span class="pick-description">${pickDescriptionText}</span>
                           ${originDisplayHTML}
