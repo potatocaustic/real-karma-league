@@ -231,17 +231,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let name1 = currentComparisonType === 'players' ? data1.player_handle : data1.team_name;
-        let name2 = currentComparisonType === 'players' ? data2.player_handle : data2.team_name;
+        const nameText1 = currentComparisonType === 'players' ? data1.player_handle : data1.team_name;
+        const nameText2 = currentComparisonType === 'players' ? data2.player_handle : data2.team_name;
         
+        let badges1 = '';
+        let badges2 = '';
         if (currentComparisonType === 'players') {
-            const rookieBadge1 = data1.rookie === '1' ? ` <span class="rookie-badge-compare">R</span>` : '';
-            const allStarBadge1 = data1.all_star === '1' ? ` <span class="all-star-badge-compare">★</span>` : '';
-            name1 += rookieBadge1 + allStarBadge1;
+            const rookieBadge1 = data1.rookie === '1' ? `<span class="rookie-badge-compare">R</span>` : '';
+            const allStarBadge1 = data1.all_star === '1' ? `<span class="all-star-badge-compare">★</span>` : '';
+            badges1 = `<span class="badge-container">${rookieBadge1}${allStarBadge1}</span>`;
 
-            const rookieBadge2 = data2.rookie === '1' ? ` <span class="rookie-badge-compare">R</span>` : '';
-            const allStarBadge2 = data2.all_star === '1' ? ` <span class="all-star-badge-compare">★</span>` : '';
-            name2 += rookieBadge2 + allStarBadge2;
+            const rookieBadge2 = data2.rookie === '1' ? `<span class="rookie-badge-compare">R</span>` : '';
+            const allStarBadge2 = data2.all_star === '1' ? `<span class="all-star-badge-compare">★</span>` : '';
+            badges2 = `<span class="badge-container">${rookieBadge2}${allStarBadge2}</span>`;
         }
 
         const icon1_id = currentComparisonType === 'players' ? data1.current_team_id : data1.team_id;
@@ -249,6 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const icon1_src = `icons/${icon1_id || 'FA'}.webp`;
         const icon2_src = `icons/${icon2_id || 'FA'}.webp`;
+
+        const link1 = currentComparisonType === 'players' ? `player.html?player=${encodeURIComponent(data1.player_handle)}` : `team.html?id=${data1.team_id}`;
+        const link2 = currentComparisonType === 'players' ? `player.html?player=${encodeURIComponent(data2.player_handle)}` : `team.html?id=${data2.team_id}`;
 
         const metrics = currentComparisonType === 'players' ? 
             [
@@ -270,19 +275,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const metricRowsHTML = metrics.map(metric => {
             let metricVal1, metricVal2;
+            let displayVal1, displayVal2;
 
             if (metric.field === 'wins') {
                 const totalGames1 = parseNumber(data1.wins) + parseNumber(data1.losses);
                 const totalGames2 = parseNumber(data2.wins) + parseNumber(data2.losses);
                 metricVal1 = totalGames1 > 0 ? parseNumber(data1.wins) / totalGames1 : 0;
                 metricVal2 = totalGames2 > 0 ? parseNumber(data2.wins) / totalGames2 : 0;
+                displayVal1 = metric.format(null, data1);
+                displayVal2 = metric.format(null, data2);
             } else {
                 metricVal1 = parseNumber(data1[metric.field]);
                 metricVal2 = parseNumber(data2[metric.field]);
+                displayVal1 = metric.format(data1[metric.field], data1);
+                displayVal2 = metric.format(data2[metric.field], data2);
             }
-            
-            const displayVal1 = metric.format(data1[metric.field], data1);
-            const displayVal2 = metric.format(data2[metric.field], data2);
             
             let isVal1Winner, isVal2Winner;
             const isTie = metricVal1 === metricVal2;
@@ -314,17 +321,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const resultsHTML = `
             <div class="results-header-flex">
                 <div class="entity-header entity1">
-                   <div class="icon-name-wrapper">
-                     <img src="${icon1_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
-                     <span>${name1}</span>
-                   </div>
+                   <a href="${link1}">
+                        <div class="icon-name-wrapper">
+                            <img src="${icon1_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
+                            <div>
+                                <span class="entity-name-text">${nameText1}</span>${badges1}
+                            </div>
+                        </div>
+                   </a>
                 </div>
                 <div class="results-vs-separator">VS</div>
                 <div class="entity-header entity2">
-                   <div class="icon-name-wrapper">
-                    <span>${name2}</span>
-                    <img src="${icon2_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
-                   </div>
+                   <a href="${link2}">
+                        <div class="icon-name-wrapper">
+                            <div>
+                                <span class="entity-name-text">${nameText2}</span>${badges2}
+                            </div>
+                            <img src="${icon2_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
+                        </div>
+                   </a>
                 </div>
             </div>
             <div class="comparison-grid">

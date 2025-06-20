@@ -125,7 +125,7 @@
             cursor: not-allowed;
         }
 
-        /* NEW/UPDATED Styles for Results */
+        /* Results Styles */
         .results-container {
             margin-top: 2rem;
             opacity: 0;
@@ -148,16 +148,27 @@
             margin-bottom: 2rem;
         }
         .entity-header {
+            width: 40%;
+        }
+        .entity-header a {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 0.75rem;
             font-size: 1.2rem;
             font-weight: bold;
-            width: 40%;
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.3s;
         }
-        .entity-header.entity1 { align-items: flex-start; text-align: left;}
-        .entity-header.entity2 { align-items: flex-end; text-align: right;}
+        .entity-header a:hover {
+            color: #007bff;
+        }
+        .dark-mode .entity-header a:hover {
+            color: #8ab4f8;
+        }
+        .entity-header.entity1 a { align-items: flex-start; text-align: left;}
+        .entity-header.entity2 a { align-items: flex-end; text-align: right;}
         .entity-header .icon-name-wrapper {
              display: flex;
              align-items: center;
@@ -166,6 +177,13 @@
          .entity-header.entity2 .icon-name-wrapper {
              flex-direction: row-reverse;
          }
+
+        .entity-name-text {
+            display: inline;
+        }
+        .badge-container {
+            display: inline;
+        }
 
         .entity-icon {
             width: 50px;
@@ -264,13 +282,24 @@
             .vs-separator, .results-vs-separator {
                 display: none;
             }
-            .entity-header {
-                font-size: 1rem;
-                width: 48%; /* Adjust width for side-by-side */
-            }
             .results-header-flex {
                 justify-content: space-between;
                 gap: 4%;
+            }
+            .entity-header {
+                width: 48%; /* Adjust width for side-by-side */
+            }
+            .entity-header a {
+                font-size: 1rem; /* Smaller font on mobile */
+            }
+            .entity-header .entity-name-text {
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+            }
+            .entity-header .badge-container {
+                display: none; /* Hide badges on mobile */
             }
             .entity-icon {
                 width: 40px;
@@ -299,7 +328,7 @@
         <span class="moon-icon">🌙</span>
       </button>
       <h1>
-        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.onerror=null; this.src='../rklfavicon.ico';">
         <span class="header-text">Real Karma League</span>
       </h1>
       <nav>
