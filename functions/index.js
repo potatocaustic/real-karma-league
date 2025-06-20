@@ -200,7 +200,10 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const weeklyAveragesBatch = db.batch();
         weeklyAveragesRaw.forEach(week => {
             if (week.date) {
-                const docRef = db.collection("weeklyAverages").doc(week.date);
+                // Replace "/" with "-" for a valid document ID
+                const docId = week.date.replace(/\//g, "-");
+                const docRef = db.collection("weeklyAverages").doc(docId);
+                
                 const weekData = { ...week };
                 weekData.week = parseNumber(week.week);
                 weekData.mean_score = parseNumber(week.mean_score);
