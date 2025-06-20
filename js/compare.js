@@ -48,19 +48,16 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function parseCSV(csvText) {
         const lines = csvText.trim().split('\n');
-        // Standardize headers: remove quotes, trim whitespace
         const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
         const data = [];
 
         for (let i = 1; i < lines.length; i++) {
-             // Regex to handle commas within quoted fields
             const values = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             
             if (values.length === headers.length) {
                 const row = {};
                 headers.forEach((header, index) => {
                     let value = (values[index] || '').trim();
-                    // Remove quotes from start and end of the value
                     if (value.startsWith('"') && value.endsWith('"')) {
                         value = value.slice(1, -1);
                     }
@@ -74,13 +71,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     /**
-     * Parses a string into a number, handling commas and empty values.
+     * Parses a string into a number, handling commas and percentage signs.
      * @param {*} value The value to parse.
      * @returns {number} The parsed number, or 0 if invalid.
      */
     function parseNumber(value) {
         if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
-        const cleaned = String(value).replace(/,/g, '');
+        const cleaned = String(value).replace(/,/g, '').replace(/%/g, '');
         const parsed = parseFloat(cleaned);
         return isNaN(parsed) ? 0 : parsed;
     }
@@ -113,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             let totalPlayerKarmaRawForREL = 0;
-            let totalMeanKarma = 0;
             let totalMedianKarma = 0;
             let validGamesForREL = 0;
             const ranks = [];
@@ -127,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (weeklyAveragesMap[gameDate]) {
                     totalPlayerKarmaRawForREL += playerKarmaRaw;
-                    totalMeanKarma += weeklyAveragesMap[gameDate].mean_score;
                     totalMedianKarma += weeklyAveragesMap[gameDate].median_score;
                     validGamesForREL++;
                     if (playerKarmaRaw > weeklyAveragesMap[gameDate].median_score) {
@@ -162,7 +157,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 t100_finishes: t100_finishes,
                 games_played: parseNumber(player.games_played),
                 WAR: parseNumber(player.WAR),
-                GEM: parseNumber(player.GEM) // Pass GEM through from the sheet
+                GEM: parseNumber(player.GEM),
+                rookie: player.rookie,
+                all_star: player.all_star
             };
         });
     }
@@ -234,14 +231,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const name1 = currentComparisonType === 'players' ? data1.player_handle : data1.team_name;
-        const name2 = currentComparisonType === 'players' ? data2.player_handle : data2.team_name;
+        let name1 = currentComparisonType === 'players' ? data1.player_handle : data1.team_name;
+        let name2 = currentComparisonType === 'players' ? data2.player_handle : data2.team_name;
+        
+        if (currentComparisonType === 'players') {
+            const rookieBadge1 = data1.rookie === '1' ? ` <span class="rookie-badge-compare">R</span>` : '';
+            const allStarBadge1 = data1.all_star === '1' ? ` <span class="all-star-badge-compare">★</span>` : '';
+            name1 += rookieBadge1 + allStarBadge1;
+
+            const rookieBadge2 = data2.rookie === '1' ? ` <span class="rookie-badge-compare">R</span>` : '';
+            const allStarBadge2 = data2.all_star === '1' ? ` <span class="all-star-badge-compare">★</span>` : '';
+            name2 += rookieBadge2 + allStarBadge2;
+        }
 
         const icon1_id = currentComparisonType === 'players' ? data1.current_team_id : data1.team_id;
         const icon2_id = currentComparisonType === 'players' ? data2.current_team_id : data2.team_id;
         
-        const icon1_src = `../S7/icons/${icon1_id || 'FA'}.webp`;
-        const icon2_src = `../S7/icons/${icon2_id || 'FA'}.webp`;
+        const icon1_src = `icons/${icon1_id || 'FA'}.webp`;
+        const icon2_src = `icons/${icon2_id || 'FA'}.webp`;
 
         const metrics = currentComparisonType === 'players' ? 
             [
@@ -256,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
             [
                 { label: 'Record', field: 'wins', higherIsBetter: true, format: (v, d) => `${d.wins}-${d.losses}` },
                 { label: 'PAM', field: 'pam', higherIsBetter: true, format: (v) => Math.round(v).toLocaleString() },
-                { label: 'apPAM', field: 'apPAM', higherIsBetter: true, format: (v) => v ? (parseFloat(v) * 100).toFixed(2) + '%' : '-' },
+                { label: 'apPAM', field: 'apPAM', higherIsBetter: true, format: (val) => val ? val : '-' },
                 { label: 'Median Starter Rank', field: 'med_starter_rank', higherIsBetter: false, format: (v) => v > 0 ? Math.round(v) : '-' },
                 { label: 'tREL', field: 'tREL', higherIsBetter: true, format: (v) => v ? parseFloat(v).toFixed(3) : '-' }
             ];
@@ -274,20 +281,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 metricVal2 = parseNumber(data2[metric.field]);
             }
             
-            const displayVal1 = metric.format(parseNumber(data1[metric.field]), data1);
-            const displayVal2 = metric.format(parseNumber(data2[metric.field]), data2);
-
+            const displayVal1 = metric.format(data1[metric.field], data1);
+            const displayVal2 = metric.format(data2[metric.field], data2);
+            
             let isVal1Winner, isVal2Winner;
             const isTie = metricVal1 === metricVal2;
 
-            if (metric.higherIsBetter) {
-                isVal1Winner = metricVal1 > metricVal2;
-                isVal2Winner = metricVal2 > metricVal1;
-            } else { // Lower is better
-                const hasVal1 = metricVal1 > 0 && metricVal1 !== Infinity;
-                const hasVal2 = metricVal2 > 0 && metricVal2 !== Infinity;
-                isVal1Winner = hasVal1 && (!hasVal2 || metricVal1 < metricVal2);
-                isVal2Winner = hasVal2 && (!hasVal1 || metricVal2 < metricVal1);
+            if (!isTie) {
+                if (metric.higherIsBetter) {
+                    isVal1Winner = metricVal1 > metricVal2;
+                    isVal2Winner = metricVal2 > metricVal1;
+                } else { // Lower is better
+                    const hasVal1 = metricVal1 > 0 && metricVal1 !== Infinity;
+                    const hasVal2 = metricVal2 > 0 && metricVal2 !== Infinity;
+                    isVal1Winner = hasVal1 && (!hasVal2 || metricVal1 < metricVal2);
+                    isVal2Winner = hasVal2 && (!hasVal1 || metricVal2 < metricVal1);
+                }
             }
             
             const class1 = isTie ? 'tie' : (isVal1Winner ? 'winner' : '');
@@ -306,7 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="results-header-flex">
                 <div class="entity-header entity1">
                    <div class="icon-name-wrapper">
-                     <img src="${icon1_src}" class="entity-icon" onerror="this.onerror=null; this.src='../S7/icons/FA.webp'">
+                     <img src="${icon1_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
                      <span>${name1}</span>
                    </div>
                 </div>
@@ -314,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="entity-header entity2">
                    <div class="icon-name-wrapper">
                     <span>${name2}</span>
-                    <img src="${icon2_src}" class="entity-icon" onerror="this.onerror=null; this.src='../S7/icons/FA.webp'">
+                    <img src="${icon2_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
                    </div>
                 </div>
             </div>
@@ -343,9 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!players || !teams || !lineups || !weeklyAverages) {
             return;
         }
-
-        allLineupsData = lineups;
-        allWeeklyAverages = weeklyAverages;
         
         allPlayersData = calculateAllPlayerStats(players, weeklyAverages, lineups)
             .filter(p => p.player_status === 'ACTIVE');
