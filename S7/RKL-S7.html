@@ -699,7 +699,13 @@
         <ul id="nav-menu">
             <li><a href="RKL-S7.html">S7 Home</a></li>
             <li><a href="standings.html">Standings & Rankings</a></li>
-            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
+                </div>
+            </li>
             <li><a href="schedule.html">Schedule</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
@@ -711,6 +717,7 @@
             </li>
             <li><a href="transactions.html">Transactions</a></li>
             <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
             <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
@@ -733,7 +740,7 @@
         <div class="nav-card"><a href="leaderboards.html">🏆 Player Leaderboards</a></div>
         <div class="nav-card"><a href="schedule.html">📅 Schedule & Results</a></div>
         <div class="nav-card"><a href="transactions.html">🔄 Transactions</a></div>
-        <div class="nav-card"><a href="teams.html">👥 Team Pages</a></div>
+        <div class="nav-card"><a href="trophy-case.html">🏆 Trophy Case</a></div>
         <div class="nav-card"><a href="draft-capital.html">📋 Draft Central</a></div>
       </div>
 
@@ -1084,9 +1091,14 @@
         modalTitle.textContent = `${team1Name} vs ${team2Name} - ${formatDateShort(date)}`;
         modalContentArea.innerHTML = '<div class="loading">Loading game details...</div>';
         
-        const scheduleData = await fetchSheetData('Schedule');
-        if (!scheduleData) {
-          modalContentArea.innerHTML = '<div class="error">Error loading schedule data for modal.</div>';
+        const [scheduleData, lineupsData, playersData] = await Promise.all([
+            fetchSheetData('Schedule'),
+            fetchSheetData('Lineups'),
+            fetchSheetData('Players')
+        ]);
+        
+        if (!scheduleData || !lineupsData || !playersData) {
+          modalContentArea.innerHTML = '<div class="error">Error loading data for modal.</div>';
           return;
         }
         
@@ -1098,12 +1110,6 @@
         
         if (!game) {
           modalContentArea.innerHTML = '<div class="error">Game details not found.</div>';
-          return;
-        }
-        
-        const lineupsData = await fetchSheetData('Lineups');
-        if (!lineupsData) {
-          modalContentArea.innerHTML = '<div class="error">Error loading lineup data for modal.</div>';
           return;
         }
         
@@ -1151,9 +1157,16 @@
             const pointsRaw = parseNumber(player.points_raw); // points_raw for individual display
             const globalRank = parseNumber(player.global_rank);
             const captainBonus = isCaptain ? Math.round(parseNumber(player.points_final) - pointsRaw) : 0; // Calculate bonus based on points_final and points_raw for display
+            
+            const playerData = playersData.find(p => p.player_handle === player.player_handle);
+            const isRookie = playerData && playerData.rookie === '1';
+            const isAllStar = playerData && playerData.all_star === '1';
+            const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
+            const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
+
             return `
               <tr class="${isCaptain ? 'captain-row' : ''}">
-                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${player.player_handle || 'Unknown'}</a>${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td>
+                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${player.player_handle || 'Unknown'}</a>${rookieBadge}${allStarBadge}</td>
                 <td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain && captainBonus > 0 ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td>
                 <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
               </tr>`;}).join('');

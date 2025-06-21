@@ -377,10 +377,9 @@
       .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
       .team-breakdown .team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; transition: background-color 0.3s; }
       .team-breakdown .team-header.winner { background-color: #28a745; }
-      .team-breakdown .team-header h4 { color: white; margin: 0; font-size: 1.2rem; }
       .modal-team-header .team-logo {
-        width: 48px;
-        height: 48px;
+        width: 60px;
+        height: 60px;
         border-radius: 4px;
       }
       .modal-team-header .team-logo.allstar {
@@ -474,7 +473,7 @@
         .modal-body { padding: 1rem; }
         .lineup-table th, .lineup-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem; }
         .team-logo.allstar, .modal-team-header .team-logo.allstar {
-          width: 36px; height: 36px;
+          width: 60px; height: 60px;
         }
         .modal-header { padding: 1rem; }
         .modal-header h3 { font-size: 1.1rem; line-height: 1.3; word-break: break-word; hyphens: auto; }
@@ -502,7 +501,13 @@
         <ul id="nav-menu">
             <li><a href="RKL-S7.html">S7 Home</a></li>
             <li><a href="standings.html">Standings & Rankings</a></li>
-            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
+                </div>
+            </li>
             <li><a href="schedule.html">Schedule</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
@@ -514,6 +519,7 @@
             </li>
             <li><a href="transactions.html">Transactions</a></li>
             <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
             <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
@@ -597,7 +603,7 @@
     </div>
     
     <footer>
-      <p>&copy; caustic.info</p>
+      <p>@caustic on Real</p>
       <a href="trade-block.html">GM Portal</a>
     </footer>
 
@@ -635,6 +641,7 @@
       let allWeeklyScores = []; 
       let dateToMedianTeamScoreMap = {}; 
       let dateToWeekMap = {}; 
+      let allstarRosters = [];
       
       async function fetchSheetData(sheetName) {
         try {
@@ -723,7 +730,7 @@
       }
       
       async function loadData() {
-        const [scheduleData, allstarScheduleData, teamsData, playersData, lineupsData, allstarLineupsData, weeklyAveragesData, weeklyScoresData] = await Promise.all([
+        const [scheduleData, allstarScheduleData, teamsData, playersData, lineupsData, allstarLineupsData, weeklyAveragesData, weeklyScoresData, allstarRostersData] = await Promise.all([
           fetchSheetData('Schedule'),
           fetchSheetData('Allstar_Schedule'),
           fetchSheetData('Teams'),
@@ -731,10 +738,11 @@
           fetchSheetData('Lineups'),
           fetchSheetData('Allstar_Lineups'),
           fetchSheetData('Weekly_Averages'), 
-          fetchSheetData('Weekly_Scores') 
+          fetchSheetData('Weekly_Scores'),
+          fetchSheetData('Allstar_Rosters')
         ]);
         
-        if (!scheduleData || !teamsData || !playersData) { 
+        if (!scheduleData || !teamsData || !playersData || !allstarRostersData) { 
           document.getElementById('games-content').innerHTML = 
             '<div class="error">Error loading core data. Please check console.</div>';
           return;
@@ -745,6 +753,7 @@
 
         allTeams = teamsData;
         allPlayers = playersData;
+        allstarRosters = allstarRostersData || [];
         
         allLineups = lineupsData || [];
         if(allstarLineupsData) {
@@ -1091,9 +1100,10 @@
         const team2Total = parseNumber(game.team2_score); 
         const winner = game.winner;
         
-        const generateLineupTable = (lineups, teamIdForTable, totalScoreFromSchedule, isWinner) => {
+        const generateLineupTable = (lineups, teamIdForTable, totalScoreFromSchedule, isWinner, game) => {
           const teamData = allTeams.find(t => t.team_id === teamIdForTable);
           const isAllstarTeam = ALLSTAR_TEAM_IDS.includes(teamIdForTable);
+          const isGMGame = (game.team1_id === 'EGM' && game.team2_id === 'WGM') || (game.team1_id === 'WGM' && game.team2_id === 'EGM');
           const logoExt = isAllstarTeam ? 'png' : 'webp';
           const logoClass = 'team-logo' + (isAllstarTeam ? ' allstar' : '');
           const headerOnClick = isAllstarTeam ? '' : `onclick="window.location.href='team.html?id=${escapeHTML(teamIdForTable)}'" style="cursor: pointer;"`;
@@ -1115,17 +1125,32 @@
             const isCaptain = String(player.captain).toUpperCase() === 'TRUE';
             const fullPlayerData = allPlayers.find(p => p.player_handle === player.player_handle);
             const isPlayerAllStar = fullPlayerData && fullPlayerData.all_star === '1';
-            const allStarBadge = isPlayerAllStar ? '<span class="all-star-badge">⭐</span>' : '';
+            const isRookie = fullPlayerData && fullPlayerData.rookie === '1';
+            const allStarBadge = isPlayerAllStar ? '<span class="all-star-badge">★</span>' : '';
+            const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
             const pointsRaw = parseNumber(player.points_raw);
             const globalRank = parseNumber(player.global_rank);
-            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0; 
+            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
             
+            let realTeamLogoHTML = '';
+            if (isAllstarTeam) {
+                const rosterInfo = allstarRosters.find(r => r.player_handle === player.player_handle);
+                if (rosterInfo && rosterInfo.current_team_id) {
+                    const realTeamId = rosterInfo.current_team_id;
+                    realTeamLogoHTML = `<img src="icons/${escapeHTML(realTeamId)}.webp" alt="${escapeHTML(getTeamName(realTeamId))}" style="width: 24px; height: 24px; margin-right: 8px; vertical-align: middle;" class="team-logo" onerror="this.style.display='none'">`;
+                }
+            }
+
+            const playerNameHTML = isGMGame
+              ? escapeHTML(player.player_handle || 'Unknown')
+              : `<a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>`;
+
             return `
               <tr class="${isCaptain ? 'captain-row' : ''}">
                 <td class="player-name-cell">
-                  <a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">
-                    ${escapeHTML(player.player_handle || 'Unknown')}
-                  </a>
+                  ${realTeamLogoHTML}
+                  ${playerNameHTML}
+                  ${rookieBadge}
                   ${allStarBadge}
                   ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
                 </td>
@@ -1155,8 +1180,8 @@
         
         modalContent.innerHTML = `
           <div class="game-details-grid">
-            ${generateLineupTable(team1Lineups, game.team1_id, team1Total, winner === game.team1_id)}
-            ${generateLineupTable(team2Lineups, game.team2_id, team2Total, winner === game.team2_id)}
+            ${generateLineupTable(team1Lineups, game.team1_id, team1Total, winner === game.team1_id, game)}
+            ${generateLineupTable(team2Lineups, game.team2_id, team2Total, winner === game.team2_id, game)}
           </div>
         `;
        }

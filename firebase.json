@@ -4,6 +4,7 @@
       "source": "functions",
       "codebase": "default",
       "region": "us-central1",
+      "runtime": "nodejs18",
       "ignore": [
         "node_modules",
         ".git",

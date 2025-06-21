@@ -95,7 +95,13 @@
         <ul id="nav-menu">
             <li><a href="RKL-S7.html">S7 Home</a></li>
             <li><a href="standings.html">Standings & Rankings</a></li>
-            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
+                </div>
+            </li>
             <li><a href="schedule.html">Schedule</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
@@ -107,6 +113,7 @@
             </li>
             <li><a href="transactions.html">Transactions</a></li>
             <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
             <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
@@ -131,6 +138,27 @@
         </div>
         
         <div class="glossary-term">
+          <h3>PAM (Points Above Median)</h3>
+          <p>
+            PAM represents the cumulative number of points that a team has scored in excess of the leaguewide median on their gamedays. PAM is officially used as the tiebreaker in league standings.
+          </p>
+          <div class="formula">
+            PAM = (total points scored) - (total gameday medians)
+          </div>
+        </div>
+
+        <div class="glossary-term">
+          <h3>apPAM (Average Percentage Points Above Median)</h3>
+          <p>
+            Closely related to PAM, apPAM represents the *average* amount, in percentage terms, by which a team exceeds the leaguewide median score on a given day. Because different days have different scoring opportunities, teams with identical PAM values may not have the same apPAM.
+          </p>
+          <div class="formula">
+            pPAM1, pPAM2, ... , pPAMn: percentage points above the median score in games 1, 2, ... , n
+            apPAM = (pPAM1, pPAM2, ... , pPAMn) / n
+          </div>
+        </div>
+
+        <div class="glossary-term">
           <h3>REL (Relative Performance Score)</h3>
           <p>
             REL measures a player's raw point generation relative to the league's mean or median on days they played. It's a way to normalize scores across games that might have different scoring opportunities. An REL above 1.000 indicates above-average performance, while a score below 1.000 is below average.
@@ -138,6 +166,18 @@
           <div class="formula">
             REL Median = (Player's Raw Scores / League Median Scores)
             REL Mean = (Player's Raw Scores / League Mean Scores)
+          </div>
+        </div>
+
+        <div class="glossary-term">
+          <h3>tREL (Team REL)</h3>
+          <p>
+            tREL is the weighted average REL score of all the players on a team's roster. Players who have started more games are given more weight in the formula (ex: if Player A has started six games and Player B has started two games, Player A's REL counts 3x as much as Player B's when calculating tREL). 
+          </p>
+          <div class="formula">
+            REL1, REL2, ... , REL10: the REL scores for players 1, 2, ... , 10
+            GP1, GP2, ... , GP10: the number of games played for players 1, 2, ... , 10
+            tREL = [(REL1 * GP1) + (REL2 * GP2) + ... + (REL10 * GP10)] / (GP1 + GP2 + ... + GP10)
           </div>
         </div>
 
