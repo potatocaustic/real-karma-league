@@ -468,34 +468,8 @@
         .modal-header h3 { font-size: 1.0rem; }
       }
     </style>
-    <style>
-      /* Temporary Maintenance Banner Styles */
-      #maintenance-banner {
-        background-color: #fffbe6;
-        color: #856404;
-        border-bottom: 1px solid #ffeeba;
-        padding: 0.75rem 1rem;
-        text-align: center;
-        font-weight: 500;
-        font-size: 0.9rem;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        z-index: 2000; /* High z-index to ensure it's on top of all other content */
-      }
-
-      /* Push the rest of the page down to prevent the banner from overlapping the header */
-      body {
-        padding-top: 45px; /* Adjust this value if you change the banner's padding or font size */
-      }
-    </style>
-  </head>
   </head>
   <body>
-    <div id="maintenance-banner">
-        Site maintenance underway - some features may be unavailable.
-    </div>
     <header>
       <button id="theme-toggle-btn" aria-label="Toggle Theme">
         <span class="sun-icon">☀️</span>
@@ -597,389 +571,708 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-functions.js"></script>
 
     <script src="../js/firebase-init.js" defer></script>
     <script src="../js/main.js" defer></script>
 
     <script>
+      // This entire script is now wrapped in a DOMContentLoaded listener to prevent race conditions.
       document.addEventListener('DOMContentLoaded', () => {
-        // --- GLOBAL STATE VARIABLES ---
         let teamId = null;
+        let teamData = null;
         let allTeams = [];
-        let currentRoster = [];
-        let rosterSortState = { column: 'rel_median', direction: 'desc' };
+        let allScheduleData = [];
+        let allWeeklyAverages = []; 
+        let allTransactionsLogData = []; 
+        let allLineups = []; 
+        let allDraftPicks = []; 
+        let processedPlayersData = [];
+        let rosterSortState = { column: 'rel', direction: 'desc' };
         
-        // --- HELPER FUNCTIONS (Unchanged) ---
-        function generateIconStylesheet(teams) {
-            const iconStyles = teams.map(team => {
+        // --- NEW HELPER FUNCTION ---
+        function generateIconStylesheet(allTeams) {
+            const iconStyles = allTeams.map(team => {
                 if (!team.team_id) return '';
                 const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`; 
-                return `.${className} { background-image: url('icons/${team.team_id}.webp'); }`;
+                return `
+                    .${className} {
+                        background-image: url('icons/${team.team_id}.webp');
+                    }
+                `;
             }).join('');
+
             const styleElement = document.getElementById('team-icon-styles');
             if (styleElement) {
                 styleElement.innerHTML = `
                     .team-logo-css {
-                        width: 24px; height: 24px; background-size: cover;
-                        background-position: center; background-repeat: no-repeat;
-                        display: inline-block; vertical-align: middle;
-                        flex-shrink: 0; border-radius: 4px;
+                        width: 24px;
+                        height: 24px;
+                        background-size: cover;
+                        background-position: center;
+                        background-repeat: no-repeat;
+                        display: inline-block;
+                        vertical-align: middle;
+                        flex-shrink: 0;
+                        border-radius: 4px;
                     }
-                    ${iconStyles}`;
+                    ${iconStyles}
+                `;
             }
         }
 
+        // --- Helper Functions (Full code included) ---
         function normalizeDate(dateInput) {
             if (!dateInput) return '';
             let date;
-
             if (typeof dateInput.toDate === 'function') {
-                // Handles Firestore Timestamp objects
                 date = dateInput.toDate();
-            } else {
+            } 
+            else {
                 let dateString = String(dateInput);
                 if (dateString.includes('T')) {
-                    // Handles ISO strings
                     date = new Date(dateString);
+                } else if (dateString.includes('-')) {
+                    date = new Date(dateString + 'T00:00:00Z');
                 } else if (dateString.includes('/')) {
-                    // Handles MM/DD/YYYY strings from your sheet
                     const parts = dateString.split('/');
                     if (parts.length === 3) {
-                        // new Date(year, monthIndex, day)
                         date = new Date(Date.UTC(parts[2], parts[0] - 1, parts[1]));
                     } else {
-                        return ''; // Invalid MM/DD/YYYY format
+                        return '';
                     }
                 } else {
-                    // Fallback for other potential formats
-                    date = new Date(dateString);
+                     date = new Date(dateString);
                 }
             }
-
-            if (isNaN(date.getTime())) return ''; // Return empty if date is invalid
-
+            if (isNaN(date.getTime())) return '';
             const year = date.getUTCFullYear();
             const month = String(date.getUTCMonth() + 1).padStart(2, '0');
             const day = String(date.getUTCDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
-
+        
         function formatInThousands(value) {
-            const num = parseFloat(value);
-            return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : Math.round(num).toLocaleString();
+          const num = parseFloat(value);
+          if (num >= 1000) {
+            return (num / 1000).toFixed(1) + 'k';
+          }
+          return Math.round(num).toLocaleString();
         }
+
         function formatDateMMDD(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString + 'T00:00:00Z');
-            return `${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+          const date = new Date(dateString + 'T00:00:00Z');
+          const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(date.getUTCDate()).padStart(2, '0');
+          return `${month}-${day}`;
         }
+
         function formatDateShort(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString + 'T00:00:00Z');
-            return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`;
+          const date = new Date(dateString + 'T00:00:00Z');
+          const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(date.getUTCDate()).padStart(2, '0');
+          const year = String(date.getUTCFullYear()).slice(-2);
+          return `${month}/${day}/${year}`;
         }
+        
         function parseNumber(value) {
-            if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
-            return parseFloat(String(value).replace(/,/g, '')) || 0;
+          if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
+          const cleaned = value.toString().replace(/,/g, '');
+          const parsed = parseFloat(cleaned);
+          return isNaN(parsed) ? 0 : parsed;
         }
+
         function escapeHTML(str) {
-            if (typeof str !== 'string') return str;
-            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+          if (typeof str !== 'string') return str; 
+          return str.replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
         }
+        
         function getUrlParameter(name) {
-            return new URLSearchParams(window.location.search).get(name);
+          const urlParams = new URLSearchParams(window.location.search);
+          return urlParams.get(name);
         }
+        
         function getTeamName(teamIdToFind) { 
-            const team = allTeams.find(t => t.team_id === teamIdToFind);
-            return team ? team.team_name : teamIdToFind;
+          const team = allTeams.find(t => t.team_id === teamIdToFind);
+          return team ? team.team_name : teamIdToFind;
         }
+        
         function getTeamRecordAtDate(teamIdForRecord, targetDate, schedule) { 
-            const normalizedTargetDate = normalizeDate(targetDate);
-            if (!normalizedTargetDate) return '0-0';
-            const completedGames = schedule.filter(game => {
-                const gameDate = normalizeDate(game.date);
-                return gameDate && gameDate <= normalizedTargetDate &&
-                game.completed === 'TRUE' &&
-                (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord);
-            });
-            let wins = 0, losses = 0;
-            completedGames.forEach(game => {
-                if (game.winner === teamIdForRecord) wins++;
-                else if (game.winner) losses++;
-            });
-            return `${wins}-${losses}`;
+          const normalizedTargetDate = normalizeDate(targetDate);
+          const completedGames = schedule.filter(game => {
+            const normalizedGameDate = normalizeDate(game.date);
+            return normalizedGameDate && normalizedGameDate <= normalizedTargetDate && 
+                  game.completed === 'TRUE' && 
+                  (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord);
+          });
+          
+          let wins = 0;
+          let losses = 0;
+          
+          completedGames.forEach(game => {
+            const winner = game.winner;
+            if (winner === teamIdForRecord) {
+              wins++;
+            } else if (winner && (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord)) {
+              losses++;
+            }
+          });
+          
+          return `${wins}-${losses}`;
         }
+
+        function calculateStatsForAllPlayers(players, weeklyAverages, lineups) {
+            if (!players || !weeklyAverages || !lineups) {
+                return players || []; 
+            }
+            const weeklyAveragesMap = {};
+            weeklyAverages.forEach(week => {
+              const normalizedDate = normalizeDate(week.date);
+              if (normalizedDate) {
+                weeklyAveragesMap[normalizedDate] = {
+                  mean_score: parseNumber(week.mean_score),
+                  median_score: parseNumber(week.median_score)
+                };
+              }
+            });
+
+            return players.map(player => {
+              const playerGames = lineups.filter(lineup => 
+                lineup.player_handle === player.player_handle && 
+                (String(lineup.started).toUpperCase() === 'TRUE') 
+              );
+              
+              let gamesAboveMean = 0, gamesAboveMedian = 0, t100_finishes = 0;
+              const ranks = [];
+
+              playerGames.forEach(game => {
+                const normalizedGameDate = normalizeDate(game.date);
+                const playerKarmaFinalForComparisons = parseNumber(game.points_final);
+                const globalRank = parseNumber(game.global_rank);
+                
+                if (weeklyAveragesMap[normalizedGameDate]) {
+                  if (playerKarmaFinalForComparisons > weeklyAveragesMap[normalizedGameDate].mean_score) gamesAboveMean++;
+                  if (playerKarmaFinalForComparisons > weeklyAveragesMap[normalizedGameDate].median_score) gamesAboveMedian++;
+                }
+                if (globalRank > 0) { ranks.push(globalRank); if (globalRank <= 100) t100_finishes++; }
+              });
+              
+              let calculated_median_rank = 0;
+              if (ranks.length > 0) { ranks.sort((a, b) => a - b); const mid = Math.floor(ranks.length / 2); calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid]; }
+              const games_played_count = parseInt(player.games_played || 0);
+              return { ...player, calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, aag_mean: gamesAboveMean, aag_mean_pct: games_played_count > 0 ? gamesAboveMean / games_played_count : 0, aag_median: gamesAboveMedian, aag_median_pct: games_played_count > 0 ? gamesAboveMedian / games_played_count : 0, t100_finishes, t100_finishes_pct: games_played_count > 0 ? (t100_finishes / games_played_count) : 0, total_points: parseNumber(player.total_points), games_played: games_played_count, WAR: parseFloat(player.WAR || 0) };
+            });
+        }
+
         function getOrdinal(num) {
-            const n = parseInt(num);
-            if (n <= 0 || isNaN(n)) return 'Unranked';
-            const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
-            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+          const n = parseInt(num);
+          if (n <= 0) return 'Unranked';
+          const suffix = ['th', 'st', 'nd', 'rd'];
+          const v = n % 100;
+          return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
         }
+        
+        function calculateTeamRankings(currentTeamData, allTeamsDataForRanking) { 
+          const rankings = {};
+          const conferenceTeams = allTeamsDataForRanking.filter(t => t.conference === currentTeamData.conference)
+            .sort((a, b) => {
+              const winsA = parseInt(a.wins || 0);
+              const winsB = parseInt(b.wins || 0);
+              if (winsB !== winsA) return winsB - winsA;
+              return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+            });
+          rankings.record = conferenceTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
+          
+          const pamTeams = [...allTeamsDataForRanking].sort((a, b) => parseFloat(b.pam || 0) - parseFloat(a.pam || 0));
+          rankings.pam = pamTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
+          
+          const medRankTeams = allTeamsDataForRanking.filter(t => parseFloat(t.med_starter_rank || 0) > 0)
+            .sort((a, b) => parseFloat(a.med_starter_rank || 999) - parseFloat(b.med_starter_rank || 999));
+          const medRankIndex = medRankTeams.findIndex(t => t.team_id === currentTeamData.team_id);
+          rankings.medRank = medRankIndex !== -1 ? medRankIndex + 1 : 0; 
+          return rankings;
+        }
+
+        function countTransactionsForTeam(teamIdToCount, transactionLog) {
+          if (!transactionLog || transactionLog.length === 0) return 0;
+          const relevantTransactionIds = new Set();
+          transactionLog.forEach(transaction => {
+              const notes = transaction.notes ? transaction.notes.toLowerCase() : '';
+              if (notes.includes('pre-database') || notes.includes('preseason')) {
+                  return;
+              }
+              let involved = false;
+              if (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === teamIdToCount) { involved = true; }
+              else if (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamIdToCount) { involved = true; }
+              else if (transaction.from_team === teamIdToCount || transaction.to_team === teamIdToCount) { involved = true; }
+              if (involved && transaction.transaction_id) {
+                  relevantTransactionIds.add(transaction.transaction_id);
+              }
+          });
+          return relevantTransactionIds.size;
+        }
+
+        function handleRosterSort(column) {
+          if (rosterSortState.column === column) {
+              rosterSortState.direction = rosterSortState.direction === 'desc' ? 'asc' : 'desc';
+          } else {
+              rosterSortState.column = column;
+              rosterSortState.direction = 'desc';
+          }
+          loadRoster();
+        }
+        
+        function displayTeamHeader(rankings) {
+          document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
+          
+          const wins = parseInt(teamData.wins || 0);
+          const losses = parseInt(teamData.losses || 0);
+          const pam = parseFloat(teamData.pam || 0);
+          const totalTransactions = teamData.calculated_total_transactions || 0;
+          
+          document.getElementById('team-main-info').innerHTML = `
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+              <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
+              <div class="team-details">
+                <h2>${escapeHTML(teamData.team_name)}</h2>
+                <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
+                <div class="gm-info">General Manager: ${escapeHTML(teamData.current_gm_handle)}</div>
+              </div>
+            </div>
+          `;
+          
+          const medRank = parseFloat(teamData.med_starter_rank || 0); 
+          const teamStatsContainer = document.getElementById('team-stats');
+          teamStatsContainer.innerHTML = ''; 
+
+          const recordLink = document.createElement('a');
+          recordLink.href = 'standings.html'; 
+          recordLink.className = 'stat-card-link';
+          recordLink.innerHTML = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Record</div><div class="stat-rank">${getOrdinal(rankings.record)} in ${escapeHTML(teamData.conference)} Conference</div></div>`;
+          teamStatsContainer.appendChild(recordLink);
+
+          const pamLink = document.createElement('a');
+          pamLink.href = `standings.html?view=fullLeague&sortBy=pam&sortDirection=desc`;
+          pamLink.className = 'stat-card-link';
+          pamLink.innerHTML = `<div class="stat-card"><div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div><div class="stat-label">PAM</div><div class="stat-rank">${getOrdinal(rankings.pam)} Overall</div></div>`;
+          teamStatsContainer.appendChild(pamLink);
+
+          const medRankLink = document.createElement('a');
+          medRankLink.href = `standings.html?view=fullLeague&sortBy=med_starter_rank&sortDirection=asc`;
+          medRankLink.className = 'stat-card-link';
+          medRankLink.innerHTML = `<div class="stat-card"><div class="stat-value">${Math.round(medRank)}</div><div class="stat-label">Median Starter Rank</div><div class="stat-rank">${rankings.medRank > 0 ? `${getOrdinal(rankings.medRank)} Overall` : 'Not ranked'}</div></div>`;
+          teamStatsContainer.appendChild(medRankLink);
+
+          const transactionsLink = document.createElement('a');
+          transactionsLink.href = `transactions.html?teamFilter=${teamData.team_id}`;
+          transactionsLink.className = 'stat-card-link';
+          transactionsLink.innerHTML = `<div class="stat-card"><div class="stat-value">${totalTransactions}</div><div class="stat-label">Transactions</div>${(totalTransactions) > 0 ? `<div class="stat-rank">&nbsp;</div>` : '<div class="stat-rank" style="height:1em;">&nbsp;</div>'}</div>`;
+          teamStatsContainer.appendChild(transactionsLink);
+          
+          teamStatsContainer.style.display = 'grid';
+        }
+        
+        async function loadRoster() {
+          const teamPlayers = processedPlayersData
+            .filter(player => player.current_team_id === teamId && player.player_status === 'ACTIVE');
+          
+          if (teamPlayers.length === 0) {
+            document.getElementById('roster-list').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No active players found</div>';
+            return;
+          }
+          
+          teamPlayers.sort((a, b) => {
+              let valA, valB;
+              if (rosterSortState.column === 'rel') {
+                  valA = parseFloat(a.rel_median || 0);
+                  valB = parseFloat(b.rel_median || 0);
+              } else if (rosterSortState.column === 'war') {
+                  valA = parseFloat(a.WAR || 0);
+                  valB = parseFloat(b.WAR || 0);
+              }
+              const comparison = valA < valB ? -1 : (valA > valB ? 1 : 0);
+              return rosterSortState.direction === 'desc' ? -comparison : comparison;
+          });
+          
+          const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
+          const rosterHTML = teamPlayers.map(player => {
+            const relMedian = parseFloat(player.rel_median || 0);
+            const gamesPlayed = parseInt(player.games_played || 0);
+            const isAllStar = player.all_star === '1';
+            const isRookie = player.rookie === '1';
+            const war = parseFloat(player.WAR || 0).toFixed(2);
+            
+            let medianRankDisplay = '-';
+            if (player.calculated_median_rank !== Infinity && player.calculated_median_rank > 0) {
+                const roundedRank = Math.round(player.calculated_median_rank);
+                if (roundedRank > 0) medianRankDisplay = roundedRank;
+            }
+            const rookieBadge = isRookie ? ` <span class="rookie-badge">R</span>` : '';
+            
+            return `
+              <div class="player-item">
+                <div class="roster-player-logo-col desktop-only-roster-logo">
+                  <div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div>
+                </div>
+                <div class="player-info">
+                  <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a>
+                  <div class="player-stats">${gamesPlayed} games • ${medianRankDisplay} med rank</div>
+                </div>
+                <div class="player-rel">${relMedian.toFixed(3)}</div>
+                <div class="player-war">${war}</div>
+              </div>`;
+          }).join('');
+          
+          const relSortIndicator = rosterSortState.column === 'rel' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+          const warSortIndicator = rosterSortState.column === 'war' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+
+          const finalHTML = `
+            <div class="roster-header">
+              <span class="roster-logo-header-col desktop-only-roster-logo"></span>
+              <span class="header-player">Player</span>
+              <span class="header-rel sortable" onclick="handleRosterSort('rel')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
+              <span class="header-war sortable" onclick="handleRosterSort('war')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
+            </div>
+            <div class="roster-content">${rosterHTML}</div>`;
+          
+          document.getElementById('roster-list').innerHTML = finalHTML;
+        }
+        
+        async function loadSchedule() {
+          if (!allScheduleData) {
+            document.getElementById('team-schedule').innerHTML = '<div class="error">Error loading schedule data</div>';
+            return;
+          }
+          
+          const teamGames = allScheduleData
+            .filter(game => game.teams_in_game && game.teams_in_game.includes(teamId))
+            .sort((a, b) => new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date))); 
+          
+          if (teamGames.length === 0) {
+            document.getElementById('team-schedule').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No games scheduled</div>';
+            return;
+          }
+          
+          const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
+          const gamesHTML = teamGames.map(game => {
+            const isTeam1 = game.team1_id === teamId;
+            const opponentId = isTeam1 ? game.team2_id : game.team1_id;
+            const opponentName = getTeamName(opponentId);
+            const isCompleted = game.completed === 'TRUE';
+            const gameWeek = game.week || 'TBD';
+            const gameDateFormatted = formatDateMMDD(normalizeDate(game.date)); 
+            
+            let opponentRecord = '';
+            if (isCompleted) { opponentRecord = getTeamRecordAtDate(opponentId, game.date, allScheduleData); }
+            else {
+              const previousDate = new Date(normalizeDate(game.date) + 'T00:00:00Z');
+              previousDate.setUTCDate(previousDate.getUTCDate() - 1);
+              opponentRecord = getTeamRecordAtDate(opponentId, previousDate, allScheduleData);
+            }
+            let teamRecord = '';
+            if (isCompleted) { teamRecord = getTeamRecordAtDate(teamId, game.date, allScheduleData); }
+            else {
+              const previousDate = new Date(normalizeDate(game.date) + 'T00:00:00Z');
+              previousDate.setUTCDate(previousDate.getUTCDate() - 1);
+              teamRecord = getTeamRecordAtDate(teamId, previousDate, allScheduleData);
+            }
+            
+            let clickHandler = '', teamScoreText = '', oppScoreText = '', teamScoreClass = '', oppScoreClass = '', teamWon = false, oppWon = false, logoClickHandlers = '';
+            
+            if (isCompleted) {
+              const teamScoreValue = parseFloat(isTeam1 ? game.team1_score : game.team2_score);
+              const oppScoreValue = parseFloat(isTeam1 ? game.team2_score : game.team1_score);
+              teamWon = teamScoreValue > oppScoreValue;
+              oppWon = oppScoreValue > teamScoreValue;
+              teamScoreText = formatInThousands(teamScoreValue);
+              oppScoreText = formatInThousands(oppScoreValue);
+              teamScoreClass = teamWon ? 'win' : 'loss';
+              oppScoreClass = oppWon ? 'win' : 'loss';
+              const normalizedDateForHandler = normalizeDate(game.date);
+              clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${normalizedDateForHandler}')" style="cursor: pointer;"`;
+            } else {
+              teamScoreText = '-'; oppScoreText = '-'; teamScoreClass = 'upcoming'; oppScoreClass = 'upcoming';
+              logoClickHandlers = `onclick="window.location.href='team.html?id=${opponentId}'" style="cursor: pointer;"`;
+            }
+
+            const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
+            
+            return `
+              <div class="game-item" ${clickHandler}>
+                <div class="game-info-table"><div class="week-cell"><div class="week-badge">${gameWeek}</div></div><div class="date-cell"><div class="date-badge">${gameDateFormatted}</div></div></div>
+                <div class="game-content-table">
+                  <div class="team-section left">
+                    <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div>
+                    <div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div>
+                  </div>
+                  <div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div>
+                  <div class="team-section right">
+                    <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;" ${logoClickHandlers}></div>
+                    <div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div>
+                  </div>
+                </div>
+                <div class="game-matchup"> 
+                  <div class="week-badge">${gameWeek}</div> 
+                  <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}">
+                    <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px;"></div>
+                    <div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span>
+                  </div>
+                  <span class="vs">vs</span>
+                  <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}">
+                    <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px;" ${logoClickHandlers}></div>
+                    <div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span>
+                  </div>
+                </div>
+              </div>`;
+          }).join('');
+          document.getElementById('team-schedule').innerHTML = gamesHTML;
+        }
+        
+        async function loadDraftCapital() {
+            if (!allDraftPicks) {
+              document.getElementById('draft-picks').innerHTML = '<div class="error">Error loading draft capital data</div>';
+              return;
+            }
+            
+            const teamPicks = allDraftPicks
+              .filter(pick => pick.current_owner === teamId)
+              .sort((a, b) => (parseInt(a.season || 0) - parseInt(b.season || 0)) || (parseInt(a.round || 0) - parseInt(b.round || 0)));
+            
+            if (teamPicks.length === 0) {
+              document.getElementById('draft-picks').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No draft picks owned</div>';
+              return;
+            }
+            
+            const picksBySeason = teamPicks.reduce((acc, pick) => {
+                (acc[pick.season] = acc[pick.season] || []).push(pick);
+                return acc;
+            }, {});
+            
+            const seasonsHTML = Object.keys(picksBySeason)
+              .sort((a, b) => parseInt(a) - parseInt(b))
+              .map(season => {
+                const picks = picksBySeason[season];
+                const seasonColor = getSeasonColor(parseInt(season));
+                
+                const picksHTML = picks.map(pick => {
+                  const isOriginalOwnerOfPick = pick.original_team === teamId;
+                  const isPendingForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
+                  
+                  let originDisplayHTML = '';
+                  let pickDescriptionText = escapeHTML(pick.pick_description);
+                  let transactionForLink = null;
+                  let originTextContent = '';
+
+                  let containerClass = 'pick-item-enhanced';
+                  let statusText = 'Acquired';
+
+                  if (isPendingForfeiture) {
+                      statusText = 'Pending Forfeiture';
+                      containerClass += ' pick-forfeiture';
+                  } else if (isOriginalOwnerOfPick) {
+                      statusText = `<span class="pick-status-own">Own Pick</span>`;
+                  }
+
+                  if (!isOriginalOwnerOfPick && !isPendingForfeiture) { 
+                    let viaTeamId = null;
+                    let originalTeamForDisplayId = pick.original_team;
+                    let originalTeamForDisplayName = getTeamName(originalTeamForDisplayId);
+                    const relevantTransactions = allTransactionsLogData
+                        .filter(t => t.draft_pick_id === pick.pick_id && t.to_team === teamId && t.transaction_type === 'TRADE')
+                        .sort((a,b) => new Date(b.date) - new Date(a.date)); 
+                    if (relevantTransactions.length > 0) { viaTeamId = relevantTransactions[0].from_team; transactionForLink = relevantTransactions[0]; }
+                    const originalOwnerStats = allTeams.find(t => t.team_id === originalTeamForDisplayId);
+                    let originalOwnerStatsStr = "";
+                    if (originalOwnerStats) {
+                        const pamFormatted = Math.abs(parseFloat(originalOwnerStats.pam || 0)) >= 1000 ? (parseFloat(originalOwnerStats.pam || 0) / 1000).toFixed(1) + 'k' : Math.round(parseFloat(originalOwnerStats.pam || 0)).toString();
+                        originalOwnerStatsStr = ` (${parseInt(originalOwnerStats.wins || 0)}-${parseInt(originalOwnerStats.losses || 0)}, ${pamFormatted} PAM)`;
+                    }
+                    if (viaTeamId && viaTeamId !== originalTeamForDisplayId) { originTextContent = `via ${escapeHTML(getTeamName(viaTeamId))}; (${escapeHTML(originalTeamForDisplayName)}: ${escapeHTML(originalOwnerStatsStr)})`; }
+                    else { originTextContent = `from ${escapeHTML(originalTeamForDisplayName)}${escapeHTML(originalOwnerStatsStr)}`; }
+                    try {
+                      if (transactionForLink && transactionForLink.date) {
+                          const linkDate = new Date(transactionForLink.date).toISOString().split('T')[0];
+                          const transactionsLink = `transactions.html?type=TRADE&date=${linkDate}&teamFilters=${transactionForLink.from_team},${transactionForLink.to_team}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
+                          originDisplayHTML = `<div class="pick-origin"><a href="${transactionsLink}" title="View transaction">${originTextContent}</a></div>`;
+                      } else { throw new Error("No valid transaction link found"); }
+                    } catch (e) {
+                      originDisplayHTML = `<div class="pick-origin">${originTextContent}</div>`;
+                    }
+                  } else if (isOriginalOwnerOfPick) { 
+                      originDisplayHTML = `<div class="pick-origin">Original Pick</div>`;
+                  }
+                  
+                  const originalTeamIdClassName = `icon-${pick.original_team.replace(/[^a-zA-Z0-9]/g, '')}`;
+                  return `
+                    <div class="${containerClass}">
+                      <div class="pick-main-info">
+                        <a href="team.html?id=${pick.original_team}">
+                          <div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div>
+                        </a>
+                        <div class="pick-text-content">
+                          <span class="pick-description">${pickDescriptionText}</span>
+                          ${originDisplayHTML}
+                        </div>
+                      </div>
+                      <div class="pick-status">
+                        ${statusText}
+                      </div>
+                    </div>
+                  `;
+                }).join('');
+                
+                return `<div class="season-group" style="margin-bottom: 1.5rem;"><div class="season-header" style="background-color: ${seasonColor}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;"><span>Season ${season} Draft</span><span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">${picks.length} pick${picks.length !== 1 ? "s" : ""}</span></div><div class="season-picks" style="border: 1px solid ${seasonColor}; border-top: none; border-radius: 0 0 6px 6px;">${picksHTML}</div></div>`;
+              }).join('');
+            
+            const totalPicks = teamPicks.length;
+            const summaryPendingForfeitureCount = teamPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
+            const summaryOwnPicks = teamPicks.filter(p => p.original_team === teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
+            const summaryAcquiredPicks = teamPicks.filter(p => p.original_team !== teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
+            
+            const summaryHTML = `<div class="draft-summary"><div class="draft-summary-grid"><div class="draft-summary-item"><div class="draft-summary-value total">${totalPicks}</div><div class="draft-summary-label">Total Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value own">${summaryOwnPicks}</div><div class="draft-summary-label">Own Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value acquired">${summaryAcquiredPicks}</div><div class="draft-summary-label">Acquired</div></div>${summaryPendingForfeitureCount > 0 ? `<div class="draft-summary-item"><div class="draft-summary-value forfeiture">${summaryPendingForfeitureCount}</div><div class="draft-summary-label">Pending Forfeiture</div></div>` : ''}</div></div>`;
+            document.getElementById('draft-picks').innerHTML = summaryHTML + seasonsHTML;
+        }
+
         function getSeasonColor(season) {
           const colors = { 8: '#007bff', 9: '#28a745', 10: '#ffc107', 11: '#dc3545', 12: '#6c757d' };
           return colors[season] || '#6c757d';
         }
 
-        // --- DATA LOADING & DISPLAY FUNCTIONS ---
-        async function loadPageData() {
-            teamId = getUrlParameter('id');
-            if (!teamId) {
-                document.querySelector('main').innerHTML = `<div class="error">ERROR: No team ID was found in the URL. Please ensure the link is correct (e.g., team.html?id=TEAM_ID).</div>`;
-                return;
-            }
-
-            try {
-                const getTeamData = firebase.functions().httpsCallable('getTeamPageData');
-                const result = await getTeamData({ teamId: teamId });
-                const data = result.data;
-
-                const { teamData, roster, schedule, draftPicks, rankings } = data;
-                allTeams = data.allTeams;
-                currentRoster = roster;
-
-                generateIconStylesheet(allTeams);
-                displayTeamHeader(teamData, rankings);
-                renderRoster();
-                displaySchedule(schedule, teamData);
-                displayDraftCapital(draftPicks);
-
-            } catch (error) {
-                console.error("A critical error occurred during data loading:", error);
-                document.querySelector('main').innerHTML = `<div class="error">Failed to load team data. ${error.message}</div>`;
-            }
-        }
-        
-        function displayTeamHeader(teamData, rankings) {
-            document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
-            const wins = parseInt(teamData.wins || 0);
-            const losses = parseInt(teamData.losses || 0);
-            const pam = parseFloat(teamData.pam || 0);
-            const totalTransactions = teamData.calculated_total_transactions || 0;
-            const medRank = parseFloat(teamData.med_starter_rank || 0);
-
-            document.getElementById('team-main-info').innerHTML = `
-              <div style="display: flex; align-items: center; gap: 1.5rem;">
-                <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
-                <div class="team-details">
-                  <h2>${escapeHTML(teamData.team_name)}</h2>
-                  <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
-                  <div class="gm-info">General Manager: ${escapeHTML(teamData.current_gm_handle)}</div>
-                </div>
-              </div>`;
-
-            const teamStatsContainer = document.getElementById('team-stats');
-            teamStatsContainer.innerHTML = `
-              <a href="standings.html" class="stat-card-link">
-                <div class="stat-card">
-                  <div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div>
-                  <div class="stat-label">Record</div>
-                  <div class="stat-rank">${getOrdinal(rankings.record)} in ${escapeHTML(teamData.conference)} Conference</div>
-                </div>
-              </a>
-              <a href="standings.html?view=fullLeague&sortBy=pam&sortDirection=desc" class="stat-card-link">
-                <div class="stat-card">
-                  <div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div>
-                  <div class="stat-label">PAM</div>
-                  <div class="stat-rank">${getOrdinal(rankings.pam)} Overall</div>
-                </div>
-              </a>
-              <a href="standings.html?view=fullLeague&sortBy=med_starter_rank&sortDirection=asc" class="stat-card-link">
-                  <div class="stat-card">
-                      <div class="stat-value">${Math.round(medRank)}</div>
-                      <div class="stat-label">Median Starter Rank</div>
-                      <div class="stat-rank">${rankings.medRank > 0 ? `${getOrdinal(rankings.medRank)} Overall` : 'Not ranked'}</div>
-                  </div>
-              </a>
-              <a href="transactions.html?teamFilter=${teamData.team_id}" class="stat-card-link">
-                  <div class="stat-card">
-                      <div class="stat-value">${totalTransactions}</div>
-                      <div class="stat-label">Transactions</div>
-                      <div class="stat-rank">&nbsp;</div>
-                  </div>
-              </a>`;
-            teamStatsContainer.style.display = 'grid';
-        }
-
-        function handleRosterSort(column) {
-            if (rosterSortState.column === column) {
-                rosterSortState.direction = rosterSortState.direction === 'desc' ? 'asc' : 'desc';
-            } else {
-                rosterSortState.column = column;
-                rosterSortState.direction = 'desc';
-            }
-            renderRoster();
-        }
-
-        function renderRoster() {
-            if (!currentRoster || currentRoster.length === 0) {
-                document.getElementById('roster-list').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No active players found</div>';
-                return;
-            }
-            const sortedRoster = [...currentRoster].sort((a, b) => {
-                const valA = parseNumber(a[rosterSortState.column] || 0);
-                const valB = parseNumber(b[rosterSortState.column] || 0);
-                const comparison = valA < valB ? -1 : (valA > valB ? 1 : 0);
-                return rosterSortState.direction === 'desc' ? -comparison : comparison;
-            });
-            const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
-            const rosterHTML = sortedRoster.map(player => {
-              const relMedian = parseFloat(player.rel_median || 0);
-              const gamesPlayed = parseInt(player.games_played || 0);
-              const isAllStar = player.all_star === '1';
-              const isRookie = player.rookie === '1';
-              const war = parseFloat(player.WAR || 0).toFixed(2);
-              const rookieBadge = isRookie ? ` <span class="rookie-badge">R</span>` : '';
-              const medianRankDisplay = '-'; 
-              return `<div class="player-item"><div class="roster-player-logo-col desktop-only-roster-logo"><div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div></div><div class="player-info"><a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a><div class="player-stats">${gamesPlayed} games • ${medianRankDisplay} med rank</div></div><div class="player-rel">${relMedian.toFixed(3)}</div><div class="player-war">${war}</div></div>`;
-            }).join('');
-            const relSortIndicator = rosterSortState.column === 'rel_median' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
-            const warSortIndicator = rosterSortState.column === 'WAR' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
-            document.getElementById('roster-list').innerHTML = `<div class="roster-header"><span class="roster-logo-header-col desktop-only-roster-logo"></span><span class="header-player">Player</span><span class="header-rel sortable" onclick="handleRosterSort('rel_median')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span><span class="header-war sortable" onclick="handleRosterSort('WAR')">WAR<span class="sort-indicator">${warSortIndicator}</span></span></div><div class="roster-content">${rosterHTML}</div>`;
-        }
-        
-        function displaySchedule(scheduleData, teamData) {
-            const teamGames = scheduleData.sort((a, b) => new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date)));
-            if (teamGames.length === 0) {
-              document.getElementById('team-schedule').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No games scheduled</div>';
-              return;
-            }
-            const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
-            const gamesHTML = teamGames.map(game => {
-              const isTeam1 = game.team1_id === teamId;
-              const opponentId = isTeam1 ? game.team2_id : game.team1_id;
-              const opponentName = getTeamName(opponentId);
-              const isCompleted = game.completed === 'TRUE';
-              const opponentRecord = getTeamRecordAtDate(opponentId, game.date, teamGames);
-              const teamRecord = getTeamRecordAtDate(teamId, game.date, teamGames);
-              let clickHandler = '', teamScoreText = '', oppScoreText = '', teamScoreClass = '', oppScoreClass = '', logoClickHandlers = '';
-              if (isCompleted) {
-                const teamScoreValue = parseNumber(isTeam1 ? game.team1_score : game.team2_score);
-                const oppScoreValue = parseNumber(isTeam1 ? game.team2_score : game.team1_score);
-                teamScoreText = formatInThousands(teamScoreValue); oppScoreText = formatInThousands(oppScoreValue);
-                teamScoreClass = teamScoreValue > oppScoreValue ? 'win' : 'loss'; oppScoreClass = oppScoreValue > teamScoreValue ? 'win' : 'loss';
-                clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${normalizeDate(game.date)}')"`;
-              } else {
-                teamScoreText = '-'; oppScoreText = '-'; teamScoreClass = 'upcoming'; oppScoreClass = 'upcoming';
-                logoClickHandlers = `onclick="window.location.href='team.html?id=${opponentId}'"`;
-              }
-              const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
-              return `<div class="game-item" ${clickHandler} style="${clickHandler ? 'cursor: pointer;' : ''}"><div class="game-info-table"><div class="week-cell"><div class="week-badge">${game.week || 'TBD'}</div></div><div class="date-cell"><div class="date-badge">${formatDateMMDD(normalizeDate(game.date))}</div></div></div><div class="game-content-table"><div class="team-section left"><div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div><div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div></div><div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div><div class="team-section right"><div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%; ${logoClickHandlers ? 'cursor: pointer;' : ''}" ${logoClickHandlers}></div><div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div></div></div><div class="game-matchup"><div class="week-badge">${game.week || 'TBD'}</div><div class="team"><div class="team-logo-css ${teamIdClassName}"></div><div class="team-info"><span class="team-name ${teamScoreClass}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span></div><span class="vs">vs</span><div class="team"><div class="team-logo-css ${opponentIdClassName}" ${logoClickHandlers} style="${logoClickHandlers ? 'cursor: pointer;' : ''}"></div><div class="team-info"><span class="team-name ${oppScoreClass}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span></div></div></div>`;
-            }).join('');
-            document.getElementById('team-schedule').innerHTML = gamesHTML;
-        }
-
-        function displayDraftCapital(teamPicks) {
-            if (!teamPicks || teamPicks.length === 0) {
-              document.getElementById('draft-picks').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No draft picks owned</div>';
-              return;
-            }
-            const picksBySeason = teamPicks.sort((a, b) => (parseNumber(a.season) - parseNumber(b.season)) || (parseNumber(a.round) - parseNumber(b.round))).reduce((acc, pick) => { (acc[pick.season] = acc[pick.season] || []).push(pick); return acc; }, {});
-            const seasonsHTML = Object.keys(picksBySeason).sort((a, b) => parseInt(a) - parseInt(b)).map(season => {
-                const picks = picksBySeason[season];
-                const picksHTML = picks.map(pick => {
-                  const isOriginalOwner = pick.original_team === teamId;
-                  const isPendingForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
-                  let statusText = 'Acquired'; let containerClass = 'pick-item-enhanced';
-                  if (isPendingForfeiture) { statusText = 'Pending Forfeiture'; containerClass += ' pick-forfeiture'; } 
-                  else if (isOriginalOwner) { statusText = `<span class="pick-status-own">Own Pick</span>`; }
-                  let originDisplayHTML = '';
-                  if (!isOriginalOwner && !isPendingForfeiture) {
-                    const originalOwnerStats = allTeams.find(t => t.team_id === pick.original_team);
-                    const statsStr = originalOwnerStats ? ` (${originalOwnerStats.wins}-${originalOwnerStats.losses}, ${formatInThousands(originalOwnerStats.pam)} PAM)` : '';
-                    const originTextContent = `from ${escapeHTML(getTeamName(pick.original_team))}${escapeHTML(statsStr)}`;
-                    if (pick.acquisition_trade) {
-                        const tx = pick.acquisition_trade;
-                        const linkDate = normalizeDate(tx.date); // Use helper to handle timestamp or string
-                        const transactionsLink = `transactions.html?type=TRADE&date=${linkDate}&teamFilters=${tx.from_team},${teamId}&pick_id=${encodeURIComponent(tx.pick_id || '')}`;
-                        originDisplayHTML = `<div class="pick-origin"><a href="${transactionsLink}" title="View transaction">${originTextContent}</a></div>`;
-                    } else {
-                        originDisplayHTML = `<div class="pick-origin">${originTextContent}</div>`;
-                    }
-                  }
-                  const originalTeamIdClassName = `icon-${pick.original_team.replace(/[^a-zA-Z0-9]/g, '')}`;
-                  return `<div class="${containerClass}"><div class="pick-main-info"><a href="team.html?id=${pick.original_team}"><div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div></a><div class="pick-text-content"><span class="pick-description">${escapeHTML(pick.pick_description)}</span>${originDisplayHTML}</div></div><div class="pick-status">${statusText}</div></div>`;
-                }).join('');
-                return `<div class="season-group" style="margin-bottom: 1.5rem;"><div class="season-header" style="background-color: ${getSeasonColor(parseInt(season))}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;"><span>Season ${season} Draft</span><span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">${picks.length} pick${picks.length !== 1 ? "s" : ""}</span></div><div class="season-picks" style="border: 1px solid ${getSeasonColor(parseInt(season))}; border-top: none; border-radius: 0 0 6px 6px;">${picksHTML}</div></div>`;
-            }).join('');
-            const summaryPending = teamPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
-            const summaryOwn = teamPicks.filter(p => p.original_team === teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
-            const summaryAcquired = teamPicks.filter(p => p.original_team !== teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
-            const summaryHTML = `<div class="draft-summary"><div class="draft-summary-grid"><div class="draft-summary-item"><div class="draft-summary-value total">${teamPicks.length}</div><div class="draft-summary-label">Total Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value own">${summaryOwn}</div><div class="draft-summary-label">Own Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value acquired">${summaryAcquired}</div><div class="draft-summary-label">Acquired</div></div>${summaryPending > 0 ? `<div class="draft-summary-item"><div class="draft-summary-value forfeiture">${summaryPending}</div><div class="draft-summary-label">Pending Forfeiture</div></div>` : ''}</div></div>`;
-            document.getElementById('draft-picks').innerHTML = summaryHTML + seasonsHTML;
-        }
-
         async function showGameDetails(team1Id, team2Id, date) {
-            const modal = document.getElementById('game-modal');
-            const modalTitle = document.getElementById('modal-title');
-            const modalContentEl = document.getElementById('modal-content');
+          const modal = document.getElementById('game-modal');
+          const modalTitle = document.getElementById('modal-title');
+          const modalContentEl = document.getElementById('modal-content'); 
+          
+          modal.style.display = 'block';
+          modalTitle.textContent = `${escapeHTML(getTeamName(team1Id))} vs ${escapeHTML(getTeamName(team2Id))} - ${formatDateShort(date)}`;
+          modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
+          
+          const game = allScheduleData.find(g => g.team1_id === team1Id && g.team2_id === team2Id && normalizeDate(g.date) === date);
+          if (!game) { modalContentEl.innerHTML = '<div class="error">Game not found</div>'; return; }
+          
+          const lineupsData = allLineups; 
+          if (!lineupsData) { modalContentEl.innerHTML = '<div class="error">Error loading lineup data</div>'; return; }
+          
+          const team1Lineups = lineupsData.filter(l => l.team_id === team1Id && normalizeDate(l.date) === date && l.started === 'TRUE').sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
+          const team2Lineups = lineupsData.filter(l => l.team_id === team2Id && normalizeDate(l.date) === date && l.started === 'TRUE').sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
+          
+          const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+          const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+          
+          const generateLineupTable = (lineupsForTable, idOfTeam, total, isWinner) => { 
+            const teamDetailsForModal = allTeams.find(t => t.team_id === idOfTeam); 
+            const teamRecord = teamDetailsForModal ? `${teamDetailsForModal.wins || 0}-${teamDetailsForModal.losses || 0}` : '';
+            const teamIdClassName = `icon-${idOfTeam.replace(/[^a-zA-Z0-9]/g, '')}`;
 
-            modal.style.display = 'block';
-            modalTitle.textContent = `${escapeHTML(getTeamName(team1Id))} vs ${escapeHTML(getTeamName(team2Id))} - ${formatDateShort(date)}`;
-            modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
+            if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
+            
+            const lineupRows = lineupsForTable.map(player => {
+              const isCaptain = player.captain === 'TRUE';
+              const pointsRaw = parseNumber(player.points_raw);
+              const globalRank = parseNumber(player.global_rank);
+              const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
+              const fullPlayerData = processedPlayersData.find(p => p.player_handle === player.player_handle);
+              const allStarBadge = fullPlayerData && fullPlayerData.all_star === '1' ? '<span class="all-star-badge">★</span>' : '';
+              const rookieBadge = fullPlayerData && fullPlayerData.rookie === '1' ? '<span class="rookie-badge">R</span>' : '';
 
-            try {
-                const db = firebase.firestore(); // Define db for this scope
-                const getGameDetails = firebase.functions().httpsCallable('getGameDetails');
-                const result = await getGameDetails({ team1Id, team2Id, date });
-                const { lineups, players } = result.data;
-                
-                // Optimized: Fetch only the single game document instead of the whole collection
-                const gameId = `S7_W${allTeams.find(t=>t.team_id === team1Id)?.latest_week || 'X'}_${team1Id}_vs_${team2Id}`; // This is an approximation, a better ID is needed
-                const gameSnapshot = await db.collection('schedule')
-                    .where('date', '==', date)
-                    .where('teams_in_game', 'array-contains', team1Id)
-                    .where('teams_in_game', 'array-contains', team2Id)
-                    .limit(1).get();
-
-                if (gameSnapshot.empty) { throw new Error("Game data not found"); }
-                const game = gameSnapshot.docs[0].data();
-
-                const team1Lineups = lineups.filter(l => l.team_id === team1Id).sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
-                const team2Lineups = lineups.filter(l => l.team_id === team2Id).sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
-
-                const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
-                const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
-
-                const generateLineupTable = (lineupsForTable, idOfTeam, total, isWinner) => {
-                    const teamDetailsForModal = allTeams.find(t => t.team_id === idOfTeam);
-                    const teamRecord = teamDetailsForModal ? `${teamDetailsForModal.wins || 0}-${teamDetailsForModal.losses || 0}` : '';
-                    const teamIdClassName = `icon-${idOfTeam.replace(/[^a-zA-Z0-9]/g, '')}`;
-                    if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
-                    const lineupRows = lineupsForTable.map(player => {
-                        const isCaptain = player.captain === 'TRUE';
-                        const pointsRaw = parseNumber(player.points_raw);
-                        const globalRank = parseNumber(player.global_rank);
-                        const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
-                        const fullPlayerData = players[player.player_handle];
-                        const allStarBadge = fullPlayerData && fullPlayerData.all_star === '1' ? ' <span class="all-star-badge">★</span>' : '';
-                        const rookieBadge = fullPlayerData && fullPlayerData.rookie === '1' ? ' <span class="rookie-badge">R</span>' : '';
-                        return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
-                    }).join('');
-                    return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
-                };
-
-                modalContentEl.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
-            } catch (error) {
-                console.error("Error fetching game details:", error);
-                modalContentEl.innerHTML = `<div class="error">Could not load game details. ${error.message}</div>`;
-            }
+              return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
+            }).join('');
+            
+            return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
+          };
+          
+          modalContentEl.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
         }
         
         function closeGameModal() {
           document.getElementById('game-modal').style.display = 'none';
         }
         
-        // --- INITIALIZATION (NOW SIMPLIFIED) ---
         window.onclick = (event) => {
           if (event.target === document.getElementById('game-modal')) closeGameModal();
         }
+        
+        async function fetchCollection(collectionName) {
+          try {
+              const snapshot = await db.collection(collectionName).get();
+              return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          } catch (error) {
+              console.error(`Error fetching ${collectionName}:`, error);
+              const mainContent = document.querySelector('main');
+              if(mainContent) {
+                  mainContent.innerHTML = `<div class="error">Failed to load data from collection: ${collectionName}. Check Firestore permissions and connectivity.</div>` + mainContent.innerHTML;
+              }
+              return [];
+          }
+        }
+        
+        async function loadTeamData() {
+          try {
+              teamId = getUrlParameter('id');
+              if (!teamId) {
+                document.getElementById('team-main-info').innerHTML = '<div class="error">No team specified in URL.</div>';
+                return;
+              }
+
+              const [
+                teamsResult, playersResult, weeklyAveragesResult, 
+                transactionsLogResult, lineupsResult, scheduleResult, draftPicksResult
+              ] = await Promise.all([
+                fetchCollection('teams'), fetchCollection('players'), fetchCollection('weekly_averages'),
+                fetchCollection('transaction_log'), fetchCollection('lineups'), fetchCollection('schedule'),
+                fetchCollection('draft_capital')
+              ]);
+              
+              allTeams = teamsResult;
+              // --- Generate the CSS for all team icons at once ---
+              generateIconStylesheet(allTeams);
+
+              allWeeklyAverages = weeklyAveragesResult;
+              allTransactionsLogData = transactionsLogResult;
+              allLineups = lineupsResult;
+              allScheduleData = scheduleResult;
+              allDraftPicks = draftPicksResult;
+
+              processedPlayersData = calculateStatsForAllPlayers(playersResult, allWeeklyAverages, allLineups);
+              teamData = allTeams.find(team => team.team_id === teamId);
+
+              if (!teamData) {
+                document.getElementById('team-main-info').innerHTML = '<div class="error">Team not found for ID: ' + escapeHTML(teamId) + '</div>';
+                return;
+              }
+
+              teamData.calculated_total_transactions = countTransactionsForTeam(teamData.team_id, allTransactionsLogData);
+              
+              const activeTeamsForRanking = allTeams.filter(t => t.team_id && t.team_id.toUpperCase() !== 'RETIRED' && t.team_id.toUpperCase() !== 'FREE_AGENT' && t.conference);
+              const rankings = calculateTeamRankings(teamData, activeTeamsForRanking);
+              
+              displayTeamHeader(rankings); 
+              
+              await Promise.all([
+                loadRoster(),
+                loadSchedule(),
+                loadDraftCapital() 
+              ]);
+          } catch (error) {
+              console.error("A critical error occurred during data loading:", error);
+               document.querySelector('main').innerHTML = `<div class="error">A critical error occurred while loading the page. Please check the console for details.</div>` + document.querySelector('main').innerHTML;
+          }
+        }
+
+        let hasLoaded = false;
         window.showGameDetails = showGameDetails;
         window.closeGameModal = closeGameModal;
         window.handleRosterSort = handleRosterSort;
         
-        // Load data directly, not waiting for auth state
-        loadPageData();
+        auth.onAuthStateChanged(user => {
+            if (!hasLoaded) {
+                hasLoaded = true;
+                loadTeamData();
+            }
+        });
       });
     </script>
   </body>
