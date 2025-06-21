@@ -117,6 +117,7 @@
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2rem;
+        margin-bottom: 2.5rem;
       }
 
       .all-star-team {
@@ -135,6 +136,15 @@
       .all-star-header h3 {
         color: white;
         margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        font-size: 1.5rem;
+      }
+      .all-star-header .header-icon {
+        height: 40px;
+        width: 40px;
       }
       .all-star-list-header {
         display: grid;
@@ -289,7 +299,13 @@
         <ul id="nav-menu">
             <li><a href="RKL-S7.html">S7 Home</a></li>
             <li><a href="standings.html">Standings & Rankings</a></li>
-            <li><a href="leaderboards.html">Leaderboards</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
+                </div>
+            </li>
             <li><a href="schedule.html">Schedule</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
@@ -301,7 +317,6 @@
             </li>
             <li><a href="transactions.html">Transactions</a></li>
             <li><a href="teams.html">Teams</a></li>
-            <li><a href="trophy-case.html">Trophy Case</a></li>
             <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
@@ -343,6 +358,7 @@
       let allTeamsData = [];
       let allScheduleData = [];
       let allLineupsData = [];
+      let allPlayersProcessed = [];
 
       function parseNumber(value) {
         if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
@@ -514,13 +530,18 @@
         allTeamsData = teamsData;
         allScheduleData = scheduleData;
         allLineupsData = lineupsData;
-        const allPlayersProcessed = calculateAllPlayerStats(playersData, weeklyAveragesData, lineupsData);
+        allPlayersProcessed = calculateAllPlayerStats(playersData, weeklyAveragesData, lineupsData);
 
         awardsContainer.innerHTML = `
             <div class="awards-grid" id="top-awards"></div>
             <div class="all-stars-container">
               <div class="all-star-team">
-                <div class="all-star-header"><h3>Eastern Conference All-Stars</h3></div>
+                <div class="all-star-header">
+                  <h3>
+                    <img src="icons/EAST.png" alt="East All-Stars" class="header-icon">
+                    Eastern Conference All-Stars
+                  </h3>
+                </div>
                 <div class="all-star-list-header">
                     <span class="player-col-header">Player</span>
                     <span class="stat-col-header">REL</span>
@@ -530,7 +551,12 @@
                 <ul class="all-star-list" id="all-stars-east"></ul>
               </div>
               <div class="all-star-team">
-                <div class="all-star-header"><h3>Western Conference All-Stars</h3></div>
+                <div class="all-star-header">
+                  <h3>
+                    <img src="icons/WEST.png" alt="West All-Stars" class="header-icon">
+                    Western Conference All-Stars
+                  </h3>
+                </div>
                 <div class="all-star-list-header">
                     <span class="player-col-header">Player</span>
                     <span class="stat-col-header">REL</span>
@@ -538,6 +564,38 @@
                     <span class="stat-col-header gem-col">GEM</span>
                 </div>
                 <ul class="all-star-list" id="all-stars-west"></ul>
+              </div>
+            </div>
+            <div class="all-stars-container">
+              <div class="all-star-team">
+                <div class="all-star-header">
+                  <h3>
+                    <img src="icons/RSE.png" alt="East Rising Stars" class="header-icon">
+                    Eastern Conference Rising Stars
+                  </h3>
+                </div>
+                <div class="all-star-list-header">
+                    <span class="player-col-header">Player</span>
+                    <span class="stat-col-header">REL</span>
+                    <span class="stat-col-header war-col">WAR</span>
+                    <span class="stat-col-header gem-col">GEM</span>
+                </div>
+                <ul class="all-star-list" id="rising-stars-east"></ul>
+              </div>
+              <div class="all-star-team">
+                <div class="all-star-header">
+                  <h3>
+                    <img src="icons/RSW.png" alt="West Rising Stars" class="header-icon">
+                    Western Conference Rising Stars
+                  </h3>
+                </div>
+                <div class="all-star-list-header">
+                    <span class="player-col-header">Player</span>
+                    <span class="stat-col-header">REL</span>
+                    <span class="stat-col-header war-col">WAR</span>
+                    <span class="stat-col-header gem-col">GEM</span>
+                </div>
+                <ul class="all-star-list" id="rising-stars-west"></ul>
               </div>
             </div>`;
         
@@ -694,8 +752,13 @@
 
         const eastAllStars = trophyData.filter(d => d.Award === 'ALLSTAR_EAST');
         const westAllStars = trophyData.filter(d => d.Award === 'ALLSTAR_WEST');
+        const eastRisingStars = trophyData.filter(d => d.Award === 'RISING_EAST');
+        const westRisingStars = trophyData.filter(d => d.Award === 'RISING_WEST');
+
         document.getElementById('all-stars-east').innerHTML = eastAllStars.map(p => generateAllStarHTML(p, allPlayersProcessed)).join('');
         document.getElementById('all-stars-west').innerHTML = westAllStars.map(p => generateAllStarHTML(p, allPlayersProcessed)).join('');
+        document.getElementById('rising-stars-east').innerHTML = eastRisingStars.map(p => generateAllStarHTML(p, allPlayersProcessed)).join('');
+        document.getElementById('rising-stars-west').innerHTML = westRisingStars.map(p => generateAllStarHTML(p, allPlayersProcessed)).join('');
       }
 
       function generateAllStarHTML(allStarPlayer, allPlayersProcessed) {
@@ -766,8 +829,14 @@
           const lineupRows = lineups.map(player => {
             const isCaptain = String(player.captain).toUpperCase() === 'TRUE';
             const pointsRaw = parseNumber(player.points_raw);
-            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0; 
-            return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle)}">${player.player_handle}</a>${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td>${pointsRaw.toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td>${parseNumber(player.global_rank) || '-'}</td></tr>`;
+            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
+            const fullPlayerData = allPlayersProcessed.find(p => p.player_handle === player.player_handle);
+            const isPlayerAllStar = fullPlayerData && fullPlayerData.all_star === '1';
+            const isRookie = fullPlayerData && fullPlayerData.rookie === '1';
+            const allStarBadge = isPlayerAllStar ? '<span class="all-star-badge">★</span>' : '';
+            const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
+
+            return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle)}">${player.player_handle}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td>${pointsRaw.toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td>${parseNumber(player.global_rank) || '-'}</td></tr>`;
           }).join('');
           
           return `<div class="team-breakdown ${isWinner ? 'winner' : ''}">
