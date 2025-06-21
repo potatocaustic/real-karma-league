@@ -59,6 +59,37 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             fetchAndParseSheet("Transaction_Log")
         ]);
         console.log("All sheets fetched successfully.");
+        
+        // --- Sync Players collection ---
+        const playersBatch = db.batch();
+        playersRaw.forEach(player => {
+            // Use the player's unique handle as the document ID
+            if (player.player_handle) { 
+                const docRef = db.collection("players").doc(player.player_handle);
+                
+                // Create a new object with all data from the sheet
+                const playerData = { ...player };
+                
+                // --- IMPORTANT ---
+                // Explicitly convert all numeric fields from the sheet (which may be strings)
+                // into proper numbers to match your desired Firestore structure.
+                playerData.GEM = parseNumber(player.GEM);
+                playerData.REL = parseNumber(player.REL);
+                playerData.WAR = parseNumber(player.WAR);
+                playerData.aag_mean = parseNumber(player.aag_mean);
+                playerData.aag_median = parseNumber(player.aag_median);
+                playerData.games_played = parseNumber(player.games_played);
+                playerData.total_points = parseNumber(player.total_points);
+
+                // Fields like 'all_star', 'rookie', and 'current_team_id' will remain 
+                // as strings from the CSV, which matches your example.
+                
+                // Set the data in the batch, using { merge: true } to update existing players
+                playersBatch.set(docRef, playerData, { merge: true });
+            }
+        });
+        await playersBatch.commit();
+        console.log(`Successfully synced ${playersRaw.length} players.`);
 
         // (Sections for syncing Teams, Players are correct and remain unchanged)
         // ...
