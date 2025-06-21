@@ -662,7 +662,7 @@
             const year = date.getUTCFullYear();
             const month = String(date.getUTCMonth() + 1).padStart(2, '0');
             const day = String(date.getUTCDate()).padStart(2, '0');
-            return `<span class="math-inline">\{year\}\-</span>{month}-${day}`;
+            return `${year}-${month}-${day}`;
         }
 
         function formatInThousands(value) {
@@ -895,8 +895,8 @@
                 return `<div class="season-group" style="margin-bottom: 1.5rem;"><div class="season-header" style="background-color: ${getSeasonColor(parseInt(season))}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;"><span>Season ${season} Draft</span><span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">${picks.length} pick${picks.length !== 1 ? "s" : ""}</span></div><div class="season-picks" style="border: 1px solid ${getSeasonColor(parseInt(season))}; border-top: none; border-radius: 0 0 6px 6px;">${picksHTML}</div></div>`;
             }).join('');
             const summaryPending = teamPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
-            const summaryOwn = teamPicks.filter(p => p.original_team === teamId && !p.notes).length;
-            const summaryAcquired = teamPicks.filter(p => p.original_team !== teamId && !p.notes).length;
+            const summaryOwn = teamPicks.filter(p => p.original_team === teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
+            const summaryAcquired = teamPicks.filter(p => p.original_team !== teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
             const summaryHTML = `<div class="draft-summary"><div class="draft-summary-grid"><div class="draft-summary-item"><div class="draft-summary-value total">${teamPicks.length}</div><div class="draft-summary-label">Total Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value own">${summaryOwn}</div><div class="draft-summary-label">Own Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value acquired">${summaryAcquired}</div><div class="draft-summary-label">Acquired</div></div>${summaryPending > 0 ? `<div class="draft-summary-item"><div class="draft-summary-value forfeiture">${summaryPending}</div><div class="draft-summary-label">Pending Forfeiture</div></div>` : ''}</div></div>`;
             document.getElementById('draft-picks').innerHTML = summaryHTML + seasonsHTML;
         }

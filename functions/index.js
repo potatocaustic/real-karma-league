@@ -173,8 +173,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const transactionsBatch = db.batch();
         transactionsLogRaw.forEach(transaction => {
             if (transaction.transaction_id) {
-                const docRef = db.collection("transaction_log").doc(); 
-                transactionsBatch.set(docRef, transaction);
+                const docRef = db.collection("transaction_log").doc(transaction.transaction_id); 
+                transactionsBatch.set(docRef, transaction, { merge: true });
             }
         });
         await transactionsBatch.commit();
