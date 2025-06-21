@@ -883,8 +883,8 @@
           teamPlayers.sort((a, b) => {
               let valA, valB;
               if (rosterSortState.column === 'rel') {
-                  valA = parseFloat(a.REL || 0);
-                  valB = parseFloat(b.REL || 0);
+                  valA = parseFloat(a.rel_median || 0);
+                  valB = parseFloat(b.rel_median || 0);
               } else if (rosterSortState.column === 'war') {
                   valA = parseFloat(a.WAR || 0);
                   valB = parseFloat(b.WAR || 0);
