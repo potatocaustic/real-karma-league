@@ -5,12 +5,32 @@ const fetch = require("node-fetch");
 admin.initializeApp();
 const db = admin.firestore();
 
+// REPLACE your existing parseCSV function with this debug version
+
 function parseCSV(csvText) {
     const lines = csvText.trim().split('\n');
-    const headers = lines.shift().split(',').map(h => h.replace(/"/g, '').trim());
-    const data = lines.map(line => {
+    const headerLine = lines.shift();
+    const headers = headerLine.split(',').map(h => h.replace(/"/g, '').trim());
+
+    // --- DEBUG LOG 1: Inspect the parsed headers ---
+    console.log("PARSED HEADERS:", JSON.stringify(headers));
+    const relMedianIndex = headers.indexOf('rel_median');
+    console.log("Index of 'rel_median':", relMedianIndex);
+    // -------------------------------------------------
+
+    const data = lines.map((line, lineIndex) => {
         const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
         const row = {};
+
+        // --- DEBUG LOG 2: For the first data row, inspect the values ---
+        if (lineIndex === 0) {
+             console.log("VALUES ARRAY FOR FIRST ROW:", JSON.stringify(values));
+             if (relMedianIndex !== -1) {
+                console.log("Value being read for rel_median in first row:", values[relMedianIndex]);
+             }
+        }
+        // ------------------------------------------------------------
+
         for (let i = 0; i < headers.length; i++) {
             const value = (values[i] || '').replace(/"/g, '').trim();
             row[headers[i]] = value;
