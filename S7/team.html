@@ -607,7 +607,6 @@
         // --- GLOBAL STATE VARIABLES ---
         let teamId = null;
         let allTeams = [];
-        let allTransactions = [];
         let currentRoster = [];
         let rosterSortState = { column: 'rel_median', direction: 'desc' };
         
@@ -737,7 +736,6 @@
 
                 const { teamData, roster, schedule, draftPicks, rankings } = data;
                 allTeams = data.allTeams;
-                allTransactions = data.allTransactions;
                 currentRoster = roster;
 
                 generateIconStylesheet(allTeams);

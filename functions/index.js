@@ -293,7 +293,6 @@ exports.getTeamPageData = functions.https.onCall(async (data, context) => {
             schedule,
             draftPicks,
             allTeams,
-            allTransactions,
             rankings,
         };
 
