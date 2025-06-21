@@ -616,7 +616,7 @@
             const iconStyles = teams.map(team => {
                 if (!team.team_id) return '';
                 const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`; 
-                return `.${className} { background-image: url('../icons/${team.team_id}.webp'); }`;
+                return `.${className} { background-image: url('icons/${team.team_id}.webp'); }`;
             }).join('');
             const styleElement = document.getElementById('team-icon-styles');
             if (styleElement) {
@@ -630,21 +630,42 @@
                     ${iconStyles}`;
             }
         }
+
         function normalizeDate(dateInput) {
             if (!dateInput) return '';
             let date;
+
             if (typeof dateInput.toDate === 'function') {
+                // Handles Firestore Timestamp objects
                 date = dateInput.toDate();
             } else {
                 let dateString = String(dateInput);
-                date = new Date(dateString.includes('T') ? dateString : dateString + 'T00:00:00Z');
+                if (dateString.includes('T')) {
+                    // Handles ISO strings
+                    date = new Date(dateString);
+                } else if (dateString.includes('/')) {
+                    // Handles MM/DD/YYYY strings from your sheet
+                    const parts = dateString.split('/');
+                    if (parts.length === 3) {
+                        // new Date(year, monthIndex, day)
+                        date = new Date(Date.UTC(parts[2], parts[0] - 1, parts[1]));
+                    } else {
+                        return ''; // Invalid MM/DD/YYYY format
+                    }
+                } else {
+                    // Fallback for other potential formats
+                    date = new Date(dateString);
+                }
             }
-            if (isNaN(date.getTime())) return '';
+
+            if (isNaN(date.getTime())) return ''; // Return empty if date is invalid
+
             const year = date.getUTCFullYear();
             const month = String(date.getUTCMonth() + 1).padStart(2, '0');
             const day = String(date.getUTCDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+            return `<span class="math-inline">\{year\}\-</span>{month}-${day}`;
         }
+
         function formatInThousands(value) {
             const num = parseFloat(value);
             return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : Math.round(num).toLocaleString();
@@ -741,7 +762,7 @@
 
             document.getElementById('team-main-info').innerHTML = `
               <div style="display: flex; align-items: center; gap: 1.5rem;">
-                <img src="../icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
+                <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
                 <div class="team-details">
                   <h2>${escapeHTML(teamData.team_name)}</h2>
                   <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>

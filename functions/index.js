@@ -179,9 +179,41 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         });
         await transactionsBatch.commit();
         console.log(`Successfully synced ${transactionsLogRaw.length} transaction log entries.`);
-        
-        // (Section for syncing weeklyAverages is correct and remains unchanged)
-        // ...
+
+        console.log("Calculating transaction counts for all teams...");
+        const allTeamsForCount = await db.collection("teams").get();
+        const allTransactionsForCount = await db.collection("transaction_log").get();
+
+        const transactionCountMap = new Map();
+        allTransactionsForCount.docs.forEach(doc => {
+            const t = doc.data();
+            const notes = t.notes ? t.notes.toLowerCase() : '';
+            // Skip irrelevant transactions
+            if (notes.includes('pre-database') || notes.includes('preseason') || !t.transaction_id) {
+                return;
+            }
+
+            const involvedTeams = new Set();
+            if (t.from_team) involvedTeams.add(t.from_team);
+            if (t.to_team) involvedTeams.add(t.to_team);
+
+            involvedTeams.forEach(teamId => {
+                if (!transactionCountMap.has(teamId)) {
+                    transactionCountMap.set(teamId, new Set());
+                }
+                transactionCountMap.get(teamId).add(t.transaction_id);
+            });
+        });
+
+        const teamUpdateBatch = db.batch();
+        allTeamsForCount.docs.forEach(doc => {
+            const teamId = doc.id;
+            const count = transactionCountMap.has(teamId) ? transactionCountMap.get(teamId).size : 0;
+            teamUpdateBatch.update(doc.ref, { calculated_total_transactions: count });
+        });
+
+        await teamUpdateBatch.commit();
+        console.log(`Successfully updated transaction counts for ${allTeamsForCount.size} teams.`);        
 
         res.status(200).send("Firestore sync completed successfully!");
 
@@ -223,9 +255,6 @@ exports.getTeamPageData = functions.https.onCall(async (data, context) => {
         const allTeamsSnapshot = await db.collection('teams').get();
         const allTeams = allTeamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const transactionsSnapshot = await db.collection('transaction_log').get();
-        const allTransactions = transactionsSnapshot.docs.map(doc => doc.data());
-
         // 6. Helper function to calculate rankings on the server
         const calculateTeamRankings = (currentTeam, allTeamsData) => {
             const rankings = {};
@@ -253,30 +282,9 @@ exports.getTeamPageData = functions.https.onCall(async (data, context) => {
             
             return rankings;
         };
-        
-        // 7. Helper function to count transactions
-        const countTransactionsForTeam = (teamIdToCount, transactionLog) => {
-            if (!transactionLog || transactionLog.length === 0) return 0;
-            const relevantTransactionIds = new Set();
-            transactionLog.forEach(transaction => {
-                const notes = transaction.notes ? transaction.notes.toLowerCase() : '';
-                if (notes.includes('pre-database') || notes.includes('preseason')) {
-                    return;
-                }
-                let involved = false;
-                if (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === teamIdToCount) { involved = true; }
-                else if (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamIdToCount) { involved = true; }
-                else if (transaction.from_team === teamIdToCount || transaction.to_team === teamIdToCount) { involved = true; }
-                if (involved && transaction.transaction_id) {
-                    relevantTransactionIds.add(transaction.transaction_id);
-                }
-            });
-            return relevantTransactionIds.size;
-        };
 
         // 8. Perform calculations and add them to the data
         const rankings = calculateTeamRankings(teamData, allTeams);
-        teamData.calculated_total_transactions = countTransactionsForTeam(teamId, allTransactions);
 
         // 9. Assemble the final payload
         const payload = {
