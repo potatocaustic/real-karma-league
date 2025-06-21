@@ -895,7 +895,7 @@
           
           const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
           const rosterHTML = teamPlayers.map(player => {
-            const relMedian = parseFloat(player.REL || 0);
+            const relMedian = parseFloat(player.rel_median || 0);
             const gamesPlayed = parseInt(player.games_played || 0);
             const isAllStar = player.all_star === '1';
             const isRookie = player.rookie === '1';
