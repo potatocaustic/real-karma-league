@@ -292,11 +292,11 @@
             .entity-header a {
                 font-size: 1rem; /* Smaller font on mobile */
             }
+            /* UPDATED RULE: Changed to allow text wrapping instead of truncation. */
             .entity-header .entity-name-text {
-                display: block; /* CHANGE: Allow truncation rules to apply */
-                white-space: nowrap;
-                overflow: hidden;
-                text-overflow: ellipsis;
+                display: block;
+                white-space: normal;
+                word-break: break-word;
                 max-width: 100%;
             }
             .entity-header .badge-container {
@@ -308,10 +308,6 @@
             }
              .entity-header .icon-name-wrapper {
                 gap: 0.5rem;
-             }
-             /* NEW RULE: This allows the flex item containing the name to shrink, enabling text truncation. */
-             .entity-header .icon-name-wrapper > div {
-                min-width: 0;
              }
             .comparison-row {
                 grid-template-columns: 1fr 1.2fr 1fr;
