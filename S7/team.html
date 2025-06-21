@@ -607,17 +607,16 @@
         // --- GLOBAL STATE VARIABLES ---
         let teamId = null;
         let allTeams = [];
-        let allTransactions = []; // Only needed for draft pick links
-        let currentRoster = []; // Store the roster to allow for client-side sorting
+        let allTransactions = [];
+        let currentRoster = [];
         let rosterSortState = { column: 'rel_median', direction: 'desc' };
         
-        // --- HELPER FUNCTIONS ---
-        // (Only simple, client-side formatters and helpers remain)
+        // --- HELPER FUNCTIONS (Unchanged) ---
         function generateIconStylesheet(teams) {
             const iconStyles = teams.map(team => {
                 if (!team.team_id) return '';
                 const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`; 
-                return `.${className} { background-image: url('icons/${team.team_id}.webp'); }`;
+                return `.${className} { background-image: url('../icons/${team.team_id}.webp'); }`;
             }).join('');
             const styleElement = document.getElementById('team-icon-styles');
             if (styleElement) {
@@ -631,7 +630,6 @@
                     ${iconStyles}`;
             }
         }
-
         function normalizeDate(dateInput) {
             if (!dateInput) return '';
             let date;
@@ -647,48 +645,44 @@
             const day = String(date.getUTCDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
         }
-        
         function formatInThousands(value) {
             const num = parseFloat(value);
             return num >= 1000 ? (num / 1000).toFixed(1) + 'k' : Math.round(num).toLocaleString();
         }
-
         function formatDateMMDD(dateString) {
+            if (!dateString) return '';
             const date = new Date(dateString + 'T00:00:00Z');
             return `${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
         }
-
         function formatDateShort(dateString) {
+            if (!dateString) return '';
             const date = new Date(dateString + 'T00:00:00Z');
             return `${String(date.getUTCMonth() + 1).padStart(2, '0')}/${String(date.getUTCDate()).padStart(2, '0')}/${String(date.getUTCFullYear()).slice(-2)}`;
         }
-        
         function parseNumber(value) {
             if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
             return parseFloat(String(value).replace(/,/g, '')) || 0;
         }
-
         function escapeHTML(str) {
             if (typeof str !== 'string') return str;
             return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
         }
-        
         function getUrlParameter(name) {
             return new URLSearchParams(window.location.search).get(name);
         }
-        
         function getTeamName(teamIdToFind) { 
             const team = allTeams.find(t => t.team_id === teamIdToFind);
             return team ? team.team_name : teamIdToFind;
         }
-        
         function getTeamRecordAtDate(teamIdForRecord, targetDate, schedule) { 
             const normalizedTargetDate = normalizeDate(targetDate);
-            const completedGames = schedule.filter(game => 
-                normalizeDate(game.date) <= normalizedTargetDate &&
+            if (!normalizedTargetDate) return '0-0';
+            const completedGames = schedule.filter(game => {
+                const gameDate = normalizeDate(game.date);
+                return gameDate && gameDate <= normalizedTargetDate &&
                 game.completed === 'TRUE' &&
-                (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord)
-            );
+                (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord);
+            });
             let wins = 0, losses = 0;
             completedGames.forEach(game => {
                 if (game.winner === teamIdForRecord) wins++;
@@ -696,43 +690,38 @@
             });
             return `${wins}-${losses}`;
         }
-        
         function getOrdinal(num) {
             const n = parseInt(num);
             if (n <= 0 || isNaN(n)) return 'Unranked';
             const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
             return n + (s[(v - 20) % 10] || s[v] || s[0]);
         }
-
         function getSeasonColor(season) {
           const colors = { 8: '#007bff', 9: '#28a745', 10: '#ffc107', 11: '#dc3545', 12: '#6c757d' };
           return colors[season] || '#6c757d';
         }
 
-        // --- NEW, SIMPLIFIED DATA LOADING FUNCTION ---
+        // --- DATA LOADING & DISPLAY FUNCTIONS ---
         async function loadPageData() {
             teamId = getUrlParameter('id');
             if (!teamId) {
-                document.querySelector('main').innerHTML = '<div class="error">No team specified in URL.</div>';
+                document.querySelector('main').innerHTML = `<div class="error">ERROR: No team ID was found in the URL. Please ensure the link is correct (e.g., team.html?id=TEAM_ID).</div>`;
                 return;
             }
 
             try {
-                // Single, efficient call to the backend Cloud Function
                 const getTeamData = firebase.functions().httpsCallable('getTeamPageData');
                 const result = await getTeamData({ teamId: teamId });
                 const data = result.data;
 
-                // Destructure the pre-processed data from the payload
                 const { teamData, roster, schedule, draftPicks, rankings } = data;
                 allTeams = data.allTeams;
                 allTransactions = data.allTransactions;
                 currentRoster = roster;
 
-                // Call display functions with the ready-to-use data
                 generateIconStylesheet(allTeams);
                 displayTeamHeader(teamData, rankings);
-                renderRoster(); // Initial render
+                renderRoster();
                 displaySchedule(schedule, teamData);
                 displayDraftCapital(draftPicks);
 
@@ -741,10 +730,7 @@
                 document.querySelector('main').innerHTML = `<div class="error">Failed to load team data. ${error.message}</div>`;
             }
         }
-
-        // --- DISPLAY AND RENDER FUNCTIONS ---
-        // These functions are now "dumb" - they just render HTML from the data they are given.
-
+        
         function displayTeamHeader(teamData, rankings) {
             document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
             const wins = parseInt(teamData.wins || 0);
@@ -755,7 +741,7 @@
 
             document.getElementById('team-main-info').innerHTML = `
               <div style="display: flex; align-items: center; gap: 1.5rem;">
-                <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
+                <img src="../icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
                 <div class="team-details">
                   <h2>${escapeHTML(teamData.team_name)}</h2>
                   <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
@@ -811,14 +797,12 @@
                 document.getElementById('roster-list').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No active players found</div>';
                 return;
             }
-
             const sortedRoster = [...currentRoster].sort((a, b) => {
                 const valA = parseNumber(a[rosterSortState.column] || 0);
                 const valB = parseNumber(b[rosterSortState.column] || 0);
                 const comparison = valA < valB ? -1 : (valA > valB ? 1 : 0);
                 return rosterSortState.direction === 'desc' ? -comparison : comparison;
             });
-            
             const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
             const rosterHTML = sortedRoster.map(player => {
               const relMedian = parseFloat(player.rel_median || 0);
@@ -827,34 +811,12 @@
               const isRookie = player.rookie === '1';
               const war = parseFloat(player.WAR || 0).toFixed(2);
               const rookieBadge = isRookie ? ` <span class="rookie-badge">R</span>` : '';
-              // Note: median rank calculation would need to be moved to the backend if desired
               const medianRankDisplay = '-'; 
-
-              return `
-                <div class="player-item">
-                  <div class="roster-player-logo-col desktop-only-roster-logo">
-                    <div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div>
-                  </div>
-                  <div class="player-info">
-                    <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a>
-                    <div class="player-stats">${gamesPlayed} games • ${medianRankDisplay} med rank</div>
-                  </div>
-                  <div class="player-rel">${relMedian.toFixed(3)}</div>
-                  <div class="player-war">${war}</div>
-                </div>`;
+              return `<div class="player-item"><div class="roster-player-logo-col desktop-only-roster-logo"><div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div></div><div class="player-info"><a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a><div class="player-stats">${gamesPlayed} games • ${medianRankDisplay} med rank</div></div><div class="player-rel">${relMedian.toFixed(3)}</div><div class="player-war">${war}</div></div>`;
             }).join('');
-            
             const relSortIndicator = rosterSortState.column === 'rel_median' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
             const warSortIndicator = rosterSortState.column === 'WAR' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
-
-            document.getElementById('roster-list').innerHTML = `
-              <div class="roster-header">
-                <span class="roster-logo-header-col desktop-only-roster-logo"></span>
-                <span class="header-player">Player</span>
-                <span class="header-rel sortable" onclick="handleRosterSort('rel_median')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
-                <span class="header-war sortable" onclick="handleRosterSort('WAR')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
-              </div>
-              <div class="roster-content">${rosterHTML}</div>`;
+            document.getElementById('roster-list').innerHTML = `<div class="roster-header"><span class="roster-logo-header-col desktop-only-roster-logo"></span><span class="header-player">Player</span><span class="header-rel sortable" onclick="handleRosterSort('rel_median')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span><span class="header-war sortable" onclick="handleRosterSort('WAR')">WAR<span class="sort-indicator">${warSortIndicator}</span></span></div><div class="roster-content">${rosterHTML}</div>`;
         }
         
         function displaySchedule(scheduleData, teamData) {
@@ -863,42 +825,27 @@
               document.getElementById('team-schedule').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No games scheduled</div>';
               return;
             }
-            
             const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
             const gamesHTML = teamGames.map(game => {
               const isTeam1 = game.team1_id === teamId;
               const opponentId = isTeam1 ? game.team2_id : game.team1_id;
               const opponentName = getTeamName(opponentId);
               const isCompleted = game.completed === 'TRUE';
-              
               const opponentRecord = getTeamRecordAtDate(opponentId, game.date, teamGames);
               const teamRecord = getTeamRecordAtDate(teamId, game.date, teamGames);
-              
-              let clickHandler = '', teamScoreText = '', oppScoreText = '', teamScoreClass = '', oppScoreClass = '', teamWon = false, oppWon = false, logoClickHandlers = '';
-              
+              let clickHandler = '', teamScoreText = '', oppScoreText = '', teamScoreClass = '', oppScoreClass = '', logoClickHandlers = '';
               if (isCompleted) {
                 const teamScoreValue = parseNumber(isTeam1 ? game.team1_score : game.team2_score);
                 const oppScoreValue = parseNumber(isTeam1 ? game.team2_score : game.team1_score);
-                teamWon = teamScoreValue > oppScoreValue; oppWon = oppScoreValue > teamScoreValue;
                 teamScoreText = formatInThousands(teamScoreValue); oppScoreText = formatInThousands(oppScoreValue);
-                teamScoreClass = teamWon ? 'win' : 'loss'; oppScoreClass = oppWon ? 'win' : 'loss';
-                clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${normalizeDate(game.date)}')" style="cursor: pointer;"`;
+                teamScoreClass = teamScoreValue > oppScoreValue ? 'win' : 'loss'; oppScoreClass = oppScoreValue > teamScoreValue ? 'win' : 'loss';
+                clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${normalizeDate(game.date)}')"`;
               } else {
                 teamScoreText = '-'; oppScoreText = '-'; teamScoreClass = 'upcoming'; oppScoreClass = 'upcoming';
-                logoClickHandlers = `onclick="window.location.href='team.html?id=${opponentId}'" style="cursor: pointer;"`;
+                logoClickHandlers = `onclick="window.location.href='team.html?id=${opponentId}'"`;
               }
               const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
-              
-              return `
-                <div class="game-item" ${clickHandler}>
-                  <div class="game-info-table"><div class="week-cell"><div class="week-badge">${game.week || 'TBD'}</div></div><div class="date-cell"><div class="date-badge">${formatDateMMDD(normalizeDate(game.date))}</div></div></div>
-                  <div class="game-content-table">
-                    <div class="team-section left"><div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div><div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div></div>
-                    <div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div>
-                    <div class="team-section right"><div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;" ${logoClickHandlers}></div><div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div></div>
-                  </div>
-                  <div class="game-matchup"><div class="week-badge">${game.week || 'TBD'}</div><div class="team"><div class="team-logo-css ${teamIdClassName}"></div><div class="team-info"><span class="team-name ${teamScoreClass}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span></div><span class="vs">vs</span><div class="team"><div class="team-logo-css ${opponentIdClassName}" ${logoClickHandlers}></div><div class="team-info"><span class="team-name ${oppScoreClass}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span></div></div>
-                </div>`;
+              return `<div class="game-item" ${clickHandler} style="${clickHandler ? 'cursor: pointer;' : ''}"><div class="game-info-table"><div class="week-cell"><div class="week-badge">${game.week || 'TBD'}</div></div><div class="date-cell"><div class="date-badge">${formatDateMMDD(normalizeDate(game.date))}</div></div></div><div class="game-content-table"><div class="team-section left"><div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div><div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div></div><div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div><div class="team-section right"><div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%; ${logoClickHandlers ? 'cursor: pointer;' : ''}" ${logoClickHandlers}></div><div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div></div></div><div class="game-matchup"><div class="week-badge">${game.week || 'TBD'}</div><div class="team"><div class="team-logo-css ${teamIdClassName}"></div><div class="team-info"><span class="team-name ${teamScoreClass}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span></div><span class="vs">vs</span><div class="team"><div class="team-logo-css ${opponentIdClassName}" ${logoClickHandlers} style="${logoClickHandlers ? 'cursor: pointer;' : ''}"></div><div class="team-info"><span class="team-name ${oppScoreClass}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span></div></div></div>`;
             }).join('');
             document.getElementById('team-schedule').innerHTML = gamesHTML;
         }
@@ -908,41 +855,29 @@
               document.getElementById('draft-picks').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No draft picks owned</div>';
               return;
             }
-            
-            const picksBySeason = teamPicks
-              .sort((a, b) => (parseNumber(a.season) - parseNumber(b.season)) || (parseNumber(a.round) - parseNumber(b.round)))
-              .reduce((acc, pick) => {
-                (acc[pick.season] = acc[pick.season] || []).push(pick);
-                return acc;
-            }, {});
-            
+            const picksBySeason = teamPicks.sort((a, b) => (parseNumber(a.season) - parseNumber(b.season)) || (parseNumber(a.round) - parseNumber(b.round))).reduce((acc, pick) => { (acc[pick.season] = acc[pick.season] || []).push(pick); return acc; }, {});
             const seasonsHTML = Object.keys(picksBySeason).sort((a, b) => parseInt(a) - parseInt(b)).map(season => {
                 const picks = picksBySeason[season];
                 const picksHTML = picks.map(pick => {
                   const isOriginalOwner = pick.original_team === teamId;
                   const isPendingForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
-                  let statusText = 'Acquired';
-                  let containerClass = 'pick-item-enhanced';
+                  let statusText = 'Acquired'; let containerClass = 'pick-item-enhanced';
                   if (isPendingForfeiture) { statusText = 'Pending Forfeiture'; containerClass += ' pick-forfeiture'; } 
                   else if (isOriginalOwner) { statusText = `<span class="pick-status-own">Own Pick</span>`; }
-
                   let originDisplayHTML = '';
                   if (!isOriginalOwner && !isPendingForfeiture) {
                     const originalOwnerStats = allTeams.find(t => t.team_id === pick.original_team);
                     const statsStr = originalOwnerStats ? ` (${originalOwnerStats.wins}-${originalOwnerStats.losses}, ${formatInThousands(originalOwnerStats.pam)} PAM)` : '';
                     originDisplayHTML = `<div class="pick-origin">from ${escapeHTML(getTeamName(pick.original_team))}${escapeHTML(statsStr)}</div>`;
                   }
-                  
                   const originalTeamIdClassName = `icon-${pick.original_team.replace(/[^a-zA-Z0-9]/g, '')}`;
                   return `<div class="${containerClass}"><div class="pick-main-info"><a href="team.html?id=${pick.original_team}"><div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div></a><div class="pick-text-content"><span class="pick-description">${escapeHTML(pick.pick_description)}</span>${originDisplayHTML}</div></div><div class="pick-status">${statusText}</div></div>`;
                 }).join('');
                 return `<div class="season-group" style="margin-bottom: 1.5rem;"><div class="season-header" style="background-color: ${getSeasonColor(parseInt(season))}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;"><span>Season ${season} Draft</span><span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">${picks.length} pick${picks.length !== 1 ? "s" : ""}</span></div><div class="season-picks" style="border: 1px solid ${getSeasonColor(parseInt(season))}; border-top: none; border-radius: 0 0 6px 6px;">${picksHTML}</div></div>`;
             }).join('');
-            
             const summaryPending = teamPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
             const summaryOwn = teamPicks.filter(p => p.original_team === teamId && !p.notes).length;
             const summaryAcquired = teamPicks.filter(p => p.original_team !== teamId && !p.notes).length;
-            
             const summaryHTML = `<div class="draft-summary"><div class="draft-summary-grid"><div class="draft-summary-item"><div class="draft-summary-value total">${teamPicks.length}</div><div class="draft-summary-label">Total Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value own">${summaryOwn}</div><div class="draft-summary-label">Own Picks</div></div><div class="draft-summary-item"><div class="draft-summary-value acquired">${summaryAcquired}</div><div class="draft-summary-label">Acquired</div></div>${summaryPending > 0 ? `<div class="draft-summary-item"><div class="draft-summary-value forfeiture">${summaryPending}</div><div class="draft-summary-label">Pending Forfeiture</div></div>` : ''}</div></div>`;
             document.getElementById('draft-picks').innerHTML = summaryHTML + seasonsHTML;
         }
@@ -957,15 +892,16 @@
             modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
 
             try {
-                // Call the new, dedicated function for game details
+                const db = firebase.firestore(); // Define db for this scope
                 const getGameDetails = firebase.functions().httpsCallable('getGameDetails');
                 const result = await getGameDetails({ team1Id, team2Id, date });
                 const { lineups, players } = result.data;
                 
-                const scheduleData = await db.collection('schedule').get(); // This is needed to get the final score, can be optimized later if needed
-                const allScheduleData = scheduleData.docs.map(doc => doc.data());
-                const game = allScheduleData.find(g => g.team1_id === team1Id && g.team2_id === team2Id && normalizeDate(g.date) === date);
-                if (!game) { throw new Error("Game data not found"); }
+                // Optimized: Fetch only the single game document instead of the whole collection
+                const gameId = `S7_W${allTeams.find(t=>t.team_id === team1Id)?.latest_week || 'X'}_${team1Id}_vs_${team2Id}`; // This is an approximation, a better ID is needed
+                const gameSnapshot = await db.collection('schedule').where('date', '==', date).where('teams_in_game', 'array-contains-all', [team1Id, team2Id]).limit(1).get();
+                if (gameSnapshot.empty) { throw new Error("Game data not found"); }
+                const game = gameSnapshot.docs[0].data();
 
                 const team1Lineups = lineups.filter(l => l.team_id === team1Id).sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
                 const team2Lineups = lineups.filter(l => l.team_id === team2Id).sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
@@ -977,9 +913,7 @@
                     const teamDetailsForModal = allTeams.find(t => t.team_id === idOfTeam);
                     const teamRecord = teamDetailsForModal ? `${teamDetailsForModal.wins || 0}-${teamDetailsForModal.losses || 0}` : '';
                     const teamIdClassName = `icon-${idOfTeam.replace(/[^a-zA-Z0-9]/g, '')}`;
-
                     if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
-
                     const lineupRows = lineupsForTable.map(player => {
                         const isCaptain = player.captain === 'TRUE';
                         const pointsRaw = parseNumber(player.points_raw);
@@ -988,15 +922,12 @@
                         const fullPlayerData = players[player.player_handle];
                         const allStarBadge = fullPlayerData && fullPlayerData.all_star === '1' ? ' <span class="all-star-badge">★</span>' : '';
                         const rookieBadge = fullPlayerData && fullPlayerData.rookie === '1' ? ' <span class="rookie-badge">R</span>' : '';
-
                         return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
                     }).join('');
-
                     return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
                 };
 
                 modalContentEl.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
-
             } catch (error) {
                 console.error("Error fetching game details:", error);
                 modalContentEl.innerHTML = `<div class="error">Could not load game details. ${error.message}</div>`;
@@ -1007,18 +938,16 @@
           document.getElementById('game-modal').style.display = 'none';
         }
         
-        // --- INITIALIZATION ---
+        // --- INITIALIZATION (NOW SIMPLIFIED) ---
         window.onclick = (event) => {
           if (event.target === document.getElementById('game-modal')) closeGameModal();
         }
-        
         window.showGameDetails = showGameDetails;
         window.closeGameModal = closeGameModal;
         window.handleRosterSort = handleRosterSort;
         
-        auth.onAuthStateChanged(user => {
-            loadPageData(); // Load data once auth state is known
-        });
+        // Load data directly, not waiting for auth state
+        loadPageData();
       });
     </script>
   </body>
