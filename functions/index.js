@@ -255,6 +255,33 @@ exports.getTeamPageData = functions.https.onCall(async (data, context) => {
         const allTeamsSnapshot = await db.collection('teams').get();
         const allTeams = allTeamsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        // Fetch transaction log to find acquisition details for picks
+        const transactionsSnapshot = await db.collection('transaction_log').get();
+        const allTransactions = transactionsSnapshot.docs.map(doc => doc.data());
+
+        // Augment draft picks with a link to their acquisition trade, if one exists
+        const augmentedDraftPicks = draftPicks.map(pick => {
+            if (pick.original_team === teamId) {
+                return pick; // Not an acquired pick, no change needed
+            }
+            // Find the most recent trade where this team acquired this pick
+            const relevantTx = allTransactions
+                .filter(t => t.draft_pick_id === pick.pick_id && t.to_team === teamId && t.transaction_type === 'TRADE')
+                .sort((a, b) => new Date(b.date) - new Date(a.date))[0]; // Get the most recent one
+
+            if (relevantTx) {
+                return {
+                    ...pick,
+                    acquisition_trade: {
+                        from_team: relevantTx.from_team,
+                        date: relevantTx.date,
+                        pick_id: relevantTx.pick_id,
+                    }
+                };
+            }
+            return pick; // No change if no trade found
+        });
+
         // 6. Helper function to calculate rankings on the server
         const calculateTeamRankings = (currentTeam, allTeamsData) => {
             const rankings = {};

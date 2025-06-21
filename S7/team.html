@@ -887,7 +887,15 @@
                   if (!isOriginalOwner && !isPendingForfeiture) {
                     const originalOwnerStats = allTeams.find(t => t.team_id === pick.original_team);
                     const statsStr = originalOwnerStats ? ` (${originalOwnerStats.wins}-${originalOwnerStats.losses}, ${formatInThousands(originalOwnerStats.pam)} PAM)` : '';
-                    originDisplayHTML = `<div class="pick-origin">from ${escapeHTML(getTeamName(pick.original_team))}${escapeHTML(statsStr)}</div>`;
+                    const originTextContent = `from ${escapeHTML(getTeamName(pick.original_team))}${escapeHTML(statsStr)}`;
+                    if (pick.acquisition_trade) {
+                        const tx = pick.acquisition_trade;
+                        const linkDate = normalizeDate(tx.date); // Use helper to handle timestamp or string
+                        const transactionsLink = `transactions.html?type=TRADE&date=${linkDate}&teamFilters=${tx.from_team},${teamId}&pick_id=${encodeURIComponent(tx.pick_id || '')}`;
+                        originDisplayHTML = `<div class="pick-origin"><a href="${transactionsLink}" title="View transaction">${originTextContent}</a></div>`;
+                    } else {
+                        originDisplayHTML = `<div class="pick-origin">${originTextContent}</div>`;
+                    }
                   }
                   const originalTeamIdClassName = `icon-${pick.original_team.replace(/[^a-zA-Z0-9]/g, '')}`;
                   return `<div class="${containerClass}"><div class="pick-main-info"><a href="team.html?id=${pick.original_team}"><div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div></a><div class="pick-text-content"><span class="pick-description">${escapeHTML(pick.pick_description)}</span>${originDisplayHTML}</div></div><div class="pick-status">${statusText}</div></div>`;
@@ -918,7 +926,12 @@
                 
                 // Optimized: Fetch only the single game document instead of the whole collection
                 const gameId = `S7_W${allTeams.find(t=>t.team_id === team1Id)?.latest_week || 'X'}_${team1Id}_vs_${team2Id}`; // This is an approximation, a better ID is needed
-                const gameSnapshot = await db.collection('schedule').where('date', '==', date).where('teams_in_game', 'array-contains-all', [team1Id, team2Id]).limit(1).get();
+                const gameSnapshot = await db.collection('schedule')
+                    .where('date', '==', date)
+                    .where('teams_in_game', 'array-contains', team1Id)
+                    .where('teams_in_game', 'array-contains', team2Id)
+                    .limit(1).get();
+
                 if (gameSnapshot.empty) { throw new Error("Game data not found"); }
                 const game = gameSnapshot.docs[0].data();
 
