@@ -297,6 +297,40 @@ exports.getTeamPageData = functions.https.onCall(async (data, context) => {
     }
 });
 
+// Add this new function to your functions/index.js file
+
+exports.getGameDetails = functions.https.onCall(async (data, context) => {
+    const { team1Id, team2Id, date } = data;
+    if (!team1Id || !team2Id || !date) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing required parameters.');
+    }
+
+    try {
+        const lineupsSnapshot = await db.collection('lineups')
+            .where('date', '==', date)
+            .where('team_id', 'in', [team1Id, team2Id])
+            .where('started', '==', 'TRUE')
+            .get();
+
+        const lineups = lineupsSnapshot.docs.map(doc => doc.data());
+
+        // Also fetch player details to show all-star/rookie badges in the modal
+        const playerHandles = lineups.map(l => l.player_handle);
+        const players = {};
+        if (playerHandles.length > 0) {
+            const playersSnapshot = await db.collection('players').where('player_handle', 'in', playerHandles).get();
+            playersSnapshot.forEach(doc => {
+                players[doc.id] = doc.data();
+            });
+        }
+        
+        return { lineups, players };
+
+    } catch (error) {
+        console.error("Error fetching game details:", error);
+        throw new functions.https.HttpsError('internal', 'Could not fetch game details.');
+    }
+});
 
 // --- Your other functions for the trade block remain unchanged ---
 exports.clearAllTradeBlocks = functions.https.onCall(async (data, context) => {

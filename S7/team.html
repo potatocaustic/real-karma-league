@@ -496,7 +496,6 @@
     <div id="maintenance-banner">
         Site maintenance underway - some features may be unavailable.
     </div>
-<header>
     <header>
       <button id="theme-toggle-btn" aria-label="Toggle Theme">
         <span class="sun-icon">☀️</span>
@@ -949,16 +948,59 @@
         }
 
         async function showGameDetails(team1Id, team2Id, date) {
-            // This function would require fetching more data (lineups, all players)
-            // For now, it will show a loading state. To make it fully functional,
-            // the `getTeamPageData` function could be expanded to return game details,
-            // or a new Cloud Function could be created to fetch details for a specific game.
             const modal = document.getElementById('game-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalContentEl = document.getElementById('modal-content');
+
             modal.style.display = 'block';
             modalTitle.textContent = `${escapeHTML(getTeamName(team1Id))} vs ${escapeHTML(getTeamName(team2Id))} - ${formatDateShort(date)}`;
-            modalContentEl.innerHTML = '<div class="loading">Game detail functionality requires a separate data fetch.</div>';
+            modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
+
+            try {
+                // Call the new, dedicated function for game details
+                const getGameDetails = firebase.functions().httpsCallable('getGameDetails');
+                const result = await getGameDetails({ team1Id, team2Id, date });
+                const { lineups, players } = result.data;
+                
+                const scheduleData = await db.collection('schedule').get(); // This is needed to get the final score, can be optimized later if needed
+                const allScheduleData = scheduleData.docs.map(doc => doc.data());
+                const game = allScheduleData.find(g => g.team1_id === team1Id && g.team2_id === team2Id && normalizeDate(g.date) === date);
+                if (!game) { throw new Error("Game data not found"); }
+
+                const team1Lineups = lineups.filter(l => l.team_id === team1Id).sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
+                const team2Lineups = lineups.filter(l => l.team_id === team2Id).sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
+
+                const team1Total = team1Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+                const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
+
+                const generateLineupTable = (lineupsForTable, idOfTeam, total, isWinner) => {
+                    const teamDetailsForModal = allTeams.find(t => t.team_id === idOfTeam);
+                    const teamRecord = teamDetailsForModal ? `${teamDetailsForModal.wins || 0}-${teamDetailsForModal.losses || 0}` : '';
+                    const teamIdClassName = `icon-${idOfTeam.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+                    if (lineupsForTable.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div></div>`;
+
+                    const lineupRows = lineupsForTable.map(player => {
+                        const isCaptain = player.captain === 'TRUE';
+                        const pointsRaw = parseNumber(player.points_raw);
+                        const globalRank = parseNumber(player.global_rank);
+                        const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
+                        const fullPlayerData = players[player.player_handle];
+                        const allStarBadge = fullPlayerData && fullPlayerData.all_star === '1' ? ' <span class="all-star-badge">★</span>' : '';
+                        const rookieBadge = fullPlayerData && fullPlayerData.rookie === '1' ? ' <span class="rookie-badge">R</span>' : '';
+
+                        return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
+                    }).join('');
+
+                    return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${idOfTeam}'" style="cursor: pointer;"><div class="team-logo-css ${teamIdClassName}" style="width: 48px; height: 48px;"></div><div><h4>${escapeHTML(getTeamName(idOfTeam))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
+                };
+
+                modalContentEl.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
+
+            } catch (error) {
+                console.error("Error fetching game details:", error);
+                modalContentEl.innerHTML = `<div class="error">Could not load game details. ${error.message}</div>`;
+            }
         }
         
         function closeGameModal() {
