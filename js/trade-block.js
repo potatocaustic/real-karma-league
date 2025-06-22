@@ -131,7 +131,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         const playersWithStats = (blockData.on_the_block || []).map(handle => {
             const p = playersMap.get(handle);
             if (!p) return `<li>${handle} (stats not found)</li>`;
-            return `<li><a href="/S7/player.html?player=${handle}">${handle}</a> (GP: ${p.games_played || 0}, REL: ${p.rel_median ? p.rel_median.toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
+            return `<li><a href="/S7/player.html?player=${handle}">${handle}</a> (GP: ${p.games_played || 0}, REL: ${p.rel_median ? parseFloat(p.rel_median).toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
         }).join('') || '<li>N/A</li>';
 
         const blockHtml = `

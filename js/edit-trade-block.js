@@ -91,7 +91,7 @@ function renderForm(blockData, players, picks, teamsMap) {
             <td class="col-checkbox"><input type="checkbox" data-player-handle="${p.handle}" ${blockData.on_the_block.includes(p.handle) ? 'checked' : ''}></td>
             <td class="col-name">${p.handle}</td>
             <td class="col-stat-gp mobile-hide">${p.games_played || 0}</td>
-            <td class="col-stat-small mobile-hide">${p.rel_median ? p.rel_median.toFixed(3) : 'N/A'}</td>
+            <td class="col-stat-small mobile-hide">${p.rel_median ? parseFloat(p.rel_median).toFixed(3) : 'N/A'}</td>
             <td class="col-stat-small">${p.WAR ? p.WAR.toFixed(2) : 'N/A'}</td>
         </tr>
     `).join('') || '<tr><td colspan="5" style="text-align:center;">No players on roster.</td></tr>';
