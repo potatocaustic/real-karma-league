@@ -227,6 +227,40 @@
       .playin-color { background-color: #ffc107; }
       .eliminated-color { background-color: #dc3545; }
       
+      /* Clinch Indicator Styles */
+      .clinch-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-left: 6px;
+        flex-shrink: 0;
+      }
+      .clinch-playoff { background-color: #28a745; color: white; }
+      .clinch-playin { background-color: #ffc107; color: #333; }
+      .clinch-eliminated { background-color: #dc3545; color: white; }
+
+      /* Legend Styles */
+      .clinch-legend {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-top: 2rem;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        transition: background-color 0.3s, box-shadow 0.3s;
+      }
+      .clinch-legend-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; text-align: center; }
+      .clinch-legend-items { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+      .clinch-legend-item { display: flex; align-items: center; gap: 0.75rem; }
+
       /* Page-specific Dark Mode Styles */
       .dark-mode .view-toggle-button {
         background-color: #373737;
@@ -237,7 +271,8 @@
         background-color: #4a4a4a;
       }
       .dark-mode .conference-section, 
-      .dark-mode .playoff-legend {
+      .dark-mode .playoff-legend,
+      .dark-mode .clinch-legend {
         background-color: #1e1e1e;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
       }
@@ -360,8 +395,9 @@
                     <a href="draft-lottery.html">Draft Lottery</a>
                 </div>
             </li>
-            <li><a href="trophy-case.html">Trophy Case</a></li>
+            <li><a href="transactions.html">Transactions</a></li>
             <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
             <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
@@ -380,7 +416,7 @@
 
       <div id="conferenceViewContainer">
         <div class="playoff-legend">
-          <div class="legend-title">Playoff Picture (Conferences)</div>
+          <div class="legend-title">Playoff Picture (Based on Rank)</div>
           <div class="legend-items">
             <div class="legend-item">
               <div class="legend-color playoff-color"></div>
@@ -492,6 +528,24 @@
           </table>
         </div>
       </div>
+      
+      <div class="clinch-legend">
+        <div class="clinch-legend-title">Postseason Clinching Status</div>
+        <div class="clinch-legend-items">
+          <div class="clinch-legend-item">
+            <span class="clinch-badge clinch-playoff">x</span>
+            <span>Clinched Playoffs</span>
+          </div>
+          <div class="clinch-legend-item">
+            <span class="clinch-badge clinch-playin">p</span>
+            <span>Clinched Play-In</span>
+          </div>
+          <div class="clinch-legend-item">
+            <span class="clinch-badge clinch-eliminated">e</span>
+            <span>Eliminated</span>
+          </div>
+        </div>
+      </div>
     </main>
     
     <footer>
@@ -516,7 +570,7 @@
       const sortState = {
         Eastern: { column: 'record', direction: 'asc' },
         Western: { column: 'record', direction: 'asc' },
-        FullLeague: { column: 'record', direction: 'asc'}
+        FullLeague: { column: 'record', direction: 'asc' }
       };
 
       function getUrlParameter(name) {
@@ -706,6 +760,16 @@
           const wins = parseInt(team.wins || 0); const losses = parseInt(team.losses || 0);
           const pam = parseFloat(team.pam || 0); const medRank = parseFloat(team.med_starter_rank || 0);
           let rankCellContent; let trClass = '';
+          
+          let clinchBadgeHtml = '';
+          if (team.playoffs === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+          } else if (team.playin === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+          } else if (team.elim === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+          }
+
           if (tableType === 'FullLeague') {
             rankCellContent = team.officialFullLeagueRank;
           } else {
@@ -723,6 +787,7 @@
                 <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
                   <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                   <span class="team-name">${team.team_name}</span>
+                  ${clinchBadgeHtml}
                 </div>
               </td>
               <td class="record-cell">${wins}-${losses}</td>

@@ -188,6 +188,25 @@
         height: 20px;
         vertical-align: middle;
       }
+      
+      /* Clinch Indicator Styles */
+      .clinch-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        font-size: 0.7rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-left: 4px;
+        flex-shrink: 0;
+      }
+      .clinch-playoff { background-color: #28a745; color: white; }
+      .clinch-playin { background-color: #ffc107; color: #333; }
+      .clinch-eliminated { background-color: #dc3545; color: white; }
+
 
       .view-full {
         text-align: center;
@@ -908,12 +927,21 @@
         
         const easternHTML = easternTeams.map(team => {
           const medRank = parseFloat(team.med_starter_rank || 0);
+          let clinchBadgeHtml = '';
+          if (team.playoffs === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+          } else if (team.playin === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+          } else if (team.elim === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+          }
           return `
           <tr>
             <td>
               <a href="team.html?id=${team.team_id}" class="team-link">
                 <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                ${team.team_name}
+                <span>${team.team_name}</span>
+                ${clinchBadgeHtml}
               </a>
             </td>
             <td>${team.wins || 0}-${team.losses || 0}</td>
@@ -924,12 +952,21 @@
         
         const westernHTML = westernTeams.map(team => {
           const medRank = parseFloat(team.med_starter_rank || 0);
+          let clinchBadgeHtml = '';
+          if (team.playoffs === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+          } else if (team.playin === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+          } else if (team.elim === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+          }
           return `
           <tr>
             <td>
               <a href="team.html?id=${team.team_id}" class="team-link">
                 <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                ${team.team_name}
+                <span>${team.team_name}</span>
+                ${clinchBadgeHtml}
               </a>
             </td>
             <td>${team.wins || 0}-${team.losses || 0}</td>
