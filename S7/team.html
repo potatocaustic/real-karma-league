@@ -1224,7 +1224,7 @@
               ] = await Promise.all([
                 fetchCollection('teams'), fetchCollection('players'), fetchCollection('weekly_averages'),
                 fetchCollection('transaction_log'), fetchCollection('lineups'), fetchCollection('schedule'),
-                fetchCollection('draft_capital')
+                fetchCollection('draftPicks')
               ]);
               
               allTeams = teamsResult;
