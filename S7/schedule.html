@@ -1090,7 +1090,7 @@
             const aCaptain = String(a.captain).toUpperCase() === 'TRUE';
             const bCaptain = String(b.captain).toUpperCase() === 'TRUE';
             if (aCaptain && !bCaptain) return -1;
-            if (!bCaptain && bCaptain) return 1;
+            if (!aCaptain && bCaptain) return 1;
             return parseNumber(b.points_final) - parseNumber(a.points_final);
         });
 
