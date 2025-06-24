@@ -975,8 +975,9 @@
           }
           
           const teamGames = allScheduleData
-            .filter(game => game.teams_in_game && game.teams_in_game.includes(teamId))
-            .sort((a, b) => new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date))); 
+              .filter(game => game.team1_id === teamId || game.team2_id === teamId)
+              .sort((a, b) => new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date)));
+
           
           if (teamGames.length === 0) {
             document.getElementById('team-schedule').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No games scheduled</div>';
