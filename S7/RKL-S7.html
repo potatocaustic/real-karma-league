@@ -913,15 +913,37 @@
         
         const easternTeams = teamsData.filter(team => team.conference === 'Eastern')
           .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
+            const winsA = parseInt(a.wins || 0);
+            const lossesA = parseInt(a.losses || 0);
+            const totalGamesA = winsA + lossesA;
+            const winPctA = totalGamesA > 0 ? winsA / totalGamesA : 0;
+            
+            const winsB = parseInt(b.wins || 0);
+            const lossesB = parseInt(b.losses || 0);
+            const totalGamesB = winsB + lossesB;
+            const winPctB = totalGamesB > 0 ? winsB / totalGamesB : 0;
+
+            if (winPctB !== winPctA) {
+                return winPctB - winPctA;
+            }
             return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
           }).slice(0, 5);
           
         const westernTeams = teamsData.filter(team => team.conference === 'Western')
           .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
+            const winsA = parseInt(a.wins || 0);
+            const lossesA = parseInt(a.losses || 0);
+            const totalGamesA = winsA + lossesA;
+            const winPctA = totalGamesA > 0 ? winsA / totalGamesA : 0;
+            
+            const winsB = parseInt(b.wins || 0);
+            const lossesB = parseInt(b.losses || 0);
+            const totalGamesB = winsB + lossesB;
+            const winPctB = totalGamesB > 0 ? winsB / totalGamesB : 0;
+
+            if (winPctB !== winPctA) {
+                return winPctB - winPctA;
+            }
             return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
           }).slice(0, 5);
         

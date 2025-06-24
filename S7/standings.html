@@ -1113,28 +1113,33 @@
         let rawEasternTeams = allTeamsData.filter(team => team.conference === 'Eastern');
         let rawWesternTeams = allTeamsData.filter(team => team.conference === 'Western');
 
-        easternTeamsData = rawEasternTeams
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
+        const sortLogic = (a, b) => {
+            const winsA = parseInt(a.wins || 0);
+            const lossesA = parseInt(a.losses || 0);
+            const totalGamesA = winsA + lossesA;
+            const winPctA = totalGamesA > 0 ? winsA / totalGamesA : 0;
+            
+            const winsB = parseInt(b.wins || 0);
+            const lossesB = parseInt(b.losses || 0);
+            const totalGamesB = winsB + lossesB;
+            const winPctB = totalGamesB > 0 ? winsB / totalGamesB : 0;
+
+            if (winPctB !== winPctA) {
+                return winPctB - winPctA;
+            }
             return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-          })
+        };
+
+        easternTeamsData = rawEasternTeams
+          .sort(sortLogic)
           .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
 
         westernTeamsData = rawWesternTeams
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-          })
+          .sort(sortLogic)
           .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
 
         fullLeagueTeamsData = [...allTeamsData]
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0); const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA;
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-          })
+          .sort(sortLogic)
           .map((team, index) => ({ ...team, officialFullLeagueRank: index + 1 }));
         
         let rawPowerRankings = await fetchSheetData('TPR');
