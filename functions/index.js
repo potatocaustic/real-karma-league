@@ -184,7 +184,10 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const lineupsBatch = db.batch();
         lineupsRaw.forEach(lineup => {
             if (lineup.lineup_id) {
-                const docRef = db.collection("lineups").doc(lineup.lineup_id);
+                // FIX: Create a Firestore-safe ID by replacing slash characters.
+                const docId = lineup.lineup_id.replace(/\//g, '-');
+                const docRef = db.collection("lineups").doc(docId);
+                
                 const lineupData = { ...lineup };
                 lineupData.points_final = parseNumber(lineup.points_final);
                 lineupData.points_raw = parseNumber(lineup.points_raw);
@@ -201,11 +204,19 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const weeklyAveragesBatch = db.batch();
         weeklyAveragesRaw.forEach(week => {
             if (week.date) {
-                const docRef = db.collection("weekly_averages").doc(week.date);
-                const weekData = { ...week };
-                weekData.mean_score = parseNumber(week.mean_score);
-                weekData.median_score = parseNumber(week.median_score);
-                weeklyAveragesBatch.set(docRef, weekData);
+                // FIX: Check for the date and reformat it for a Firestore-safe document ID.
+                const dateParts = week.date.split('/');
+                if (dateParts.length === 3) {
+                    // Reformat MM/DD/YYYY to YYYY-MM-DD for a safe and sortable ID.
+                    const [month, day, year] = dateParts;
+                    const docId = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                    
+                    const docRef = db.collection("weekly_averages").doc(docId);
+                    const weekData = { ...week };
+                    weekData.mean_score = parseNumber(week.mean_score);
+                    weekData.median_score = parseNumber(week.median_score);
+                    weeklyAveragesBatch.set(docRef, weekData);
+                }
             }
         });
         await weeklyAveragesBatch.commit();
