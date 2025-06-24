@@ -95,7 +95,7 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             transactionsLogRaw
         ] = await Promise.all([
             fetchAndParseSheet("Players"),
-            fetchAndParseSheet("Draft_Capital"), // The name of the sheet for draft picks
+            fetchAndParseSheet("Draft_Capital"),
             fetchAndParseSheet("Teams"),
             fetchAndParseSheet("Schedule"),
             fetchAndParseSheet("Lineups"),
@@ -115,7 +115,6 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
                 const docRef = db.collection("players").doc(player.player_handle);
                 const playerData = { ...player };
                 
-                // Explicitly convert numeric fields for consistency.
                 playerData.GEM = parseNumber(player.GEM);
                 playerData.REL = parseNumber(player.REL);
                 playerData.WAR = parseNumber(player.WAR);
@@ -130,19 +129,17 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await playersBatch.commit();
         console.log(`Successfully synced ${playersRaw.length} players.`);
 
-        // --- NEW: Clear and Sync 'draftPicks' collection ---
+        // --- Clear and Sync 'draftPicks' collection ---
         console.log("Clearing the 'draftPicks' collection for a fresh sync...");
         await deleteCollection(db, 'draftPicks', 200);
         console.log("'draftPicks' collection cleared successfully.");
 
         const draftPicksBatch = db.batch();
         draftPicksRaw.forEach(pick => {
-            // Use 'pick_id' from the sheet as the unique document ID.
             if (pick.pick_id) {
                 const docRef = db.collection("draftPicks").doc(pick.pick_id);
                 const pickData = { ...pick };
 
-                // Ensure 'season' and 'round' are stored as numbers for proper sorting.
                 pickData.season = parseNumber(pick.season);
                 pickData.round = parseNumber(pick.round);
 
@@ -152,8 +149,7 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await draftPicksBatch.commit();
         console.log(`Successfully synced ${draftPicksRaw.length} draft picks to the 'draftPicks' collection.`);
 
-        // --- NOTE: Add sync logic for other collections (Teams, Schedule, etc.) here ---
-        // Example for Teams (you would repeat this pattern for other collections)
+        // --- Clear and Sync Teams collection ---
         console.log("Clearing the 'teams' collection...");
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
@@ -166,7 +162,54 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
         
-        // (Add similar logic for schedule, lineups, etc.)
+        // --- ADDED: Clear and Sync Schedule collection ---
+        console.log("Clearing the 'schedule' collection...");
+        await deleteCollection(db, 'schedule', 200);
+        const scheduleBatch = db.batch();
+        scheduleRaw.forEach(game => {
+            if (game.game_id) {
+                const docRef = db.collection("schedule").doc(game.game_id);
+                const gameData = { ...game };
+                gameData.team1_score = parseNumber(game.team1_score);
+                gameData.team2_score = parseNumber(game.team2_score);
+                scheduleBatch.set(docRef, gameData);
+            }
+        });
+        await scheduleBatch.commit();
+        console.log(`Successfully synced ${scheduleRaw.length} schedule games.`);
+
+        // --- ADDED: Clear and Sync Lineups collection ---
+        console.log("Clearing the 'lineups' collection...");
+        await deleteCollection(db, 'lineups', 200);
+        const lineupsBatch = db.batch();
+        lineupsRaw.forEach(lineup => {
+            if (lineup.lineup_id) {
+                const docRef = db.collection("lineups").doc(lineup.lineup_id);
+                const lineupData = { ...lineup };
+                lineupData.points_final = parseNumber(lineup.points_final);
+                lineupData.points_raw = parseNumber(lineup.points_raw);
+                lineupData.global_rank = parseNumber(lineup.global_rank);
+                lineupsBatch.set(docRef, lineupData);
+            }
+        });
+        await lineupsBatch.commit();
+        console.log(`Successfully synced ${lineupsRaw.length} lineup entries.`);
+
+        // --- ADDED: Clear and Sync Weekly Averages collection ---
+        console.log("Clearing the 'weekly_averages' collection...");
+        await deleteCollection(db, 'weekly_averages', 200);
+        const weeklyAveragesBatch = db.batch();
+        weeklyAveragesRaw.forEach(week => {
+            if (week.date) {
+                const docRef = db.collection("weekly_averages").doc(week.date);
+                const weekData = { ...week };
+                weekData.mean_score = parseNumber(week.mean_score);
+                weekData.median_score = parseNumber(week.median_score);
+                weeklyAveragesBatch.set(docRef, weekData);
+            }
+        });
+        await weeklyAveragesBatch.commit();
+        console.log(`Successfully synced ${weeklyAveragesRaw.length} weekly average entries.`);
 
         res.status(200).send("Firestore sync completed successfully!");
 
