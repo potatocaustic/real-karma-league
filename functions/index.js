@@ -66,6 +66,22 @@ function parseNumber(value) {
     return isNaN(parsed) ? 0 : parsed;
 }
 
+/**
+ * Converts a MM/DD/YYYY date string to a YYYY-MM-DD string.
+ * Returns null if the format is invalid.
+ * @param {string} dateString The date string to convert.
+ * @returns {string|null} The formatted date string or null.
+ */
+function getSafeDateString(dateString) {
+    if (!dateString || typeof dateString !== 'string') return null;
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+        const [month, day, year] = parts;
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return null;
+}
+
 
 /**
  * Cloud Function to sync data from a Google Sheet to Firestore.
@@ -167,8 +183,11 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await deleteCollection(db, 'schedule', 200);
         const scheduleBatch = db.batch();
         scheduleRaw.forEach(game => {
-            if (game.game_id) {
-                const docRef = db.collection("schedule").doc(game.game_id);
+            // FIX: Generate ID from date and teams, as 'game_id' doesn't exist.
+            const safeDate = getSafeDateString(game.date);
+            if (safeDate && game.team1_id && game.team2_id) {
+                const docId = `${safeDate}-${game.team1_id}-${game.team2_id}`;
+                const docRef = db.collection("schedule").doc(docId);
                 const gameData = { ...game };
                 gameData.team1_score = parseNumber(game.team1_score);
                 gameData.team2_score = parseNumber(game.team2_score);
@@ -183,11 +202,11 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await deleteCollection(db, 'lineups', 200);
         const lineupsBatch = db.batch();
         lineupsRaw.forEach(lineup => {
-            if (lineup.lineup_id) {
-                // FIX: Create a Firestore-safe ID by replacing slash characters.
-                const docId = lineup.lineup_id.replace(/\//g, '-');
+            // FIX: Generate ID from date and player, as 'lineup_id' doesn't exist.
+            const safeDate = getSafeDateString(lineup.date);
+            if (safeDate && lineup.player_handle) {
+                const docId = `${safeDate}-${lineup.player_handle}`;
                 const docRef = db.collection("lineups").doc(docId);
-                
                 const lineupData = { ...lineup };
                 lineupData.points_final = parseNumber(lineup.points_final);
                 lineupData.points_raw = parseNumber(lineup.points_raw);
@@ -203,20 +222,13 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await deleteCollection(db, 'weekly_averages', 200);
         const weeklyAveragesBatch = db.batch();
         weeklyAveragesRaw.forEach(week => {
-            if (week.date) {
-                // FIX: Check for the date and reformat it for a Firestore-safe document ID.
-                const dateParts = week.date.split('/');
-                if (dateParts.length === 3) {
-                    // Reformat MM/DD/YYYY to YYYY-MM-DD for a safe and sortable ID.
-                    const [month, day, year] = dateParts;
-                    const docId = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                    
-                    const docRef = db.collection("weekly_averages").doc(docId);
-                    const weekData = { ...week };
-                    weekData.mean_score = parseNumber(week.mean_score);
-                    weekData.median_score = parseNumber(week.median_score);
-                    weeklyAveragesBatch.set(docRef, weekData);
-                }
+            const safeDate = getSafeDateString(week.date);
+            if (safeDate) {
+                const docRef = db.collection("weekly_averages").doc(safeDate);
+                const weekData = { ...week };
+                weekData.mean_score = parseNumber(week.mean_score);
+                weekData.median_score = parseNumber(week.median_score);
+                weeklyAveragesBatch.set(docRef, weekData);
             }
         });
         await weeklyAveragesBatch.commit();
