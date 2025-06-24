@@ -164,19 +164,23 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
         
-                // --- Clear and Sync 'schedule' collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);
         console.log("'schedule' collection cleared successfully.");
 
         const scheduleBatch = db.batch();
         scheduleRaw.forEach(game => {
-            // A unique ID is required for each document. 
-            // Create a composite ID if no single unique 'game_id' column exists.
             if (game.team1_id && game.team2_id && game.date) {
+                // Create a composite ID for the document.
                 const gameId = `${game.date}-${game.team1_id}-vs-${game.team2_id}`;
                 const docRef = db.collection("schedule").doc(gameId);
-                scheduleBatch.set(docRef, game);
+
+                // Create a mutable copy of the game data.
+                const gameData = { ...game };
+
+                gameData.teams_in_game = [game.team1_id, game.team2_id];
+                
+                scheduleBatch.set(docRef, gameData);
             }
         });
         await scheduleBatch.commit();
