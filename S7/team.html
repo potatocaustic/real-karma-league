@@ -835,9 +835,11 @@
           const pam = parseFloat(teamData.pam || 0);
           const totalTransactions = teamData.calculated_total_transactions || 0;
           
+          const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
+
           document.getElementById('team-main-info').innerHTML = `
             <div style="display: flex; align-items: center; gap: 1.5rem;">
-              <img src="icons/${teamData.team_id}.webp" alt="${escapeHTML(teamData.team_name)}" class="team-logo-large" onerror="this.style.display='none'">
+              <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${escapeHTML(teamData.team_name)}"></div>
               <div class="team-details">
                 <h2>${escapeHTML(teamData.team_name)}</h2>
                 <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
