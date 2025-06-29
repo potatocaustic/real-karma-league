@@ -15,6 +15,7 @@
         }
       })();
     </script>
+    <style id="team-icon-styles"></style>
     <style>
       /* Page-specific styles for player.html */
       main {
@@ -519,6 +520,32 @@
       let allTransactionsLogData = []; 
       let allPlayersProcessed = [];
 
+      function generateIconStylesheet(teams) {
+          const iconStyles = teams.map(team => {
+              if (!team.team_id) return '';
+              const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
+              return `.${className} { background-image: url('icons/${team.team_id}.webp'); }`;
+          }).join('\n');
+
+          const faIconStyle = ".icon-FREE_AGENT { background-image: url('icons/FA.webp'); }";
+
+          const styleElement = document.getElementById('team-icon-styles');
+          if (styleElement) {
+              styleElement.innerHTML = `
+                  .team-logo-css {
+                      background-size: cover;
+                      background-position: center;
+                      background-repeat: no-repeat;
+                      display: inline-block;
+                      vertical-align: middle;
+                      flex-shrink: 0;
+                  }
+                  ${iconStyles}
+                  ${faIconStyle}
+              `;
+          }
+      }
+
       function parseNumber(value) { 
         if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
         const cleaned = String(value).replace(/,/g, '');
@@ -786,6 +813,7 @@
           return;
         }
         allTeams = teams;
+        generateIconStylesheet(allTeams);
         allLineups = lineupsRaw; 
         allScheduleData = schedule || []; 
         allTransactionsLogData = transactions || [];
@@ -824,14 +852,16 @@
         let teamInfoHTML = '';
         let previousTeamsHTML = '';
 
-        const isFreeAgent = playerData.current_team_id === 'FREE_AGENT' || !playerData.current_team_id;
+        const isFreeAgent = !playerData.current_team_id || playerData.current_team_id === 'FREE_AGENT';
+        const teamId = isFreeAgent ? 'FREE_AGENT' : playerData.current_team_id;
+        const teamName = isFreeAgent ? 'Free Agent' : getTeamName(teamId);
+        const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
+
+        teamLogoHTML = `<div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${teamName}"></div>`;
+
         if (!isFreeAgent) { 
-            const teamData = allTeams.find(t => t.team_id === playerData.current_team_id);
-            const teamName = teamData ? teamData.team_name : playerData.current_team_id;
-            teamLogoHTML = `<img src="icons/${playerData.current_team_id}.webp" alt="${teamName}" class="team-logo-large" onerror="this.onerror=null;this.src='icons/FA.webp';this.alt='Default Logo';">`;
             teamInfoHTML = `<a href="team.html?id=${playerData.current_team_id}" class="team-info">Current Team: ${teamName}</a>`;
         } else {
-            teamLogoHTML = `<img src="icons/FA.webp" alt="Free Agent" class="team-logo-large">`;
             teamInfoHTML = `<div class="team-info" style="color:#6c757d; cursor:default;">Current Team: Free Agent</div>`;
         }
         
@@ -931,13 +961,9 @@
           
           let onclickAttr = '';
           if (gameForLineup && gameForLineup.completed === 'TRUE') { 
-            const team1Name = getTeamName(gameForLineup.team1_id);
-            const team2Name = getTeamName(gameForLineup.team2_id);
-            const team1Logo = `icons/${gameForLineup.team1_id}.webp`;
-            const team2Logo = `icons/${gameForLineup.team2_id}.webp`;
             onclickAttr = `onclick="showGameDetails(
-              '${gameForLineup.team1_id}', '${team1Name}', '${team1Logo}',
-              '${gameForLineup.team2_id}', '${team2Name}', '${team2Logo}',
+              '${gameForLineup.team1_id}', 
+              '${gameForLineup.team2_id}', 
               '${gameForLineup.date}'
             )"`;
           }
@@ -990,8 +1016,8 @@
           
           const playerTeamName = getTeamName(game.playerTeamId);
           const opponentTeamName = getTeamName(game.opponentId);
-          const playerTeamLogo = `icons/${game.playerTeamId}.webp`;
-          const opponentLogoSrc = `icons/${game.opponentId}.webp`;
+          const playerTeamIdClassName = `icon-${game.playerTeamId.replace(/[^a-zA-Z0-9]/g, '')}`;
+          const opponentIdClassName = `icon-${game.opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
 
           let playerTeamResultIndicator = '';
           let opponentTeamResultIndicator = '';
@@ -1004,27 +1030,22 @@
             opponentTeamResultIndicator = '<span class="game-result-indicator game-result-win">(W)</span>';
           }
           
-          const team1Name = getTeamName(game.team1_id);
-          const team2Name = getTeamName(game.team2_id);
-          const team1Logo = `icons/${game.team1_id}.webp`;
-          const team2Logo = `icons/${game.team2_id}.webp`;
-
           return `
             <div class="game-item" onclick="showGameDetails(
-              '${game.team1_id}', '${team1Name}', '${team1Logo}',
-              '${game.team2_id}', '${team2Name}', '${team2Logo}',
+              '${game.team1_id}',
+              '${game.team2_id}',
               '${game.date}'
             )">
               <div class="game-history-main-content">
                 <div class="game-history-matchup-teams">
                     <span class="game-history-team-entry">
-                    <img src="${playerTeamLogo}" alt="${playerTeamName}" class="game-history-team-logo" onerror="this.style.display='none'">
-                    <span class="game-history-team-name">${playerTeamName} ${playerTeamResultIndicator}</span>
+                      <div class="team-logo-css game-history-team-logo ${playerTeamIdClassName}" role="img" aria-label="${playerTeamName}"></div>
+                      <span class="game-history-team-name">${playerTeamName} ${playerTeamResultIndicator}</span>
                     </span>
                     <span class="game-history-vs-separator">vs</span>
                     <span class="game-history-team-entry">
-                    <img src="${opponentLogoSrc}" alt="${opponentTeamName}" class="game-history-team-logo" onerror="this.style.display='none'">
-                    <span class="game-history-team-name">${opponentTeamName} ${opponentTeamResultIndicator}</span>
+                      <div class="team-logo-css game-history-team-logo ${opponentIdClassName}" role="img" aria-label="${opponentTeamName}"></div>
+                      <span class="game-history-team-name">${opponentTeamName} ${opponentTeamResultIndicator}</span>
                     </span>
                 </div>
                 <div class="game-history-date">${formatDate(game.date)} (Week ${game.lineup.week})</div>
@@ -1038,11 +1059,14 @@
         document.getElementById('game-history').innerHTML = historyHTML;
       }
       
-      async function showGameDetails(team1Id, team1Name, team1Logo, team2Id, team2Name, team2Logo, date) { 
+      async function showGameDetails(team1Id, team2Id, date) { 
         const modal = document.getElementById('game-modal');
         const modalTitle = document.getElementById('modal-title');
         const modalBodyContent = document.getElementById('modal-content'); 
         
+        const team1Name = getTeamName(team1Id);
+        const team2Name = getTeamName(team2Id);
+
         modal.style.display = 'block';
         modalTitle.textContent = `${team1Name} vs ${team2Name} - ${formatDate(date)}`; 
         modalBodyContent.innerHTML = '<div class="loading">Loading game details...</div>';
@@ -1065,10 +1089,13 @@
         const team2Total = team2Lineups.reduce((sum, player) => sum + parseNumber(player.points_final), 0); 
         const winner = game.winner;
         
-        const generateLineupTable = (lineups, teamIdForTable, teamNameForTable, teamLogoForTable, total, isWinner) => {
+        const generateLineupTable = (lineups, teamIdForTable, total, isWinner) => {
           const teamDetails = allTeams.find(t => t.team_id === teamIdForTable);
+          const teamNameForTable = teamDetails ? teamDetails.team_name : teamIdForTable;
           const teamRecord = teamDetails ? `${teamDetails.wins || 0}-${teamDetails.losses || 0}` : '';
-          const teamLogoTagInModal = (teamIdForTable && teamIdForTable !== 'FREE_AGENT') ? `<img src="${teamLogoForTable}" alt="${teamNameForTable}" class="team-logo" onerror="this.style.display='none'">` : ''; 
+          
+          const teamIdClassName = `icon-${teamIdForTable.replace(/[^a-zA-Z0-9]/g, '')}`;
+          const teamLogoTagInModal = (teamIdForTable && teamIdForTable !== 'FREE_AGENT') ? `<div class="team-logo-css team-logo ${teamIdClassName}" role="img" aria-label="${teamNameForTable}"></div>` : ''; 
           
           if (lineups.length === 0) return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">${teamLogoTagInModal}<div><h4>${teamNameForTable}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${Math.round(total).toLocaleString()}</div><div style="padding: 2rem; text-align: center; color: #666;">No lineup data available for this game.</div></div>`;
           
@@ -1088,7 +1115,7 @@
           }).join('');
           return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">${teamLogoTagInModal}<div><h4>${teamNameForTable}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
         };
-        modalBodyContent.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Name, team1Logo, team1Total, winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Name, team2Logo, team2Total, winner === team2Id)}</div>`;
+        modalBodyContent.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, winner === team2Id)}</div>`;
       }
       
       function closeGameModal() { 
@@ -1100,7 +1127,6 @@
       }
       
       document.addEventListener('DOMContentLoaded', () => {
-        // Redundant Theme and Nav logic removed from here
         loadPlayerData();
       });
     </script>
