@@ -15,6 +15,7 @@
         }
       })();
     </script>
+    <style id="team-icon-styles"></style>
     <style>
       /* Page-specific styles for leaderboards.html */
       main {
@@ -197,7 +198,10 @@
         width: 32px;
         height: 32px;
         border-radius: 2px;
-        flex-shrink: 0; 
+        flex-shrink: 0;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
       }
 
       .player-name {
@@ -788,6 +792,21 @@
         }
       };
       
+      function generateIconStylesheet(teams) {
+          const iconStyles = teams.map(team => {
+              if (!team.team_id || team.team_id === 'RETIRED') return '';
+              const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
+              return `.${className} { background-image: url('icons/${team.team_id}.webp'); }`;
+          }).join('\n');
+
+          const faIconStyle = ".icon-FA, .icon-FREE_AGENT { background-image: url('icons/FA.webp'); }";
+
+          const styleElement = document.getElementById('team-icon-styles');
+          if (styleElement) {
+              styleElement.innerHTML = `${iconStyles}\n${faIconStyle}`;
+          }
+      }
+
       let currentCategory = 'total_points';
       let allPlayersData = []; 
       let allTeamsData = []; 
@@ -1052,6 +1071,7 @@
         }
         
         allTeamsData = teamsRaw; 
+        generateIconStylesheet(allTeamsData);
         const playersWithCalculatedStats = calculateAllPlayerStats(playersRaw, weeklyAveragesRaw, lineupsRaw); 
         allPlayersData = playersWithCalculatedStats.filter(player => 
           player.player_status === 'ACTIVE' 
@@ -1480,9 +1500,9 @@
             isAllStar = item.all_star === '1';
           }
           
-          const teamLogoSrc = (teamIdForLogo && String(teamIdForLogo).toLowerCase() !== 'undefined' && String(teamIdForLogo).trim() !== '' && teamIdForLogo !== 'N/A') 
-                              ? `icons/${encodeURIComponent(teamIdForLogo)}.webp` 
-                              : 'icons/FA.webp'; 
+          const teamIdForCss = (teamIdForLogo && String(teamIdForLogo).toLowerCase() !== 'undefined' && String(teamIdForLogo).trim() !== '' && teamIdForLogo !== 'N/A')
+                             ? teamIdForLogo : 'FA';
+          const teamIdClassName = `icon-${teamIdForCss.replace(/[^a-zA-Z0-9]/g, '')}`;
           
           const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
           const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
@@ -1490,7 +1510,7 @@
           let rowCells = `
             <td class="rank-cell">${getRankIndicator(item.leaderboardDisplayRank)}</td>
             <td class="player-cell">
-              <img src="${teamLogoSrc}" alt="${getTeamName(teamIdForLogo)}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+              <div class="team-logo ${teamIdClassName}" role="img" aria-label="${getTeamName(teamIdForLogo)}"></div>
               <div>
                 <div class="player-name">
                   <a href="player.html?player=${encodeURIComponent(playerHandle || '')}">
