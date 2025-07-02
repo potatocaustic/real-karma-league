@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL Season 7 Playoff Bracket</title>
+    <link rel="stylesheet" href="../css/global-styles.css" />
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme from local storage before page loads to prevent flashing
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <style>
+        /* Page-specific styles for playoff-bracket.html */
+        :root {
+            --bracket-border-color: #ddd;
+            --bracket-bg-color: #f8f9fa;
+            --winner-color: #28a745;
+            --winner-bg: #e8f5e8;
+            --team-hover-bg: #e9ecef;
+            --playin-bg-color: #fff;
+            --bg-color: #fff; /* for sticky headers */
+        }
+
+        .dark-mode {
+            --bracket-border-color: #444;
+            --bracket-bg-color: #2c2c2c;
+            --winner-color: #66bb6a;
+            --winner-bg: #3a4a3a;
+            --team-hover-bg: #383838;
+            --playin-bg-color: #1e1e1e;
+            --bg-color: #121212; /* for sticky headers */
+        } 
+        
+        /* Play-In Tournament Styles (Original) */
+        .play-in-section {
+            display: flex;
+            justify-content: space-around;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .play-in-conference {
+            background-color: var(--playin-bg-color);
+            border: 1px solid var(--bracket-border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 550px;
+            flex-grow: 1;
+        }
+
+        .play-in-title {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: bold;
+        }
+
+        .play-in-matchup {
+            margin-bottom: 1rem;
+        }
+        
+        .play-in-matchup .matchup-label {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #666;
+            margin-bottom: 0.25rem;
+            text-align: center;
+        }
+        .dark-mode .play-in-matchup .matchup-label {
+             color: #bbb;
+        }
+
+        .play-in-matchup .team {
+            width: 100%;
+        }
+
+        /* Main Bracket Styles (New Column Layout) */
+        .bracket-container {
+            width: 100%;
+            overflow-x: auto;
+            padding: 1rem 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* FIX: Using grid for overall structure to align headers */
+        .bracket {
+            display: grid;
+            grid-template-areas: "titles" "body";
+            grid-template-rows: auto 1fr;
+            min-width: 1140px;
+        }
+
+        .bracket-header-row {
+            grid-area: titles;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .bracket-body-row {
+            grid-area: body;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .round-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+        }
+        
+        .round-title .series-format {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: normal;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+        
+        .dark-mode .round-title .series-format {
+            color: #adb5bd;
+        }
+
+        .round-column {
+            display: flex;
+            flex-direction: column;
+            padding: 0 0.75rem;
+        }
+        
+        .conference-section {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .conference-subtitle {
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #6c757d;
+            margin-top: 1rem;
+            margin-bottom: 1rem;
+        }
+        .dark-mode .conference-subtitle {
+            color: #adb5bd;
+        }
+
+        .conference-group {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1;
+            align-items: center; /* ADDED: Center matchups horizontally */
+        }
+
+        .matchup-subgroup {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            flex-grow: 1;
+            width: 100%;
+            align-items: center; /* ADDED: Center matchups horizontally */
+        }
+
+        .matchup {
+            display: inline-flex; /* CHANGED: Shrink-to-fit content */
+            flex-direction: column;
+            position: relative;
+            margin: 0.75rem 0;
+        }
+
+        .team {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            background-color: var(--bracket-bg-color);
+            border: 1px solid var(--bracket-border-color);
+            border-radius: 4px;
+            width: 210px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .team:hover {
+            background-color: var(--team-hover-bg);
+            border-color: #007bff;
+        }
+
+        .team:first-of-type {
+            margin-bottom: 1rem;
+        }
+
+        .team.winner {
+            font-weight: bold;
+            border-color: var(--winner-color);
+            background-color: var(--winner-bg);
+        }
+        
+        .team.tbd {
+            font-style: italic;
+            color: #777;
+        }
+        
+        .dark-mode .team.tbd {
+            color: #aaa;
+        }
+
+        .team.non-interactive {
+            pointer-events: none;
+        }
+
+        .team-logo {
+            width: 24px;
+            height: 24px;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .team-info {
+            display: flex;
+            justify-content: space-between;
+            flex-grow: 1;
+            align-items: center;
+        }
+        
+        .team-seed {
+            font-weight: bold;
+            margin-right: 0.5rem;
+            color: #666;
+            min-width: 20px;
+        }
+        .dark-mode .team-seed { color: #bbb; }
+
+        .team-name {
+            font-size: 0.9rem;
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .series-score {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .team-record {
+            font-size: 0.85rem;
+            color: #666;
+            font-weight: normal;
+            white-space: nowrap;
+        }
+        
+        .dark-mode .team-record {
+             color: #bbb;
+        }
+
+        .team.winner .series-score {
+            color: var(--winner-color);
+        }
+
+        .is-clickable:hover {
+            outline: 2px solid gold;
+            border-radius: 8px;
+            cursor: pointer;
+        }        
+
+        .final-round {
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .finals-champion { text-align: center; }
+        
+        .champion-box {
+            background-color: var(--bracket-bg-color);
+            border: 2px solid gold;
+            padding: 1.25rem;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .champion-box .team-logo { width: 60px; height: 60px; margin-bottom: 1rem; }
+        .champion-box h3 { font-size: 1.3rem; white-space: nowrap; }
+        .champion-box h4 { font-size: 1.2rem; margin-top: 0.5rem; }
+
+        @media (max-width: 1140px) {
+             .bracket { min-width: 1020px; }
+             .team { width: 185px; }
+        }
+        @media (max-width: 768px) {
+            .page-header h2 { font-size: 1.8rem; }
+            main { padding: 1rem; }
+            .play-in-section { flex-direction: column; gap: 1rem; }
+            .play-in-title { font-size: 1.3rem; }
+            .team-name { font-size: 0.8rem; }
+        }     
+
+    </style>
+</head>
+<body>
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <span class="header-text">Real Karma League</span>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="RKL-S7.html">S7 Home</a></li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+        <div class="page-header">
+            <h2>Season 7 Playoff Picture</h2>
+        </div>
+
+        <div id="play-in-section" class="play-in-section">
+             </div>
+        
+        <div class="bracket-container" id="bracket-container">
+            <div class="loading">Loading Playoff Bracket...</div>
+        </div>
+    </main>
+    
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="trade-block.html">GM Portal</a>
+    </footer>
+
+    <script src="../js/main.js" defer></script>
+    <script>
+        const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
+        const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+        
+        let allTeams = [];
+        let allPlayoffGames = [];
+
+        async function fetchSheetData(sheetName) {
+            try {
+                const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
+                if (!response.ok) throw new Error(`Network response was not ok for ${sheetName}`);
+                const csvText = await response.text();
+                return parseCSV(csvText);
+            } catch (error) {
+                console.error(`Error fetching ${sheetName}:`, error);
+                document.getElementById('bracket-container').innerHTML = `<div class="error">Could not load required data from sheet: ${sheetName}.</div>`;
+                return null;
+            }
+        }
+      
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 1) return [];
+            
+            const parseCSVLine = (line) => {
+                const result = []; let current = ''; let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"' && (i === 0 || line[i-1] !== '\\')) { 
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim()); current = '';
+                    } else { current += char; }
+                }
+                result.push(current.trim());
+                return result.map(field => field.replace(/^"(.*)"$/, '$1').replace(/\\"/g, '"'));
+            };
+
+            const headers = parseCSVLine(lines[0]);
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === "") continue;
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    data.push(row);
+                }
+            }
+            return data; 
+        }
+
+        function getWeekNameFromSeriesId(seriesId) {
+            if (seriesId.includes('-PI-')) return 'Play-In';
+            if (seriesId.includes('-R1-')) return 'Round 1';
+            if (seriesId.includes('-R2-')) return 'Round 2';
+            if (seriesId.includes('-CF')) return 'Conf Finals';
+            if (seriesId.includes('FINALS')) return 'Finals';
+            return '';
+        }        
+
+        function getTeam(teamId) {
+            if (!teamId || teamId === "TBD") return { team_id: "TBD", team_name: "TBD", postseed: '' };
+            return allTeams.find(t => t.team_id === teamId) || { team_id: teamId, team_name: teamId, postseed: '' };
+        }
+        
+        function getSeries(seriesId) {
+            return allPlayoffGames.find(g => g.series_id === seriesId);
+        }
+
+        function getSeriesWinner(seriesId) {
+            const series = getSeries(seriesId);
+            if (!series) return null;
+
+            const week = getWeekNameFromSeriesId(seriesId);
+            const team1Wins = parseInt(series.team1_wins, 10) || 0;
+            const team2Wins = parseInt(series.team2_wins, 10) || 0;
+
+            if (week === 'Play-In') {
+                return series.winner || null;
+            }
+
+            let win_condition = 0;
+            if (week === 'Round 1' || week === 'Round 2') win_condition = 2;
+            else if (week === 'Conf Finals') win_condition = 3;
+            else if (week === 'Finals') win_condition = 4;
+
+            if (team1Wins === win_condition) return series.team1_id;
+            if (team2Wins === win_condition) return series.team2_id;
+            
+            return null;
+        }
+
+        function createTeamHTML(teamId, series, weekLink = null, displaySeed = null, seriesWinner = null) {
+            const teamData = getTeam(teamId);
+            const isWinner = seriesWinner && seriesWinner === teamId;
+            const teamWins = (series?.team1_id === teamId) ? parseInt(series?.team1_wins, 10) : parseInt(series?.team2_wins, 10);
+            const isTBD = !teamId || teamId === "TBD" || teamId.includes('Loser of') || teamId.includes('Winner of');
+            const nonInteractiveClass = weekLink ? 'non-interactive' : '';
+
+            const teamHref = weekLink ? 'javascript:void(0);' : (isTBD ? 'javascript:void(0);' : `team.html?id=${teamData.team_id}`);
+            const style = weekLink ? 'style="cursor: inherit;"' : '';
+            
+            const seedToShow = displaySeed || teamData.postseed || '';
+            
+            let scoreOrRecordHTML = '';
+            const seriesHasStarted = series && (parseInt(series.team1_wins, 10) > 0 || parseInt(series.team2_wins, 10) > 0);
+
+            if (seriesHasStarted) {
+                scoreOrRecordHTML = `<span class="series-score">${teamWins || 0}</span>`;
+            } else if (!isTBD && teamData.wins && teamData.losses) {
+                scoreOrRecordHTML = `<span class="team-record">(${teamData.wins}-${teamData.losses})</span>`;
+            }
+        
+            return `
+                <a href="${teamHref}" class="team ${isWinner ? 'winner' : ''} ${isTBD ? 'tbd' : ''} ${nonInteractiveClass}" ${style}>
+                    <span class="team-seed">${seedToShow}</span>
+                    <img src="icons/${isTBD ? 'RKL' : teamData.team_id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='icons/RKL.webp';">
+                    <div class="team-info">
+                        <span class="team-name">${teamData.team_name}</span>
+                        ${scoreOrRecordHTML}
+                    </div>
+                </a>`;
+        }
+        
+        function createMatchupHTML(seriesId, defaultTeam1Id, defaultTeam2Id, team1DisplaySeed = null, team2DisplaySeed = null) {
+            const series = getSeries(seriesId);
+            const seriesWinner = getSeriesWinner(seriesId);
+            const team1Id = series?.team1_id || defaultTeam1Id;
+            const team2Id = series?.team2_id || defaultTeam2Id;
+        
+            let isClickable = false;
+            if (series) {
+                const week = getWeekNameFromSeriesId(seriesId);
+                if (week === 'Play-In') {
+                    isClickable = !!series.winner;
+                } else {
+                    const team1Wins = parseInt(series.team1_wins, 10) || 0;
+                    const team2Wins = parseInt(series.team2_wins, 10) || 0;
+                    isClickable = team1Wins > 0 || team2Wins > 0;
+                }
+            }
+
+            const weekLink = isClickable ? `schedule.html#week-${encodeURIComponent(getWeekNameFromSeriesId(seriesId))}` : null;
+            const matchupClass = isClickable ? 'matchup is-clickable' : 'matchup';
+            const clickHandler = isClickable ? `onclick="window.location.href='${weekLink}'"` : '';
+        
+            return `<div class="${matchupClass}" ${clickHandler}> 
+                ${createTeamHTML(team1Id, series, weekLink, team1DisplaySeed, seriesWinner)}
+                ${createTeamHTML(team2Id, series, weekLink, team2DisplaySeed, seriesWinner)}
+            </div>`;
+        }
+
+        function createPlayInMatchupHTML(label, seriesId, defaultTeam1Id, defaultTeam2Id) {
+             const series = getSeries(seriesId);
+             const seriesWinner = getSeriesWinner(seriesId);
+             const team1Id = series?.team1_id || defaultTeam1Id;
+             const team2Id = series?.team2_id || defaultTeam2Id;
+        
+             let loserOf7v8Id = null;
+             if (seriesId.includes("-PI-L78vW910")) {
+                 const game7v8Id = seriesId.replace("-PI-L78vW910", "-PI-7v8");
+                 const game7v8Winner = getSeriesWinner(game7v8Id);
+                 const game7v8Series = getSeries(game7v8Id);
+                 if (game7v8Winner && game7v8Series) {
+                     loserOf7v8Id = (game7v8Series.team1_id === game7v8Winner) ? game7v8Series.team2_id : game7v8Series.team1_id;
+                 }
+             }
+             
+            const isClickable = !!seriesWinner;
+            const weekLink = isClickable ? `schedule.html#week-${encodeURIComponent(getWeekNameFromSeriesId(seriesId))}` : null;
+            const matchupClass = isClickable ? 'play-in-matchup is-clickable' : 'play-in-matchup';
+            const clickHandler = isClickable ? `onclick="window.location.href='${weekLink}'"` : '';
+        
+             return `
+                <div class="${matchupClass}" ${clickHandler}> 
+                    <div class="matchup-label">${label}</div>
+                    ${createTeamHTML(loserOf7v8Id || team1Id, series, weekLink, null, seriesWinner)}
+                    ${createTeamHTML(team2Id, series, weekLink, null, seriesWinner)}
+                </div>
+            `;
+        }
+
+        function renderPlayInTournament(westTeams, eastTeams) {
+            const playInSection = document.getElementById('play-in-section');
+
+            const w7 = westTeams.find(t=>t.postseed === '7')?.team_id;
+            const w8 = westTeams.find(t=>t.postseed === '8')?.team_id;
+            const w9 = westTeams.find(t=>t.postseed === '9')?.team_id;
+            const w10 = westTeams.find(t=>t.postseed === '10')?.team_id;
+            const winnerW9v10 = getSeriesWinner('W-PI-9v10');
+
+            const e7 = eastTeams.find(t=>t.postseed === '7')?.team_id;
+            const e8 = eastTeams.find(t=>t.postseed === '8')?.team_id;
+            const e9 = eastTeams.find(t=>t.postseed === '9')?.team_id;
+            const e10 = eastTeams.find(t=>t.postseed === '10')?.team_id;
+            const winnerE9v10 = getSeriesWinner('E-PI-9v10');
+
+            const westHTML = `
+                <div class="play-in-conference">
+                    <h3 class="play-in-title">Western Conference Play-In</h3>
+                    ${createPlayInMatchupHTML('7th Seed Game', 'W-PI-7v8', w7, w8)}
+                    ${createPlayInMatchupHTML('9th/10th Seed Game', 'W-PI-9v10', w9, w10)}
+                    ${createPlayInMatchupHTML('8th Seed Game', 'W-PI-L78vW910', 'Loser of 7v8', winnerW9v10 || 'Winner of 9v10')}
+                </div>
+            `;
+            const eastHTML = `
+                 <div class="play-in-conference">
+                    <h3 class="play-in-title">Eastern Conference Play-In</h3>
+                    ${createPlayInMatchupHTML('7th Seed Game', 'E-PI-7v8', e7, e8)}
+                    ${createPlayInMatchupHTML('9th/10th Seed Game', 'E-PI-9v10', e9, e10)}
+                    ${createPlayInMatchupHTML('8th Seed Game', 'E-PI-L78vW910', 'Loser of 7v8', winnerE9v10 || 'Winner of 9v10')}
+                </div>
+            `;
+            playInSection.innerHTML = westHTML + eastHTML;
+        }
+
+        async function renderBracket() {
+            const container = document.getElementById('bracket-container');
+            container.innerHTML = `<div class="loading">Building bracket...</div>`;
+
+            const [teamsData, playoffGamesData] = await Promise.all([
+                fetchSheetData('Teams'),
+                fetchSheetData('Post_Schedule')
+            ]);
+            
+            if (!teamsData || !playoffGamesData) return;
+
+            allTeams = teamsData.filter(t => t.team_id).sort((a,b) => parseInt(a.postseed) - parseInt(b.postseed));
+            allPlayoffGames = playoffGamesData;
+
+            const westTeams = allTeams.filter(t => t.conference === 'Western');
+            const eastTeams = allTeams.filter(t => t.conference === 'Eastern');
+            
+            renderPlayInTournament(westTeams, eastTeams);
+
+            // Get team IDs for seeding
+            const w1 = westTeams.find(t=>t.postseed==='1')?.team_id;
+            const w2 = westTeams.find(t=>t.postseed==='2')?.team_id;
+            const w3 = westTeams.find(t=>t.postseed==='3')?.team_id;
+            const w4 = westTeams.find(t=>t.postseed==='4')?.team_id;
+            const w5 = westTeams.find(t=>t.postseed==='5')?.team_id;
+            const w6 = westTeams.find(t=>t.postseed==='6')?.team_id;
+            const w7_final = getSeriesWinner('W-PI-7v8');
+            const w8_final = getSeriesWinner('W-PI-L78vW910');
+
+            const e1 = eastTeams.find(t=>t.postseed==='1')?.team_id;
+            const e2 = eastTeams.find(t=>t.postseed==='2')?.team_id;
+            const e3 = eastTeams.find(t=>t.postseed==='3')?.team_id;
+            const e4 = eastTeams.find(t=>t.postseed==='4')?.team_id;
+            const e5 = eastTeams.find(t=>t.postseed==='5')?.team_id;
+            const e6 = eastTeams.find(t=>t.postseed==='6')?.team_id;
+            const e7_final = getSeriesWinner('E-PI-7v8');
+            const e8_final = getSeriesWinner('E-PI-L78vW910');
+
+            // Get series winners
+            const W_R1_1v8_W = getSeriesWinner('W-R1-1v8');
+            const W_R1_4v5_W = getSeriesWinner('W-R1-4v5');
+            const W_R1_3v6_W = getSeriesWinner('W-R1-3v6');
+            const W_R1_2v7_W = getSeriesWinner('W-R1-2v7');
+            const W_R2_T_W = getSeriesWinner('W-R2-T');
+            const W_R2_B_W = getSeriesWinner('W-R2-B');
+            const W_CF_W = getSeriesWinner('W-CF');
+
+            const E_R1_1v8_W = getSeriesWinner('E-R1-1v8');
+            const E_R1_4v5_W = getSeriesWinner('E-R1-4v5');
+            const E_R1_3v6_W = getSeriesWinner('E-R1-3v6');
+            const E_R1_2v7_W = getSeriesWinner('E-R1-2v7');
+            const E_R2_T_W = getSeriesWinner('E-R2-T');
+            const E_R2_B_W = getSeriesWinner('E-R2-B');
+            const E_CF_W = getSeriesWinner('E-CF');
+            
+            const Champion = getSeriesWinner('FINALS');
+
+            // Column-based HTML structure for the main bracket
+            let bracketHTML = `
+            <div class="bracket">
+                <div class="bracket-header-row">
+                    <div class="round-title">Round 1<small class="series-format">(Best of 3)</small></div>
+                    <div class="round-title">Conference Semis<small class="series-format">(Best of 3)</small></div>
+                    <div class="round-title">Conference Finals<small class="series-format">(Best of 5)</small></div>
+                    <div class="round-title">RKL Finals<small class="series-format">(Best of 7)</small></div>
+                </div>
+                <div class="bracket-body-row">
+                    <div class="round-column">
+                        <div class="conference-section">
+                            <h3 class="conference-subtitle">West</h3>
+                            <div class="conference-group">
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('W-R1-1v8', w1, w8_final, '1', '8')}
+                                    ${createMatchupHTML('W-R1-4v5', w4, w5, '4', '5')}
+                                </div>
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('W-R1-3v6', w3, w6, '3', '6')}
+                                    ${createMatchupHTML('W-R1-2v7', w2, w7_final, '2', '7')}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="conference-section">
+                            <h3 class="conference-subtitle">East</h3>
+                            <div class="conference-group">
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('E-R1-1v8', e1, e8_final, '1', '8')}
+                                    ${createMatchupHTML('E-R1-4v5', e4, e5, '4', '5')}
+                                </div>
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('E-R1-3v6', e3, e6, '3', '6')}
+                                    ${createMatchupHTML('E-R1-2v7', e2, e7_final, '2', '7')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="round-column">
+                        <div class="conference-section">
+                            <div class="conference-group">
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('W-R2-T', W_R1_1v8_W, W_R1_4v5_W)}
+                                </div>
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('W-R2-B', W_R1_3v6_W, W_R1_2v7_W)}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="conference-section">
+                            <div class="conference-group">
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('E-R2-T', E_R1_1v8_W, E_R1_4v5_W)}
+                                </div>
+                                <div class="matchup-subgroup">
+                                    ${createMatchupHTML('E-R2-B', E_R1_3v6_W, E_R1_2v7_W)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="round-column">
+                        <div class="conference-section">
+                            <div class="conference-group">
+                                ${createMatchupHTML('W-CF', W_R2_T_W, W_R2_B_W)}
+                            </div>
+                        </div>
+                        <div class="conference-section">
+                            <div class="conference-group">
+                                ${createMatchupHTML('E-CF', E_R2_T_W, E_R2_B_W)}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="round-column final-round">
+                        ${ Champion ? `
+                            <div class="finals-champion">
+                                <div class="champion-box is-clickable" onclick="window.location.href='schedule.html#week-Finals'">
+                                    <h3>🏆 RKL Champion 🏆</h3>
+                                    ${createTeamHTML(Champion, getSeries('FINALS'), 'schedule.html#week-Finals', null, Champion)}
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="conference-group">
+                                ${createMatchupHTML('FINALS', W_CF_W, E_CF_W)}
+                            </div>
+                        `}
+                    </div>
+                </div>
+            </div>`;
+            
+            container.innerHTML = bracketHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', renderBracket);
+    </script>
+</body>
+</html>
