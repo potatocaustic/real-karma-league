@@ -1121,12 +1121,20 @@
               return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           } catch (error) {
               console.error(`Error fetching ${collectionName}:`, error);
-              const mainContent = document.querySelector('main');
-              if(mainContent) {
-                  mainContent.innerHTML = `<div class="error">Failed to load data from collection: ${collectionName}. Check Firestore permissions and connectivity.</div>` + mainContent.innerHTML;
-              }
+              // Handle error display
               return [];
           }
+        }
+
+        async function fetchFilteredCollection(collectionName, field, operator, value) {
+            try {
+                const snapshot = await db.collection(collectionName).where(field, operator, value).get();
+                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error(`Error fetching filtered ${collectionName}:`, error);
+                // Handle error display
+                return [];
+            }
         }
         
         async function loadTeamData() {
@@ -1137,18 +1145,40 @@
                 return;
               }
 
+              // Perform targeted queries
+              const teamsPromise = fetchCollection('teams');
+              const schedulePromise = fetchCollection('schedule');
+              const draftPicksPromise = fetchCollection('draftPicks');
+              const playersPromise = fetchFilteredCollection('players', 'current_team_id', '==', teamId);
+              
+              const transactionsFromPromise = fetchFilteredCollection('transaction_log', 'from_team', '==', teamId);
+              const transactionsToPromise = fetchFilteredCollection('transaction_log', 'to_team', '==', teamId);
+
               const [
-                teamsResult, playersResult, transactionsLogResult, 
-                scheduleResult, draftPicksResult
+                teamsResult, 
+                playersResult, 
+                transactionsFromResult, 
+                transactionsToResult,
+                scheduleResult, 
+                draftPicksResult
               ] = await Promise.all([
-                fetchCollection('teams'), fetchCollection('players'), fetchCollection('transaction_log'),
-                fetchCollection('schedule'), fetchCollection('draftPicks')
+                teamsPromise, 
+                playersPromise, 
+                transactionsFromPromise,
+                transactionsToPromise,
+                schedulePromise, 
+                draftPicksPromise
               ]);
               
+              // Combine and de-duplicate transaction logs
+              const allTransactionsMap = new Map();
+              transactionsFromResult.forEach(t => allTransactionsMap.set(t.id, t));
+              transactionsToResult.forEach(t => allTransactionsMap.set(t.id, t));
+              allTransactionsLogData = Array.from(allTransactionsMap.values());
+
               allTeams = teamsResult;
               generateIconStylesheet(allTeams);
 
-              allTransactionsLogData = transactionsLogResult;
               allScheduleData = scheduleResult;
               allDraftPicks = draftPicksResult;
               allPlayersData = playersResult;
