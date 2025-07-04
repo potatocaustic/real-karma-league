@@ -584,11 +584,9 @@
         let teamData = null;
         let allTeams = [];
         let allScheduleData = [];
-        let allWeeklyAverages = []; 
         let allTransactionsLogData = []; 
-        let allLineups = []; 
         let allDraftPicks = []; 
-        let processedPlayersData = [];
+        let allPlayersData = [];
         let rosterSortState = { column: 'rel', direction: 'desc' };
         
         function generateIconStylesheet(allTeams) {
@@ -724,49 +722,6 @@
           return `${wins}-${losses}`;
         }
 
-        function calculateStatsForAllPlayers(players, weeklyAverages, lineups) {
-            if (!players || !weeklyAverages || !lineups) {
-                return players || []; 
-            }
-            const weeklyAveragesMap = {};
-            weeklyAverages.forEach(week => {
-              const normalizedDate = normalizeDate(week.date);
-              if (normalizedDate) {
-                weeklyAveragesMap[normalizedDate] = {
-                  mean_score: parseNumber(week.mean_score),
-                  median_score: parseNumber(week.median_score)
-                };
-              }
-            });
-
-            return players.map(player => {
-              const playerGames = lineups.filter(lineup => 
-                lineup.player_handle === player.player_handle && 
-                (String(lineup.started).toUpperCase() === 'TRUE') 
-              );
-              
-              let gamesAboveMean = 0, gamesAboveMedian = 0, t100_finishes = 0;
-              const ranks = [];
-
-              playerGames.forEach(game => {
-                const normalizedGameDate = normalizeDate(game.date);
-                const playerKarmaFinalForComparisons = parseNumber(game.points_final);
-                const globalRank = parseNumber(game.global_rank);
-                
-                if (weeklyAveragesMap[normalizedGameDate]) {
-                  if (playerKarmaFinalForComparisons > weeklyAveragesMap[normalizedGameDate].mean_score) gamesAboveMean++;
-                  if (playerKarmaFinalForComparisons > weeklyAveragesMap[normalizedGameDate].median_score) gamesAboveMedian++;
-                }
-                if (globalRank > 0) { ranks.push(globalRank); if (globalRank <= 100) t100_finishes++; }
-              });
-              
-              let calculated_median_rank = 0;
-              if (ranks.length > 0) { ranks.sort((a, b) => a - b); const mid = Math.floor(ranks.length / 2); calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid]; }
-              const games_played_count = parseInt(player.games_played || 0);
-              return { ...player, calculated_median_rank: calculated_median_rank > 0 ? calculated_median_rank : Infinity, aag_mean: gamesAboveMean, aag_mean_pct: games_played_count > 0 ? gamesAboveMean / games_played_count : 0, aag_median: gamesAboveMedian, aag_median_pct: games_played_count > 0 ? gamesAboveMedian / games_played_count : 0, t100_finishes, t100_finishes_pct: games_played_count > 0 ? (t100_finishes / games_played_count) : 0, total_points: parseNumber(player.total_points), games_played: games_played_count, WAR: parseFloat(player.WAR || 0) };
-            });
-        }
-
         function getOrdinal(num) {
           const n = parseInt(num);
           if (isNaN(n) || n <= 0) {
@@ -840,7 +795,7 @@
         }
         
         async function loadRoster() {
-          const teamPlayers = processedPlayersData
+          const teamPlayers = allPlayersData
             .filter(player => player.current_team_id === teamId && player.player_status === 'ACTIVE');
           
           if (teamPlayers.length === 0) {
@@ -870,9 +825,9 @@
             const war = parseFloat(player.WAR || 0).toFixed(2);
             
             let medianRankDisplay = '-';
-            if (player.calculated_median_rank !== Infinity && player.calculated_median_rank > 0) {
-                const roundedRank = Math.round(player.calculated_median_rank);
-                if (roundedRank > 0) medianRankDisplay = roundedRank;
+            const medianRank = parseInt(player.medrank || 0);
+            if (medianRank > 0) {
+                medianRankDisplay = medianRank;
             }
             const rookieBadge = isRookie ? ` <span class="rookie-badge">R</span>` : '';
             
@@ -1118,7 +1073,7 @@
           const game = allScheduleData.find(g => g.team1_id === team1Id && g.team2_id === team2Id && normalizeDate(g.date) === date);
           if (!game) { modalContentEl.innerHTML = '<div class="error">Game not found</div>'; return; }
           
-          const lineupsData = allLineups; 
+          const lineupsData = await fetchCollection('lineups');
           if (!lineupsData) { modalContentEl.innerHTML = '<div class="error">Error loading lineup data</div>'; return; }
           
           const team1Lineups = lineupsData.filter(l => l.team_id === team1Id && normalizeDate(l.date) === date && l.started === 'TRUE').sort((a,b) => (b.captain === 'TRUE' ? 1 : 0) - (a.captain === 'TRUE' ? 1 : 0) || parseNumber(b.points_final) - parseNumber(a.points_final));
@@ -1139,7 +1094,7 @@
               const pointsRaw = parseNumber(player.points_raw);
               const globalRank = parseNumber(player.global_rank);
               const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
-              const fullPlayerData = processedPlayersData.find(p => p.player_handle === player.player_handle);
+              const fullPlayerData = allPlayersData.find(p => p.player_handle === player.player_handle);
               const allStarBadge = fullPlayerData && fullPlayerData.all_star === '1' ? '<span class="all-star-badge">★</span>' : '';
               const rookieBadge = fullPlayerData && fullPlayerData.rookie === '1' ? '<span class="rookie-badge">R</span>' : '';
 
@@ -1183,25 +1138,20 @@
               }
 
               const [
-                teamsResult, playersResult, weeklyAveragesResult, 
-                transactionsLogResult, lineupsResult, scheduleResult, draftPicksResult
+                teamsResult, playersResult, transactionsLogResult, 
+                scheduleResult, draftPicksResult
               ] = await Promise.all([
-                fetchCollection('teams'), fetchCollection('players'), fetchCollection('weekly_averages'),
-                fetchCollection('transaction_log'), fetchCollection('lineups'), fetchCollection('schedule'),
-                fetchCollection('draftPicks')
+                fetchCollection('teams'), fetchCollection('players'), fetchCollection('transaction_log'),
+                fetchCollection('schedule'), fetchCollection('draftPicks')
               ]);
               
               allTeams = teamsResult;
-              // --- Generate the CSS for all team icons at once ---
               generateIconStylesheet(allTeams);
 
-              allWeeklyAverages = weeklyAveragesResult;
               allTransactionsLogData = transactionsLogResult;
-              allLineups = lineupsResult;
               allScheduleData = scheduleResult;
               allDraftPicks = draftPicksResult;
-
-              processedPlayersData = calculateStatsForAllPlayers(playersResult, allWeeklyAverages, allLineups);
+              allPlayersData = playersResult;
               teamData = allTeams.find(team => team.team_id === teamId);
 
               if (!teamData) {
