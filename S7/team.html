@@ -769,7 +769,9 @@
 
         function getOrdinal(num) {
           const n = parseInt(num);
-          if (n <= 0) return 'Unranked';
+          if (isNaN(n) || n <= 0) {
+            return 'Unranked';
+          }
           const suffix = ['th', 'st', 'nd', 'rd'];
           const v = n % 100;
           return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
@@ -813,7 +815,7 @@
           const recordLink = document.createElement('a');
           recordLink.href = 'standings.html'; 
           recordLink.className = 'stat-card-link';
-          recordLink.innerHTML = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Record</div><div class="stat-rank">${getOrdinal(teamData.posteed)} in ${escapeHTML(teamData.conference)} Conference</div></div>`;
+          recordLink.innerHTML = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Record</div><div class="stat-rank">${getOrdinal(teamData.postseed)} in ${escapeHTML(teamData.conference)} Conference</div></div>`;
           teamStatsContainer.appendChild(recordLink);
 
           const pamLink = document.createElement('a');
