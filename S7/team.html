@@ -591,7 +591,6 @@
         let processedPlayersData = [];
         let rosterSortState = { column: 'rel', direction: 'desc' };
         
-        // --- NEW HELPER FUNCTION ---
         function generateIconStylesheet(allTeams) {
             const iconStyles = allTeams.map(team => {
                 if (!team.team_id) return '';
@@ -622,7 +621,6 @@
             }
         }
 
-        // --- Helper Functions (Full code included) ---
         function normalizeDate(dateInput) {
             if (!dateInput) return '';
             let date;
@@ -776,46 +774,6 @@
           const v = n % 100;
           return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
         }
-        
-        function calculateTeamRankings(currentTeamData, allTeamsDataForRanking) { 
-          const rankings = {};
-          const conferenceTeams = allTeamsDataForRanking.filter(t => t.conference === currentTeamData.conference)
-            .sort((a, b) => {
-              const winsA = parseInt(a.wins || 0);
-              const winsB = parseInt(b.wins || 0);
-              if (winsB !== winsA) return winsB - winsA;
-              return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-            });
-          rankings.record = conferenceTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
-          
-          const pamTeams = [...allTeamsDataForRanking].sort((a, b) => parseFloat(b.pam || 0) - parseFloat(a.pam || 0));
-          rankings.pam = pamTeams.findIndex(t => t.team_id === currentTeamData.team_id) + 1;
-          
-          const medRankTeams = allTeamsDataForRanking.filter(t => parseFloat(t.med_starter_rank || 0) > 0)
-            .sort((a, b) => parseFloat(a.med_starter_rank || 999) - parseFloat(b.med_starter_rank || 999));
-          const medRankIndex = medRankTeams.findIndex(t => t.team_id === currentTeamData.team_id);
-          rankings.medRank = medRankIndex !== -1 ? medRankIndex + 1 : 0; 
-          return rankings;
-        }
-
-        function countTransactionsForTeam(teamIdToCount, transactionLog) {
-          if (!transactionLog || transactionLog.length === 0) return 0;
-          const relevantTransactionIds = new Set();
-          transactionLog.forEach(transaction => {
-              const notes = transaction.notes ? transaction.notes.toLowerCase() : '';
-              if (notes.includes('pre-database') || notes.includes('preseason')) {
-                  return;
-              }
-              let involved = false;
-              if (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === teamIdToCount) { involved = true; }
-              else if (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamIdToCount) { involved = true; }
-              else if (transaction.from_team === teamIdToCount || transaction.to_team === teamIdToCount) { involved = true; }
-              if (involved && transaction.transaction_id) {
-                  relevantTransactionIds.add(transaction.transaction_id);
-              }
-          });
-          return relevantTransactionIds.size;
-        }
 
         function handleRosterSort(column) {
           if (rosterSortState.column === column) {
@@ -827,13 +785,13 @@
           loadRoster();
         }
         
-        function displayTeamHeader(rankings) {
+        function displayTeamHeader() {
           document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
           
           const wins = parseInt(teamData.wins || 0);
           const losses = parseInt(teamData.losses || 0);
           const pam = parseFloat(teamData.pam || 0);
-          const totalTransactions = teamData.calculated_total_transactions || 0;
+          const totalTransactions = parseInt(teamData.total_transactions || 0);
           
           const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
 
@@ -855,19 +813,19 @@
           const recordLink = document.createElement('a');
           recordLink.href = 'standings.html'; 
           recordLink.className = 'stat-card-link';
-          recordLink.innerHTML = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Record</div><div class="stat-rank">${getOrdinal(rankings.record)} in ${escapeHTML(teamData.conference)} Conference</div></div>`;
+          recordLink.innerHTML = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Record</div><div class="stat-rank">${getOrdinal(teamData.posteed)} in ${escapeHTML(teamData.conference)} Conference</div></div>`;
           teamStatsContainer.appendChild(recordLink);
 
           const pamLink = document.createElement('a');
           pamLink.href = `standings.html?view=fullLeague&sortBy=pam&sortDirection=desc`;
           pamLink.className = 'stat-card-link';
-          pamLink.innerHTML = `<div class="stat-card"><div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div><div class="stat-label">PAM</div><div class="stat-rank">${getOrdinal(rankings.pam)} Overall</div></div>`;
+          pamLink.innerHTML = `<div class="stat-card"><div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div><div class="stat-label">PAM</div><div class="stat-rank">${getOrdinal(teamData.pam_rank)} Overall</div></div>`;
           teamStatsContainer.appendChild(pamLink);
 
           const medRankLink = document.createElement('a');
           medRankLink.href = `standings.html?view=fullLeague&sortBy=med_starter_rank&sortDirection=asc`;
           medRankLink.className = 'stat-card-link';
-          medRankLink.innerHTML = `<div class="stat-card"><div class="stat-value">${Math.round(medRank)}</div><div class="stat-label">Median Starter Rank</div><div class="stat-rank">${rankings.medRank > 0 ? `${getOrdinal(rankings.medRank)} Overall` : 'Not ranked'}</div></div>`;
+          medRankLink.innerHTML = `<div class="stat-card"><div class="stat-value">${Math.round(medRank)}</div><div class="stat-label">Median Starter Rank</div><div class="stat-rank">${parseInt(teamData.msr_rank || 0) > 0 ? `${getOrdinal(teamData.msr_rank)} Overall` : 'Not ranked'}</div></div>`;
           teamStatsContainer.appendChild(medRankLink);
 
           const transactionsLink = document.createElement('a');
@@ -1248,13 +1206,8 @@
                 document.getElementById('team-main-info').innerHTML = '<div class="error">Team not found for ID: ' + escapeHTML(teamId) + '</div>';
                 return;
               }
-
-              teamData.calculated_total_transactions = countTransactionsForTeam(teamData.team_id, allTransactionsLogData);
               
-              const activeTeamsForRanking = allTeams.filter(t => t.team_id && t.team_id.toUpperCase() !== 'RETIRED' && t.team_id.toUpperCase() !== 'FREE_AGENT' && t.conference);
-              const rankings = calculateTeamRankings(teamData, activeTeamsForRanking);
-              
-              displayTeamHeader(rankings); 
+              displayTeamHeader(); 
               
               await Promise.all([
                 loadRoster(),
