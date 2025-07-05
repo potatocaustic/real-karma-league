@@ -108,7 +108,11 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             scheduleRaw,
             lineupsRaw,
             weeklyAveragesRaw,
-            transactionsLogRaw
+            transactionsLogRaw,
+            // --- ADDED: Postseason data tabs ---
+            postScheduleRaw,
+            postLineupsRaw,
+            postWeeklyAveragesRaw
         ] = await Promise.all([
             fetchAndParseSheet("Players"),
             fetchAndParseSheet("Draft_Capital"),
@@ -116,7 +120,11 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             fetchAndParseSheet("Schedule"),
             fetchAndParseSheet("Lineups"),
             fetchAndParseSheet("Weekly_Averages"),
-            fetchAndParseSheet("Transaction_Log")
+            fetchAndParseSheet("Transaction_Log"),
+            // --- ADDED: Postseason data tabs ---
+            fetchAndParseSheet("post_schedule"),
+            fetchAndParseSheet("post_lineups"),
+            fetchAndParseSheet("post_weekly_averages")
         ]);
         console.log("All sheets fetched successfully.");
 
@@ -178,12 +186,11 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
         
-        // --- ADDED: Clear and Sync Schedule collection ---
+        // --- Clear and Sync Schedule collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);
         const scheduleBatch = db.batch();
         scheduleRaw.forEach(game => {
-            // FIX: Generate ID from date and teams, as 'game_id' doesn't exist.
             const safeDate = getSafeDateString(game.date);
             if (safeDate && game.team1_id && game.team2_id) {
                 const docId = `${safeDate}-${game.team1_id}-${game.team2_id}`;
@@ -197,12 +204,11 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await scheduleBatch.commit();
         console.log(`Successfully synced ${scheduleRaw.length} schedule games.`);
 
-        // --- ADDED: Clear and Sync Lineups collection ---
+        // --- Clear and Sync Lineups collection ---
         console.log("Clearing the 'lineups' collection...");
         await deleteCollection(db, 'lineups', 200);
         const lineupsBatch = db.batch();
         lineupsRaw.forEach(lineup => {
-            // FIX: Generate ID from date and player, as 'lineup_id' doesn't exist.
             const safeDate = getSafeDateString(lineup.date);
             if (safeDate && lineup.player_handle) {
                 const docId = `${safeDate}-${lineup.player_handle}`;
@@ -217,7 +223,7 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await lineupsBatch.commit();
         console.log(`Successfully synced ${lineupsRaw.length} lineup entries.`);
 
-        // --- ADDED: Clear and Sync Weekly Averages collection ---
+        // --- Clear and Sync Weekly Averages collection ---
         console.log("Clearing the 'weekly_averages' collection...");
         await deleteCollection(db, 'weekly_averages', 200);
         const weeklyAveragesBatch = db.batch();
@@ -233,6 +239,60 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         });
         await weeklyAveragesBatch.commit();
         console.log(`Successfully synced ${weeklyAveragesRaw.length} weekly average entries.`);
+
+        // --- ADDED: Clear and Sync Postseason Schedule collection ---
+        console.log("Clearing the 'post_schedule' collection...");
+        await deleteCollection(db, 'post_schedule', 200);
+        const postScheduleBatch = db.batch();
+        postScheduleRaw.forEach(game => {
+            const safeDate = getSafeDateString(game.date);
+            if (safeDate && game.team1_id && game.team2_id) {
+                const docId = `${safeDate}-${game.team1_id}-${game.team2_id}`;
+                const docRef = db.collection("post_schedule").doc(docId);
+                const gameData = { ...game };
+                gameData.team1_score = parseNumber(game.team1_score);
+                gameData.team2_score = parseNumber(game.team2_score);
+                postScheduleBatch.set(docRef, gameData);
+            }
+        });
+        await postScheduleBatch.commit();
+        console.log(`Successfully synced ${postScheduleRaw.length} postseason schedule games.`);
+
+        // --- ADDED: Clear and Sync Postseason Lineups collection ---
+        console.log("Clearing the 'post_lineups' collection...");
+        await deleteCollection(db, 'post_lineups', 200);
+        const postLineupsBatch = db.batch();
+        postLineupsRaw.forEach(lineup => {
+            const safeDate = getSafeDateString(lineup.date);
+            if (safeDate && lineup.player_handle) {
+                const docId = `${safeDate}-${lineup.player_handle}`;
+                const docRef = db.collection("post_lineups").doc(docId);
+                const lineupData = { ...lineup };
+                lineupData.points_final = parseNumber(lineup.points_final);
+                lineupData.points_raw = parseNumber(lineup.points_raw);
+                lineupData.global_rank = parseNumber(lineup.global_rank);
+                postLineupsBatch.set(docRef, lineupData);
+            }
+        });
+        await postLineupsBatch.commit();
+        console.log(`Successfully synced ${postLineupsRaw.length} postseason lineup entries.`);
+
+        // --- ADDED: Clear and Sync Postseason Weekly Averages collection ---
+        console.log("Clearing the 'post_weekly_averages' collection...");
+        await deleteCollection(db, 'post_weekly_averages', 200);
+        const postWeeklyAveragesBatch = db.batch();
+        postWeeklyAveragesRaw.forEach(week => {
+            const safeDate = getSafeDateString(week.date);
+            if (safeDate) {
+                const docRef = db.collection("post_weekly_averages").doc(safeDate);
+                const weekData = { ...week };
+                weekData.mean_score = parseNumber(week.mean_score);
+                weekData.median_score = parseNumber(week.median_score);
+                postWeeklyAveragesBatch.set(docRef, weekData);
+            }
+        });
+        await postWeeklyAveragesBatch.commit();
+        console.log(`Successfully synced ${postWeeklyAveragesRaw.length} postseason weekly average entries.`);
 
         res.status(200).send("Firestore sync completed successfully!");
 
