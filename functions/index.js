@@ -118,7 +118,6 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             lineupsRaw,
             weeklyAveragesRaw,
             transactionsLogRaw,
-            // --- ADDED: Postseason data tabs ---
             postScheduleRaw,
             postLineupsRaw,
             postWeeklyAveragesRaw
@@ -130,10 +129,9 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
             fetchAndParseSheet("Lineups"),
             fetchAndParseSheet("Weekly_Averages"),
             fetchAndParseSheet("Transaction_Log"),
-            // --- ADDED: Postseason data tabs ---
-            fetchAndParseSheet("post_schedule"),
-            fetchAndParseSheet("post_lineups"),
-            fetchAndParseSheet("post_weekly_averages")
+            fetchAndParseSheet("Post_Schedule"),
+            fetchAndParseSheet("Post_Lineups"),
+            fetchAndParseSheet("Post_Weekly_Averages")
         ]);
         console.log("All sheets fetched successfully.");
 
