@@ -60,6 +60,14 @@
         font-size: 2rem;
         font-weight: bold;
       }
+      
+      .postseason-subtitle {
+        font-size: 1.5rem;
+        color: #666;
+        margin-bottom: 0.75rem;
+        font-weight: 500;
+        transition: color 0.3s;
+      }
 
       .team-subtitle {
         font-size: 1.2rem;
@@ -283,7 +291,7 @@
       .dark-mode .back-button:hover { background-color: #60a5fa; }
       .dark-mode .team-header-content, .dark-mode .roster-section, .dark-mode .schedule-section { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
       .dark-mode .team-logo-large { border-color: #444; }
-      .dark-mode .team-subtitle, .dark-mode .stat-label, .dark-mode .player-stats, .dark-mode .team-record-game, .dark-mode .vs-text, .dark-mode .date-badge { color: #aaa; }
+      .dark-mode .team-subtitle, .dark-mode .postseason-subtitle, .dark-mode .stat-label, .dark-mode .player-stats, .dark-mode .team-record-game, .dark-mode .vs-text, .dark-mode .date-badge { color: #aaa; }
       .dark-mode .gm-info, .dark-mode .stat-rank, .dark-mode .player-name { color: #8ab4f8; }
       .dark-mode .stat-card { background-color: #2c2c2c; border-color: #444; }
       .dark-mode .stat-value, .dark-mode .player-rel, .dark-mode .player-war { color: #e0e0e0; }
@@ -392,10 +400,8 @@
     
     <main>
       <div id="navigation-buttons">
-          <a href="teams.html" class="back-button">← Back to All Teams</a>
+          <a href="team.html" id="reg-season-profile-btn" class="back-button" style="display: none;">View Regular Season Profile →</a>
       </div>
-      
-      <h2 class="page-main-header">Postseason Profile</h2>
 
       <div class="team-header-content"> 
         <div class="team-main-info" id="team-main-info">
@@ -596,14 +602,15 @@
           return `${wins}-${losses}`;
         }
 
-        function getOrdinal(num) {
-          const n = parseInt(num);
-          if (isNaN(n) || n <= 0) {
-            return 'Unranked';
-          }
-          const suffix = ['th', 'st', 'nd', 'rd'];
-          const v = n % 100;
-          return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
+        function getWeekAbbreviation(weekName) {
+            if (!weekName) return 'TBD';
+            const lowerCaseWeek = weekName.toLowerCase();
+            if (lowerCaseWeek.includes('play-in')) return 'P';
+            if (lowerCaseWeek.includes('round 1')) return '1';
+            if (lowerCaseWeek.includes('round 2')) return '2';
+            if (lowerCaseWeek.includes('conf finals')) return '3';
+            if (lowerCaseWeek.includes('finals')) return 'F';
+            return weekName.charAt(0);
         }
 
         function handleRosterSort(column) {
@@ -618,7 +625,10 @@
         
         function displayTeamHeader() {
           document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - Postseason Profile`;
-          document.getElementById('navigation-buttons').innerHTML += `<a href="team.html?id=${teamId}" class="back-button" style="margin-left: 1rem;">View Regular Season Profile →</a>`;
+          const regSeasonBtn = document.getElementById('reg-season-profile-btn');
+          regSeasonBtn.href = `team.html?id=${teamId}`;
+          regSeasonBtn.style.display = 'inline-block';
+
 
           const wins = parseInt(teamData.post_wins || 0);
           const losses = parseInt(teamData.post_losses || 0);
@@ -631,6 +641,7 @@
               <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${escapeHTML(teamData.team_name)}"></div>
               <div class="team-details">
                 <h2>${escapeHTML(teamData.team_name)}</h2>
+                <div class="postseason-subtitle">Postseason</div>
                 <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
                 <div class="gm-info">General Manager: ${escapeHTML(teamData.current_gm_handle)}</div>
               </div>
@@ -644,7 +655,7 @@
           const recordCard = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Postseason Record</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
           teamStatsContainer.innerHTML += recordCard;
           
-          const pamCard = `<div class="stat-card"><div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div><div class="stat-label">Postseason PAM</div><div class="stat-rank">${getOrdinal(teamData.post_pam_rank)}</div></div>`;
+          const pamCard = `<div class="stat-card"><div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div><div class="stat-label">Postseason PAM</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
           teamStatsContainer.innerHTML += pamCard;
 
           const medRankCard = `<div class="stat-card"><div class="stat-value">${Math.round(medRank)}</div><div class="stat-label">Postseason Median Starter Rank</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
@@ -741,7 +752,7 @@
             const opponentId = isTeam1 ? game.team2_id : game.team1_id;
             const opponentName = getTeamName(opponentId);
             const isCompleted = game.completed === 'TRUE';
-            const gameWeek = game.week || 'TBD';
+            const gameWeek = getWeekAbbreviation(game.week);
             const gameDateFormatted = formatDateMMDD(normalizeDate(game.date)); 
             
             let opponentRecord = getTeamRecordAtDate(opponentId, game.date, allPostseasonScheduleData);
