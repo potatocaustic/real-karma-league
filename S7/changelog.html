@@ -33,6 +33,20 @@
       /* Dark Mode Overrides for page-specific styles */
       .dark-mode .changelog-entry { background-color: #1e1e1e; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
       .dark-mode .changelog-entry h3 { color: #f8f9fa; } /* Light gray/white for dark mode */
+
+      @media (max-width: 600px) {
+        .changelog-entry li {
+          flex-direction: column; 
+          align-items: flex-start;
+        }
+        .changelog-tag {
+          margin-right: 0;
+          margin-bottom: 0.5rem; 
+        }
+        .changelog-entry {
+          padding: 1.5rem;
+        }
+      }
     </style>
   </head>
   <body>

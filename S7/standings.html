@@ -355,7 +355,11 @@
         #powerRankingsViewContainer .standings-table td:nth-child(5) { width: 25%; }
         
         .team-name {
-          font-size: 0.85rem;
+          font-size: 0.82rem; 
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0; 
         }
         
         #powerRankingsViewContainer .conference-header h3 {
