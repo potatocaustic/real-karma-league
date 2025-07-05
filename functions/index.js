@@ -135,8 +135,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
-            if (player.player_handle) { 
-                const docRef = db.collection("players").doc(player.player_handle);
+            if (player.player_handle && player.player_handle.trim()) { 
+                const docRef = db.collection("players").doc(player.player_handle.trim());
                 const playerData = { ...player };
                 
                 playerData.GEM = parseNumber(player.GEM);
@@ -160,8 +160,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
 
         const draftPicksBatch = db.batch();
         draftPicksRaw.forEach(pick => {
-            if (pick.pick_id) {
-                const docRef = db.collection("draftPicks").doc(pick.pick_id);
+            if (pick.pick_id && pick.pick_id.trim()) {
+                const docRef = db.collection("draftPicks").doc(pick.pick_id.trim());
                 const pickData = { ...pick };
 
                 pickData.season = parseNumber(pick.season);
@@ -178,8 +178,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
         teamsRaw.forEach(team => {
-            if(team.team_id) {
-                const docRef = db.collection("teams").doc(team.team_id);
+            if(team.team_id && team.team_id.trim()) {
+                const docRef = db.collection("teams").doc(team.team_id.trim());
                 teamsBatch.set(docRef, team);
             }
         });
@@ -192,8 +192,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const scheduleBatch = db.batch();
         scheduleRaw.forEach(game => {
             const safeDate = getSafeDateString(game.date);
-            if (safeDate && game.team1_id && game.team2_id) {
-                const docId = `${safeDate}-${game.team1_id}-${game.team2_id}`;
+            if (safeDate && game.team1_id && game.team1_id.trim() && game.team2_id && game.team2_id.trim()) {
+                const docId = `${safeDate}-${game.team1_id.trim()}-${game.team2_id.trim()}`;
                 const docRef = db.collection("schedule").doc(docId);
                 const gameData = { ...game };
                 gameData.team1_score = parseNumber(game.team1_score);
@@ -210,8 +210,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const lineupsBatch = db.batch();
         lineupsRaw.forEach(lineup => {
             const safeDate = getSafeDateString(lineup.date);
-            if (safeDate && lineup.player_handle) {
-                const docId = `${safeDate}-${lineup.player_handle}`;
+            if (safeDate && lineup.player_handle && lineup.player_handle.trim()) {
+                const docId = `${safeDate}-${lineup.player_handle.trim()}`;
                 const docRef = db.collection("lineups").doc(docId);
                 const lineupData = { ...lineup };
                 lineupData.points_final = parseNumber(lineup.points_final);
@@ -246,8 +246,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const postScheduleBatch = db.batch();
         postScheduleRaw.forEach(game => {
             const safeDate = getSafeDateString(game.date);
-            if (safeDate && game.team1_id && game.team2_id) {
-                const docId = `${safeDate}-${game.team1_id}-${game.team2_id}`;
+            if (safeDate && game.team1_id && game.team1_id.trim() && game.team2_id && game.team2_id.trim()) {
+                const docId = `${safeDate}-${game.team1_id.trim()}-${game.team2_id.trim()}`;
                 const docRef = db.collection("post_schedule").doc(docId);
                 const gameData = { ...game };
                 gameData.team1_score = parseNumber(game.team1_score);
@@ -264,8 +264,8 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
         const postLineupsBatch = db.batch();
         postLineupsRaw.forEach(lineup => {
             const safeDate = getSafeDateString(lineup.date);
-            if (safeDate && lineup.player_handle) {
-                const docId = `${safeDate}-${lineup.player_handle}`;
+            if (safeDate && lineup.player_handle && lineup.player_handle.trim()) {
+                const docId = `${safeDate}-${lineup.player_handle.trim()}`;
                 const docRef = db.collection("post_lineups").doc(docId);
                 const lineupData = { ...lineup };
                 lineupData.points_final = parseNumber(lineup.points_final);
