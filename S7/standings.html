@@ -512,7 +512,7 @@
       <div id="powerRankingsViewContainer" class="hidden">
         <div class="conference-section"> 
           <div class="conference-header">
-            <h3>Power Rankings v4 (Week 9)</h3> </div>
+            <h3>Power Rankings v5 (Week 12)</h3> </div>
           <div id="powerRankingsSummary" class="power-rankings-summary">
             Loading summary...
           </div>
@@ -835,6 +835,16 @@
         const html = teamsToRender.map(team => {
             const record = `${team.wins}-${team.losses}`;
             const prevRankDisplay = team.prev_rank !== null && !isNaN(team.prev_rank) ? team.prev_rank : '-';
+            
+            let clinchBadgeHtml = '';
+            if (team.playoffs === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+            } else if (team.playin === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+            } else if (team.elim === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+            }
+
             return `
                 <tr>
                     <td class="rank-cell">${getRankDisplay(team.rank)}</td>
@@ -842,6 +852,7 @@
                         <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
                             <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                             <span class="team-name">${team.team_name}</span>
+                            ${clinchBadgeHtml}
                         </div>
                     </td>
                     <td class="record-cell">${record}</td>
@@ -1157,6 +1168,9 @@
                 const displayName = officialTeam ? officialTeam.team_name : prTeam.team_name; 
                 const wins = officialTeam ? (officialTeam.wins || 0) : 0;
                 const losses = officialTeam ? (officialTeam.losses || 0) : 0;
+                const playoffs = officialTeam ? officialTeam.playoffs : '0';
+                const playin = officialTeam ? officialTeam.playin : '0';
+                const elim = officialTeam ? officialTeam.elim : '0';
 
                 return {
                     rank: parseInt(prTeam.power_rank),
@@ -1165,7 +1179,10 @@
                     prev_rank: prTeam.prev_power ? parseInt(prTeam.prev_power) : null,
                     delta: parseInt(prTeam.power_delta) || 0,
                     wins: wins,
-                    losses: losses
+                    losses: losses,
+                    playoffs: playoffs,
+                    playin: playin,
+                    elim: elim
                 };
             }).filter(team => team.team_id && team.team_id.trim() !== '' && !isNaN(team.rank))
               .sort((a, b) => a.rank - b.rank);
