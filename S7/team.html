@@ -468,32 +468,10 @@
         .player-rel { align-self: flex-end; }
         .modal-header h3 { font-size: 1.0rem; }
       }
-     #maintenance-banner {
-        background-color: #fffbe6;
-        color: #856404;
-        border-bottom: 1px solid #ffeeba;
-        padding: 0.75rem 1rem;
-        text-align: center;
-        font-weight: 500;
-        font-size: 0.9rem;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        z-index: 2000; /* High z-index to ensure it's on top of all other content */
-      }
-
-      /* Push the rest of the page down to prevent the banner from overlapping the header */
-      body {
-        padding-top: 45px; /* Adjust this value if you change the banner's padding or font size */
-      }
 
     </style>
   </head>
   <body>
-    <div id="maintenance-banner">
-      Site maintenance underway - some features may be unavailable.
-    </div>
     <header>
       <button id="theme-toggle-btn" aria-label="Toggle Theme">
         <span class="sun-icon">☀️</span>
