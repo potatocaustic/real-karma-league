@@ -593,19 +593,21 @@
       <a href="trade-block.html">GM Portal</a>
     </footer>
 
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js"></script>
-
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js"></script>
-
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
 
     <script type="module">
-      import { auth, db } from '/js/firebase-init.js';
-      import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-      import { collection, doc, getDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+      import { 
+          auth, 
+          db, 
+          onAuthStateChanged, 
+          collection, 
+          doc, 
+          getDoc, 
+          getDocs, 
+          query, 
+          where 
+      } from '/js/firebase-init.js';
 
       // This entire script is now a module and wrapped in a DOMContentLoaded listener.
       document.addEventListener('DOMContentLoaded', () => {

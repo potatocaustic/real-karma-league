@@ -1,11 +1,11 @@
 // In /js/firebase-init.js
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
-// Your web app's Firebase configuration (from Part 1) [cite: 1]
+// Your web app's Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDch0dQ1c9_mDzANAvfMoK1HAnMrRl1WnY",
   authDomain: "real-karma-league.firebaseapp.com",
@@ -19,7 +19,20 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Get references to the services and export them
+// Initialize and export services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const functions = getFunctions(app, 'us-central1'); // Specify region
+export const functions = getFunctions(app, 'us-central1');
+
+// Export all the functions you'll use
+export {
+  onAuthStateChanged,
+  signOut,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  limit
+};

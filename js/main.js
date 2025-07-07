@@ -1,8 +1,18 @@
 // /js/main.js
 
-import { auth, db } from './firebase-init.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-import { collection, doc, getDoc, where, query, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { 
+    auth, 
+    db, 
+    onAuthStateChanged, 
+    signOut, 
+    collection, 
+    doc, 
+    getDoc, 
+    where, 
+    query, 
+    limit, 
+    getDocs 
+} from './firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication State Manager ---
