@@ -1,24 +1,28 @@
 // /js/main.js
 
-document.addEventListener('DOMContentLoaded', () => {
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { collection, doc, getDoc, where, query, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
+document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication State Manager ---
     const authStatusDiv = document.getElementById('auth-status');
     if (authStatusDiv) {
-        auth.onAuthStateChanged(user => {
+        onAuthStateChanged(auth, user => {
             if (user) {
                 // User is signed in.
-                // Check if the user is an admin first.
-                db.collection("admins").doc(user.uid).get().then(adminDoc => {
+                const adminRef = doc(db, "admins", user.uid);
+                getDoc(adminRef).then(adminDoc => {
                     let welcomeMsg = "Welcome!"; 
                     
-                    if (adminDoc.exists) {
+                    if (adminDoc.exists()) {
                         welcomeMsg = "Welcome, Admin!";
                         authStatusDiv.innerHTML = `<span>${welcomeMsg}</span> | <a id="logout-btn">Logout</a>`;
                         addLogoutListener();
                     } else {
                         // If not an admin, check if they are a GM.
-                        db.collection("teams").where("gm_uid", "==", user.uid).limit(1).get().then(snapshot => {
+                        const teamsQuery = query(collection(db, "teams"), where("gm_uid", "==", user.uid), limit(1));
+                        getDocs(teamsQuery).then(snapshot => {
                             if (!snapshot.empty) {
                                 const teamData = snapshot.docs[0].data();
                                 welcomeMsg = `Welcome, ${teamData.gm_handle}!`;
@@ -28,7 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                 });
-
             } else {
                 // User is signed out. Display a login link.
                 authStatusDiv.innerHTML = '<a href="/login.html">GM Login</a>';
@@ -40,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
             logoutBtn.addEventListener('click', () => {
-                auth.signOut().then(() => {
+                signOut(auth).then(() => {
                     console.log('User signed out successfully.');
                     window.location.href = '/'; // Redirect to home page after logout
                 }).catch((error) => {

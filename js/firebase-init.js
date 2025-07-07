@@ -1,6 +1,11 @@
-// In firebase-init.js
+// In /js/firebase-init.js
 
-// Your web app's Firebase configuration (from Part 1)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+
+// Your web app's Firebase configuration (from Part 1) [cite: 1]
 const firebaseConfig = {
   apiKey: "AIzaSyDch0dQ1c9_mDzANAvfMoK1HAnMrRl1WnY",
   authDomain: "real-karma-league.firebaseapp.com",
@@ -12,8 +17,9 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
 
-// Get references to the services
-const auth = firebase.auth();
-const db = firebase.firestore();
+// Get references to the services and export them
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const functions = getFunctions(app, 'us-central1'); // Specify region

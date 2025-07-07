@@ -1,5 +1,19 @@
 // /js/edit-trade-block.js
 
+import { auth, db } from './firebase-init.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { 
+    collection, 
+    doc, 
+    getDoc, 
+    getDocs, 
+    query, 
+    where, 
+    serverTimestamp, 
+    setDoc, 
+    deleteDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
 const formContainer = document.getElementById('form-container');
 const editTitle = document.getElementById('edit-title');
 
@@ -9,38 +23,48 @@ const teamId = urlParams.get('team');
 document.addEventListener('DOMContentLoaded', () => {
     if (!teamId) {
         formContainer.innerHTML = '<div class="error">No team specified.</div>';
-    } else {
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                authorizeAndLoadForm(user, teamId);
-            } else {
-                window.location.href = '/login.html';
-            }
-        });
+        return;
     }
+    
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            authorizeAndLoadForm(user, teamId);
+        } else {
+            window.location.href = '/login.html';
+        }
+    });
 });
 
 
 async function authorizeAndLoadForm(user, teamId) {
     try {
+        // Define references and queries using modular syntax
+        const teamRef = doc(db, "teams", teamId);
+        const adminRef = doc(db, "admins", user.uid);
+        const playersQuery = query(collection(db, "players"), where("current_team_id", "==", teamId));
+        const picksQuery = query(collection(db, "draftPicks"), where("current_owner", "==", teamId));
+        const teamsQuery = collection(db, "teams");
+        const blockRef = doc(db, "tradeblocks", teamId);
+
+        // Fetch all data concurrently
         const [teamDoc, adminDoc, playersSnap, picksSnap, teamsSnap, blockDoc] = await Promise.all([
-            db.collection("teams").doc(teamId).get(),
-            db.collection("admins").doc(user.uid).get(),
-            db.collection("players").where("current_team_id", "==", teamId).get(),
-            db.collection("draftPicks").where("current_owner", "==", teamId).get(),
-            db.collection("teams").get(), // Fetch all teams for record lookups
-            db.collection("tradeblocks").doc(teamId).get()
+            getDoc(teamRef),
+            getDoc(adminRef),
+            getDocs(playersQuery),
+            getDocs(picksQuery),
+            getDocs(teamsQuery),
+            getDoc(blockRef)
         ]);
 
         const teamsMap = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
 
-        if (!teamDoc.exists) {
+        if (!teamDoc.exists()) {
             formContainer.innerHTML = '<div class="error">Team not found.</div>';
             return;
         }
 
         const teamData = teamDoc.data();
-        const hasPermission = adminDoc.exists || teamData.gm_uid === user.uid;
+        const hasPermission = adminDoc.exists() || teamData.gm_uid === user.uid;
 
         if (!hasPermission) {
             formContainer.innerHTML = '<div class="error">You do not have permission to edit this trade block.</div>';
@@ -48,7 +72,7 @@ async function authorizeAndLoadForm(user, teamId) {
         }
 
         editTitle.textContent = `Edit ${teamData.team_name} Trade Block`;
-        const blockData = blockDoc.exists ? blockDoc.data() : { on_the_block: [], picks_available_ids: [], seeking: '' };
+        const blockData = blockDoc.exists() ? blockDoc.data() : { on_the_block: [], picks_available_ids: [], seeking: '' };
         
         let availablePlayers = playersSnap.docs.map(doc => ({ handle: doc.id, ...doc.data() }));
         let availablePicks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -60,9 +84,8 @@ async function authorizeAndLoadForm(user, teamId) {
         availablePicks.sort((a, b) => {
             const seasonA = parseInt(a.season || 0);
             const seasonB = parseInt(b.season || 0);
-            if (seasonA !== seasonB) {
-                return seasonA - seasonB;
-            }
+            if (seasonA !== seasonB) return seasonA - seasonB;
+            
             const roundA = parseInt(a.round || 0);
             const roundB = parseInt(b.round || 0);
             return roundA - roundB;
@@ -77,7 +100,6 @@ async function authorizeAndLoadForm(user, teamId) {
 }
 
 function renderForm(blockData, players, picks, teamsMap) {
-    // Helper to format a pick description with full team name
     const formatPick = (pick) => {
         const originalTeamInfo = teamsMap.get(pick.original_team);
         const teamName = originalTeamInfo ? originalTeamInfo.team_name : pick.original_team;
@@ -167,19 +189,19 @@ function addSaveHandler() {
             saveButton.disabled = true;
 
             try {
+                const tradeBlockRef = doc(db, "tradeblocks", teamId);
+
                 if (isBlockEmpty) {
-                    // If all fields are empty, delete the trade block document
-                    await db.collection("tradeblocks").doc(teamId).delete();
+                    await deleteDoc(tradeBlockRef);
                     alert("Trade block cleared and removed successfully!");
                 } else {
-                    // Otherwise, update the document as usual
                     const updatedData = {
                         on_the_block: selectedPlayers,
                         picks_available_ids: selectedPicks,
                         seeking: seekingText,
-                        last_updated: firebase.firestore.FieldValue.serverTimestamp()
+                        last_updated: serverTimestamp() // Use modular serverTimestamp
                     };
-                    await db.collection("tradeblocks").doc(teamId).set(updatedData, { merge: true });
+                    await setDoc(tradeBlockRef, updatedData, { merge: true });
                     alert("Trade block saved successfully!");
                 }
                 

@@ -1,9 +1,14 @@
-const functions = require("firebase-functions");
+// index.js
+
+const { onRequest } = require("firebase-functions/v2/https");
+const { onCall } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
 admin.initializeApp();
 const db = admin.firestore();
+
+// Helper functions (deleteCollection, parseCSV, parseNumber, getSafeDateString) remain unchanged...
 
 /**
  * Deletes a collection by batching deletes. This is used to clear collections
@@ -92,11 +97,8 @@ function getSafeDateString(dateString) {
 }
 
 
-/**
- * Cloud Function to sync data from a Google Sheet to Firestore.
- * Triggered via an HTTP request.
- */
-exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
+// UPDATED: Changed to V2 onRequest function
+exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req, res) => {
     try {
         const SPREADSHEET_ID = "12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4";
         
@@ -309,11 +311,13 @@ exports.syncSheetsToFirestore = functions.https.onRequest(async (req, res) => {
     }
 });
 
-// --- Your other functions for the trade block remain unchanged ---
-exports.clearAllTradeBlocks = functions.https.onCall(async (data, context) => {
+
+// UPDATED: Changed to V2 onCall function
+exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
     // This function can remain as-is.
 });
 
-exports.reopenTradeBlocks = functions.https.onCall(async (data, context) => {
+// UPDATED: Changed to V2 onCall function
+exports.reopenTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
     // This function can remain as-is.
 });

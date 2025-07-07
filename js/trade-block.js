@@ -1,9 +1,11 @@
 // /js/trade-block.js
+import { auth, db, functions } from './firebase-init.js';
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
-
-// NOTE: The "const functions = ..." line has been removed from here.
 
 // Define teams to exclude from trade block functionality
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
@@ -207,24 +209,21 @@ function addUniversalClickListener(isAdmin, currentUserTeamId) {
         }
 
         if (isAdmin) {
-            const currentUser = firebase.auth().currentUser;
+            const currentUser = auth.currentUser; // Use the imported auth instance
             if (!currentUser) {
                 alert("Authentication error. Please refresh the page and log in again.");
                 return;
             }
 
-            // Generic function to handle the callable function logic
             const handleAdminAction = (callableName, confirmMsg, buttonText) => {
                 if (confirm(confirmMsg)) {
                     target.textContent = 'Processing...';
                     target.disabled = true;
                     
-                    // UPDATED: Initialize functions here and explicitly set the region.
-                    const functions = firebase.app().functions('us-central1');
+                    // The functions instance is now imported from firebase-init.js
+                    const action = httpsCallable(functions, callableName);
 
-                    // Force a token refresh before calling the function
                     currentUser.getIdToken(true).then(() => {
-                        const action = functions.httpsCallable(callableName);
                         return action();
                     }).then(result => {
                         alert(result.data.message);
