@@ -1,0 +1,93 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Helper Functions ---
+    // These functions make the rules easier to read and maintain.
+
+    // Checks if the currently signed-in user is an admin.
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Checks if the signed-in user is the GM of a specific team.
+    function isTeamGM(teamId) {
+      // Gets the team document and compares its gm_uid field to the user's ID.
+      return request.auth.uid == get(/databases/$(database)/documents/teams/$(teamId)).data.gm_uid;
+    }
+
+    // --- Collection Rules ---
+
+    // TRADEBLOCKS: This is the most important collection for user edits.
+    match /tradeblocks/{teamId} {
+      // Anyone can read any trade block.
+      allow read: if true;
+      // A user can write (create, update, delete) to a trade block
+      // if they are an admin OR they are the GM of that specific team.
+      allow write: if isAdmin() || isTeamGM(teamId);
+    }
+
+    // SETTINGS: Controls the trade deadline status.
+    match /settings/{settingId} {
+      // Anyone can read the settings (to see if the deadline has passed).
+      allow read: if true;
+      // Only admins can change the settings.
+      allow write: if isAdmin();
+    }
+    
+    // ADMINS: Stores who is an admin.
+    match /admins/{userId} {
+      // Only a logged-in admin can read the list of admins.
+      allow read: if isAdmin();
+      // No one can write to the admin list from the website. This must be done
+      // manually in the Firebase Console for security.
+      allow write: if false;
+    }
+
+    // PUBLIC READ-ONLY DATA
+    // The following collections contain data that is displayed publicly on the site.
+    // We allow anyone to read this data, but no one can write to it from the client.
+    // All writes are handled by your secure sync function.
+    match /players/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /teams/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /draftPicks/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /schedule/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /post_schedule/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /lineups/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /post_lineups/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /weekly_averages/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /post_weekly_averages/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /transaction_log/{doc=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
