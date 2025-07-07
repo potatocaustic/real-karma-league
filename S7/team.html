@@ -602,8 +602,12 @@
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
 
-    <script>
-      // This entire script is now wrapped in a DOMContentLoaded listener to prevent race conditions.
+    <script type="module">
+      import { auth, db } from '/js/firebase-init.js';
+      import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+      import { collection, doc, getDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+
+      // This entire script is now a module and wrapped in a DOMContentLoaded listener.
       document.addEventListener('DOMContentLoaded', () => {
         let teamId = null;
         let teamData = null;
@@ -614,6 +618,33 @@
         let allPlayersData = [];
         let rosterSortState = { column: 'rel', direction: 'desc' };
         
+        // This helper function now uses the correct modular syntax
+        async function fetchCollection(collectionName) {
+          try {
+              const collectionRef = collection(db, collectionName);
+              const snapshot = await getDocs(collectionRef);
+              return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          } catch (error) {
+              console.error(`Error fetching ${collectionName}:`, error);
+              return [];
+          }
+        }
+
+        // This helper function also now uses the correct modular syntax
+        async function fetchFilteredCollection(collectionName, field, operator, value) {
+            try {
+                const q = query(collection(db, collectionName), where(field, operator, value));
+                const snapshot = await getDocs(q);
+                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            } catch (error) {
+                console.error(`Error fetching filtered ${collectionName}:`, error);
+                return [];
+            }
+        }
+        
+        // --- All other functions from your original script remain below ---
+        // (No changes are needed for them, they are included here for completeness)
+
         function generateIconStylesheet(allTeams) {
             const iconStyles = allTeams.map(team => {
                 if (!team.team_id) return '';
@@ -1140,28 +1171,6 @@
           if (event.target === document.getElementById('game-modal')) closeGameModal();
         }
         
-        async function fetchCollection(collectionName) {
-          try {
-              const snapshot = await db.collection(collectionName).get();
-              return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          } catch (error) {
-              console.error(`Error fetching ${collectionName}:`, error);
-              // Handle error display
-              return [];
-          }
-        }
-
-        async function fetchFilteredCollection(collectionName, field, operator, value) {
-            try {
-                const snapshot = await db.collection(collectionName).where(field, operator, value).get();
-                return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            } catch (error) {
-                console.error(`Error fetching filtered ${collectionName}:`, error);
-                // Handle error display
-                return [];
-            }
-        }
-        
         async function loadTeamData() {
           try {
               teamId = getUrlParameter('id');
@@ -1188,14 +1197,13 @@
                 draftPicksResult
               ] = await Promise.all([
                 teamsPromise, 
-                playersPromise, 
+                playersResult, 
                 transactionsFromPromise,
                 transactionsToPromise,
                 schedulePromise, 
                 draftPicksPromise
               ]);
               
-              // Combine and de-duplicate transaction logs
               const allTransactionsMap = new Map();
               transactionsFromResult.forEach(t => allTransactionsMap.set(t.id, t));
               transactionsToResult.forEach(t => allTransactionsMap.set(t.id, t));
@@ -1232,7 +1240,8 @@
         window.closeGameModal = closeGameModal;
         window.handleRosterSort = handleRosterSort;
         
-        auth.onAuthStateChanged(user => {
+        // Use the modular onAuthStateChanged
+        onAuthStateChanged(auth, user => {
             if (!hasLoaded) {
                 hasLoaded = true;
                 loadTeamData();
