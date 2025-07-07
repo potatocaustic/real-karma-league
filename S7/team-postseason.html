@@ -453,16 +453,21 @@
       <a href="trade-block.html">GM Portal</a>
     </footer>
 
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js"></script>
-
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js"></script>
-    <script type="module" src="https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js"></script>
-
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
 
-    <script>
+    <script type="module">
+      // Correctly import all necessary services and functions from your centralized init file
+      import { 
+          auth, 
+          db, 
+          onAuthStateChanged,
+          collection,
+          getDocs,
+          query,
+          where
+      } from '/js/firebase-init.js';
+
       document.addEventListener('DOMContentLoaded', () => {
         let teamId = null;
         let teamData = null;
@@ -471,6 +476,7 @@
         let allPlayersData = [];
         let rosterSortState = { column: 'rel', direction: 'desc' };
         
+        // --- All helper functions (like generateIconStylesheet, normalizeDate, etc.) remain unchanged ---
         function generateIconStylesheet(allTeams) {
             const iconStyles = allTeams.map(team => {
                 if (!team.team_id) return '';
@@ -521,7 +527,7 @@
                         return '';
                     }
                 } else {
-                     date = new Date(dateString);
+                    date = new Date(dateString);
                 }
             }
             if (isNaN(date.getTime())) return '';
@@ -615,7 +621,7 @@
             return weekName.charAt(0);
         }
 
-        function handleRosterSort(column) {
+        window.handleRosterSort = (column) => {
           if (rosterSortState.column === column) {
               rosterSortState.direction = rosterSortState.direction === 'desc' ? 'asc' : 'desc';
           } else {
@@ -625,45 +631,46 @@
           loadRoster();
         }
         
+        // --- Data display functions (like displayTeamHeader) remain unchanged ---
         function displayTeamHeader() {
-          document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - Postseason Profile`;
-          const regSeasonBtn = document.getElementById('reg-season-profile-btn');
-          regSeasonBtn.href = `team.html?id=${teamId}`;
-          regSeasonBtn.style.display = 'inline-block';
+              document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - Postseason Profile`;
+              const regSeasonBtn = document.getElementById('reg-season-profile-btn');
+              regSeasonBtn.href = `team.html?id=${teamId}`;
+              regSeasonBtn.style.display = 'inline-block';
 
 
-          const wins = parseInt(teamData.post_wins || 0);
-          const losses = parseInt(teamData.post_losses || 0);
-          const pam = parseFloat(teamData.post_pam || 0);
-          
-          const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
+              const wins = parseInt(teamData.post_wins || 0);
+              const losses = parseInt(teamData.post_losses || 0);
+              const pam = parseFloat(teamData.post_pam || 0);
+              
+              const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
 
-          document.getElementById('team-main-info').innerHTML = `
-            <div style="display: flex; align-items: center; gap: 1.5rem;">
-              <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${escapeHTML(teamData.team_name)}"></div>
-              <div class="team-details">
-                <h2>${escapeHTML(teamData.team_name)}</h2>
-                <div class="postseason-subtitle">Postseason</div>
-                <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
-                <div class="gm-info">General Manager: ${escapeHTML(teamData.current_gm_handle)}</div>
-              </div>
-            </div>
-          `;
-          
-          const medRank = parseFloat(teamData.post_med_starter_rank || 0); 
-          const teamStatsContainer = document.getElementById('team-stats');
-          teamStatsContainer.innerHTML = ''; 
+              document.getElementById('team-main-info').innerHTML = `
+                <div style="display: flex; align-items: center; gap: 1.5rem;">
+                  <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${escapeHTML(teamData.team_name)}"></div>
+                  <div class="team-details">
+                    <h2>${escapeHTML(teamData.team_name)}</h2>
+                    <div class="postseason-subtitle">Postseason</div>
+                    <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
+                    <div class="gm-info">General Manager: ${escapeHTML(teamData.current_gm_handle)}</div>
+                  </div>
+                </div>
+              `;
+              
+              const medRank = parseFloat(teamData.post_med_starter_rank || 0); 
+              const teamStatsContainer = document.getElementById('team-stats');
+              teamStatsContainer.innerHTML = ''; 
 
-          const recordCard = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Postseason Record</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
-          teamStatsContainer.innerHTML += recordCard;
-          
-          const pamCard = `<div class="stat-card"><div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div><div class="stat-label">Postseason PAM</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
-          teamStatsContainer.innerHTML += pamCard;
+              const recordCard = `<div class="stat-card"><div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div><div class="stat-label">Postseason Record</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
+              teamStatsContainer.innerHTML += recordCard;
+              
+              const pamCard = `<div class="stat-card"><div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div><div class="stat-label">Postseason PAM</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
+              teamStatsContainer.innerHTML += pamCard;
 
-          const medRankCard = `<div class="stat-card"><div class="stat-value">${Math.round(medRank)}</div><div class="stat-label">Postseason Median Starter Rank</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
-          teamStatsContainer.innerHTML += medRankCard;
+              const medRankCard = `<div class="stat-card"><div class="stat-value">${Math.round(medRank)}</div><div class="stat-label">Postseason Median Starter Rank</div><div class="stat-rank" style="height:1em;">&nbsp;</div></div>`;
+              teamStatsContainer.innerHTML += medRankCard;
 
-          teamStatsContainer.style.display = 'grid';
+              teamStatsContainer.style.display = 'grid';
         }
         
         async function loadRoster() {
@@ -811,7 +818,7 @@
           document.getElementById('team-schedule').innerHTML = gamesHTML;
         }
         
-        async function showGameDetails(team1Id, team2Id, date) {
+        window.showGameDetails = async (team1Id, team2Id, date) => {
           const modal = document.getElementById('game-modal');
           const modalTitle = document.getElementById('modal-title');
           const modalContentEl = document.getElementById('modal-content'); 
@@ -857,17 +864,19 @@
           modalContentEl.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
         }
         
-        function closeGameModal() {
+        window.closeGameModal = () => {
           document.getElementById('game-modal').style.display = 'none';
         }
         
         window.onclick = (event) => {
-          if (event.target === document.getElementById('game-modal')) closeGameModal();
+          if (event.target === document.getElementById('game-modal')) window.closeGameModal();
         }
         
+        // MODIFIED: Use modular syntax for fetching data
         async function fetchCollection(collectionName) {
           try {
-              const snapshot = await db.collection(collectionName).get();
+              const collectionRef = collection(db, collectionName);
+              const snapshot = await getDocs(collectionRef);
               return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           } catch (error) {
               console.error(`Error fetching ${collectionName}:`, error);
@@ -875,9 +884,11 @@
           }
         }
 
+        // MODIFIED: Use modular syntax for fetching data
         async function fetchFilteredCollection(collectionName, field, operator, value) {
             try {
-                const snapshot = await db.collection(collectionName).where(field, operator, value).get();
+                const q = query(collection(db, collectionName), where(field, operator, value));
+                const snapshot = await getDocs(q);
                 return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             } catch (error) {
                 console.error(`Error fetching filtered ${collectionName}:`, error);
@@ -927,16 +938,14 @@
               ]);
           } catch (error) {
               console.error("A critical error occurred during data loading:", error);
-               document.querySelector('main').innerHTML = `<div class="error">A critical error occurred while loading the page. Please check the console for details.</div>` + document.querySelector('main').innerHTML;
+              document.querySelector('main').innerHTML = `<div class="error">A critical error occurred while loading the page. Please check the console for details.</div>` + document.querySelector('main').innerHTML;
           }
         }
 
         let hasLoaded = false;
-        window.showGameDetails = showGameDetails;
-        window.closeGameModal = closeGameModal;
-        window.handleRosterSort = handleRosterSort;
-        
-        auth.onAuthStateChanged(user => {
+
+        // MODIFIED: Use modular onAuthStateChanged
+        onAuthStateChanged(auth, user => {
             if (!hasLoaded) {
                 hasLoaded = true;
                 loadTeamData();
