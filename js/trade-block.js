@@ -1,17 +1,25 @@
 // /js/trade-block.js
-import { auth, db, functions } from './firebase-init.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-import { collection, doc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+
+// CORRECTED: Import everything from the centralized firebase-init.js file
+import { 
+    auth, 
+    db, 
+    functions, 
+    onAuthStateChanged, 
+    collection, 
+    doc, 
+    getDoc, 
+    getDocs, 
+    httpsCallable 
+} from './firebase-init.js';
 
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
-
-// Define teams to exclude from trade block functionality
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
 
 document.addEventListener('DOMContentLoaded', () => {
-    auth.onAuthStateChanged(async (user) => {
+    // CORRECTED: Use modular onAuthStateChanged syntax
+    onAuthStateChanged(auth, async (user) => {
         if (user) {
             await displayAllTradeBlocks(user.uid);
         } else {
@@ -22,17 +30,17 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
 async function displayAllTradeBlocks(currentUserId) {
     try {
-        // First, check the trade deadline status from Firestore
-        const settingsDoc = await db.collection('settings').doc('tradeBlock').get();
-        const tradeBlockStatus = settingsDoc.exists ? settingsDoc.data().status : 'open';
+        // CORRECTED: Use modular syntax for all Firestore calls
+        const settingsDocRef = doc(db, 'settings', 'tradeBlock');
+        const settingsDoc = await getDoc(settingsDocRef);
+        const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
         
-        const adminDoc = await db.collection("admins").doc(currentUserId).get();
-        const isAdmin = adminDoc.exists;
+        const adminDocRef = doc(db, "admins", currentUserId);
+        const adminDoc = await getDoc(adminDocRef);
+        const isAdmin = adminDoc.exists();
         
-        // Show admin controls regardless of deadline status
         if (isAdmin && adminControlsContainer) {
             adminControlsContainer.style.display = 'block';
             adminControlsContainer.innerHTML = `
@@ -46,16 +54,15 @@ async function displayAllTradeBlocks(currentUserId) {
 
         if (tradeBlockStatus === 'closed') {
             container.innerHTML = '<p style="text-align: center; font-weight: bold; font-size: 1.2rem;">Trade Deadline Passed - Trade Block Unavailable</p>';
-            addUniversalClickListener(isAdmin); // Add listener even when closed so admin can re-open
-            return; // Stop further execution
+            addUniversalClickListener(isAdmin);
+            return;
         }
 
-        // Fetch all data only if the deadline has not passed
         const [tradeBlocksSnap, teamsSnap, draftPicksSnap, playersSnap] = await Promise.all([
-            db.collection("tradeblocks").get(),
-            db.collection("teams").get(),
-            db.collection("draftPicks").get(),
-            db.collection("players").get()
+            getDocs(collection(db, "tradeblocks")),
+            getDocs(collection(db, "teams")),
+            getDocs(collection(db, "draftPicks")),
+            getDocs(collection(db, "players"))
         ]);
 
         const teamsMap = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
@@ -63,7 +70,6 @@ async function displayAllTradeBlocks(currentUserId) {
         const playersMap = new Map(playersSnap.docs.map(doc => [doc.id, doc.data()]));
 
         container.innerHTML = '';
-
         let currentUserTeamId = null;
         for (const [teamId, teamData] of teamsMap.entries()) {
             if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
@@ -75,7 +81,7 @@ async function displayAllTradeBlocks(currentUserId) {
             handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, isAdmin, currentUserId, currentUserTeamId);
         }
         
-        addUniversalClickListener(isAdmin, currentUserTeamId);
+        addUniversalClickListener(isAdmin);
 
     } catch (error) {
         console.error("Error displaying trade blocks:", error);
@@ -83,13 +89,14 @@ async function displayAllTradeBlocks(currentUserId) {
     }
 }
 
+// The following helper functions (handleEmptyState, handleExistingBlocks) have no syntax changes
+// but are included for completeness.
 function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
     
     if (isAdmin) {
         let adminSetupHtml = '<div class="trade-blocks-container"><h4>Admin: Create a Trade Block for a Team</h4>';
         teamsMap.forEach((team, teamId) => {
-            // Exclude specified teams
             if (team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())) {
                 adminSetupHtml += `
                     <div class="admin-setup-item">
@@ -113,7 +120,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
     const existingBlockTeamIds = new Set();
     tradeBlocksSnap.forEach(doc => {
         const teamId = doc.id;
-        existingBlockTeamIds.add(teamId); // Keep track of teams that have a block
+        existingBlockTeamIds.add(teamId);
         const blockData = doc.data();
         const teamData = teamsMap.get(teamId) || { team_name: teamId };
         
@@ -169,7 +176,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         container.innerHTML += setupButtonHtml;
     }
     
-    // For Admins: Show teams that do NOT have a trade block yet
     if (isAdmin) {
         let adminSetupHtml = '';
         const teamsWithoutBlocks = Array.from(teamsMap.entries()).filter(([teamId, team]) =>
@@ -191,9 +197,8 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
     }
 }
 
-// Add one universal event listener to the body to handle all clicks
 let isListenerAttached = false;
-function addUniversalClickListener(isAdmin, currentUserTeamId) {
+function addUniversalClickListener(isAdmin) {
     if (isListenerAttached) return;
     isListenerAttached = true;
     
@@ -202,16 +207,15 @@ function addUniversalClickListener(isAdmin, currentUserTeamId) {
         if (!target) return;
 
         const teamIdToEdit = target.dataset.teamId;
-
         if (teamIdToEdit) {
             window.location.href = `/S7/edit-trade-block.html?team=${teamIdToEdit}`;
             return;
         }
 
         if (isAdmin) {
-            const currentUser = auth.currentUser; // Use the imported auth instance
+            const currentUser = auth.currentUser;
             if (!currentUser) {
-                alert("Authentication error. Please refresh the page and log in again.");
+                alert("Authentication error. Please refresh and log in again.");
                 return;
             }
 
@@ -220,7 +224,6 @@ function addUniversalClickListener(isAdmin, currentUserTeamId) {
                     target.textContent = 'Processing...';
                     target.disabled = true;
                     
-                    // The functions instance is now imported from firebase-init.js
                     const action = httpsCallable(functions, callableName);
 
                     currentUser.getIdToken(true).then(() => {
@@ -238,17 +241,9 @@ function addUniversalClickListener(isAdmin, currentUserTeamId) {
             };
 
             if (target.id === 'deadline-btn') {
-                handleAdminAction(
-                    'clearAllTradeBlocks',
-                    'Are you sure you want to CLEAR ALL trade blocks and activate the deadline? This cannot be undone.',
-                    'Activate Trade Deadline'
-                );
+                handleAdminAction('clearAllTradeBlocks', 'Are you sure you want to CLEAR ALL trade blocks and activate the deadline? This cannot be undone.', 'Activate Trade Deadline');
             } else if (target.id === 'reopen-btn') {
-                handleAdminAction(
-                    'reopenTradeBlocks',
-                    'Are you sure you want to re-open trading for all teams?',
-                    'Re-Open Trading'
-                );
+                handleAdminAction('reopenTradeBlocks', 'Are you sure you want to re-open trading for all teams?', 'Re-Open Trading');
             }
         }
     });

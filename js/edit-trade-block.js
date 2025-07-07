@@ -1,8 +1,10 @@
 // /js/edit-trade-block.js
 
-import { auth, db } from './firebase-init.js';
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+// CORRECTED: Import everything from the centralized firebase-init.js
 import { 
+    auth, 
+    db,
+    onAuthStateChanged,
     collection, 
     doc, 
     getDoc, 
@@ -12,7 +14,7 @@ import {
     serverTimestamp, 
     setDoc, 
     deleteDoc 
-} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+} from './firebase-init.js';
 
 const formContainer = document.getElementById('form-container');
 const editTitle = document.getElementById('edit-title');
@@ -38,7 +40,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function authorizeAndLoadForm(user, teamId) {
     try {
-        // Define references and queries using modular syntax
         const teamRef = doc(db, "teams", teamId);
         const adminRef = doc(db, "admins", user.uid);
         const playersQuery = query(collection(db, "players"), where("current_team_id", "==", teamId));
@@ -46,7 +47,6 @@ async function authorizeAndLoadForm(user, teamId) {
         const teamsQuery = collection(db, "teams");
         const blockRef = doc(db, "tradeblocks", teamId);
 
-        // Fetch all data concurrently
         const [teamDoc, adminDoc, playersSnap, picksSnap, teamsSnap, blockDoc] = await Promise.all([
             getDoc(teamRef),
             getDoc(adminRef),
@@ -77,10 +77,8 @@ async function authorizeAndLoadForm(user, teamId) {
         let availablePlayers = playersSnap.docs.map(doc => ({ handle: doc.id, ...doc.data() }));
         let availablePicks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Sort players by WAR descending
         availablePlayers.sort((a, b) => (b.WAR || 0) - (a.WAR || 0));
 
-        // Sort picks by season, then round
         availablePicks.sort((a, b) => {
             const seasonA = parseInt(a.season || 0);
             const seasonB = parseInt(b.season || 0);
@@ -99,6 +97,8 @@ async function authorizeAndLoadForm(user, teamId) {
     }
 }
 
+// The renderForm and addSaveHandler functions are already using modern syntax
+// and do not need to be changed. They are included here for completeness.
 function renderForm(blockData, players, picks, teamsMap) {
     const formatPick = (pick) => {
         const originalTeamInfo = teamsMap.get(pick.original_team);
@@ -199,7 +199,7 @@ function addSaveHandler() {
                         on_the_block: selectedPlayers,
                         picks_available_ids: selectedPicks,
                         seeking: seekingText,
-                        last_updated: serverTimestamp() // Use modular serverTimestamp
+                        last_updated: serverTimestamp()
                     };
                     await setDoc(tradeBlockRef, updatedData, { merge: true });
                     alert("Trade block saved successfully!");

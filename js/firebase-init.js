@@ -2,10 +2,22 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-import { getFunctions } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+import { 
+    getFirestore, 
+    collection, 
+    doc, 
+    getDoc, 
+    getDocs, 
+    query, 
+    where, 
+    limit, 
+    setDoc, 
+    deleteDoc, 
+    serverTimestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration...
 const firebaseConfig = {
   apiKey: "AIzaSyDch0dQ1c9_mDzANAvfMoK1HAnMrRl1WnY",
   authDomain: "real-karma-league.firebaseapp.com",
@@ -16,7 +28,6 @@ const firebaseConfig = {
   measurementId: "G-E8LNVNG5M1"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
 // Initialize and export services
@@ -34,5 +45,9 @@ export {
   getDocs,
   query,
   where,
-  limit
+  limit,
+  httpsCallable,
+  setDoc,
+  deleteDoc,
+  serverTimestamp
 };
