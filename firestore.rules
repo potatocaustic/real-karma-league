@@ -38,10 +38,11 @@ service cloud.firestore {
     
     // ADMINS: Stores who is an admin.
     match /admins/{userId} {
-      // Only a logged-in admin can read the list of admins.
-      allow read: if isAdmin();
-      // No one can write to the admin list from the website. This must be done
-      // manually in the Firebase Console for security.
+      // CORRECTED: Allow a logged-in user to read their OWN admin document.
+      // This lets the app check if a user is an admin without creating a paradox.
+      allow read: if request.auth.uid == userId;
+      
+      // No one can write to the admin list from the website.
       allow write: if false;
     }
 
