@@ -38,9 +38,14 @@ service cloud.firestore {
     
     // ADMINS: Stores who is an admin.
     match /admins/{userId} {
-      // CORRECTED: Allow a logged-in user to read their OWN admin document.
-      // This lets the app check if a user is an admin without creating a paradox.
-      allow read: if request.auth.uid == userId;
+      // CORRECTED (Alternative): Allow any authenticated user to 'get' a 
+      // document from the admins collection. This is needed for the login flow 
+      // to check a user's admin status without causing a permission error.
+      allow get: if request.auth != null;
+
+      // We explicitly deny 'list' to prevent non-admins from seeing the 
+      // full list of admins.
+      allow list: if false;
       
       // No one can write to the admin list from the website.
       allow write: if false;
