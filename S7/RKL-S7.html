@@ -41,7 +41,7 @@
         .playoff-button {
             display: inline-block;
             background-color: #007bff;
-            color: white;
+            color: white !important; /* Ensure text color stays white */
             padding: 1rem 2rem;
             font-size: 1.25rem;
             font-weight: bold;
@@ -54,15 +54,6 @@
             .playoff-button:hover {
                 background-color: #0056b3;
                 transform: translateY(-2px);
-            }
-
-        .dark-mode .playoff-button {
-            background-color: #bb86fc;
-            color: #121212;
-        }
-
-            .dark-mode .playoff-button:hover {
-                background-color: #a76bf4;
             }
 
         .season-info {
@@ -1264,7 +1255,8 @@
 
         function calculateTeamsRemaining() {
             const eliminatedTeamIds = new Set();
-            const playoffTeams = allTeams.filter(t => t.postseed && parseInt(t.postseed) > 0);
+            // Correctly filter for the 20 teams (seeds 1-10 in each conference) that make the postseason.
+            const playoffTeams = allTeams.filter(t => t.postseed && parseInt(t.postseed) >= 1 && parseInt(t.postseed) <= 10);
 
             if (allPostSchedule.length === 0) return playoffTeams.length;
 
@@ -1272,7 +1264,7 @@
                 const winner = getSeriesWinner(series.series_id);
                 if (winner) {
                     const loser = series.team1_id === winner ? series.team2_id : series.team1_id;
-                    if (loser && loser !== 'TBD') {
+                    if (loser && loser !== 'TBD' && !loser.includes('Winner of') && !loser.includes('Loser of')) {
                         eliminatedTeamIds.add(loser);
                     }
                 }
