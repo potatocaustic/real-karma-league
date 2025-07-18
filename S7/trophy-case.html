@@ -793,20 +793,20 @@
                 : '';
 
             return `
-                  <div class="award-card">
-                    <div>
-                      <h3>${title}</h3>
-                      <div class="award-winner">
-                        <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                        <div class="winner-info">
-                          <div class="winner-name">${winnerNameHTML}</div>
-                          <div class="winner-detail">${winnerDetailHTML}</div>
+                      <div class="award-card">
+                        <div>
+                          <h3>${title}</h3>
+                          <div class="award-winner">
+                            <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                            <div class="winner-info">
+                              <div class="winner-name">${winnerNameHTML}</div>
+                              <div class="winner-detail">${winnerDetailHTML}</div>
+                            </div>
+                          </div>
                         </div>
+                        ${statsHTML}
                       </div>
-                    </div>
-                    ${statsHTML}
-                  </div>
-                `;
+                    `;
         }
 
         async function loadTrophyCase() {
@@ -833,71 +833,71 @@
             allPlayersProcessed = calculateAllPlayerStats(playersData, weeklyAveragesData, lineupsData);
 
             awardsContainer.innerHTML = `
-                    <div class="awards-grid" id="top-awards"></div>
-                    <div class="all-stars-container">
-                      <div class="all-star-team">
-                        <div class="all-star-header">
-                          <h3>
-                            <img src="icons/EAST.png" alt="East All-Stars" class="header-icon">
-                            Eastern Conference All-Stars
-                          </h3>
+                        <div class="awards-grid" id="top-awards"></div>
+                        <div class="all-stars-container">
+                          <div class="all-star-team">
+                            <div class="all-star-header">
+                              <h3>
+                                <img src="icons/EAST.png" alt="East All-Stars" class="header-icon">
+                                Eastern Conference All-Stars
+                              </h3>
+                            </div>
+                            <div class="all-star-list-header">
+                                <span class="player-col-header">Player</span>
+                                <span class="stat-col-header">REL</span>
+                                <span class="stat-col-header war-col">WAR</span>
+                                <span class="stat-col-header gem-col">GEM</span>
+                            </div>
+                            <ul class="all-star-list" id="all-stars-east"></ul>
+                          </div>
+                          <div class="all-star-team">
+                            <div class="all-star-header">
+                              <h3>
+                                <img src="icons/WEST.png" alt="West All-Stars" class="header-icon">
+                                Western Conference All-Stars
+                              </h3>
+                            </div>
+                            <div class="all-star-list-header">
+                                <span class="player-col-header">Player</span>
+                                <span class="stat-col-header">REL</span>
+                                <span class="stat-col-header war-col">WAR</span>
+                                <span class="stat-col-header gem-col">GEM</span>
+                            </div>
+                            <ul class="all-star-list" id="all-stars-west"></ul>
+                          </div>
                         </div>
-                        <div class="all-star-list-header">
-                            <span class="player-col-header">Player</span>
-                            <span class="stat-col-header">REL</span>
-                            <span class="stat-col-header war-col">WAR</span>
-                            <span class="stat-col-header gem-col">GEM</span>
-                        </div>
-                        <ul class="all-star-list" id="all-stars-east"></ul>
-                      </div>
-                      <div class="all-star-team">
-                        <div class="all-star-header">
-                          <h3>
-                            <img src="icons/WEST.png" alt="West All-Stars" class="header-icon">
-                            Western Conference All-Stars
-                          </h3>
-                        </div>
-                        <div class="all-star-list-header">
-                            <span class="player-col-header">Player</span>
-                            <span class="stat-col-header">REL</span>
-                            <span class="stat-col-header war-col">WAR</span>
-                            <span class="stat-col-header gem-col">GEM</span>
-                        </div>
-                        <ul class="all-star-list" id="all-stars-west"></ul>
-                      </div>
-                    </div>
-                    <div class="all-stars-container">
-                      <div class="all-star-team">
-                        <div class="all-star-header">
-                          <h3>
-                            <img src="icons/RSE.png" alt="East Rising Stars" class="header-icon">
-                            Eastern Conference Rising Stars
-                          </h3>
-                        </div>
-                        <div class="all-star-list-header">
-                            <span class="player-col-header">Player</span>
-                            <span class="stat-col-header">REL</span>
-                            <span class="stat-col-header war-col">WAR</span>
-                            <span class="stat-col-header gem-col">GEM</span>
-                        </div>
-                        <ul class="all-star-list" id="rising-stars-east"></ul>
-                      </div>
-                      <div class="all-star-team">
-                        <div class="all-star-header">
-                          <h3>
-                            <img src="icons/RSW.png" alt="West Rising Stars" class="header-icon">
-                            Western Conference Rising Stars
-                          </h3>
-                        </div>
-                        <div class="all-star-list-header">
-                            <span class="player-col-header">Player</span>
-                            <span class="stat-col-header">REL</span>
-                            <span class="stat-col-header war-col">WAR</span>
-                            <span class="stat-col-header gem-col">GEM</span>
-                        </div>
-                        <ul class="all-star-list" id="rising-stars-west"></ul>
-                      </div>
-                    </div>`;
+                        <div class="all-stars-container">
+                          <div class="all-star-team">
+                            <div class="all-star-header">
+                              <h3>
+                                <img src="icons/RSE.png" alt="East Rising Stars" class="header-icon">
+                                Eastern Conference Rising Stars
+                              </h3>
+                            </div>
+                            <div class="all-star-list-header">
+                                <span class="player-col-header">Player</span>
+                                <span class="stat-col-header">REL</span>
+                                <span class="stat-col-header war-col">WAR</span>
+                                <span class="stat-col-header gem-col">GEM</span>
+                            </div>
+                            <ul class="all-star-list" id="rising-stars-east"></ul>
+                          </div>
+                          <div class="all-star-team">
+                            <div class="all-star-header">
+                              <h3>
+                                <img src="icons/RSW.png" alt="West Rising Stars" class="header-icon">
+                                Western Conference Rising Stars
+                              </h3>
+                            </div>
+                            <div class="all-star-list-header">
+                                <span class="player-col-header">Player</span>
+                                <span class="stat-col-header">REL</span>
+                                <span class="stat-col-header war-col">WAR</span>
+                                <span class="stat-col-header gem-col">GEM</span>
+                            </div>
+                            <ul class="all-star-list" id="rising-stars-west"></ul>
+                          </div>
+                        </div>`;
 
             const topAwardsContainer = document.getElementById('top-awards');
             let topAwardsHTML = '';
@@ -905,13 +905,13 @@
             weeklyAveragesData.forEach(wa => { dateToWeekMap[wa.date] = wa.week; });
 
             const tbdCardHTML = (title) => `
-                    <div class="award-card">
-                        <h3>${title}</h3>
-                        <div class="award-winner" style="flex-grow: 1; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: #999;">
-                            TBD
+                        <div class="award-card">
+                            <h3>${title}</h3>
+                            <div class="award-winner" style="flex-grow: 1; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: #999;">
+                                TBD
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
 
             const createTeamStatsString = (teamData) => {
                 if (!teamData) return '';
@@ -962,6 +962,8 @@
             const fmvpRow = trophyData.find(d => d.Award === 'FMVP');
             const royRow = trophyData.find(d => d.Award === 'ROY');
             const smoyRow = trophyData.find(d => d.Award === '6MOY');
+            const mipRow = trophyData.find(d => d.Award === 'MIP');
+            const lvpRow = trophyData.find(d => d.Award === 'LVP');
             const gmoyRow = trophyData.find(d => d.Award === 'GMOY');
 
             // League Champions
@@ -1033,6 +1035,24 @@
                 topAwardsHTML += tbdCardHTML('Sixth Man of the Year');
             }
 
+            // Most Improved Player
+            if (mipRow && mipRow.Player) {
+                const mipTeam = allTeamsData.find(t => t.team_name === mipRow.team_name);
+                const mipPlayerStats = allPlayersProcessed.find(p => p.player_handle === mipRow.Player);
+                topAwardsHTML += createAwardCard('Most Improved Player', { name: mipRow.Player, detail: mipRow.team_name, detailLink: `team.html?id=${mipTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(mipRow.Player)}`, logoId: mipTeam?.team_id, stats: createPlayerStatsString(mipPlayerStats) });
+            } else {
+                topAwardsHTML += tbdCardHTML('Most Improved Player');
+            }
+
+            // League LVP
+            if (lvpRow && lvpRow.Player) {
+                const lvpTeam = allTeamsData.find(t => t.team_name === lvpRow.team_name);
+                const lvpPlayerStats = allPlayersProcessed.find(p => p.player_handle === lvpRow.Player);
+                topAwardsHTML += createAwardCard('League LVP', { name: lvpRow.Player, detail: lvpRow.team_name, detailLink: `team.html?id=${lvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(lvpRow.Player)}`, logoId: lvpTeam?.team_id, stats: createPlayerStatsString(lvpPlayerStats) });
+            } else {
+                topAwardsHTML += tbdCardHTML('League LVP');
+            }
+
             // GM of the Year
             if (gmoyRow && gmoyRow.gm_handle && gmoyRow.gm_team) {
                 const gmoyTeamData = allTeamsData.find(t => t.team_name === gmoyRow.gm_team);
@@ -1071,21 +1091,21 @@
             const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
 
             return `
-                        <li class="all-star-item">
-                            <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                            <div class="all-star-player-info">
-                                <a href="player.html?player=${encodeURIComponent(playerStats.player_handle)}">
-                                    ${playerStats.player_handle}
-                                    ${rookieBadge}
-                                    ${allStarBadge}
-                                </a>
-                                <span class="all-star-stats">Med Rank: ${medianRankDisplay}</span>
-                            </div>
-                            <div class="all-star-stat">${relMedianDisplay}</div>
-                            <div class="all-star-stat war-col">${warDisplay}</div>
-                            <div class="all-star-stat gem-col">${gemDisplay}</div>
-                        </li>
-                    `;
+                            <li class="all-star-item">
+                                <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                                <div class="all-star-player-info">
+                                    <a href="player.html?player=${encodeURIComponent(playerStats.player_handle)}">
+                                        ${playerStats.player_handle}
+                                        ${rookieBadge}
+                                        ${allStarBadge}
+                                    </a>
+                                    <span class="all-star-stats">Med Rank: ${medianRankDisplay}</span>
+                                </div>
+                                <div class="all-star-stat">${relMedianDisplay}</div>
+                                <div class="all-star-stat war-col">${warDisplay}</div>
+                                <div class="all-star-stat gem-col">${gemDisplay}</div>
+                            </li>
+                        `;
         };
 
         function closeGameModal() {
@@ -1143,13 +1163,13 @@
                 }).join('');
 
                 return `<div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                            <div class="modal-team-header ${isWinner ? 'winner' : ''}">
-                              <img src="icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'"/>
-                              <h4>${teamData.team_name}</h4>
-                            </div>
-                            <div class="team-total">Total: ${total.toLocaleString()}</div>
-                            <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
-                          </div>`;
+                                <div class="modal-team-header ${isWinner ? 'winner' : ''}">
+                                  <img src="icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'"/>
+                                  <h4>${teamData.team_name}</h4>
+                                </div>
+                                <div class="team-total">Total: ${total.toLocaleString()}</div>
+                                <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
+                              </div>`;
             };
 
             modalBody.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
