@@ -699,7 +699,12 @@
         result.push(current.trim());
         return result.map(field => field.replace(/^"(.*)"$/, '$1').replace(/\\"/g, '"'));
        }
-      
+
+      function getPlayInWinner(seriesId) {
+        const series = allGames.find(g => g.series_id === seriesId);
+        return series ? (series.winner || null) : null;
+       }
+
       function formatDate(dateString) { 
         if (!dateString) return 'Invalid Date';
         if (dateString.toUpperCase() === 'TBD') return 'TBD';
@@ -892,6 +897,22 @@
         const weekSummarySection = document.getElementById('week-summary');
         
         const isPostseason = POSTSEASON_WEEK_IDS.includes(String(week));
+
+        const finalSeedMap = {};
+        if (isPostseason) {
+            // Determine the actual 7th and 8th seeds from play-in results
+            const w7_final = getPlayInWinner('W-PI-7v8');
+            const w8_final = getPlayInWinner('W-PI-L78vW910');
+            const e7_final = getPlayInWinner('E-PI-7v8');
+            const e8_final = getPlayInWinner('E-PI-L78vW910');
+
+            // Map the winning teams to their new, correct seeds
+            if (w7_final) finalSeedMap[w7_final] = '7';
+            if (w8_final) finalSeedMap[w8_final] = '8';
+            if (e7_final) finalSeedMap[e7_final] = '7';
+            if (e8_final) finalSeedMap[e8_final] = '8';
+         }
+
         let gamesToRender = weekGames;
 
         if (isPostseason && weekGames.length > 0) {
@@ -1011,7 +1032,11 @@
               const team1Score = parseNumber(game.team1_score);
               const team2Score = parseNumber(game.team2_score);
               const winner = game.winner;
+              let team1Seed = finalSeedMap[game.team1_id] || game.team1_seed;
+              let team2Seed = finalSeedMap[game.team2_id] || game.team2_seed;
 
+              const team1SeedHtml = isPostseason && team1Seed ? `<span class="team-seed">(${team1Seed})</span> ` : '';
+              const team2SeedHtml = isPostseason && team2Seed ? `<span class="team-seed">(${team2Seed})</span> ` : '';
               let team1Record = '';
               let team2Record = '';
 
