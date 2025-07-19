@@ -957,14 +957,14 @@
 
             // --- Render Cards ---
             const champRow = trophyData.find(d => d.Award === 'CHAMP');
-            const regSznRow = trophyData.find(d => d.Award === 'REGSZN');
-            const mvpRow = trophyData.find(d => d.Award === 'MVP');
             const fmvpRow = trophyData.find(d => d.Award === 'FMVP');
+            const mvpRow = trophyData.find(d => d.Award === 'MVP');
+            const regSznRow = trophyData.find(d => d.Award === 'REGSZN');
+            const gmoyRow = trophyData.find(d => d.Award === 'GMOY');
             const royRow = trophyData.find(d => d.Award === 'ROY');
             const smoyRow = trophyData.find(d => d.Award === '6MOY');
             const mipRow = trophyData.find(d => d.Award === 'MIP');
             const lvpRow = trophyData.find(d => d.Award === 'LVP');
-            const gmoyRow = trophyData.find(d => d.Award === 'GMOY');
 
             // League Champions
             const champTeamData = allTeamsData.find(t => t.team_name === champRow?.team_name);
