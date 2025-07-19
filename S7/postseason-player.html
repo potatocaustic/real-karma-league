@@ -1016,7 +1016,7 @@
 
     <main>
         <a href="#" id="regular-season-btn" class="back-button" style="background-color: #6c757d;">&larr; Regular Season Profile</a>
-        <a href="leaderboards.html" class="back-button">Leaderboards</a>
+        <a href="postseason-leaderboards.html" class="back-button">Leaderboards</a>
 
         <div class="player-header">
             <div class="player-main-info" id="player-main-info">
@@ -1082,17 +1082,17 @@
             const styleElement = document.getElementById('team-icon-styles');
             if (styleElement) {
                 styleElement.innerHTML = `
-                          .team-logo-css {
-                              background-size: cover;
-                              background-position: center;
-                              background-repeat: no-repeat;
-                              display: inline-block;
-                              vertical-align: middle;
-                              flex-shrink: 0;
-                          }
-                          ${iconStyles}
-                          ${faIconStyle}
-                      `;
+                              .team-logo-css {
+                                  background-size: cover;
+                                  background-position: center;
+                                  background-repeat: no-repeat;
+                                  display: inline-block;
+                                  vertical-align: middle;
+                                  flex-shrink: 0;
+                              }
+                              ${iconStyles}
+                              ${faIconStyle}
+                          `;
             }
         }
 
@@ -1156,6 +1156,16 @@
             const suffix = ['th', 'st', 'nd', 'rd'];
             const v = n % 100;
             return n + (suffix[(v - 20) % 10] || suffix[v] || suffix[0]);
+        }
+
+        function formatPostseasonRound(week) {
+            const weekStr = String(week).trim();
+            // Check if the string is a valid number and nothing else
+            if (/^\d+$/.test(weekStr)) {
+                return `Round ${weekStr}`;
+            }
+            // Otherwise (e.g., "Play-In", "Conf Finals", "Finals"), use the value as is.
+            return weekStr;
         }
 
         function calculateAllPlayerStats(players, weeklyAverages, lineups) {
@@ -1453,14 +1463,14 @@
             const isRookie = playerData.rookie === '1';
 
             document.getElementById('player-main-info').innerHTML = `
-                  ${teamLogoHTML}
-                  <div class="player-details">
-                    <h2>${playerData.player_handle}${isRookie ? '<span class="rookie-badge">R</span>' : ''}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</h2>
-                    <div class="season-indicator">Postseason</div>
-                    <div class="player-subtitle">${playerData.player_status} • ${gamesPlayed} games played</div>
-                    ${teamInfoHTML}
-                    ${previousTeamsHTML}
-                  </div>`;
+                      ${teamLogoHTML}
+                      <div class="player-details">
+                        <h2>${playerData.player_handle}${isRookie ? '<span class="rookie-badge">R</span>' : ''}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</h2>
+                        <div class="season-indicator">Postseason</div>
+                        <div class="player-subtitle">${playerData.player_status} • ${gamesPlayed} games played</div>
+                        ${teamInfoHTML}
+                        ${previousTeamsHTML}
+                      </div>`;
 
             const warValue = playerData.WAR || 0;
             const relMedian = playerData.calculated_rel_median || 0;
@@ -1476,16 +1486,16 @@
             const rankClass = (rankText) => String(rankText).includes("req") ? "stat-rank unranked-gp-required" : "stat-rank";
 
             document.getElementById('player-stats').innerHTML = `
-                  <a href="postseason-leaderboards.html?category=war" class="stat-card-link"><div class="stat-card">
-                    <div class="stat-value">${warValue.toFixed(2)}</div><div class="stat-label">WAR</div><div class="${rankClass(rankings.war)}">${rankings.war}</div></div></a>
-                  <a href="postseason-leaderboards.html?category=rel_median" class="stat-card-link"><div class="stat-card">
-                    <div class="stat-value">${relMedian.toFixed(3)}</div><div class="stat-label">REL Median</div><div class="${rankClass(rankings.relMedian)}">${rankings.relMedian}</div></div></a>
-                  <a href="postseason-leaderboards.html?category=median_gameday_rank" class="stat-card-link"><div class="stat-card">
-                    <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Gameday Rank</div><div class="${rankClass(rankings.medianRank)}">${rankings.medianRank}</div></div></a>
-                  <a href="postseason-leaderboards.html?category=gem" class="stat-card-link"><div class="stat-card">
-                    <div class="stat-value">${gemValue > 0 ? gemValue.toFixed(1) : '-'}</div><div class="stat-label">GEM</div><div class="${rankClass(rankings.gem)}">${rankings.gem}</div></div></a>
-                  <a href="postseason-leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="${rankClass(rankings.gamesAboveMedian)}">${rankings.gamesAboveMedian || 'Unranked'}</div></div></a>
-                  `;
+                      <a href="postseason-leaderboards.html?category=war" class="stat-card-link"><div class="stat-card">
+                        <div class="stat-value">${warValue.toFixed(2)}</div><div class="stat-label">WAR</div><div class="${rankClass(rankings.war)}">${rankings.war}</div></div></a>
+                      <a href="postseason-leaderboards.html?category=rel_median" class="stat-card-link"><div class="stat-card">
+                        <div class="stat-value">${relMedian.toFixed(3)}</div><div class="stat-label">REL Median</div><div class="${rankClass(rankings.relMedian)}">${rankings.relMedian}</div></div></a>
+                      <a href="postseason-leaderboards.html?category=median_gameday_rank" class="stat-card-link"><div class="stat-card">
+                        <div class="stat-value">${medianRankValueForDisplay}</div><div class="stat-label">Median Gameday Rank</div><div class="${rankClass(rankings.medianRank)}">${rankings.medianRank}</div></div></a>
+                      <a href="postseason-leaderboards.html?category=gem" class="stat-card-link"><div class="stat-card">
+                        <div class="stat-value">${gemValue > 0 ? gemValue.toFixed(1) : '-'}</div><div class="stat-label">GEM</div><div class="${rankClass(rankings.gem)}">${rankings.gem}</div></div></a>
+                      <a href="postseason-leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${gamesAboveMedian}</div><div class="stat-label">Games Above Median</div><div class="${rankClass(rankings.gamesAboveMedian)}">${rankings.gamesAboveMedian || 'Unranked'}</div></div></a>
+                      `;
             document.getElementById('player-stats').style.display = 'grid';
         }
 
@@ -1523,18 +1533,18 @@
                 let onclickAttr = '';
                 if (gameForLineup && gameForLineup.completed === 'TRUE') {
                     onclickAttr = `onclick="showGameDetails(
-                      '${gameForLineup.team1_id}',
-                      '${gameForLineup.team2_id}',
-                      '${gameForLineup.date}'
-                    )"`;
+                          '${gameForLineup.team1_id}',
+                          '${gameForLineup.team2_id}',
+                          '${gameForLineup.date}'
+                        )"`;
                 }
 
                 return `<tr class="${isCaptain ? 'captain-row' : ''} ${gameForLineup && gameForLineup.completed === 'TRUE' ? 'clickable-row' : ''}" ${onclickAttr}>
-                            <td>Round ${lineup.week}${isCaptain ? '<span class="captain-badge-small">C</span>' : ''}</td>
-                            <td>${Math.round(pointsRaw).toLocaleString()}${isCaptain ? ` (+${Math.round(pointsRaw * 0.5).toLocaleString()})` : ''}</td>
-                            <td>${formatWeeklyPerformanceRank(globalRank)}</td>
-                            <td>${isCaptain ? 'Captain' : 'Starter'}</td>
-                          </tr>`;
+                                <td>${formatPostseasonRound(lineup.week)}${isCaptain ? '<span class="captain-badge-small">C</span>' : ''}</td>
+                                <td>${Math.round(pointsRaw).toLocaleString()}${isCaptain ? ` (+${Math.round(pointsRaw * 0.5).toLocaleString()})` : ''}</td>
+                                <td>${formatWeeklyPerformanceRank(globalRank)}</td>
+                                <td>${isCaptain ? 'Captain' : 'Starter'}</td>
+                              </tr>`;
             }).join('');
             document.getElementById('performance-table').innerHTML = performanceHTML;
         }
@@ -1592,30 +1602,30 @@
                 }
 
                 return `
-                    <div class="game-item" onclick="showGameDetails(
-                      '${game.team1_id}',
-                      '${game.team2_id}',
-                      '${game.date}'
-                    )">
-                      <div class="game-history-main-content">
-                        <div class="game-history-matchup-teams">
-                            <span class="game-history-team-entry">
-                              <div class="team-logo-css game-history-team-logo ${playerTeamIdClassName}" role="img" aria-label="${playerTeamName}"></div>
-                              <span class="game-history-team-name">${playerTeamName} ${playerTeamResultIndicator}</span>
-                            </span>
-                            <span class="game-history-vs-separator">vs</span>
-                            <span class="game-history-team-entry">
-                              <div class="team-logo-css game-history-team-logo ${opponentIdClassName}" role="img" aria-label="${opponentTeamName}"></div>
-                              <span class="game-history-team-name">${opponentTeamName} ${opponentTeamResultIndicator}</span>
-                            </span>
-                        </div>
-                        <div class="game-history-date">${formatDate(game.date)} (Round ${game.lineup.week})</div>
-                      </div>
-                      <div class="game-performance">
-                        <div class="performance-score ${isCaptain ? 'captain-performance' : ''}">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? ' (C)' : ''}</div>
-                        <div class="performance-rank">Rank: ${globalRank > 0 ? Math.round(globalRank) : '-'}</div>
-                      </div>
-                    </div>`;
+                        <div class="game-item" onclick="showGameDetails(
+                          '${game.team1_id}',
+                          '${game.team2_id}',
+                          '${game.date}'
+                        )">
+                          <div class="game-history-main-content">
+                            <div class="game-history-matchup-teams">
+                                <span class="game-history-team-entry">
+                                  <div class="team-logo-css game-history-team-logo ${playerTeamIdClassName}" role="img" aria-label="${playerTeamName}"></div>
+                                  <span class="game-history-team-name">${playerTeamName} ${playerTeamResultIndicator}</span>
+                                </span>
+                                <span class="game-history-vs-separator">vs</span>
+                                <span class="game-history-team-entry">
+                                  <div class="team-logo-css game-history-team-logo ${opponentIdClassName}" role="img" aria-label="${opponentTeamName}"></div>
+                                  <span class="game-history-team-name">${opponentTeamName} ${opponentTeamResultIndicator}</span>
+                                </span>
+                            </div>
+                            <div class="game-history-date">${formatDate(game.date)} (${formatPostseasonRound(game.lineup.week)})</div>
+                          </div>
+                          <div class="game-performance">
+                            <div class="performance-score ${isCaptain ? 'captain-performance' : ''}">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? ' (C)' : ''}</div>
+                            <div class="performance-rank">Rank: ${globalRank > 0 ? Math.round(globalRank) : '-'}</div>
+                          </div>
+                        </div>`;
             }).join('');
             document.getElementById('game-history').innerHTML = historyHTML;
         }
