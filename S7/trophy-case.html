@@ -125,6 +125,11 @@
                     text-decoration: underline;
                 }
 
+            /* Style for negative stats, like LVP */
+            .winner-stats .detail-negative {
+                color: #d9534f; /* Readable red color */
+            }
+
         .all-stars-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -472,6 +477,11 @@
                     color: #81c784;
                 }
 
+            /* LVP stat color for dark mode */
+            .dark-mode .winner-stats .detail-negative {
+                color: #f87171; /* Lighter red for dark mode */
+            }
+
         .dark-mode .all-star-list-header {
             background-color: #2c2c2c;
             border-bottom-color: #444;
@@ -793,20 +803,20 @@
                 : '';
 
             return `
-                      <div class="award-card">
-                        <div>
-                          <h3>${title}</h3>
-                          <div class="award-winner">
-                            <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                            <div class="winner-info">
-                              <div class="winner-name">${winnerNameHTML}</div>
-                              <div class="winner-detail">${winnerDetailHTML}</div>
+                          <div class="award-card">
+                            <div>
+                              <h3>${title}</h3>
+                              <div class="award-winner">
+                                <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                                <div class="winner-info">
+                                  <div class="winner-name">${winnerNameHTML}</div>
+                                  <div class="winner-detail">${winnerDetailHTML}</div>
+                                </div>
+                              </div>
                             </div>
+                            ${statsHTML}
                           </div>
-                        </div>
-                        ${statsHTML}
-                      </div>
-                    `;
+                        `;
         }
 
         async function loadTrophyCase() {
@@ -833,71 +843,71 @@
             allPlayersProcessed = calculateAllPlayerStats(playersData, weeklyAveragesData, lineupsData);
 
             awardsContainer.innerHTML = `
-                        <div class="awards-grid" id="top-awards"></div>
-                        <div class="all-stars-container">
-                          <div class="all-star-team">
-                            <div class="all-star-header">
-                              <h3>
-                                <img src="icons/EAST.png" alt="East All-Stars" class="header-icon">
-                                Eastern Conference All-Stars
-                              </h3>
+                            <div class="awards-grid" id="top-awards"></div>
+                            <div class="all-stars-container">
+                              <div class="all-star-team">
+                                <div class="all-star-header">
+                                  <h3>
+                                    <img src="icons/EAST.png" alt="East All-Stars" class="header-icon">
+                                    Eastern Conference All-Stars
+                                  </h3>
+                                </div>
+                                <div class="all-star-list-header">
+                                    <span class="player-col-header">Player</span>
+                                    <span class="stat-col-header">REL</span>
+                                    <span class="stat-col-header war-col">WAR</span>
+                                    <span class="stat-col-header gem-col">GEM</span>
+                                </div>
+                                <ul class="all-star-list" id="all-stars-east"></ul>
+                              </div>
+                              <div class="all-star-team">
+                                <div class="all-star-header">
+                                  <h3>
+                                    <img src="icons/WEST.png" alt="West All-Stars" class="header-icon">
+                                    Western Conference All-Stars
+                                  </h3>
+                                </div>
+                                <div class="all-star-list-header">
+                                    <span class="player-col-header">Player</span>
+                                    <span class="stat-col-header">REL</span>
+                                    <span class="stat-col-header war-col">WAR</span>
+                                    <span class="stat-col-header gem-col">GEM</span>
+                                </div>
+                                <ul class="all-star-list" id="all-stars-west"></ul>
+                              </div>
                             </div>
-                            <div class="all-star-list-header">
-                                <span class="player-col-header">Player</span>
-                                <span class="stat-col-header">REL</span>
-                                <span class="stat-col-header war-col">WAR</span>
-                                <span class="stat-col-header gem-col">GEM</span>
-                            </div>
-                            <ul class="all-star-list" id="all-stars-east"></ul>
-                          </div>
-                          <div class="all-star-team">
-                            <div class="all-star-header">
-                              <h3>
-                                <img src="icons/WEST.png" alt="West All-Stars" class="header-icon">
-                                Western Conference All-Stars
-                              </h3>
-                            </div>
-                            <div class="all-star-list-header">
-                                <span class="player-col-header">Player</span>
-                                <span class="stat-col-header">REL</span>
-                                <span class="stat-col-header war-col">WAR</span>
-                                <span class="stat-col-header gem-col">GEM</span>
-                            </div>
-                            <ul class="all-star-list" id="all-stars-west"></ul>
-                          </div>
-                        </div>
-                        <div class="all-stars-container">
-                          <div class="all-star-team">
-                            <div class="all-star-header">
-                              <h3>
-                                <img src="icons/RSE.png" alt="East Rising Stars" class="header-icon">
-                                Eastern Conference Rising Stars
-                              </h3>
-                            </div>
-                            <div class="all-star-list-header">
-                                <span class="player-col-header">Player</span>
-                                <span class="stat-col-header">REL</span>
-                                <span class="stat-col-header war-col">WAR</span>
-                                <span class="stat-col-header gem-col">GEM</span>
-                            </div>
-                            <ul class="all-star-list" id="rising-stars-east"></ul>
-                          </div>
-                          <div class="all-star-team">
-                            <div class="all-star-header">
-                              <h3>
-                                <img src="icons/RSW.png" alt="West Rising Stars" class="header-icon">
-                                Western Conference Rising Stars
-                              </h3>
-                            </div>
-                            <div class="all-star-list-header">
-                                <span class="player-col-header">Player</span>
-                                <span class="stat-col-header">REL</span>
-                                <span class="stat-col-header war-col">WAR</span>
-                                <span class="stat-col-header gem-col">GEM</span>
-                            </div>
-                            <ul class="all-star-list" id="rising-stars-west"></ul>
-                          </div>
-                        </div>`;
+                            <div class="all-stars-container">
+                              <div class="all-star-team">
+                                <div class="all-star-header">
+                                  <h3>
+                                    <img src="icons/RSE.png" alt="East Rising Stars" class="header-icon">
+                                    Eastern Conference Rising Stars
+                                  </h3>
+                                </div>
+                                <div class="all-star-list-header">
+                                    <span class="player-col-header">Player</span>
+                                    <span class="stat-col-header">REL</span>
+                                    <span class="stat-col-header war-col">WAR</span>
+                                    <span class="stat-col-header gem-col">GEM</span>
+                                </div>
+                                <ul class="all-star-list" id="rising-stars-east"></ul>
+                              </div>
+                              <div class="all-star-team">
+                                <div class="all-star-header">
+                                  <h3>
+                                    <img src="icons/RSW.png" alt="West Rising Stars" class="header-icon">
+                                    Western Conference Rising Stars
+                                  </h3>
+                                </div>
+                                <div class="all-star-list-header">
+                                    <span class="player-col-header">Player</span>
+                                    <span class="stat-col-header">REL</span>
+                                    <span class="stat-col-header war-col">WAR</span>
+                                    <span class="stat-col-header gem-col">GEM</span>
+                                </div>
+                                <ul class="all-star-list" id="rising-stars-west"></ul>
+                              </div>
+                            </div>`;
 
             const topAwardsContainer = document.getElementById('top-awards');
             let topAwardsHTML = '';
@@ -905,13 +915,13 @@
             weeklyAveragesData.forEach(wa => { dateToWeekMap[wa.date] = wa.week; });
 
             const tbdCardHTML = (title) => `
-                        <div class="award-card">
-                            <h3>${title}</h3>
-                            <div class="award-winner" style="flex-grow: 1; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: #999;">
-                                TBD
+                            <div class="award-card">
+                                <h3>${title}</h3>
+                                <div class="award-winner" style="flex-grow: 1; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; color: #999;">
+                                    TBD
+                                </div>
                             </div>
-                        </div>
-                    `;
+                        `;
 
             const createTeamStatsString = (teamData) => {
                 if (!teamData) return '';
@@ -955,7 +965,7 @@
                 }
             });
 
-            // --- Render Cards ---
+            // --- Get Award Data from Sheet ---
             const champRow = trophyData.find(d => d.Award === 'CHAMP');
             const fmvpRow = trophyData.find(d => d.Award === 'FMVP');
             const mvpRow = trophyData.find(d => d.Award === 'MVP');
@@ -966,7 +976,9 @@
             const mipRow = trophyData.find(d => d.Award === 'MIP');
             const lvpRow = trophyData.find(d => d.Award === 'LVP');
 
-            // League Champions
+            // --- RENDER CARDS IN NEW ORDER ---
+
+            // Row 1: League Champions, Finals MVP, League MVP
             const champTeamData = allTeamsData.find(t => t.team_name === champRow?.team_name);
             if (champRow && champTeamData) {
                 topAwardsHTML += createAwardCard('🏆 League Champions 🏆', { name: champRow.team_name, detail: 'Season 7', link: `team.html?id=${champTeamData.team_id}`, logoId: champTeamData.team_id, stats: createTeamStatsString(champTeamData) });
@@ -974,32 +986,6 @@
                 topAwardsHTML += tbdCardHTML('🏆 League Champions 🏆');
             }
 
-            // Regular Season Awards Block
-            if (regSznRow && regSznRow.team_name) {
-                const regSznTeamData = allTeamsData.find(t => t.team_name === regSznRow.team_name);
-                topAwardsHTML += createAwardCard('Regular Season Title', { name: regSznRow.team_name, detail: 'Best Record', link: `team.html?id=${regSznTeamData?.team_id}`, logoId: regSznTeamData?.team_id, stats: createTeamStatsString(regSznTeamData) });
-
-                if (bestTeamPerf.game) {
-                    const teamData = allTeamsData.find(t => t.team_id === bestTeamPerf.team_id);
-                    const week = dateToWeekMap[bestTeamPerf.game.date] || '';
-                    topAwardsHTML += createAwardCard('Best Performance (Team)', { name: teamData.team_name, detail: `Week ${week}: ${bestTeamPerf.score.toLocaleString()} pts`, link: `team.html?id=${teamData.team_id}`, logoId: teamData.team_id, stats: `<span class="detail-positive">+${bestTeamPerf.percentage_diff.toFixed(1)}%</span> over median`, modalOnClick: `showGameDetails('${bestTeamPerf.game.team1_id}','${bestTeamPerf.game.team2_id}','${bestTeamPerf.game.date}')` });
-                } else {
-                    topAwardsHTML += tbdCardHTML('Best Performance (Team)');
-                }
-
-                if (bestPlayerPerf.game) {
-                    const teamData = allTeamsData.find(t => t.team_id === bestPlayerPerf.team_id);
-                    topAwardsHTML += createAwardCard('Best Performance (Player)', { name: bestPlayerPerf.player_handle, detail: `Week ${bestPlayerPerf.week}: ${bestPlayerPerf.score.toLocaleString()} pts`, link: `player.html?player=${encodeURIComponent(bestPlayerPerf.player_handle)}`, logoId: teamData?.team_id, stats: `<span class="detail-positive">+${bestPlayerPerf.percentage_diff.toFixed(1)}%</span> over median`, modalOnClick: `showGameDetails('${bestPlayerPerf.game.team1_id}','${bestPlayerPerf.game.team2_id}','${bestPlayerPerf.game.date}')` });
-                } else {
-                    topAwardsHTML += tbdCardHTML('Best Performance (Player)');
-                }
-            } else {
-                topAwardsHTML += tbdCardHTML('Regular Season Title');
-                topAwardsHTML += tbdCardHTML('Best Performance (Team)');
-                topAwardsHTML += tbdCardHTML('Best Performance (Player)');
-            }
-
-            // Finals MVP
             if (fmvpRow && fmvpRow.Player) {
                 const fmvpTeam = allTeamsData.find(t => t.team_name === fmvpRow.team_name);
                 const fmvpPlayerStats = allPlayersProcessed.find(p => p.player_handle === fmvpRow.Player);
@@ -1008,7 +994,6 @@
                 topAwardsHTML += tbdCardHTML('Finals MVP');
             }
 
-            // MVP
             if (mvpRow && mvpRow.Player) {
                 const mvpTeam = allTeamsData.find(t => t.team_name === mvpRow.team_name);
                 const mvpPlayerStats = allPlayersProcessed.find(p => p.player_handle === mvpRow.Player);
@@ -1017,7 +1002,21 @@
                 topAwardsHTML += tbdCardHTML('League MVP');
             }
 
-            // Rookie of the Year
+            // Row 2: Regular Season Title, GM of the Year, Rookie of the Year
+            if (regSznRow && regSznRow.team_name) {
+                const regSznTeamData = allTeamsData.find(t => t.team_name === regSznRow.team_name);
+                topAwardsHTML += createAwardCard('Regular Season Title', { name: regSznRow.team_name, detail: 'Best Record', link: `team.html?id=${regSznTeamData?.team_id}`, logoId: regSznTeamData?.team_id, stats: createTeamStatsString(regSznTeamData) });
+            } else {
+                topAwardsHTML += tbdCardHTML('Regular Season Title');
+            }
+
+            if (gmoyRow && gmoyRow.gm_handle && gmoyRow.gm_team) {
+                const gmoyTeamData = allTeamsData.find(t => t.team_name === gmoyRow.gm_team);
+                topAwardsHTML += createAwardCard('GM of the Year', { name: gmoyRow.gm_handle, detail: gmoyRow.gm_team, detailLink: `team.html?id=${gmoyTeamData?.team_id}`, link: null, logoId: gmoyTeamData?.team_id, stats: createTeamStatsString(gmoyTeamData) });
+            } else {
+                topAwardsHTML += tbdCardHTML('GM of the Year');
+            }
+
             if (royRow && royRow.Player) {
                 const royTeam = allTeamsData.find(t => t.team_name === royRow.team_name);
                 const royPlayerStats = allPlayersProcessed.find(p => p.player_handle === royRow.Player);
@@ -1026,15 +1025,7 @@
                 topAwardsHTML += tbdCardHTML('Rookie of the Year');
             }
 
-            // GM of the Year
-            if (gmoyRow && gmoyRow.gm_handle && gmoyRow.gm_team) {
-                const gmoyTeamData = allTeamsData.find(t => t.team_name === gmoyRow.gm_team);
-                topAwardsHTML += createAwardCard('GM of the Year', { name: gmoyRow.gm_handle, detail: gmoyRow.gm_team, detailLink: `team.html?id=${gmoyTeamData?.team_id}`, link: null, logoId: gmoyTeamData?.team_id, stats: createTeamStatsString(gmoyTeamData) });
-            } else {
-                topAwardsHTML += tbdCardHTML('GM of the Year');
-            }
-
-            // Sixth Man of the Year
+            // Row 3: Sixth Man of the Year, Most Improved Player, League LVP
             if (smoyRow && smoyRow.Player) {
                 const smoyTeam = allTeamsData.find(t => t.team_name === smoyRow.team_name);
                 const smoyPlayerStats = allPlayersProcessed.find(p => p.player_handle === smoyRow.Player);
@@ -1043,7 +1034,6 @@
                 topAwardsHTML += tbdCardHTML('Sixth Man of the Year');
             }
 
-            // Most Improved Player
             if (mipRow && mipRow.Player) {
                 const mipTeam = allTeamsData.find(t => t.team_name === mipRow.team_name);
                 const mipPlayerStats = allPlayersProcessed.find(p => p.player_handle === mipRow.Player);
@@ -1052,13 +1042,29 @@
                 topAwardsHTML += tbdCardHTML('Most Improved Player');
             }
 
-            // League LVP
             if (lvpRow && lvpRow.Player) {
                 const lvpTeam = allTeamsData.find(t => t.team_name === lvpRow.team_name);
                 const lvpPlayerStats = allPlayersProcessed.find(p => p.player_handle === lvpRow.Player);
-                topAwardsHTML += createAwardCard('League LVP', { name: lvpRow.Player, detail: lvpRow.team_name, detailLink: `team.html?id=${lvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(lvpRow.Player)}`, logoId: lvpTeam?.team_id, stats: createPlayerStatsString(lvpPlayerStats) });
+                const lvpStatsString = createPlayerStatsString(lvpPlayerStats);
+                topAwardsHTML += createAwardCard('League LVP', { name: lvpRow.Player, detail: lvpRow.team_name, detailLink: `team.html?id=${lvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(lvpRow.Player)}`, logoId: lvpTeam?.team_id, stats: `<span class="detail-negative">${lvpStatsString}</span>` });
             } else {
                 topAwardsHTML += tbdCardHTML('League LVP');
+            }
+
+            // Row 4: Best Performance (Team), Best Performance (Player)
+            if (bestTeamPerf.game) {
+                const teamData = allTeamsData.find(t => t.team_id === bestTeamPerf.team_id);
+                const week = dateToWeekMap[bestTeamPerf.game.date] || '';
+                topAwardsHTML += createAwardCard('Best Performance (Team)', { name: teamData.team_name, detail: `Week ${week}: ${bestTeamPerf.score.toLocaleString()} pts`, link: `team.html?id=${teamData.team_id}`, logoId: teamData.team_id, stats: `<span class="detail-positive">+${bestTeamPerf.percentage_diff.toFixed(1)}%</span> over median`, modalOnClick: `showGameDetails('${bestTeamPerf.game.team1_id}','${bestTeamPerf.game.team2_id}','${bestTeamPerf.game.date}')` });
+            } else {
+                topAwardsHTML += tbdCardHTML('Best Performance (Team)');
+            }
+
+            if (bestPlayerPerf.game) {
+                const teamData = allTeamsData.find(t => t.team_id === bestPlayerPerf.team_id);
+                topAwardsHTML += createAwardCard('Best Performance (Player)', { name: bestPlayerPerf.player_handle, detail: `Week ${bestPlayerPerf.week}: ${bestPlayerPerf.score.toLocaleString()} pts`, link: `player.html?player=${encodeURIComponent(bestPlayerPerf.player_handle)}`, logoId: teamData?.team_id, stats: `<span class="detail-positive">+${bestPlayerPerf.percentage_diff.toFixed(1)}%</span> over median`, modalOnClick: `showGameDetails('${bestPlayerPerf.game.team1_id}','${bestPlayerPerf.game.team2_id}','${bestPlayerPerf.game.date}')` });
+            } else {
+                topAwardsHTML += tbdCardHTML('Best Performance (Player)');
             }
 
             topAwardsContainer.innerHTML = topAwardsHTML;
@@ -1091,21 +1097,21 @@
             const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
 
             return `
-                            <li class="all-star-item">
-                                <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                                <div class="all-star-player-info">
-                                    <a href="player.html?player=${encodeURIComponent(playerStats.player_handle)}">
-                                        ${playerStats.player_handle}
-                                        ${rookieBadge}
-                                        ${allStarBadge}
-                                    </a>
-                                    <span class="all-star-stats">Med Rank: ${medianRankDisplay}</span>
-                                </div>
-                                <div class="all-star-stat">${relMedianDisplay}</div>
-                                <div class="all-star-stat war-col">${warDisplay}</div>
-                                <div class="all-star-stat gem-col">${gemDisplay}</div>
-                            </li>
-                        `;
+                                <li class="all-star-item">
+                                    <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                                    <div class="all-star-player-info">
+                                        <a href="player.html?player=${encodeURIComponent(playerStats.player_handle)}">
+                                            ${playerStats.player_handle}
+                                            ${rookieBadge}
+                                            ${allStarBadge}
+                                        </a>
+                                        <span class="all-star-stats">Med Rank: ${medianRankDisplay}</span>
+                                    </div>
+                                    <div class="all-star-stat">${relMedianDisplay}</div>
+                                    <div class="all-star-stat war-col">${warDisplay}</div>
+                                    <div class="all-star-stat gem-col">${gemDisplay}</div>
+                                </li>
+                            `;
         };
 
         function closeGameModal() {
@@ -1163,13 +1169,13 @@
                 }).join('');
 
                 return `<div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                                <div class="modal-team-header ${isWinner ? 'winner' : ''}">
-                                  <img src="icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'"/>
-                                  <h4>${teamData.team_name}</h4>
-                                </div>
-                                <div class="team-total">Total: ${total.toLocaleString()}</div>
-                                <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
-                              </div>`;
+                                    <div class="modal-team-header ${isWinner ? 'winner' : ''}">
+                                      <img src="icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'"/>
+                                      <h4>${teamData.team_name}</h4>
+                                    </div>
+                                    <div class="team-total">Total: ${total.toLocaleString()}</div>
+                                    <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
+                                  </div>`;
             };
 
             modalBody.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, game.winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, game.winner === team2Id)}</div>`;
