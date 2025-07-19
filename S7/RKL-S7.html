@@ -1110,19 +1110,19 @@
                     clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
                 }
                 return `
-              <tr>
-                <td>
-                  <a href="team.html?id=${team.team_id}" class="team-link">
-                    <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                    <span>${team.team_name}</span>
-                    ${clinchBadgeHtml}
-                  </a>
-                </td>
-                <td>${team.wins || 0}-${team.losses || 0}</td>
-                <td>${Math.round(parseFloat(team.pam || 0)).toLocaleString()}</td>
-                <td class="desktop-only-col">${medRank > 0 ? Math.round(medRank) : '-'}</td>
-              </tr>
-            `}).join('');
+                  <tr>
+                    <td>
+                      <a href="team.html?id=${team.team_id}" class="team-link">
+                        <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <span>${team.team_name}</span>
+                        ${clinchBadgeHtml}
+                      </a>
+                    </td>
+                    <td>${team.wins || 0}-${team.losses || 0}</td>
+                    <td>${Math.round(parseFloat(team.pam || 0)).toLocaleString()}</td>
+                    <td class="desktop-only-col">${medRank > 0 ? Math.round(medRank) : '-'}</td>
+                  </tr>
+                `}).join('');
 
             const westernHTML = westernTeams.map(team => {
                 const medRank = parseFloat(team.med_starter_rank || 0);
@@ -1135,19 +1135,19 @@
                     clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
                 }
                 return `
-              <tr>
-                <td>
-                  <a href="team.html?id=${team.team_id}" class="team-link">
-                    <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                    <span>${team.team_name}</span>
-                    ${clinchBadgeHtml}
-                  </a>
-                </td>
-                <td>${team.wins || 0}-${team.losses || 0}</td>
-                <td>${Math.round(parseFloat(team.pam || 0)).toLocaleString()}</td>
-                <td class="desktop-only-col">${medRank > 0 ? Math.round(medRank) : '-'}</td>
-              </tr>
-            `}).join('');
+                  <tr>
+                    <td>
+                      <a href="team.html?id=${team.team_id}" class="team-link">
+                        <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <span>${team.team_name}</span>
+                        ${clinchBadgeHtml}
+                      </a>
+                    </td>
+                    <td>${team.wins || 0}-${team.losses || 0}</td>
+                    <td>${Math.round(parseFloat(team.pam || 0)).toLocaleString()}</td>
+                    <td class="desktop-only-col">${medRank > 0 ? Math.round(medRank) : '-'}</td>
+                  </tr>
+                `}).join('');
 
             document.getElementById('eastern-standings').innerHTML = easternHTML;
             document.getElementById('western-standings').innerHTML = westernHTML;
@@ -1187,31 +1187,31 @@
                 const team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
 
                 return `
-                <div class="game-item" onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')">
-                  <div class="game-matchup">
-                    <div class="team ${winner === game.team1_id ? 'winner' : ''}">
-                      <img src="icons/${game.team1_id}.webp" alt="${game.team1_id}" class="team-logo" onerror="this.style.display='none'">
-                      <div class="team-info">
-                        <span class="team-name">${team1Name}</span>
-                        <span class="team-record">${team1Record}</span>
+                    <div class="game-item" onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')">
+                      <div class="game-matchup">
+                        <div class="team ${winner === game.team1_id ? 'winner' : ''}">
+                          <img src="icons/${game.team1_id}.webp" alt="${game.team1_id}" class="team-logo" onerror="this.style.display='none'">
+                          <div class="team-info">
+                            <span class="team-name">${team1Name}</span>
+                            <span class="team-record">${team1Record}</span>
+                          </div>
+                          <span class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</span>
+                        </div>
+                        <span class="vs">vs</span>
+                        <div class="team ${winner === game.team2_id ? 'winner' : ''}">
+                          <img src="icons/${game.team2_id}.webp" alt="${game.team2_id}" class="team-logo" onerror="this.style.display='none'">
+                          <div class="team-info">
+                            <span class="team-name">${team2Name}</span>
+                            <span class="team-record">${team2Record}</span>
+                          </div>
+                          <span class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</span>
+                        </div>
                       </div>
-                      <span class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</span>
-                    </div>
-                    <span class="vs">vs</span>
-                    <div class="team ${winner === game.team2_id ? 'winner' : ''}">
-                      <img src="icons/${game.team2_id}.webp" alt="${game.team2_id}" class="team-logo" onerror="this.style.display='none'">
-                      <div class="team-info">
-                        <span class="team-name">${team2Name}</span>
-                        <span class="team-record">${team2Record}</span>
+                      <div class="game-date">
+                        ${formatDate(game.date)}
                       </div>
-                      <span class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</span>
                     </div>
-                  </div>
-                  <div class="game-date">
-                    ${formatDate(game.date)}
-                  </div>
-                </div>
-              `;
+                  `;
             }).join('');
             document.getElementById('recent-games').innerHTML = gamesHTML;
         }
@@ -1262,10 +1262,16 @@
 
             allPostSchedule.forEach(series => {
                 const winner = getSeriesWinner(series.series_id);
+                // Only count eliminations for completed series
                 if (winner) {
-                    const loser = series.team1_id === winner ? series.team2_id : series.team1_id;
-                    if (loser && loser !== 'TBD' && !loser.includes('Winner of') && !loser.includes('Loser of')) {
-                        eliminatedTeamIds.add(loser);
+                    // In the 7v8 play-in game, the loser is NOT eliminated. They get another chance.
+                    // For all other completed series (9v10, L78vW910, R1, R2, CF, F), the loser is eliminated.
+                    if (!series.series_id.includes('-PI-7v8')) {
+                        const loser = series.team1_id === winner ? series.team2_id : series.team1_id;
+                        // Add the loser to the set of eliminated teams.
+                        if (loser && loser !== 'TBD' && !loser.includes('Winner of') && !loser.includes('Loser of')) {
+                            eliminatedTeamIds.add(loser);
+                        }
                     }
                 }
             });
@@ -1450,14 +1456,14 @@
 
                 if (lineups.length === 0) {
                     return `
-                  <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                    <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
-                      <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
-                      <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
-                    </div>
-                    <div class="team-total">Total: ${Math.round(total).toLocaleString()}</div>
-                    <div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div>
-                  </div>`;
+                      <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+                        <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
+                          <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
+                          <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
+                        </div>
+                        <div class="team-total">Total: ${Math.round(total).toLocaleString()}</div>
+                        <div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div>
+                      </div>`;
                 }
                 const lineupRows = lineups.map(player => {
                     const isCaptain = player.captain === 'TRUE' || player.captain === true || player.captain === 'true';
@@ -1472,21 +1478,21 @@
                     const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
 
                     return `
-                  <tr class="${isCaptain ? 'captain-row' : ''}">
-                    <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${player.player_handle || 'Unknown'}</a>${rookieBadge}${allStarBadge}</td>
-                    <td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain && captainBonus > 0 ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td>
-                    <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
-                  </tr>`;
+                      <tr class="${isCaptain ? 'captain-row' : ''}">
+                        <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${player.player_handle || 'Unknown'}</a>${rookieBadge}${allStarBadge}</td>
+                        <td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain && captainBonus > 0 ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td>
+                        <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
+                      </tr>`;
                 }).join('');
                 return `
-                <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                  <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
-                    <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
-                    <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
-                  </div>
-                  <div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div>
-                  <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
-                </div>`;
+                    <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+                      <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
+                        <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
+                        <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div>
+                      </div>
+                      <div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div>
+                      <table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table>
+                    </div>`;
             };
 
             modalContentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Total, winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Total, winner === team2Id)}</div>`;
