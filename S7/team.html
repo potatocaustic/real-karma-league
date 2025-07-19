@@ -1364,7 +1364,10 @@
     </header>
 
     <main>
-        <a href="teams.html" class="back-button">← Back to All Teams</a>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+            <a href="teams.html" class="back-button" style="margin-bottom: 0;">← Back to All Teams</a>
+            <a href="#" id="postseason-profile-btn" class="back-button" style="margin-bottom: 0; background-color: #6c757d; display: none;">View Postseason Profile →</a>
+        </div>
 
         <div class="team-header-content">
             <div class="team-main-info" id="team-main-info">
@@ -1483,28 +1486,28 @@
                     if (!team.team_id) return '';
                     const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
                     return `
-                            .${className} {
-                                background-image: url('icons/${team.team_id}.webp');
-                            }
-                        `;
+                                .${className} {
+                                    background-image: url('icons/${team.team_id}.webp');
+                                }
+                            `;
                 }).join('');
 
                 const styleElement = document.getElementById('team-icon-styles');
                 if (styleElement) {
                     styleElement.innerHTML = `
-                            .team-logo-css {
-                                width: 24px;
-                                height: 24px;
-                                background-size: cover;
-                                background-position: center;
-                                background-repeat: no-repeat;
-                                display: inline-block;
-                                vertical-align: middle;
-                                flex-shrink: 0;
-                                border-radius: 4px;
-                            }
-                            ${iconStyles}
-                        `;
+                                .team-logo-css {
+                                    width: 24px;
+                                    height: 24px;
+                                    background-size: cover;
+                                    background-position: center;
+                                    background-repeat: no-repeat;
+                                    display: inline-block;
+                                    vertical-align: middle;
+                                    flex-shrink: 0;
+                                    border-radius: 4px;
+                                }
+                                ${iconStyles}
+                            `;
                 }
             }
 
@@ -1642,15 +1645,15 @@
                 const teamIdClassName = `icon-${teamData.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
 
                 document.getElementById('team-main-info').innerHTML = `
-                    <div style="display: flex; align-items: center; gap: 1.5rem;">
-                      <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${escapeHTML(teamData.team_name)}"></div>
-                      <div class="team-details">
-                        <h2>${escapeHTML(teamData.team_name)}</h2>
-                        <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
-                        <div class="gm-info">General Manager: ${escapeHTML(teamData.current_gm_handle)}</div>
-                      </div>
-                    </div>
-                  `;
+                        <div style="display: flex; align-items: center; gap: 1.5rem;">
+                          <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${escapeHTML(teamData.team_name)}"></div>
+                          <div class="team-details">
+                            <h2>${escapeHTML(teamData.team_name)}</h2>
+                            <div class="team-subtitle">${escapeHTML(teamData.team_id)} • ${escapeHTML(teamData.conference)} Conference</div>
+                            <div class="gm-info">General Manager: ${escapeHTML(teamData.current_gm_handle)}</div>
+                          </div>
+                        </div>
+                      `;
 
                 const medRank = parseFloat(teamData.med_starter_rank || 0);
                 const teamStatsContainer = document.getElementById('team-stats');
@@ -1721,30 +1724,30 @@
                     const rookieBadge = isRookie ? ` <span class="rookie-badge">R</span>` : '';
 
                     return `
-                      <div class="player-item">
-                        <div class="roster-player-logo-col desktop-only-roster-logo">
-                          <div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div>
-                        </div>
-                        <div class="player-info">
-                          <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a>
-                          <div class="player-stats">${gamesPlayed} games • ${medianRankDisplay} med rank</div>
-                        </div>
-                        <div class="player-rel">${relMedian.toFixed(3)}</div>
-                        <div class="player-war">${war}</div>
-                      </div>`;
+                          <div class="player-item">
+                            <div class="roster-player-logo-col desktop-only-roster-logo">
+                              <div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div>
+                            </div>
+                            <div class="player-info">
+                              <a href="player.html?player=${encodeURIComponent(player.player_handle)}" class="player-name">${escapeHTML(player.player_handle)}${rookieBadge}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</a>
+                              <div class="player-stats">${gamesPlayed} games • ${medianRankDisplay} med rank</div>
+                            </div>
+                            <div class="player-rel">${relMedian.toFixed(3)}</div>
+                            <div class="player-war">${war}</div>
+                          </div>`;
                 }).join('');
 
                 const relSortIndicator = rosterSortState.column === 'rel' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
                 const warSortIndicator = rosterSortState.column === 'war' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
 
                 const finalHTML = `
-                    <div class="roster-header">
-                      <span class="roster-logo-header-col desktop-only-roster-logo"></span>
-                      <span class="header-player">Player</span>
-                      <span class="header-rel sortable" onclick="handleRosterSort('rel')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
-                      <span class="header-war sortable" onclick="handleRosterSort('war')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
-                    </div>
-                    <div class="roster-content">${rosterHTML}</div>`;
+                        <div class="roster-header">
+                          <span class="roster-logo-header-col desktop-only-roster-logo"></span>
+                          <span class="header-player">Player</span>
+                          <span class="header-rel sortable" onclick="handleRosterSort('rel')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
+                          <span class="header-war sortable" onclick="handleRosterSort('war')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
+                        </div>
+                        <div class="roster-content">${rosterHTML}</div>`;
 
                 document.getElementById('roster-list').innerHTML = finalHTML;
             }
@@ -1810,32 +1813,32 @@
                     const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
 
                     return `
-                      <div class="game-item" ${clickHandler}>
-                        <div class="game-info-table"><div class="week-cell"><div class="week-badge">${gameWeek}</div></div><div class="date-cell"><div class="date-badge">${gameDateFormatted}</div></div></div>
-                        <div class="game-content-table">
-                          <div class="team-section left">
-                            <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div>
-                            <div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div>
-                          </div>
-                          <div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div>
-                          <div class="team-section right">
-                            <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;" ${logoClickHandlers}></div>
-                            <div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div>
-                          </div>
-                        </div>
-                        <div class="game-matchup">
-                          <div class="week-badge">${gameWeek}</div>
-                          <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}">
-                            <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px;"></div>
-                            <div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span>
-                          </div>
-                          <span class="vs">vs</span>
-                          <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}">
-                            <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px;" ${logoClickHandlers}></div>
-                            <div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span>
-                          </div>
-                        </div>
-                      </div>`;
+                          <div class="game-item" ${clickHandler}>
+                            <div class="game-info-table"><div class="week-cell"><div class="week-badge">${gameWeek}</div></div><div class="date-cell"><div class="date-badge">${gameDateFormatted}</div></div></div>
+                            <div class="game-content-table">
+                              <div class="team-section left">
+                                <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div>
+                                <div class="team-details"><div class="team-name-game">${escapeHTML(teamData.team_name)}</div><div class="team-record-game">${teamRecord}</div></div>
+                              </div>
+                              <div class="scores-section"><div class="score ${teamScoreClass}">${teamScoreText}</div><div class="vs-text">vs</div><div class="score ${oppScoreClass}">${oppScoreText}</div></div>
+                              <div class="team-section right">
+                                <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;" ${logoClickHandlers}></div>
+                                <div class="team-details right"><div class="team-name-game">${escapeHTML(opponentName)}</div><div class="team-record-game">${opponentRecord}</div></div>
+                              </div>
+                            </div>
+                            <div class="game-matchup">
+                              <div class="week-badge">${gameWeek}</div>
+                              <div class="team ${teamWon ? 'winner' : oppWon ? 'loser' : 'upcoming'}">
+                                <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px;"></div>
+                                <div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : 'upcoming'}">${escapeHTML(teamData.team_name)}</span><span class="team-record">${teamRecord}</span></div><span class="team-score ${teamScoreClass}">${teamScoreText}</span>
+                              </div>
+                              <span class="vs">vs</span>
+                              <div class="team ${oppWon ? 'winner' : teamWon ? 'loser' : 'upcoming'}">
+                                <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px;" ${logoClickHandlers}></div>
+                                <div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : 'upcoming'}">${escapeHTML(opponentName)}</span><span class="team-record">${opponentRecord}</span></div><span class="team-score ${oppScoreClass}">${oppScoreText}</span>
+                              </div>
+                            </div>
+                          </div>`;
                 }).join('');
                 document.getElementById('team-schedule').innerHTML = gamesHTML;
             }
@@ -1916,21 +1919,21 @@
 
                             const originalTeamIdClassName = `icon-${pick.original_team.replace(/[^a-zA-Z0-9]/g, '')}`;
                             return `
-                            <div class="${containerClass}">
-                              <div class="pick-main-info">
-                                <a href="team.html?id=${pick.original_team}">
-                                  <div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div>
-                                </a>
-                                <div class="pick-text-content">
-                                  <span class="pick-description">${pickDescriptionText}</span>
-                                  ${originDisplayHTML}
+                                <div class="${containerClass}">
+                                  <div class="pick-main-info">
+                                    <a href="team.html?id=${pick.original_team}">
+                                      <div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div>
+                                    </a>
+                                    <div class="pick-text-content">
+                                      <span class="pick-description">${pickDescriptionText}</span>
+                                      ${originDisplayHTML}
+                                    </div>
+                                  </div>
+                                  <div class="pick-status">
+                                    ${statusText}
+                                  </div>
                                 </div>
-                              </div>
-                              <div class="pick-status">
-                                ${statusText}
-                              </div>
-                            </div>
-                          `;
+                              `;
                         }).join('');
 
                         return `<div class="season-group" style="margin-bottom: 1.5rem;"><div class="season-header" style="background-color: ${seasonColor}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;"><span>Season ${season} Draft</span><span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">${picks.length} pick${picks.length !== 1 ? "s" : ""}</span></div><div class="season-picks" style="border: 1px solid ${seasonColor}; border-top: none; border-radius: 0 0 6px 6px;">${picksHTML}</div></div>`;
@@ -2053,6 +2056,13 @@
                     if (!teamData) {
                         document.getElementById('team-main-info').innerHTML = '<div class="error">Team not found for ID: ' + escapeHTML(teamId) + '</div>';
                         return;
+                    }
+
+                    // NEW: Handle postseason profile button visibility
+                    const postseasonBtn = document.getElementById('postseason-profile-btn');
+                    if (postseasonBtn && teamData.postseed && parseInt(teamData.postseed) > 0) {
+                        postseasonBtn.href = `team-postseason.html?id=${teamId}`;
+                        postseasonBtn.style.display = 'inline-block';
                     }
 
                     displayTeamHeader();
