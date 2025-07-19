@@ -1583,7 +1583,7 @@
             const historyHTML = gamesWithPerformance.map(game => {
                 const isCaptain = String(game.lineup.captain).toLowerCase() === 'true' || game.lineup.captain === true || game.lineup.captain === 1;
                 const pointsRaw = parseNumber(game.lineup.points_raw);
-                const globalRank = parseNumber(game.global_rank);
+                const globalRank = parseNumber(game.lineup.global_rank);
 
                 const playerTeamName = getTeamName(game.playerTeamId);
                 const opponentTeamName = getTeamName(game.opponentId);
@@ -1682,7 +1682,7 @@
                     const allStarBadge = isPlayerAllStar ? '<span class="all-star-badge">★</span>' : '';
                     const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
 
-                    return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" target="_blank" class="player-link"> ${player.player_handle || 'Unknown'}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
+                    return `<tr class="${isCaptain ? 'captain-row' : ''}"><td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link"> ${player.player_handle || 'Unknown'}</a>${rookieBadge}${allStarBadge}${isCaptain ? '<span class="captain-badge">C</span>' : ''}</td><td class="points-cell">${Math.round(pointsRaw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}</td><td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td></tr>`;
                 }).join('');
                 return `<div class="team-breakdown ${isWinner ? 'winner' : ''}"><div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">${teamLogoTagInModal}<div><h4>${teamNameForTable}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${teamRecord}</div></div></div><div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div><table class="lineup-table"><thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead><tbody>${lineupRows}</tbody></table></div>`;
             };
