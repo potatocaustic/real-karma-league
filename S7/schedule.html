@@ -1030,6 +1030,12 @@
             return result.map(field => field.replace(/^"(.*)"$/, '$1').replace(/\\"/g, '"'));
         }
 
+        function getPlayInWinner(seriesId) {
+            // allGames is a global variable containing all schedule data, including postseason
+            const series = allGames.find(g => g.series_id === seriesId);
+            return series ? (series.winner || null) : null;
+        }
+
         function formatDate(dateString) {
             if (!dateString) return 'Invalid Date';
             if (dateString.toUpperCase() === 'TBD') return 'TBD';
@@ -1222,6 +1228,24 @@
             const weekSummarySection = document.getElementById('week-summary');
 
             const isPostseason = POSTSEASON_WEEK_IDS.includes(String(week));
+
+            // START of new code block
+            const finalSeedMap = {};
+            if (isPostseason) {
+                // Determine the actual 7th and 8th seeds from play-in results
+                const w7_final = getPlayInWinner('W-PI-7v8');
+                const w8_final = getPlayInWinner('W-PI-L78vW910');
+                const e7_final = getPlayInWinner('E-PI-7v8');
+                const e8_final = getPlayInWinner('E-PI-L78vW910');
+
+                // Map the winning teams to their new, correct seeds
+                if (w7_final) finalSeedMap[w7_final] = '7';
+                if (w8_final) finalSeedMap[w8_final] = '8';
+                if (e7_final) finalSeedMap[e7_final] = '7';
+                if (e8_final) finalSeedMap[e8_final] = '8';
+            }
+            // END of new code block
+
             let gamesToRender = weekGames;
 
             if (isPostseason && weekGames.length > 0) {
@@ -1355,8 +1379,15 @@
                             team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
                         }
 
-                        const team1SeedHtml = isPostseason && game.team1_seed ? `<span class="team-seed">(${game.team1_seed})</span> ` : '';
-                        const team2SeedHtml = isPostseason && game.team2_seed ? `<span class="team-seed">(${game.team2_seed})</span> ` : '';
+                        // START of modified code block
+                        // Use the finalSeedMap to override the original seed if necessary
+                        let team1Seed = finalSeedMap[game.team1_id] || game.team1_seed;
+                        let team2Seed = finalSeedMap[game.team2_id] || game.team2_seed;
+
+                        const team1SeedHtml = isPostseason && team1Seed ? `<span class="team-seed">(${team1Seed})</span> ` : '';
+                        const team2SeedHtml = isPostseason && team2Seed ? `<span class="team-seed">(${team2Seed})</span> ` : '';
+                        // END of modified code block
+
                         const gameDesc = isPostseason && game.Desc ? `${escapeHTML(game.Desc)} - ` : '';
 
                         const clickHandler = isCompleted ? `onclick="showGameDetails('${escapeHTML(game.team1_id)}', '${escapeHTML(game.team2_id)}', '${escapeHTML(game.date)}', '${escapeHTML(team1Record)}', '${escapeHTML(team2Record)}')" ` : '';
