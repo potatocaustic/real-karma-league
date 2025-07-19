@@ -1155,6 +1155,7 @@
 
         async function loadRecentGames() {
             const scheduleData = await fetchSheetData('Schedule');
+            const postScheduleData = await fetchSheetData('Post_Schedule');
             const teamsData = await fetchSheetData('Teams');
 
             if (!scheduleData || !teamsData) {
@@ -1164,17 +1165,35 @@
 
             if (allTeams.length === 0) allTeams = teamsData;
 
-            const completedGames = scheduleData
-                .filter(game => game.completed === 'TRUE')
-                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                .slice(0, 5);
+            const week15Games = scheduleData.filter(g => g.week === '15');
+            const regSeasonComplete = week15Games.length > 0 && week15Games.every(g => g.completed === 'TRUE');
 
-            if (completedGames.length === 0) {
+            let gamesToDisplay = [];
+
+            if (regSeasonComplete && postScheduleData) {
+                const completedPostGames = postScheduleData.filter(game => game.completed === 'TRUE' && game.date);
+
+                if (completedPostGames.length > 0) {
+                    completedPostGames.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    const mostRecentDate = completedPostGames[0].date;
+
+                    gamesToDisplay = completedPostGames.filter(game => game.date === mostRecentDate);
+                }
+            }
+
+            if (gamesToDisplay.length === 0) {
+                gamesToDisplay = scheduleData
+                    .filter(game => game.completed === 'TRUE')
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 5);
+            }
+
+            if (gamesToDisplay.length === 0) {
                 document.getElementById('recent-games').innerHTML = '<div class="loading">No completed games yet</div>';
                 return;
             }
 
-            const gamesHTML = completedGames.map(game => {
+            const gamesHTML = gamesToDisplay.map(game => {
                 const team1Score = parseFloat(game.team1_score || 0);
                 const team2Score = parseFloat(game.team2_score || 0);
                 const winner = game.winner;
