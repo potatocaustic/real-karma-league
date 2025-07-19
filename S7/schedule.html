@@ -1228,23 +1228,22 @@
             const weekSummarySection = document.getElementById('week-summary');
 
             const isPostseason = POSTSEASON_WEEK_IDS.includes(String(week));
-
-            // START of new code block
             const finalSeedMap = {};
-            if (isPostseason) {
-                // Determine the actual 7th and 8th seeds from play-in results
+
+            // START of modified code block
+            // Only populate the map for rounds AFTER the play-in.
+            if (isPostseason && String(week) !== 'Play-In') {
                 const w7_final = getPlayInWinner('W-PI-7v8');
                 const w8_final = getPlayInWinner('W-PI-L78vW910');
                 const e7_final = getPlayInWinner('E-PI-7v8');
                 const e8_final = getPlayInWinner('E-PI-L78vW910');
 
-                // Map the winning teams to their new, correct seeds
                 if (w7_final) finalSeedMap[w7_final] = '7';
                 if (w8_final) finalSeedMap[w8_final] = '8';
                 if (e7_final) finalSeedMap[e7_final] = '7';
                 if (e8_final) finalSeedMap[e8_final] = '8';
             }
-            // END of new code block
+            // END of modified code block
 
             let gamesToRender = weekGames;
 
@@ -1379,47 +1378,46 @@
                             team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
                         }
 
-                        // START of modified code block
-                        // Use the finalSeedMap to override the original seed if necessary
+                        // Use the finalSeedMap to override the original seed if necessary.
+                        // If the map is empty (i.e., for Play-In week), this will fall back to the original seed.
                         let team1Seed = finalSeedMap[game.team1_id] || game.team1_seed;
                         let team2Seed = finalSeedMap[game.team2_id] || game.team2_seed;
 
                         const team1SeedHtml = isPostseason && team1Seed ? `<span class="team-seed">(${team1Seed})</span> ` : '';
                         const team2SeedHtml = isPostseason && team2Seed ? `<span class="team-seed">(${team2Seed})</span> ` : '';
-                        // END of modified code block
 
                         const gameDesc = isPostseason && game.Desc ? `${escapeHTML(game.Desc)} - ` : '';
 
                         const clickHandler = isCompleted ? `onclick="showGameDetails('${escapeHTML(game.team1_id)}', '${escapeHTML(game.team2_id)}', '${escapeHTML(game.date)}', '${escapeHTML(team1Record)}', '${escapeHTML(team2Record)}')" ` : '';
 
                         return `
-                    <div class="game-card ${isCompleted ? 'completed' : 'upcoming'}" ${clickHandler}>
-                      <div class="game-teams">
-                        <div class="team ${winner === game.team1_id ? 'winner' : ''}">
-                          <div class="team-left">
-                            <img src="icons/${escapeHTML(game.team1_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team1_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                            <div class="team-info">
-                              <div class="team-name">${team1SeedHtml}${escapeHTML(getTeamName(game.team1_id))}</div>
-                              <div class="team-record">${escapeHTML(team1Record)}</div>
+                        <div class="game-card ${isCompleted ? 'completed' : 'upcoming'}" ${clickHandler}>
+                          <div class="game-teams">
+                            <div class="team ${winner === game.team1_id ? 'winner' : ''}">
+                              <div class="team-left">
+                                <img src="icons/${escapeHTML(game.team1_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team1_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                                <div class="team-info">
+                                  <div class="team-name">${team1SeedHtml}${escapeHTML(getTeamName(game.team1_id))}</div>
+                                  <div class="team-record">${escapeHTML(team1Record)}</div>
+                                </div>
+                              </div>
+                              ${isCompleted ? `<div class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</div>` : ''}
+                            </div>
+                            <div class="team ${winner === game.team2_id ? 'winner' : ''}">
+                              <div class="team-left">
+                                <img src="icons/${escapeHTML(game.team2_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team2_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                                <div class="team-info">
+                                  <div class="team-name">${team2SeedHtml}${escapeHTML(getTeamName(game.team2_id))}</div>
+                                  <div class="team-record">${escapeHTML(team2Record)}</div>
+                                </div>
+                              </div>
+                              ${isCompleted ? `<div class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</div>` : ''}
                             </div>
                           </div>
-                          ${isCompleted ? `<div class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</div>` : ''}
-                        </div>
-                        <div class="team ${winner === game.team2_id ? 'winner' : ''}">
-                          <div class="team-left">
-                            <img src="icons/${escapeHTML(game.team2_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team2_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                            <div class="team-info">
-                              <div class="team-name">${team2SeedHtml}${escapeHTML(getTeamName(game.team2_id))}</div>
-                              <div class="team-record">${escapeHTML(team2Record)}</div>
-                            </div>
+                          <div class="game-status ${isCompleted ? 'completed' : 'upcoming'}">
+                            ${gameDesc}${isCompleted ? `Final` : `Upcoming`}
                           </div>
-                          ${isCompleted ? `<div class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</div>` : ''}
-                        </div>
-                      </div>
-                      <div class="game-status ${isCompleted ? 'completed' : 'upcoming'}">
-                        ${gameDesc}${isCompleted ? `Final` : `Upcoming`}
-                      </div>
-                    </div>`;
+                        </div>`;
                     }).join('');
                     const dateHeaderText = (week === 'Finals') ? `🏆 ${formatDate(date)}` : formatDate(date);
                     return `<div class="date-section"><div class="date-header">${dateHeaderText}</div><div class="games-grid">${gamesHTML}</div></div>`;
@@ -1570,14 +1568,14 @@
 
                 if (lineups.length === 0) {
                     return `
-                  <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                    <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
-                      <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                      <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
-                    </div>
-                    <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
-                    <div style="padding: 1rem; text-align: center; color: #666;">No detailed lineup data available for this game.</div>
-                  </div>`;
+                      <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+                        <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
+                          <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                          <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
+                        </div>
+                        <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
+                        <div style="padding: 1rem; text-align: center; color: #666;">No detailed lineup data available for this game.</div>
+                      </div>`;
                 }
 
                 const lineupRows = lineups.map(player => {
@@ -1605,44 +1603,44 @@
                         : `<a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>`;
 
                     return `
-                  <tr class="${isCaptain ? 'captain-row' : ''}">
-                    <td class="player-name-cell">
-                      ${realTeamLogoHTML}
-                      ${playerNameHTML}
-                      ${rookieBadge}
-                      ${allStarBadge}
-                      ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
-                    </td>
-                    <td class="points-cell">
-                      ${Math.round(pointsRaw).toLocaleString()}
-                      ${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}
-                    </td>
-                    <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
-                  </tr>
-                `;
+                      <tr class="${isCaptain ? 'captain-row' : ''}">
+                        <td class="player-name-cell">
+                          ${realTeamLogoHTML}
+                          ${playerNameHTML}
+                          ${rookieBadge}
+                          ${allStarBadge}
+                          ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
+                        </td>
+                        <td class="points-cell">
+                          ${Math.round(pointsRaw).toLocaleString()}
+                          ${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}
+                        </td>
+                        <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
+                      </tr>
+                    `;
                 }).join('');
 
                 return `
-                <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                  <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
-                     <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                    <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
-                  </div>
-                  <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
-                  <table class="lineup-table">
-                    <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
-                    <tbody>${lineupRows}</tbody>
-                  </table>
-                </div>
-              `;
+                    <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+                      <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
+                         <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                        <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
+                      </div>
+                      <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
+                      <table class="lineup-table">
+                        <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
+                        <tbody>${lineupRows}</tbody>
+                      </table>
+                    </div>
+                  `;
             };
 
             modalContent.innerHTML = `
-              <div class="game-details-grid">
-                ${generateLineupTable(team1Lineups, game.team1_id, team1Total, winner === game.team1_id, game, team1Record)}
-                ${generateLineupTable(team2Lineups, game.team2_id, team2Total, winner === game.team2_id, game, team2Record)}
-              </div>
-            `;
+                  <div class="game-details-grid">
+                    ${generateLineupTable(team1Lineups, game.team1_id, team1Total, winner === game.team1_id, game, team1Record)}
+                    ${generateLineupTable(team2Lineups, game.team2_id, team2Total, winner === game.team2_id, game, team2Record)}
+                  </div>
+                `;
         }
 
         function closeGameModal() {
