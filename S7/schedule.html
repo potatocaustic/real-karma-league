@@ -1,1325 +1,1630 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 7 Schedule & Results</title>
     <link rel="stylesheet" href="../css/global-styles.css" />
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
-      // Apply theme from local storage before page loads to prevent flashing
-      (function() {
-        const theme = localStorage.getItem('theme');
-        if (theme === 'dark') {
-          document.documentElement.classList.add('dark-mode');
-        }
-      })();
+        // Apply theme from local storage before page loads to prevent flashing
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
     </script>
     <style>
-      /* Page-specific styles for schedule.html */
-      .week-selector {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        text-align: center;
-        transition: background-color 0.3s, box-shadow 0.3s;
-      }
-
-      .week-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-      }
-
-      .week-btn {
-        background-color: #f8f9fa;
-        border: 2px solid #ddd;
-        border-radius: 6px;
-        padding: 0.8rem 0.5rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        font-weight: 500;
-        width: 100px;
-        text-align: center;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        white-space: nowrap;
-      }
-
-      .week-btn:hover {
-        background-color: #e9ecef;
-        border-color: #007bff;
-      }
-
-      .week-btn.active {
-        background-color: #007bff;
-        color: white;
-        border-color: #007bff;
-      }
-
-      .week-btn.completed {
-        background-color: #28a745;
-        color: white;
-        border-color: #28a745;
-      }
-
-      .week-btn.completed.active {
-        background-color: #155724;
-        border-color: #155724;
-      }
-
-      .games-container {
-        background-color: #fff;
-        border-radius: 8px;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
-        transition: background-color 0.3s, box-shadow 0.3s;
-      }
-
-      .games-header {
-        background-color: #333;
-        color: white;
-        padding: 1.5rem;
-        text-align: center;
-      }
-
-      .games-header h3 {
-        color: white;
-        margin: 0;
-        font-size: 1.4rem;
-      }
-       .games-subtitle { 
-        margin: 0;
-        font-size: 0.9rem;
-        color: white;
-        font-style: italic;
-        opacity: 0.9;
-      }
-
-      .week-summary {
-        background-color: #e9ecef;
-        padding: 1rem;
-        border-radius: 6px;
-        margin-bottom: 1rem; 
-        text-align: center;
-        transition: background-color 0.3s;
-      }
-
-      .summary-stats {
-        display: flex;
-        justify-content: center;
-        gap: 2rem;
-        flex-wrap: wrap;
-      }
-
-      .summary-stat {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
-
-      .stat-number {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #333;
-        transition: color 0.3s;
-      }
-
-      .stat-label {
-        font-size: 0.9rem;
-        color: #666;
-        transition: color 0.3s;
-      }
-      
-      .week-standouts-section {
-        background-color: #f0f8ff; 
-        padding: 1.5rem;
-        border-radius: 8px; 
-        margin-bottom: 2rem; 
-        border: 1px solid #cfe2f3;
-        transition: background-color 0.3s, border-color 0.3s;
-      }
-      .week-standouts-section h4 {
-        text-align: center;
-        margin-bottom: 1.5rem;
-        font-size: 1.4em; 
-        color: #0056b3; 
-        transition: color 0.3s;
-      }
-      .standouts-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
-        gap: 1rem; 
-      }
-      .standout-item {
-        background-color: #fff;
-        padding: 1rem; 
-        border-radius: 6px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        display: flex;
-        flex-direction: column;
-        transition: background-color 0.3s, border-color 0.3s;
-      }
-      .standout-item h5 {
-        font-size: 1rem; 
-        color: #333;
-        margin-bottom: 0.75rem;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 0.75rem;
-        display: flex;
-        align-items: center;
-        transition: color 0.3s, border-color 0.3s;
-      }
-      .standout-item p {
-        font-size: 0.9rem;
-        color: #555;
-        line-height: 1.5;
-        flex-grow: 1; 
-        transition: color 0.3s;
-      }
-      .standout-item p .player-link, .standout-item p .team-link { 
-        font-weight: 500;
-        color: #007bff;
-        text-decoration: none;
-      }
-      .standout-item p .player-link:hover, .standout-item p .team-link:hover {
-        text-decoration: underline;
-      }
-      .standout-metric-link { 
-        cursor: pointer;
-        text-decoration: none; 
-      }
-      .standout-metric-link:hover .detail-positive, 
-      .standout-metric-link:hover .detail-negative {
-        text-decoration: underline; 
-      }
-      .detail-positive { 
-        font-weight: bold;
-        color: #28a745; 
-      }
-      .detail-negative { 
-        font-weight: bold;
-        color: #dc3545; 
-      }
-      .standout-item .meta-info { 
-        font-size: 0.8rem;
-        color: #777;
-        margin-top: 0.3rem;
-        display: block;
-        transition: color 0.3s;
-      }
-
-      .games-by-date {
-        padding: 1rem;
-      }
-
-      .date-section {
-        margin-bottom: 2rem;
-      }
-
-      .date-header {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        border-left: 4px solid #007bff;
-        margin-bottom: 1rem;
-        font-weight: bold;
-        font-size: 1.1rem;
-        color: #333;
-        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-      }
-
-      .games-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-        gap: 1.5rem;
-      }
-
-      .game-card {
-        background-color: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 1.5rem;
-        transition: all 0.3s ease;
-      }
-
-      .game-card:hover {
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        transform: translateY(-2px);
-      }
-
-      .game-card.completed {
-        border-left: 4px solid #28a745;
-        cursor: pointer;
-      }
-
-      .game-card.completed:hover {
-        background-color: #e8f5e8;
-      }
-
-      .game-card.upcoming {
-        border-left: 4px solid #ffc107;
-      }
-
-      .game-teams {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-      }
-
-      .team {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.5rem 0;
-        min-height: 50px;
-      }
-
-      .team.winner {
-        font-weight: bold;
-        color: #28a745;
-      }
-
-      .team-left {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex: 1;
-        min-width: 0;
-      }
-
-      .team-logo {
-        width: 32px;
-        height: 32px;
-        border-radius: 2px;
-        flex-shrink: 0;
-      }
-      
-      .team-logo.allstar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        object-fit: cover;
-      }
-
-      .team-info {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        min-width: 0;
-        flex: 1;
-      }
-
-      .team-name {
-        font-size: 1rem;
-        font-weight: 500;
-        line-height: 1.2;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      
-      .team-seed {
-        color: #666;
-        font-weight: 400;
-        font-size: 0.9em;
-      }
-
-      .team-record {
-        font-size: 0.8rem;
-        color: #666;
-        line-height: 1;
-        margin-top: 0.2rem;
-        transition: color 0.3s;
-      }
-
-      .team-score {
-        font-weight: bold;
-        color: #333;
-        font-size: 1.2rem;
-        margin-left: 1rem;
-        flex-shrink: 0;
-        transition: color 0.3s;
-      }
-
-      .team-score.winner {
-        color: #28a745;
-      }
-
-      .game-status {
-        text-align: center;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        color: #666;
-        transition: color 0.3s;
-      }
-
-      .game-status.completed {
-        color: #28a745;
-        font-weight: 500;
-      }
-
-      .game-status.upcoming {
-        color: #ffc107;
-        font-weight: 500;
-      }
-
-      .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
-      .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.3); transition: background-color 0.3s; }
-      .modal-header { background-color: #333; color: white; padding: 1.5rem; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
-      .modal-header h3 { color: white; margin: 0; font-size: 1.4rem; }
-      .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; transition: background-color 0.3s; }
-      .close-btn:hover { background-color: rgba(255,255,255,0.1); }
-      .modal-body { padding: 2rem; }
-      .game-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-      .team-breakdown { background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
-      .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
-      .team-breakdown .team-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; display: flex; align-items: center; justify-content: center; gap: 1rem; flex-direction: column; transition: background-color 0.3s; }
-      .team-breakdown .team-header.winner { background-color: #28a745; }
-      .modal-team-header .team-logo {
-        width: 60px;
-        height: 60px;
-        border-radius: 4px;
-      }
-      .modal-team-header .team-logo.allstar {
-        border-radius: 50%;
-        object-fit: cover;
-      }
-      .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
-      .lineup-table { width: 100%; border-collapse: collapse; }
-      .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; transition: background-color 0.3s, border-color 0.3s; }
-      .lineup-table th:first-child { text-align: left; width: 50%; }
-      .lineup-table th:nth-child(2), .lineup-table th:nth-child(3) { width: 25%; }
-      .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; transition: border-color 0.3s; }
-      .lineup-table td:first-child { text-align: left; }
-      .lineup-table tr:hover { background-color: white; }
-      .captain-row { background-color: #fff3cd !important; font-weight: bold; }
-      .captain-badge { background-color: #ffc107; color: #333; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 0.5rem; }
-      .all-star-badge { color: gold; margin-left: 0.5rem; font-size: 1rem; vertical-align: middle; }
-      .captain-bonus { font-size: 0.75rem; color: #ffc107; font-weight: 500; margin-top: 0.2rem; }
-      .player-name-cell { font-weight: 500; }
-      .player-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
-      .player-link:hover { color: #0056b3; text-decoration: underline; }
-      .points-cell { text-align: center; font-weight: bold; }
-      .modal-team-header h4 { color: white; }
-
-      .no-games { text-align: center; padding: 3rem; color: #666; font-style: italic; }
-
-      /* Dark Mode Styles */
-      .dark-mode .week-selector, .dark-mode .games-container, .dark-mode .modal-content, .dark-mode .standout-item {
-        background-color: #1e1e1e;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-      }
-      .dark-mode .week-btn {
-        background-color: #2c2c2c;
-        border-color: #444;
-        color: #e0e0e0;
-      }
-      .dark-mode .week-btn:hover {
-        background-color: #383838;
-        border-color: #bb86fc;
-      }
-      .dark-mode .week-btn.active {
-        background-color: #bb86fc;
-        border-color: #bb86fc;
-        color: #121212;
-      }
-      .dark-mode .week-btn.completed {
-        background-color: #2e7d32;
-        border-color: #2e7d32;
-      }
-      .dark-mode .week-btn.completed.active {
-        background-color: #1b5e20;
-        border-color: #1b5e20;
-      }
-      .dark-mode .week-summary, .dark-mode .date-header {
-        background-color: #2c2c2c;
-      }
-      .dark-mode .stat-number, .dark-mode .date-header { color: #f5f5f5; }
-      .dark-mode .stat-label, .dark-mode .team-record, .dark-mode .game-status, .dark-mode .standout-item .meta-info, .dark-mode .team-seed { color: #aaa; }
-      .dark-mode .week-standouts-section { background-color: #1a2333; border-color: #2c3a56; }
-      .dark-mode .week-standouts-section h4 { color: #8ab4f8; }
-      .dark-mode .standout-item { border-color: #333; }
-      .dark-mode .standout-item h5 { color: #e0e0e0; border-bottom-color: #333; }
-      .dark-mode .standout-item p { color: #ccc; }
-      .dark-mode .standout-item p .player-link, .dark-mode .standout-item p .team-link { color: #8ab4f8; }
-      .dark-mode .game-card { background-color: #2c2c2c; border-color: #444; }
-      .dark-mode .game-card:hover { background-color: #383838; }
-      .dark-mode .game-card.completed { border-left-color: #66bb6a; }
-      .dark-mode .game-card.completed:hover { background-color: #3a4a3a; }
-      .dark-mode .game-card.upcoming { border-left-color: #fdd835; }
-      .dark-mode .team-score { color: #e0e0e0; }
-      .dark-mode .team.winner, .dark-mode .team-score.winner { color: #66bb6a; }
-      .dark-mode .modal-content { background-color: #1e1e1e; }
-      .dark-mode .close-btn:hover { background-color: rgba(255,255,255,0.2); }
-      .dark-mode .team-breakdown { background-color: #2c2c2c; border-color: #444; }
-      .dark-mode .team-breakdown.winner { border-color: #66bb6a; }
-      .dark-mode .team-breakdown .team-header.winner { background-color: #2e7d32; }
-      .dark-mode .team-total { background-color: #333; border-bottom-color: #444; }
-      .dark-mode .lineup-table th { background-color: #2c2c2c; border-bottom-color: #444; }
-      .dark-mode .lineup-table td { border-bottom-color: #333; }
-      .dark-mode .lineup-table tr:hover { background-color: #383838; }
-      .dark-mode .captain-row { background-color: #4a4100 !important; }
-      .dark-mode .player-link { color: #8ab4f8; }
-      .dark-mode .player-link:hover { color: #a7c7fa; }
-
-      @media (max-width: 768px) {
-        .week-buttons { gap: 0.3rem; }
-        .week-btn { padding: 0.6rem 0.3rem; width: 85px; font-size: 0.9rem; }
-        .games-grid { grid-template-columns: 1fr; }
-        .summary-stats { gap: 1rem; }
-        .modal-content { margin: 1rem; width: calc(100% - 2rem); }
-        .game-details-grid { grid-template-columns: 1fr; gap: 1rem; }
-        .modal-body { padding: 1rem; }
-        .lineup-table th, .lineup-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem; }
-        .team-logo.allstar, .modal-team-header .team-logo.allstar {
-          width: 60px; height: 60px;
+        /* Page-specific styles for schedule.html */
+        .week-selector {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            transition: background-color 0.3s, box-shadow 0.3s;
         }
-        .modal-header { padding: 1rem; }
-        .modal-header h3 { font-size: 1.1rem; line-height: 1.3; word-break: break-word; hyphens: auto; }
-        .standouts-grid { grid-template-columns: 1fr; } 
-      }
 
-      @media (max-width: 480px) {
-        .modal-header { padding: 0.8rem; }
-        .modal-header h3 { font-size: 1rem; line-height: 1.2; }
-      }
+        .week-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .week-btn {
+            background-color: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 0.8rem 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            width: 100px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+            .week-btn:hover {
+                background-color: #e9ecef;
+                border-color: #007bff;
+            }
+
+            .week-btn.active {
+                background-color: #007bff;
+                color: white;
+                border-color: #007bff;
+            }
+
+            .week-btn.completed {
+                background-color: #28a745;
+                color: white;
+                border-color: #28a745;
+            }
+
+                .week-btn.completed.active {
+                    background-color: #155724;
+                    border-color: #155724;
+                }
+
+        .games-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .games-header {
+            background-color: #333;
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+            .games-header h3 {
+                color: white;
+                margin: 0;
+                font-size: 1.4rem;
+            }
+
+        .games-subtitle {
+            margin: 0;
+            font-size: 0.9rem;
+            color: white;
+            font-style: italic;
+            opacity: 0.9;
+        }
+
+        .week-summary {
+            background-color: #e9ecef;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        .summary-stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .summary-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        .week-standouts-section {
+            background-color: #f0f8ff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid #cfe2f3;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+            .week-standouts-section h4 {
+                text-align: center;
+                margin-bottom: 1.5rem;
+                font-size: 1.4em;
+                color: #0056b3;
+                transition: color 0.3s;
+            }
+
+        .standouts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+        }
+
+        .standout-item {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+            .standout-item h5 {
+                font-size: 1rem;
+                color: #333;
+                margin-bottom: 0.75rem;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 0.75rem;
+                display: flex;
+                align-items: center;
+                transition: color 0.3s, border-color 0.3s;
+            }
+
+            .standout-item p {
+                font-size: 0.9rem;
+                color: #555;
+                line-height: 1.5;
+                flex-grow: 1;
+                transition: color 0.3s;
+            }
+
+                .standout-item p .player-link, .standout-item p .team-link {
+                    font-weight: 500;
+                    color: #007bff;
+                    text-decoration: none;
+                }
+
+                    .standout-item p .player-link:hover, .standout-item p .team-link:hover {
+                        text-decoration: underline;
+                    }
+
+        .standout-metric-link {
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+            .standout-metric-link:hover .detail-positive,
+            .standout-metric-link:hover .detail-negative {
+                text-decoration: underline;
+            }
+
+        .detail-positive {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .detail-negative {
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        .standout-item .meta-info {
+            font-size: 0.8rem;
+            color: #777;
+            margin-top: 0.3rem;
+            display: block;
+            transition: color 0.3s;
+        }
+
+        .games-by-date {
+            padding: 1rem;
+        }
+
+        .date-section {
+            margin-bottom: 2rem;
+        }
+
+        .date-header {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-left: 4px solid #007bff;
+            margin-bottom: 1rem;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #333;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .game-card {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+            .game-card:hover {
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                transform: translateY(-2px);
+            }
+
+            .game-card.completed {
+                border-left: 4px solid #28a745;
+                cursor: pointer;
+            }
+
+                .game-card.completed:hover {
+                    background-color: #e8f5e8;
+                }
+
+            .game-card.upcoming {
+                border-left: 4px solid #ffc107;
+            }
+
+        .game-teams {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .team {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            min-height: 50px;
+        }
+
+            .team.winner {
+                font-weight: bold;
+                color: #28a745;
+            }
+
+        .team-left {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .team-logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+            .team-logo.allstar {
+                width: 48px;
+                height: 48px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+        .team-info {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .team-name {
+            font-size: 1rem;
+            font-weight: 500;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .team-seed {
+            color: #666;
+            font-weight: 400;
+            font-size: 0.9em;
+        }
+
+        .team-record {
+            font-size: 0.8rem;
+            color: #666;
+            line-height: 1;
+            margin-top: 0.2rem;
+            transition: color 0.3s;
+        }
+
+        .team-score {
+            font-weight: bold;
+            color: #333;
+            font-size: 1.2rem;
+            margin-left: 1rem;
+            flex-shrink: 0;
+            transition: color 0.3s;
+        }
+
+            .team-score.winner {
+                color: #28a745;
+            }
+
+        .game-status {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+            .game-status.completed {
+                color: #28a745;
+                font-weight: 500;
+            }
+
+            .game-status.upcoming {
+                color: #ffc107;
+                font-weight: 500;
+            }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 2rem auto;
+            border-radius: 8px;
+            width: 95%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            transition: background-color 0.3s;
+        }
+
+        .modal-header {
+            background-color: #333;
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .modal-header h3 {
+                color: white;
+                margin: 0;
+                font-size: 1.4rem;
+            }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+
+            .close-btn:hover {
+                background-color: rgba(255,255,255,0.1);
+            }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .game-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .team-breakdown {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+            .team-breakdown.winner {
+                border-color: #28a745;
+                border-width: 2px;
+            }
+
+            .team-breakdown .team-header {
+                background-color: #333;
+                color: white;
+                padding: 1.5rem;
+                text-align: center;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 1rem;
+                flex-direction: column;
+                transition: background-color 0.3s;
+            }
+
+                .team-breakdown .team-header.winner {
+                    background-color: #28a745;
+                }
+
+        .modal-team-header .team-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 4px;
+        }
+
+            .modal-team-header .team-logo.allstar {
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+        .team-total {
+            background-color: #e9ecef;
+            padding: 1rem;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-bottom: 2px solid #ddd;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .lineup-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .lineup-table th {
+                background-color: #f8f9fa;
+                padding: 0.8rem 0.5rem;
+                text-align: center;
+                font-weight: bold;
+                border-bottom: 2px solid #ddd;
+                font-size: 0.9rem;
+                transition: background-color 0.3s, border-color 0.3s;
+            }
+
+                .lineup-table th:first-child {
+                    text-align: left;
+                    width: 50%;
+                }
+
+                .lineup-table th:nth-child(2), .lineup-table th:nth-child(3) {
+                    width: 25%;
+                }
+
+            .lineup-table td {
+                padding: 0.8rem 0.5rem;
+                border-bottom: 1px solid #eee;
+                font-size: 0.9rem;
+                text-align: center;
+                transition: border-color 0.3s;
+            }
+
+                .lineup-table td:first-child {
+                    text-align: left;
+                }
+
+            .lineup-table tr:hover {
+                background-color: white;
+            }
+
+        .captain-row {
+            background-color: #fff3cd !important;
+            font-weight: bold;
+        }
+
+        .captain-badge {
+            background-color: #ffc107;
+            color: #333;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 0.5rem;
+        }
+
+        .all-star-badge {
+            color: gold;
+            margin-left: 0.5rem;
+            font-size: 1rem;
+            vertical-align: middle;
+        }
+
+        .captain-bonus {
+            font-size: 0.75rem;
+            color: #ffc107;
+            font-weight: 500;
+            margin-top: 0.2rem;
+        }
+
+        .player-name-cell {
+            font-weight: 500;
+        }
+
+        .player-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+            .player-link:hover {
+                color: #0056b3;
+                text-decoration: underline;
+            }
+
+        .points-cell {
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .modal-team-header h4 {
+            color: white;
+        }
+
+        .no-games {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Dark Mode Styles */
+        .dark-mode .week-selector, .dark-mode .games-container, .dark-mode .modal-content, .dark-mode .standout-item {
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .dark-mode .week-btn {
+            background-color: #2c2c2c;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+
+            .dark-mode .week-btn:hover {
+                background-color: #383838;
+                border-color: #bb86fc;
+            }
+
+            .dark-mode .week-btn.active {
+                background-color: #bb86fc;
+                border-color: #bb86fc;
+                color: #121212;
+            }
+
+            .dark-mode .week-btn.completed {
+                background-color: #2e7d32;
+                border-color: #2e7d32;
+            }
+
+                .dark-mode .week-btn.completed.active {
+                    background-color: #1b5e20;
+                    border-color: #1b5e20;
+                }
+
+        .dark-mode .week-summary, .dark-mode .date-header {
+            background-color: #2c2c2c;
+        }
+
+        .dark-mode .stat-number, .dark-mode .date-header {
+            color: #f5f5f5;
+        }
+
+        .dark-mode .stat-label, .dark-mode .team-record, .dark-mode .game-status, .dark-mode .standout-item .meta-info, .dark-mode .team-seed {
+            color: #aaa;
+        }
+
+        .dark-mode .week-standouts-section {
+            background-color: #1a2333;
+            border-color: #2c3a56;
+        }
+
+            .dark-mode .week-standouts-section h4 {
+                color: #8ab4f8;
+            }
+
+        .dark-mode .standout-item {
+            border-color: #333;
+        }
+
+            .dark-mode .standout-item h5 {
+                color: #e0e0e0;
+                border-bottom-color: #333;
+            }
+
+            .dark-mode .standout-item p {
+                color: #ccc;
+            }
+
+                .dark-mode .standout-item p .player-link, .dark-mode .standout-item p .team-link {
+                    color: #8ab4f8;
+                }
+
+        .dark-mode .game-card {
+            background-color: #2c2c2c;
+            border-color: #444;
+        }
+
+            .dark-mode .game-card:hover {
+                background-color: #383838;
+            }
+
+            .dark-mode .game-card.completed {
+                border-left-color: #66bb6a;
+            }
+
+                .dark-mode .game-card.completed:hover {
+                    background-color: #3a4a3a;
+                }
+
+            .dark-mode .game-card.upcoming {
+                border-left-color: #fdd835;
+            }
+
+        .dark-mode .team-score {
+            color: #e0e0e0;
+        }
+
+            .dark-mode .team.winner, .dark-mode .team-score.winner {
+                color: #66bb6a;
+            }
+
+        .dark-mode .modal-content {
+            background-color: #1e1e1e;
+        }
+
+        .dark-mode .close-btn:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .dark-mode .team-breakdown {
+            background-color: #2c2c2c;
+            border-color: #444;
+        }
+
+            .dark-mode .team-breakdown.winner {
+                border-color: #66bb6a;
+            }
+
+            .dark-mode .team-breakdown .team-header.winner {
+                background-color: #2e7d32;
+            }
+
+        .dark-mode .team-total {
+            background-color: #333;
+            border-bottom-color: #444;
+        }
+
+        .dark-mode .lineup-table th {
+            background-color: #2c2c2c;
+            border-bottom-color: #444;
+        }
+
+        .dark-mode .lineup-table td {
+            border-bottom-color: #333;
+        }
+
+        .dark-mode .lineup-table tr:hover {
+            background-color: #383838;
+        }
+
+        .dark-mode .captain-row {
+            background-color: #4a4100 !important;
+        }
+
+        .dark-mode .player-link {
+            color: #8ab4f8;
+        }
+
+            .dark-mode .player-link:hover {
+                color: #a7c7fa;
+            }
+
+        @media (max-width: 768px) {
+            .week-buttons {
+                gap: 0.3rem;
+            }
+
+            .week-btn {
+                padding: 0.6rem 0.3rem;
+                width: 85px;
+                font-size: 0.9rem;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-stats {
+                gap: 1rem;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                width: calc(100% - 2rem);
+            }
+
+            .game-details-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .lineup-table th, .lineup-table td {
+                padding: 0.5rem 0.3rem;
+                font-size: 0.8rem;
+            }
+
+            .team-logo.allstar, .modal-team-header .team-logo.allstar {
+                width: 60px;
+                height: 60px;
+            }
+
+            .modal-header {
+                padding: 1rem;
+            }
+
+                .modal-header h3 {
+                    font-size: 1.1rem;
+                    line-height: 1.3;
+                    word-break: break-word;
+                    hyphens: auto;
+                }
+
+            .standouts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .modal-header {
+                padding: 0.8rem;
+            }
+
+                .modal-header h3 {
+                    font-size: 1rem;
+                    line-height: 1.2;
+                }
+        }
     </style>
-  </head>
-  <body>
+</head>
+<body>
     <header>
-      <button id="theme-toggle-btn" aria-label="Toggle Theme">
-        <span class="sun-icon">☀️</span>
-        <span class="moon-icon">🌙</span>
-      </button>
-      <h1>
-        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
-        <span class="header-text">Real Karma League</span>
-      </h1>
-      <nav>
-        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-        <ul id="nav-menu">
-            <li><a href="RKL-S7.html">S7 Home</a></li>
-            <li><a href="standings.html">Standings & Rankings</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="leaderboards.html">Leaderboards</a>
-                    <a href="compare.html">Comparison Tool</a>
-                </div>
-            </li>
-            <li><a href="schedule.html">Schedule</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="draft-capital.html">Draft Capital</a>
-                    <a href="draft-results.html">Draft Results</a>
-                    <a href="draft-lottery.html">Draft Lottery</a>
-                </div>
-            </li>
-            <li><a href="transactions.html">Transactions</a></li>
-            <li><a href="teams.html">Teams</a></li>
-            <li><a href="trophy-case.html">Trophy Case</a></li>
-            <li><a href="changelog.html">Changelog</a></li>
-        </ul>
-      </nav>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <span class="header-text">Real Karma League</span>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="RKL-S7.html">S7 Home</a></li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
     </header>
-    
+
     <main>
-      <div class="page-header">
-        <h2>Schedule & Results</h2>
-        <p>Complete game schedule and results for Season 7</p>
-      </div>
-
-      <div class="week-selector">
-        <h3>Select Week</h3>
-        <div class="week-buttons" id="week-buttons">
-          <div class="loading">Loading weeks...</div>
-        </div>
-      </div>
-
-      <div class="games-container">
-        <div class="games-header">
-          <h3 id="games-title">Loading...</h3>
-        </div>
-        
-        <div id="week-summary" class="week-summary" style="display: none;">
-          <div class="summary-stats">
-            <div class="summary-stat">
-              <div class="stat-number" id="total-games">0</div>
-              <div class="stat-label">Total Games</div>
-            </div>
-            <div class="summary-stat">
-              <div class="stat-number" id="completed-games">0</div>
-              <div class="stat-label">Completed</div>
-            </div>
-            <div class="summary-stat">
-              <div class="stat-number" id="upcoming-games">0</div>
-              <div class="stat-label">Upcoming</div>
-            </div>
-          </div>
+        <div class="page-header">
+            <h2>Schedule & Results</h2>
+            <p>Complete game schedule and results for Season 7</p>
         </div>
 
-        <div id="week-standouts-section" class="week-standouts-section" style="display: none;">
-          <h4>Week <span id="standout-week-number">-</span> Standouts</h4>
-          <div class="standouts-grid">
-            <div class="standout-item">
-              <h5>🥇 Best Team</h5>
-              <p id="best-team-perf">Calculating...</p>
+        <div class="week-selector">
+            <h3>Select Week</h3>
+            <div class="week-buttons" id="week-buttons">
+                <div class="loading">Loading weeks...</div>
             </div>
-            <div class="standout-item">
-              <h5>⭐ Best Player</h5>
-              <p id="best-player-perf">Calculating...</p>
-            </div>
-            <div class="standout-item">
-              <h5>💩 Worst Team</h5>
-              <p id="worst-team-perf">Calculating...</p>
-            </div>
-            <div class="standout-item">
-              <h5>🚽 Worst Player</h5>
-              <p id="worst-player-perf">Calculating...</p>
-            </div>
-          </div>
         </div>
-        
-        <div class="games-by-date" id="games-content">
-          <div class="loading">Loading schedule...</div>
+
+        <div class="games-container">
+            <div class="games-header">
+                <h3 id="games-title">Loading...</h3>
+            </div>
+
+            <div id="week-summary" class="week-summary" style="display: none;">
+                <div class="summary-stats">
+                    <div class="summary-stat">
+                        <div class="stat-number" id="total-games">0</div>
+                        <div class="stat-label">Total Games</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-number" id="completed-games">0</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="summary-stat">
+                        <div class="stat-number" id="upcoming-games">0</div>
+                        <div class="stat-label">Upcoming</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="week-standouts-section" class="week-standouts-section" style="display: none;">
+                <h4>Week <span id="standout-week-number">-</span> Standouts</h4>
+                <div class="standouts-grid">
+                    <div class="standout-item">
+                        <h5>🥇 Best Team</h5>
+                        <p id="best-team-perf">Calculating...</p>
+                    </div>
+                    <div class="standout-item">
+                        <h5>⭐ Best Player</h5>
+                        <p id="best-player-perf">Calculating...</p>
+                    </div>
+                    <div class="standout-item">
+                        <h5>💩 Worst Team</h5>
+                        <p id="worst-team-perf">Calculating...</p>
+                    </div>
+                    <div class="standout-item">
+                        <h5>🚽 Worst Player</h5>
+                        <p id="worst-player-perf">Calculating...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="games-by-date" id="games-content">
+                <div class="loading">Loading schedule...</div>
+            </div>
         </div>
-      </div>
     </main>
 
     <div id="game-modal" class="modal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 id="modal-title">Game Details</h3>
-          <button class="close-btn" onclick="closeGameModal()">&times;</button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Game Details</h3>
+                <button class="close-btn" onclick="closeGameModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-content">
+                    <div class="loading">Loading game details...</div>
+                </div>
+            </div>
         </div>
-        <div class="modal-body">
-          <div id="modal-content">
-            <div class="loading">Loading game details...</div>
-          </div>
-        </div>
-      </div>
     </div>
-    
+
     <footer>
-      <p>@caustic on Real</p>
-      <a href="trade-block.html">GM Portal</a>
+        <p>@caustic on Real</p>
+        <a href="trade-block.html">GM Portal</a>
     </footer>
-    
+
     <script src="../js/main.js" type="module"></script>
     <script>
-        const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
-      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
-      const ALLSTAR_TEAM_IDS = ['EAST', 'WEST', 'EGM', 'WGM', 'RSE', 'RSW'];
-      const POSTSEASON_WEEK_IDS = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
-      
-      function parseNumber(value) {
-        if (!value) return 0;
-        const cleaned = value.toString().replace(/,/g, '');
-        const parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? 0 : parsed;
-      }
-      function formatInThousands(value) {
-        const num = parseNumber(value);
-        if (num >= 1000) { return (num / 1000).toFixed(1) + 'k'; }
-        return Math.round(num).toLocaleString();
-      }
-      function escapeHTML(str) { 
-        if (typeof str !== 'string') return str;
-        return str.replace(/&/g, '&amp;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#039;');
-      }
-      
-      let currentWeek = 1;
-      let allGames = [];
-      let allTeams = [];
-      let allPlayers = [];
-      let allLineups = [];
-      let weeklyAverages = [];
-      let weeklyScores = [];
-      let dateToMedianTeamScoreMap = {}; 
-      let dateToWeekMap = {}; 
-      let allstarRosters = [];
-      
-      async function fetchSheetData(sheetName) {
-        try {
-          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
-          const csvText = await response.text();
-          return parseCSV(csvText);
-        } catch (error) {
-          console.error(`Error fetching ${sheetName}:`, error);
-          if (document.getElementById('games-content')) { 
-             document.getElementById('games-content').innerHTML = `<div class="error">Error fetching ${sheetName}. Check console.</div>`;
-          }
-          return null;
+        const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+        const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+        const ALLSTAR_TEAM_IDS = ['EAST', 'WEST', 'EGM', 'WGM', 'RSE', 'RSW'];
+        const POSTSEASON_WEEK_IDS = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+
+        function parseNumber(value) {
+            if (!value) return 0;
+            const cleaned = value.toString().replace(/,/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
         }
-      }
-      
-      function parseCSV(csvText) { 
-        const lines = csvText.trim().split('\n');
-        if (lines.length < 1) return []; 
-        const headers = parseCSVLine(lines[0]);
-        const data = [];
-        for (let i = 1; i < lines.length; i++) {
-          if (lines[i].trim() === "") continue; 
-          const values = parseCSVLine(lines[i]);
-          if (values.length === headers.length) {
-            const row = {};
-            headers.forEach((header, index) => {
-              row[header] = values[index] || '';
-            });
-            data.push(row);
-          } else {
-            console.warn("Mismatched CSV line (length):", lines[i], "Headers:", headers.length, "Values:", values.length);
-          }
+        function formatInThousands(value) {
+            const num = parseNumber(value);
+            if (num >= 1000) { return (num / 1000).toFixed(1) + 'k'; }
+            return Math.round(num).toLocaleString();
         }
-        return data;
-      }
-      function parseCSVLine(line) {
-        const result = []; let current = ''; let inQuotes = false;
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"' && (i === 0 || line[i-1] !== '\\')) { 
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            result.push(current.trim()); current = '';
-          } else { current += char; }
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
         }
-        result.push(current.trim());
-        return result.map(field => field.replace(/^"(.*)"$/, '$1').replace(/\\"/g, '"'));
-       }
 
-      function getPlayInWinner(seriesId) {
-        const series = allGames.find(g => g.series_id === seriesId);
-        return series ? (series.winner || null) : null;
-       }
+        let currentWeek = 1;
+        let allGames = [];
+        let allTeams = [];
+        let allPlayers = [];
+        let allLineups = [];
+        let weeklyAverages = [];
+        let weeklyScores = [];
+        let dateToMedianTeamScoreMap = {};
+        let dateToWeekMap = {};
+        let allstarRosters = [];
 
-      function formatDate(dateString) { 
-        if (!dateString) return 'Invalid Date';
-        if (dateString.toUpperCase() === 'TBD') return 'TBD';
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'Invalid Date'; 
-        return date.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-       }
-      function formatDateShort(dateString) {
-        if (!dateString) return 'N/A';
-        if (dateString.toUpperCase() === 'TBD') return 'TBD';
-        const date = new Date(dateString); 
-        if (isNaN(date.getTime())) {
-            const parts = dateString.split('-');
-            if (parts.length === 3) {
-                const year = parseInt(parts[0]);
-                const month = parseInt(parts[1]) - 1; 
-                const day = parseInt(parts[2]);
-                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                    const tempDate = new Date(Date.UTC(year, month, day)); 
-                    if (!isNaN(tempDate.getTime())) {
-                        return `${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}/${String(year).slice(-2)}`;
-                    }
-                }
-            }
-            return 'Invalid Date';
-        }
-        const month = String(date.getUTCMonth() + 1).padStart(2, '0'); 
-        const day = String(date.getUTCDate()).padStart(2, '0');
-        const year = String(date.getUTCFullYear()).slice(-2);
-        return `${month}/${day}/${year}`;
-       }
-      
-      function getTeamName(teamId) {
-        if (!teamId || String(teamId).toLowerCase() === 'undefined' || String(teamId).trim() === '') return 'N/A';
-        const team = allTeams.find(t => t.team_id === teamId);
-        return team ? team.team_name : ( (teamId === 'FA' || teamId === 'N/A') ? 'N/A' : teamId ); 
-      }
-      
-      async function loadData() {
-        const [scheduleData, allstarScheduleData, postScheduleData, teamsData, playersData, lineupsData, allstarLineupsData, postLineupsData, fetchedWeeklyAverages, fetchedWeeklyScores, allstarRostersData] = await Promise.all([
-          fetchSheetData('Schedule'),
-          fetchSheetData('Allstar_Schedule'),
-          fetchSheetData('Post_Schedule'),
-          fetchSheetData('Teams'),
-          fetchSheetData('Players'),
-          fetchSheetData('Lineups'),
-          fetchSheetData('Allstar_Lineups'),
-          fetchSheetData('Post_Lineups'),
-          fetchSheetData('Weekly_Averages'), 
-          fetchSheetData('Weekly_Scores'),
-          fetchSheetData('Allstar_Rosters')
-        ]);
-        
-        if (!scheduleData || !teamsData || !playersData || !allstarRostersData) { 
-          document.getElementById('games-content').innerHTML = 
-            '<div class="error">Error loading core data. Please check console.</div>';
-          return;
-        }
-        
-        const allstarGames = allstarScheduleData ? allstarScheduleData.map(g => ({...g, week: 'ALLSTAR'})) : [];
-        const postGames = (postScheduleData || []).filter(g => g.team1_id && g.team1_id.trim() !== '' && g.team2_id && g.team2_id.trim() !== '');
-        allGames = [].concat(scheduleData, allstarGames, postGames);
-
-        allTeams = teamsData;
-        allPlayers = playersData;
-        allstarRosters = allstarRostersData || [];
-        
-        allLineups = lineupsData || [];
-        if(allstarLineupsData) allLineups = allLineups.concat(allstarLineupsData);
-        if(postLineupsData) allLineups = allLineups.concat(postLineupsData);
-
-        weeklyAverages = fetchedWeeklyAverages || [];
-        weeklyScores = fetchedWeeklyScores || [];
-
-        dateToWeekMap = {}; 
-        weeklyAverages.forEach(wa => {
-          if (wa.date && wa.week !== undefined && wa.week !== '') {
-            dateToWeekMap[wa.date] = String(wa.week).trim();
-          }
-        });
-
-        dateToMedianTeamScoreMap = {}; 
-        weeklyScores.forEach(ws => {
-          if (ws.date && ws.daily_median !== undefined && ws.daily_median !== '') {
-            dateToMedianTeamScoreMap[ws.date] = parseNumber(ws.daily_median);
-          }
-        });
-        
-        let initialWeek = determineCurrentWeek(allGames);
-        const allAvailableWeeks = getCanonicalWeekOrder();
-
-        const hashPrefix = '#week-';
-        if (window.location.hash.startsWith(hashPrefix)) {
+        async function fetchSheetData(sheetName) {
             try {
-                const weekFromHash = decodeURIComponent(window.location.hash.substring(hashPrefix.length));
-                
-                if (weekFromHash && allAvailableWeeks.map(String).includes(weekFromHash)) {
-                    initialWeek = weekFromHash;
+                const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
+                const csvText = await response.text();
+                return parseCSV(csvText);
+            } catch (error) {
+                console.error(`Error fetching ${sheetName}:`, error);
+                if (document.getElementById('games-content')) {
+                    document.getElementById('games-content').innerHTML = `<div class="error">Error fetching ${sheetName}. Check console.</div>`;
                 }
-            } catch (e) {
-                console.error('Error processing week from URL hash:', e);
+                return null;
             }
         }
 
-        currentWeek = initialWeek;
-        setupWeekSelector(); 
-        displayWeek(currentWeek); 
-      }
-      
-      function getCanonicalWeekOrder() {
-          const numericWeeks = [...new Set(allGames.map(game => parseInt(game.week)).filter(w => !isNaN(w)))].sort((a, b) => a - b);
-          const hasAllstarWeek = allGames.some(g => g.week === 'ALLSTAR');
-          
-          let allAvailableWeeks = [...numericWeeks];
-          if (hasAllstarWeek) {
-              const allstarBreakIndex = allAvailableWeeks.indexOf(8) + 1;
-              allAvailableWeeks.splice(allstarBreakIndex, 0, 'ALLSTAR');
-          }
-
-          const postseasonWeeksInSchedule = POSTSEASON_WEEK_IDS.filter(pid => allGames.some(g => g.week === pid));
-          allAvailableWeeks = allAvailableWeeks.concat(postseasonWeeksInSchedule);
-
-          return allAvailableWeeks;
-      }
-
-      function determineCurrentWeek(schedule) {
-        const allAvailableWeeks = getCanonicalWeekOrder();
-
-        const gamesByWeek = {};
-        schedule.forEach(game => {
-          const week = game.week;
-          if (week) {
-            if (!gamesByWeek[week]) {
-              gamesByWeek[week] = { total: 0, completed: 0 };
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length < 1) return [];
+            const headers = parseCSVLine(lines[0]);
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === "") continue;
+                const values = parseCSVLine(lines[i]);
+                if (values.length === headers.length) {
+                    const row = {};
+                    headers.forEach((header, index) => {
+                        row[header] = values[index] || '';
+                    });
+                    data.push(row);
+                } else {
+                    console.warn("Mismatched CSV line (length):", lines[i], "Headers:", headers.length, "Values:", values.length);
+                }
             }
-            gamesByWeek[week].total++;
-            if (game.completed === 'TRUE') {
-              gamesByWeek[week].completed++;
+            return data;
+        }
+        function parseCSVLine(line) {
+            const result = []; let current = ''; let inQuotes = false;
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"' && (i === 0 || line[i - 1] !== '\\')) {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    result.push(current.trim()); current = '';
+                } else { current += char; }
             }
-          }
-        });
-
-        for (const week of allAvailableWeeks) {
-          const weekStats = gamesByWeek[String(week)];
-          if (weekStats && weekStats.completed < weekStats.total) {
-            return week;
-          }
+            result.push(current.trim());
+            return result.map(field => field.replace(/^"(.*)"$/, '$1').replace(/\\"/g, '"'));
         }
 
-        return allAvailableWeeks.length > 0 ? allAvailableWeeks[allAvailableWeeks.length - 1] : 1;
-       }
-      
-      function setupWeekSelector() { 
-        const allWeeks = getCanonicalWeekOrder();
-
-        const weekButtonsHTML = allWeeks.map(week => {
-          const weekGames = allGames.filter(game => String(game.week) === String(week));
-          const completedCount = weekGames.filter(game => game.completed === 'TRUE').length;
-          const isCompleted = weekGames.length > 0 && completedCount === weekGames.length; 
-          
-          let weekText;
-          if (String(week) === 'Finals') {
-            weekText = '🏆 Finals';
-          } else if (POSTSEASON_WEEK_IDS.includes(String(week))) {
-            weekText = String(week);
-          } else if (week === 'ALLSTAR') {
-            weekText = 'ALLSTAR';
-          } else {
-            weekText = `Week ${week}`;
-          }
-
-          return `<div class="week-btn ${String(week) === String(currentWeek) ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-week="${week}">${weekText}</div>`;
-        }).join('');
-
-        document.getElementById('week-buttons').innerHTML = weekButtonsHTML;
-        document.querySelectorAll('.week-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const week = btn.dataset.week;
-            currentWeek = week;
-            document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            displayWeek(week);
-          });
-        });
-       }
-      
-      function displayWeek(week) {
-        let weekGames = allGames.filter(game => String(game.week) === String(week));
-        const weekStandoutsSection = document.getElementById('week-standouts-section');
-        const weekSummarySection = document.getElementById('week-summary');
-        
-        const isPostseason = POSTSEASON_WEEK_IDS.includes(String(week));
-
-        const finalSeedMap = {};
-        if (isPostseason) {
-            // Determine the actual 7th and 8th seeds from play-in results
-            const w7_final = getPlayInWinner('W-PI-7v8');
-            const w8_final = getPlayInWinner('W-PI-L78vW910');
-            const e7_final = getPlayInWinner('E-PI-7v8');
-            const e8_final = getPlayInWinner('E-PI-L78vW910');
-
-            // Map the winning teams to their new, correct seeds
-            if (w7_final) finalSeedMap[w7_final] = '7';
-            if (w8_final) finalSeedMap[w8_final] = '8';
-            if (e7_final) finalSeedMap[e7_final] = '7';
-            if (e8_final) finalSeedMap[e8_final] = '8';
-         }
-
-        let gamesToRender = weekGames;
-
-        if (isPostseason && weekGames.length > 0) {
-            weekGames.sort((a, b) => {
-                const dateA = new Date(a.date);
-                const dateB = new Date(b.date);
-                if (dateA - dateB !== 0) return dateA - dateB;
-                return (parseInt(a.series_game, 10) || 99) - (parseInt(b.series_game, 10) || 99);
-            });
-
-            const seriesRecords = {};
-            const gamesWithSnapshots = [];
-
-            weekGames.forEach(game => {
-                if (game.team1_id && !seriesRecords[game.team1_id]) seriesRecords[game.team1_id] = { wins: 0, losses: 0 };
-                if (game.team2_id && !seriesRecords[game.team2_id]) seriesRecords[game.team2_id] = { wins: 0, losses: 0 };
-            });
-
-            for (const game of weekGames) {
-                const gameWithSnapshot = { ...game };
-                
-                if (game.completed === 'TRUE') {
-                    const winnerId = game.winner;
-                    const loserId = winnerId === game.team1_id ? game.team2_id : game.team1_id;
-                    if (winnerId) {
-                        if (seriesRecords[winnerId]) seriesRecords[winnerId].wins++;
-                        if (seriesRecords[loserId]) seriesRecords[loserId].losses++;
+        function formatDate(dateString) {
+            if (!dateString) return 'Invalid Date';
+            if (dateString.toUpperCase() === 'TBD') return 'TBD';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return 'Invalid Date';
+            return date.toLocaleDateString('en-US', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        function formatDateShort(dateString) {
+            if (!dateString) return 'N/A';
+            if (dateString.toUpperCase() === 'TBD') return 'TBD';
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                const parts = dateString.split('-');
+                if (parts.length === 3) {
+                    const year = parseInt(parts[0]);
+                    const month = parseInt(parts[1]) - 1;
+                    const day = parseInt(parts[2]);
+                    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+                        const tempDate = new Date(Date.UTC(year, month, day));
+                        if (!isNaN(tempDate.getTime())) {
+                            return `${String(month + 1).padStart(2, '0')}/${String(day).padStart(2, '0')}/${String(year).slice(-2)}`;
+                        }
                     }
                 }
-                
-                const team1Rec = seriesRecords[game.team1_id] || { wins: 0, losses: 0 };
-                const team2Rec = seriesRecords[game.team2_id] || { wins: 0, losses: 0 };
-                gameWithSnapshot.team1_record_snapshot = `${team1Rec.wins}-${team1Rec.losses}`;
-                gameWithSnapshot.team2_record_snapshot = `${team2Rec.wins}-${team2Rec.losses}`;
-
-                gamesWithSnapshots.push(gameWithSnapshot);
+                return 'Invalid Date';
             }
-            gamesToRender = gamesWithSnapshots;
-        }
-        
-        let weekTitle;
-        if (isPostseason) {
-            weekTitle = `${String(week)}`;
-        } else if (week === 'ALLSTAR') {
-            weekTitle = 'All-Star Week';
-        } else {
-            weekTitle = `Week ${week}`;
-        }
-        document.getElementById('games-title').textContent = `${weekTitle} Games`;
-        
-        const isRegularSeasonWeek = !isPostseason && week !== 'ALLSTAR';
-        if (!isRegularSeasonWeek) {
-            weekStandoutsSection.style.display = 'none';
-        } else {
-            const standoutWeekNumSpan = document.getElementById('standout-week-number');
-            if (standoutWeekNumSpan) standoutWeekNumSpan.textContent = week;
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            const year = String(date.getUTCFullYear()).slice(-2);
+            return `${month}/${day}/${year}`;
         }
 
-        if (gamesToRender.length === 0) {
-          document.getElementById('games-content').innerHTML = '<div class="no-games">No games scheduled for this week</div>';
-          weekSummarySection.style.display = 'none';
-          if (isRegularSeasonWeek) weekStandoutsSection.style.display = 'none';
-          return;
-        }
-        
-        const completedGamesThisWeek = gamesToRender.filter(game => game.completed === 'TRUE');
-        const completedCount = completedGamesThisWeek.length;
-        const upcomingCount = gamesToRender.length - completedCount;
-        
-        document.getElementById('total-games').textContent = gamesToRender.length;
-        document.getElementById('completed-games').textContent = completedCount;
-        document.getElementById('upcoming-games').textContent = upcomingCount;
-        weekSummarySection.style.display = 'block';
-
-        const existingSubtitle = document.querySelector('.games-subtitle');
-        if (existingSubtitle) existingSubtitle.remove();
-        if (completedCount > 0) {
-          const subtitle = document.createElement('p');
-          subtitle.className = 'games-subtitle';
-          subtitle.textContent = 'Click on completed games to view details';
-          document.querySelector('.games-header').appendChild(subtitle);
+        function getTeamName(teamId) {
+            if (!teamId || String(teamId).toLowerCase() === 'undefined' || String(teamId).trim() === '') return 'N/A';
+            const team = allTeams.find(t => t.team_id === teamId);
+            return team ? team.team_name : ((teamId === 'FA' || teamId === 'N/A') ? 'N/A' : teamId);
         }
 
-        const allGamesInWeekCompleted = gamesToRender.length > 0 && completedCount === gamesToRender.length;
-        if (isRegularSeasonWeek && allGamesInWeekCompleted && allLineups && allLineups.length > 0 && Object.keys(dateToMedianTeamScoreMap).length > 0 && Object.keys(dateToWeekMap).length > 0) {
-          calculateAndDisplayStandouts(week, completedGamesThisWeek);
-          weekStandoutsSection.style.display = 'block';
-        } else {
-          weekStandoutsSection.style.display = 'none';
+        async function loadData() {
+            const [scheduleData, allstarScheduleData, postScheduleData, teamsData, playersData, lineupsData, allstarLineupsData, postLineupsData, fetchedWeeklyAverages, fetchedWeeklyScores, allstarRostersData] = await Promise.all([
+                fetchSheetData('Schedule'),
+                fetchSheetData('Allstar_Schedule'),
+                fetchSheetData('Post_Schedule'),
+                fetchSheetData('Teams'),
+                fetchSheetData('Players'),
+                fetchSheetData('Lineups'),
+                fetchSheetData('Allstar_Lineups'),
+                fetchSheetData('Post_Lineups'),
+                fetchSheetData('Weekly_Averages'),
+                fetchSheetData('Weekly_Scores'),
+                fetchSheetData('Allstar_Rosters')
+            ]);
+
+            if (!scheduleData || !teamsData || !playersData || !allstarRostersData) {
+                document.getElementById('games-content').innerHTML =
+                    '<div class="error">Error loading core data. Please check console.</div>';
+                return;
+            }
+
+            const allstarGames = allstarScheduleData ? allstarScheduleData.map(g => ({ ...g, week: 'ALLSTAR' })) : [];
+            const postGames = (postScheduleData || []).filter(g => g.team1_id && g.team1_id.trim() !== '' && g.team2_id && g.team2_id.trim() !== '');
+            allGames = [].concat(scheduleData, allstarGames, postGames);
+
+            allTeams = teamsData;
+            allPlayers = playersData;
+            allstarRosters = allstarRostersData || [];
+
+            allLineups = lineupsData || [];
+            if (allstarLineupsData) allLineups = allLineups.concat(allstarLineupsData);
+            if (postLineupsData) allLineups = allLineups.concat(postLineupsData);
+
+            weeklyAverages = fetchedWeeklyAverages || [];
+            weeklyScores = fetchedWeeklyScores || [];
+
+            dateToWeekMap = {};
+            weeklyAverages.forEach(wa => {
+                if (wa.date && wa.week !== undefined && wa.week !== '') {
+                    dateToWeekMap[wa.date] = String(wa.week).trim();
+                }
+            });
+
+            dateToMedianTeamScoreMap = {};
+            weeklyScores.forEach(ws => {
+                if (ws.date && ws.daily_median !== undefined && ws.daily_median !== '') {
+                    dateToMedianTeamScoreMap[ws.date] = parseNumber(ws.daily_median);
+                }
+            });
+
+            let initialWeek = determineCurrentWeek(allGames);
+            const allAvailableWeeks = getCanonicalWeekOrder();
+
+            const hashPrefix = '#week-';
+            if (window.location.hash.startsWith(hashPrefix)) {
+                try {
+                    const weekFromHash = decodeURIComponent(window.location.hash.substring(hashPrefix.length));
+
+                    if (weekFromHash && allAvailableWeeks.map(String).includes(weekFromHash)) {
+                        initialWeek = weekFromHash;
+                    }
+                } catch (e) {
+                    console.error('Error processing week from URL hash:', e);
+                }
+            }
+
+            currentWeek = initialWeek;
+            setupWeekSelector();
+            displayWeek(currentWeek);
         }
-        
-        const gamesByDate = {};
-        gamesToRender.forEach(game => {
-          const date = game.date;
-          if (!gamesByDate[date]) gamesByDate[date] = [];
-          gamesByDate[date].push(game);
-        });
-        
-        const datesHTML = Object.keys(gamesByDate)
-          .sort((a, b) => {
-            const isADate = a.toUpperCase() !== 'TBD' && !isNaN(new Date(a).getTime());
-            const isBDate = b.toUpperCase() !== 'TBD' && !isNaN(new Date(b).getTime());
 
-            if (isADate && !isBDate) return -1;
-            if (!isADate && isBDate) return 1;
-            if (!isADate && !isBDate) return 0;
+        function getCanonicalWeekOrder() {
+            const numericWeeks = [...new Set(allGames.map(game => parseInt(game.week)).filter(w => !isNaN(w)))].sort((a, b) => a - b);
+            const hasAllstarWeek = allGames.some(g => g.week === 'ALLSTAR');
 
-            return new Date(a) - new Date(b);
-          })
-          .map(date => {
-            const dateGames = gamesByDate[date];
-            const gamesHTML = dateGames.map(game => {
-              const isCompleted = game.completed === 'TRUE';
-              const isAllstarGame = game.week === 'ALLSTAR' || ALLSTAR_TEAM_IDS.includes(game.team1_id) || ALLSTAR_TEAM_IDS.includes(game.team2_id);
-              const logoExt = isAllstarGame ? 'png' : 'webp';
-              const logoClass = isAllstarGame ? 'team-logo allstar' : 'team-logo';
-              const team1Score = parseNumber(game.team1_score);
-              const team2Score = parseNumber(game.team2_score);
-              const winner = game.winner;
-              let team1Seed = finalSeedMap[game.team1_id] || game.team1_seed;
-              let team2Seed = finalSeedMap[game.team2_id] || game.team2_seed;
+            let allAvailableWeeks = [...numericWeeks];
+            if (hasAllstarWeek) {
+                const allstarBreakIndex = allAvailableWeeks.indexOf(8) + 1;
+                allAvailableWeeks.splice(allstarBreakIndex, 0, 'ALLSTAR');
+            }
 
-              const team1SeedHtml = isPostseason && team1Seed ? `<span class="team-seed">(${team1Seed})</span> ` : '';
-              const team2SeedHtml = isPostseason && team2Seed ? `<span class="team-seed">(${team2Seed})</span> ` : '';
-              let team1Record = '';
-              let team2Record = '';
+            const postseasonWeeksInSchedule = POSTSEASON_WEEK_IDS.filter(pid => allGames.some(g => g.week === pid));
+            allAvailableWeeks = allAvailableWeeks.concat(postseasonWeeksInSchedule);
 
-              if (isPostseason) {
-                  team1Record = game.team1_record_snapshot || '0-0';
-                  team2Record = game.team2_record_snapshot || '0-0';
-              } else {
-                  const team1Data = allTeams.find(t => t.team_id === game.team1_id);
-                  const team2Data = allTeams.find(t => t.team_id === game.team2_id);
-                  team1Record = team1Data ? `${team1Data.wins || 0}-${team1Data.losses || 0}` : '';
-                  team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
-              }
-              
-              const team1SeedHtml = isPostseason && game.team1_seed ? `<span class="team-seed">(${game.team1_seed})</span> ` : '';
-              const team2SeedHtml = isPostseason && game.team2_seed ? `<span class="team-seed">(${game.team2_seed})</span> ` : '';
-              const gameDesc = isPostseason && game.Desc ? `${escapeHTML(game.Desc)} - ` : '';
+            return allAvailableWeeks;
+        }
 
-              const clickHandler = isCompleted ? `onclick="showGameDetails('${escapeHTML(game.team1_id)}', '${escapeHTML(game.team2_id)}', '${escapeHTML(game.date)}', '${escapeHTML(team1Record)}', '${escapeHTML(team2Record)}')" ` : '';
+        function determineCurrentWeek(schedule) {
+            const allAvailableWeeks = getCanonicalWeekOrder();
 
-              return `
-                <div class="game-card ${isCompleted ? 'completed' : 'upcoming'}" ${clickHandler}>
-                  <div class="game-teams">
-                    <div class="team ${winner === game.team1_id ? 'winner' : ''}">
-                      <div class="team-left">
-                        <img src="icons/${escapeHTML(game.team1_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team1_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                        <div class="team-info">
-                          <div class="team-name">${team1SeedHtml}${escapeHTML(getTeamName(game.team1_id))}</div>
-                          <div class="team-record">${escapeHTML(team1Record)}</div>
-                        </div>
-                      </div>
-                      ${isCompleted ? `<div class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</div>` : ''}
-                    </div>
-                    <div class="team ${winner === game.team2_id ? 'winner' : ''}">
-                      <div class="team-left">
-                        <img src="icons/${escapeHTML(game.team2_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team2_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                        <div class="team-info">
-                          <div class="team-name">${team2SeedHtml}${escapeHTML(getTeamName(game.team2_id))}</div>
-                          <div class="team-record">${escapeHTML(team2Record)}</div>
-                        </div>
-                      </div>
-                      ${isCompleted ? `<div class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</div>` : ''}
-                    </div>
-                  </div>
-                  <div class="game-status ${isCompleted ? 'completed' : 'upcoming'}">
-                    ${gameDesc}${isCompleted ? `Final` : `Upcoming`}
-                  </div>
-                </div>`;
+            const gamesByWeek = {};
+            schedule.forEach(game => {
+                const week = game.week;
+                if (week) {
+                    if (!gamesByWeek[week]) {
+                        gamesByWeek[week] = { total: 0, completed: 0 };
+                    }
+                    gamesByWeek[week].total++;
+                    if (game.completed === 'TRUE') {
+                        gamesByWeek[week].completed++;
+                    }
+                }
+            });
+
+            for (const week of allAvailableWeeks) {
+                const weekStats = gamesByWeek[String(week)];
+                if (weekStats && weekStats.completed < weekStats.total) {
+                    return week;
+                }
+            }
+
+            return allAvailableWeeks.length > 0 ? allAvailableWeeks[allAvailableWeeks.length - 1] : 1;
+        }
+
+        function setupWeekSelector() {
+            const allWeeks = getCanonicalWeekOrder();
+
+            const weekButtonsHTML = allWeeks.map(week => {
+                const weekGames = allGames.filter(game => String(game.week) === String(week));
+                const completedCount = weekGames.filter(game => game.completed === 'TRUE').length;
+                const isCompleted = weekGames.length > 0 && completedCount === weekGames.length;
+
+                let weekText;
+                if (String(week) === 'Finals') {
+                    weekText = '🏆 Finals';
+                } else if (POSTSEASON_WEEK_IDS.includes(String(week))) {
+                    weekText = String(week);
+                } else if (week === 'ALLSTAR') {
+                    weekText = 'ALLSTAR';
+                } else {
+                    weekText = `Week ${week}`;
+                }
+
+                return `<div class="week-btn ${String(week) === String(currentWeek) ? 'active' : ''} ${isCompleted ? 'completed' : ''}" data-week="${week}">${weekText}</div>`;
             }).join('');
-            const dateHeaderText = (week === 'Finals') ? `🏆 ${formatDate(date)}` : formatDate(date);
-            return `<div class="date-section"><div class="date-header">${dateHeaderText}</div><div class="games-grid">${gamesHTML}</div></div>`;
-          }).join('');
-        document.getElementById('games-content').innerHTML = datesHTML;
-      }
 
-      function calculateAndDisplayStandouts(week, completedGamesThisWeek) {
-        let bestTeam = { team_id: null, team_name: 'N/A', percentage_diff: -Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
-        let worstTeam = { team_id: null, team_name: 'N/A', percentage_diff: Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
-        
-        completedGamesThisWeek.forEach(game => {
-          const dailyMedianTeamScore = dateToMedianTeamScoreMap[game.date]; 
-          if (dailyMedianTeamScore === undefined || dailyMedianTeamScore === 0) {
-            console.warn(`Median team score not found or is zero for date: ${game.date} in week ${week}. Game: ${game.team1_id} vs ${game.team2_id}`);
-            return; 
-          }
-
-          const teamsInGame = [
-            { id: game.team1_id, name: getTeamName(game.team1_id), score: parseNumber(game.team1_score) },
-            { id: game.team2_id, name: getTeamName(game.team2_id), score: parseNumber(game.team2_score) }
-          ];
-
-          teamsInGame.forEach(team => {
-            if (!team.id || team.id === 'N/A') return;
-            const percentageDiff = ((team.score / dailyMedianTeamScore) - 1) * 100;
-            if (percentageDiff > bestTeam.percentage_diff) {
-              bestTeam = { team_id: team.id, team_name: team.name, percentage_diff: percentageDiff, game_key_t1: game.team1_id, game_key_t2: game.team2_id, game_key_date: game.date };
-            }
-            if (percentageDiff < 0 && percentageDiff < worstTeam.percentage_diff) {
-              worstTeam = { team_id: team.id, team_name: team.name, percentage_diff: percentageDiff, game_key_t1: game.team1_id, game_key_t2: game.team2_id, game_key_date: game.date };
-            }
-          });
-        });
-
-        let bestPlayer = { players: [], rank: Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
-        let worstPlayer = { players: [], rank: -Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
-        
-        const gameDatesInWeek = [...new Set(completedGamesThisWeek.map(g => g.date))];
-        const relevantLineups = allLineups.filter(l => 
-            gameDatesInWeek.includes(l.date) && 
-            dateToWeekMap[l.date] == week && 
-            l.started && String(l.started).toUpperCase() === 'TRUE'
-        );
-
-        relevantLineups.forEach(lineup => {
-          const rank = parseNumber(lineup.global_rank);
-          const gameForPlayer = allGames.find(g => g.date === lineup.date && (g.team1_id === lineup.team_id || g.team2_id === lineup.team_id) && g.completed === 'TRUE');
-          
-          if (rank > 0 && gameForPlayer) { 
-            const playerDisplay = { handle: lineup.player_handle, team_name: getTeamName(lineup.team_id) };
-            if (rank < bestPlayer.rank) {
-              bestPlayer = { players: [playerDisplay], rank: rank, game_key_t1: gameForPlayer.team1_id, game_key_t2: gameForPlayer.team2_id, game_key_date: gameForPlayer.date };
-            } else if (rank === bestPlayer.rank) {
-              if (!bestPlayer.players.find(p=>p.handle === lineup.player_handle)) { 
-                bestPlayer.players.push(playerDisplay);
-                if (!bestPlayer.game_key_date) { 
-                    bestPlayer.game_key_t1 = gameForPlayer.team1_id;
-                    bestPlayer.game_key_t2 = gameForPlayer.team2_id;
-                    bestPlayer.game_key_date = gameForPlayer.date;
-                }
-              }
-            }
-
-            if (rank > worstPlayer.rank) {
-              worstPlayer = { players: [playerDisplay], rank: rank, game_key_t1: gameForPlayer.team1_id, game_key_t2: gameForPlayer.team2_id, game_key_date: gameForPlayer.date };
-            } else if (rank === worstPlayer.rank) {
-               if (!worstPlayer.players.find(p=>p.handle === lineup.player_handle)) {
-                worstPlayer.players.push(playerDisplay);
-                 if (!worstPlayer.game_key_date) {
-                    worstPlayer.game_key_t1 = gameForPlayer.team1_id;
-                    worstPlayer.game_key_t2 = gameForPlayer.team2_id;
-                    worstPlayer.game_key_date = gameForPlayer.date;
-                }
-              }
-            }
-          }
-        });
-        
-        document.getElementById('best-team-perf').innerHTML = bestTeam.game_key_date ? 
-          `<a href="team.html?id=${escapeHTML(bestTeam.team_id)}" class="team-link">${escapeHTML(bestTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('${escapeHTML(bestTeam.game_key_t1)}', '${escapeHTML(bestTeam.game_key_t2)}', '${escapeHTML(bestTeam.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">+${bestTeam.percentage_diff.toFixed(1)}% vs median</span></a>` : 
-          'Not enough data.';
-        
-        document.getElementById('worst-team-perf').innerHTML = (worstTeam.game_key_date && worstTeam.percentage_diff !== Infinity && worstTeam.percentage_diff < 0) ?
-          `<a href="team.html?id=${escapeHTML(worstTeam.team_id)}" class="team-link">${escapeHTML(worstTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('${escapeHTML(worstTeam.game_key_t1)}', '${escapeHTML(worstTeam.game_key_t2)}', '${escapeHTML(worstTeam.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-negative">${worstTeam.percentage_diff.toFixed(1)}% vs median</span></a>` :
-          'No team significantly below median.';
-
-        document.getElementById('best-player-perf').innerHTML = (bestPlayer.players.length > 0 && bestPlayer.game_key_date) ?
-          `${bestPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('${escapeHTML(bestPlayer.game_key_t1)}', '${escapeHTML(bestPlayer.game_key_t2)}', '${escapeHTML(bestPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">Rank ${bestPlayer.rank}</span></a>` :
-          'No ranked player data.';
-        
-        document.getElementById('worst-player-perf').innerHTML = (worstPlayer.players.length > 0 && worstPlayer.game_key_date) ?
-          `${worstPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('${escapeHTML(worstPlayer.game_key_t1)}', '${escapeHTML(worstPlayer.game_key_t2)}', '${escapeHTML(worstPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span></a>` :
-          'No ranked player data.';
-      }
-      
-      async function showGameDetails(team1Id, team2Id, date, team1Record, team2Record) {
-        const modal = document.getElementById('game-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const modalContent = document.getElementById('modal-content');
-        
-        if (!team1Id || !team2Id || !date) {
-            console.error("showGameDetails called with incomplete identifiers:", team1Id, team2Id, date);
-            modalContent.innerHTML = '<div class="error">Cannot load game details: Incomplete information.</div>';
-            if(!modal.style.display || modal.style.display === 'none') modal.style.display = 'block';
-            return;
+            document.getElementById('week-buttons').innerHTML = weekButtonsHTML;
+            document.querySelectorAll('.week-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const week = btn.dataset.week;
+                    currentWeek = week;
+                    document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    displayWeek(week);
+                });
+            });
         }
-        
-        modal.style.display = 'block';
-        modalContent.innerHTML = '<div class="loading">Loading game details...</div>';
-        
-        const game = allGames.find(g => g.team1_id === team1Id && g.team2_id === team2Id && g.date === date);
-                
-        if (!game) {
-          modalContent.innerHTML = '<div class="error">Game details not found.</div>';
-          console.error("Failed to find game for modal. Identifiers:", team1Id, team2Id, date);
-          return;
-        }
-        modalTitle.textContent = `${getTeamName(game.team1_id)} vs ${getTeamName(game.team2_id)} - ${formatDateShort(game.date)}`;
-        
-        const gameLineups = allLineups.filter(lineup => 
-          lineup.date === game.date && 
-          (lineup.team_id === game.team1_id || lineup.team_id === game.team2_id) &&
-          (String(lineup.started).toUpperCase() === 'TRUE')
-        ).sort((a,b) => {
-            const aCaptain = String(a.captain).toUpperCase() === 'TRUE';
-            const bCaptain = String(b.captain).toUpperCase() === 'TRUE';
-            if (aCaptain && !bCaptain) return -1;
-            if (!aCaptain && bCaptain) return 1;
-            return parseNumber(b.points_final) - parseNumber(a.points_final);
-        });
 
-        const team1Lineups = gameLineups.filter(l => l.team_id === game.team1_id);
-        const team2Lineups = gameLineups.filter(l => l.team_id === game.team2_id);
-        
-        const team1Total = parseNumber(game.team1_score); 
-        const team2Total = parseNumber(game.team2_score); 
-        const winner = game.winner;
-        
-        const generateLineupTable = (lineups, teamIdForTable, totalScoreFromSchedule, isWinner, game, teamRecord) => {
-          const teamData = allTeams.find(t => t.team_id === teamIdForTable);
-          const isAllstarTeam = ALLSTAR_TEAM_IDS.includes(teamIdForTable);
-          const isGMGame = (game.team1_id === 'EGM' && game.team2_id === 'WGM') || (game.team1_id === 'WGM' && game.team2_id === 'EGM');
-          const logoExt = isAllstarTeam ? 'png' : 'webp';
-          const logoClass = 'team-logo' + (isAllstarTeam ? ' allstar' : '');
-          const headerOnClick = isAllstarTeam ? '' : `onclick="window.location.href='team.html?id=${escapeHTML(teamIdForTable)}'" style="cursor: pointer;"`;
-          const recordToShow = teamRecord || (teamData ? `${teamData.wins || 0}-${teamData.losses || 0}` : 'N/A');
-          
-          if (lineups.length === 0) { 
-            return `
-              <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-                <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
-                  <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                  <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
+        function displayWeek(week) {
+            let weekGames = allGames.filter(game => String(game.week) === String(week));
+            const weekStandoutsSection = document.getElementById('week-standouts-section');
+            const weekSummarySection = document.getElementById('week-summary');
+
+            const isPostseason = POSTSEASON_WEEK_IDS.includes(String(week));
+            let gamesToRender = weekGames;
+
+            if (isPostseason && weekGames.length > 0) {
+                weekGames.sort((a, b) => {
+                    const dateA = new Date(a.date);
+                    const dateB = new Date(b.date);
+                    if (dateA - dateB !== 0) return dateA - dateB;
+                    return (parseInt(a.series_game, 10) || 99) - (parseInt(b.series_game, 10) || 99);
+                });
+
+                const seriesRecords = {};
+                const gamesWithSnapshots = [];
+
+                weekGames.forEach(game => {
+                    if (game.team1_id && !seriesRecords[game.team1_id]) seriesRecords[game.team1_id] = { wins: 0, losses: 0 };
+                    if (game.team2_id && !seriesRecords[game.team2_id]) seriesRecords[game.team2_id] = { wins: 0, losses: 0 };
+                });
+
+                for (const game of weekGames) {
+                    const gameWithSnapshot = { ...game };
+
+                    if (game.completed === 'TRUE') {
+                        const winnerId = game.winner;
+                        const loserId = winnerId === game.team1_id ? game.team2_id : game.team1_id;
+                        if (winnerId) {
+                            if (seriesRecords[winnerId]) seriesRecords[winnerId].wins++;
+                            if (seriesRecords[loserId]) seriesRecords[loserId].losses++;
+                        }
+                    }
+
+                    const team1Rec = seriesRecords[game.team1_id] || { wins: 0, losses: 0 };
+                    const team2Rec = seriesRecords[game.team2_id] || { wins: 0, losses: 0 };
+                    gameWithSnapshot.team1_record_snapshot = `${team1Rec.wins}-${team1Rec.losses}`;
+                    gameWithSnapshot.team2_record_snapshot = `${team2Rec.wins}-${team2Rec.losses}`;
+
+                    gamesWithSnapshots.push(gameWithSnapshot);
+                }
+                gamesToRender = gamesWithSnapshots;
+            }
+
+            let weekTitle;
+            if (isPostseason) {
+                weekTitle = `${String(week)}`;
+            } else if (week === 'ALLSTAR') {
+                weekTitle = 'All-Star Week';
+            } else {
+                weekTitle = `Week ${week}`;
+            }
+            document.getElementById('games-title').textContent = `${weekTitle} Games`;
+
+            const isRegularSeasonWeek = !isPostseason && week !== 'ALLSTAR';
+            if (!isRegularSeasonWeek) {
+                weekStandoutsSection.style.display = 'none';
+            } else {
+                const standoutWeekNumSpan = document.getElementById('standout-week-number');
+                if (standoutWeekNumSpan) standoutWeekNumSpan.textContent = week;
+            }
+
+            if (gamesToRender.length === 0) {
+                document.getElementById('games-content').innerHTML = '<div class="no-games">No games scheduled for this week</div>';
+                weekSummarySection.style.display = 'none';
+                if (isRegularSeasonWeek) weekStandoutsSection.style.display = 'none';
+                return;
+            }
+
+            const completedGamesThisWeek = gamesToRender.filter(game => game.completed === 'TRUE');
+            const completedCount = completedGamesThisWeek.length;
+            const upcomingCount = gamesToRender.length - completedCount;
+
+            document.getElementById('total-games').textContent = gamesToRender.length;
+            document.getElementById('completed-games').textContent = completedCount;
+            document.getElementById('upcoming-games').textContent = upcomingCount;
+            weekSummarySection.style.display = 'block';
+
+            const existingSubtitle = document.querySelector('.games-subtitle');
+            if (existingSubtitle) existingSubtitle.remove();
+            if (completedCount > 0) {
+                const subtitle = document.createElement('p');
+                subtitle.className = 'games-subtitle';
+                subtitle.textContent = 'Click on completed games to view details';
+                document.querySelector('.games-header').appendChild(subtitle);
+            }
+
+            const allGamesInWeekCompleted = gamesToRender.length > 0 && completedCount === gamesToRender.length;
+            if (isRegularSeasonWeek && allGamesInWeekCompleted && allLineups && allLineups.length > 0 && Object.keys(dateToMedianTeamScoreMap).length > 0 && Object.keys(dateToWeekMap).length > 0) {
+                calculateAndDisplayStandouts(week, completedGamesThisWeek);
+                weekStandoutsSection.style.display = 'block';
+            } else {
+                weekStandoutsSection.style.display = 'none';
+            }
+
+            const gamesByDate = {};
+            gamesToRender.forEach(game => {
+                const date = game.date;
+                if (!gamesByDate[date]) gamesByDate[date] = [];
+                gamesByDate[date].push(game);
+            });
+
+            const datesHTML = Object.keys(gamesByDate)
+                .sort((a, b) => {
+                    const isADate = a.toUpperCase() !== 'TBD' && !isNaN(new Date(a).getTime());
+                    const isBDate = b.toUpperCase() !== 'TBD' && !isNaN(new Date(b).getTime());
+
+                    if (isADate && !isBDate) return -1;
+                    if (!isADate && isBDate) return 1;
+                    if (!isADate && !isBDate) return 0;
+
+                    return new Date(a) - new Date(b);
+                })
+                .map(date => {
+                    const dateGames = gamesByDate[date];
+                    const gamesHTML = dateGames.map(game => {
+                        const isCompleted = game.completed === 'TRUE';
+                        const isAllstarGame = game.week === 'ALLSTAR' || ALLSTAR_TEAM_IDS.includes(game.team1_id) || ALLSTAR_TEAM_IDS.includes(game.team2_id);
+                        const logoExt = isAllstarGame ? 'png' : 'webp';
+                        const logoClass = isAllstarGame ? 'team-logo allstar' : 'team-logo';
+                        const team1Score = parseNumber(game.team1_score);
+                        const team2Score = parseNumber(game.team2_score);
+                        const winner = game.winner;
+
+                        let team1Record = '';
+                        let team2Record = '';
+
+                        if (isPostseason) {
+                            team1Record = game.team1_record_snapshot || '0-0';
+                            team2Record = game.team2_record_snapshot || '0-0';
+                        } else {
+                            const team1Data = allTeams.find(t => t.team_id === game.team1_id);
+                            const team2Data = allTeams.find(t => t.team_id === game.team2_id);
+                            team1Record = team1Data ? `${team1Data.wins || 0}-${team1Data.losses || 0}` : '';
+                            team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
+                        }
+
+                        const team1SeedHtml = isPostseason && game.team1_seed ? `<span class="team-seed">(${game.team1_seed})</span> ` : '';
+                        const team2SeedHtml = isPostseason && game.team2_seed ? `<span class="team-seed">(${game.team2_seed})</span> ` : '';
+                        const gameDesc = isPostseason && game.Desc ? `${escapeHTML(game.Desc)} - ` : '';
+
+                        const clickHandler = isCompleted ? `onclick="showGameDetails('${escapeHTML(game.team1_id)}', '${escapeHTML(game.team2_id)}', '${escapeHTML(game.date)}', '${escapeHTML(team1Record)}', '${escapeHTML(team2Record)}')" ` : '';
+
+                        return `
+                    <div class="game-card ${isCompleted ? 'completed' : 'upcoming'}" ${clickHandler}>
+                      <div class="game-teams">
+                        <div class="team ${winner === game.team1_id ? 'winner' : ''}">
+                          <div class="team-left">
+                            <img src="icons/${escapeHTML(game.team1_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team1_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                            <div class="team-info">
+                              <div class="team-name">${team1SeedHtml}${escapeHTML(getTeamName(game.team1_id))}</div>
+                              <div class="team-record">${escapeHTML(team1Record)}</div>
+                            </div>
+                          </div>
+                          ${isCompleted ? `<div class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</div>` : ''}
+                        </div>
+                        <div class="team ${winner === game.team2_id ? 'winner' : ''}">
+                          <div class="team-left">
+                            <img src="icons/${escapeHTML(game.team2_id)}.${logoExt}" alt="${escapeHTML(getTeamName(game.team2_id))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                            <div class="team-info">
+                              <div class="team-name">${team2SeedHtml}${escapeHTML(getTeamName(game.team2_id))}</div>
+                              <div class="team-record">${escapeHTML(team2Record)}</div>
+                            </div>
+                          </div>
+                          ${isCompleted ? `<div class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</div>` : ''}
+                        </div>
+                      </div>
+                      <div class="game-status ${isCompleted ? 'completed' : 'upcoming'}">
+                        ${gameDesc}${isCompleted ? `Final` : `Upcoming`}
+                      </div>
+                    </div>`;
+                    }).join('');
+                    const dateHeaderText = (week === 'Finals') ? `🏆 ${formatDate(date)}` : formatDate(date);
+                    return `<div class="date-section"><div class="date-header">${dateHeaderText}</div><div class="games-grid">${gamesHTML}</div></div>`;
+                }).join('');
+            document.getElementById('games-content').innerHTML = datesHTML;
+        }
+
+        function calculateAndDisplayStandouts(week, completedGamesThisWeek) {
+            let bestTeam = { team_id: null, team_name: 'N/A', percentage_diff: -Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
+            let worstTeam = { team_id: null, team_name: 'N/A', percentage_diff: Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
+
+            completedGamesThisWeek.forEach(game => {
+                const dailyMedianTeamScore = dateToMedianTeamScoreMap[game.date];
+                if (dailyMedianTeamScore === undefined || dailyMedianTeamScore === 0) {
+                    console.warn(`Median team score not found or is zero for date: ${game.date} in week ${week}. Game: ${game.team1_id} vs ${game.team2_id}`);
+                    return;
+                }
+
+                const teamsInGame = [
+                    { id: game.team1_id, name: getTeamName(game.team1_id), score: parseNumber(game.team1_score) },
+                    { id: game.team2_id, name: getTeamName(game.team2_id), score: parseNumber(game.team2_score) }
+                ];
+
+                teamsInGame.forEach(team => {
+                    if (!team.id || team.id === 'N/A') return;
+                    const percentageDiff = ((team.score / dailyMedianTeamScore) - 1) * 100;
+                    if (percentageDiff > bestTeam.percentage_diff) {
+                        bestTeam = { team_id: team.id, team_name: team.name, percentage_diff: percentageDiff, game_key_t1: game.team1_id, game_key_t2: game.team2_id, game_key_date: game.date };
+                    }
+                    if (percentageDiff < 0 && percentageDiff < worstTeam.percentage_diff) {
+                        worstTeam = { team_id: team.id, team_name: team.name, percentage_diff: percentageDiff, game_key_t1: game.team1_id, game_key_t2: game.team2_id, game_key_date: game.date };
+                    }
+                });
+            });
+
+            let bestPlayer = { players: [], rank: Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
+            let worstPlayer = { players: [], rank: -Infinity, game_key_t1: null, game_key_t2: null, game_key_date: null };
+
+            const gameDatesInWeek = [...new Set(completedGamesThisWeek.map(g => g.date))];
+            const relevantLineups = allLineups.filter(l =>
+                gameDatesInWeek.includes(l.date) &&
+                dateToWeekMap[l.date] == week &&
+                l.started && String(l.started).toUpperCase() === 'TRUE'
+            );
+
+            relevantLineups.forEach(lineup => {
+                const rank = parseNumber(lineup.global_rank);
+                const gameForPlayer = allGames.find(g => g.date === lineup.date && (g.team1_id === lineup.team_id || g.team2_id === lineup.team_id) && g.completed === 'TRUE');
+
+                if (rank > 0 && gameForPlayer) {
+                    const playerDisplay = { handle: lineup.player_handle, team_name: getTeamName(lineup.team_id) };
+                    if (rank < bestPlayer.rank) {
+                        bestPlayer = { players: [playerDisplay], rank: rank, game_key_t1: gameForPlayer.team1_id, game_key_t2: gameForPlayer.team2_id, game_key_date: gameForPlayer.date };
+                    } else if (rank === bestPlayer.rank) {
+                        if (!bestPlayer.players.find(p => p.handle === lineup.player_handle)) {
+                            bestPlayer.players.push(playerDisplay);
+                            if (!bestPlayer.game_key_date) {
+                                bestPlayer.game_key_t1 = gameForPlayer.team1_id;
+                                bestPlayer.game_key_t2 = gameForPlayer.team2_id;
+                                bestPlayer.game_key_date = gameForPlayer.date;
+                            }
+                        }
+                    }
+
+                    if (rank > worstPlayer.rank) {
+                        worstPlayer = { players: [playerDisplay], rank: rank, game_key_t1: gameForPlayer.team1_id, game_key_t2: gameForPlayer.team2_id, game_key_date: gameForPlayer.date };
+                    } else if (rank === worstPlayer.rank) {
+                        if (!worstPlayer.players.find(p => p.handle === lineup.player_handle)) {
+                            worstPlayer.players.push(playerDisplay);
+                            if (!worstPlayer.game_key_date) {
+                                worstPlayer.game_key_t1 = gameForPlayer.team1_id;
+                                worstPlayer.game_key_t2 = gameForPlayer.team2_id;
+                                worstPlayer.game_key_date = gameForPlayer.date;
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('best-team-perf').innerHTML = bestTeam.game_key_date ?
+                `<a href="team.html?id=${escapeHTML(bestTeam.team_id)}" class="team-link">${escapeHTML(bestTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('${escapeHTML(bestTeam.game_key_t1)}', '${escapeHTML(bestTeam.game_key_t2)}', '${escapeHTML(bestTeam.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">+${bestTeam.percentage_diff.toFixed(1)}% vs median</span></a>` :
+                'Not enough data.';
+
+            document.getElementById('worst-team-perf').innerHTML = (worstTeam.game_key_date && worstTeam.percentage_diff !== Infinity && worstTeam.percentage_diff < 0) ?
+                `<a href="team.html?id=${escapeHTML(worstTeam.team_id)}" class="team-link">${escapeHTML(worstTeam.team_name)}</a>: <a href="#" onclick="showGameDetails('${escapeHTML(worstTeam.game_key_t1)}', '${escapeHTML(worstTeam.game_key_t2)}', '${escapeHTML(worstTeam.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-negative">${worstTeam.percentage_diff.toFixed(1)}% vs median</span></a>` :
+                'No team significantly below median.';
+
+            document.getElementById('best-player-perf').innerHTML = (bestPlayer.players.length > 0 && bestPlayer.game_key_date) ?
+                `${bestPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('${escapeHTML(bestPlayer.game_key_t1)}', '${escapeHTML(bestPlayer.game_key_t2)}', '${escapeHTML(bestPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-positive">Rank ${bestPlayer.rank}</span></a>` :
+                'No ranked player data.';
+
+            document.getElementById('worst-player-perf').innerHTML = (worstPlayer.players.length > 0 && worstPlayer.game_key_date) ?
+                `${worstPlayer.players.map(p => `<a href="player.html?player=${encodeURIComponent(p.handle)}" class="player-link">${escapeHTML(p.handle)}</a> (${escapeHTML(p.team_name)})`).join(', ')}; <a href="#" onclick="showGameDetails('${escapeHTML(worstPlayer.game_key_t1)}', '${escapeHTML(worstPlayer.game_key_t2)}', '${escapeHTML(worstPlayer.game_key_date)}'); return false;" class="standout-metric-link"><span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span></a>` :
+                'No ranked player data.';
+        }
+
+        async function showGameDetails(team1Id, team2Id, date, team1Record, team2Record) {
+            const modal = document.getElementById('game-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalContent = document.getElementById('modal-content');
+
+            if (!team1Id || !team2Id || !date) {
+                console.error("showGameDetails called with incomplete identifiers:", team1Id, team2Id, date);
+                modalContent.innerHTML = '<div class="error">Cannot load game details: Incomplete information.</div>';
+                if (!modal.style.display || modal.style.display === 'none') modal.style.display = 'block';
+                return;
+            }
+
+            modal.style.display = 'block';
+            modalContent.innerHTML = '<div class="loading">Loading game details...</div>';
+
+            const game = allGames.find(g => g.team1_id === team1Id && g.team2_id === team2Id && g.date === date);
+
+            if (!game) {
+                modalContent.innerHTML = '<div class="error">Game details not found.</div>';
+                console.error("Failed to find game for modal. Identifiers:", team1Id, team2Id, date);
+                return;
+            }
+            modalTitle.textContent = `${getTeamName(game.team1_id)} vs ${getTeamName(game.team2_id)} - ${formatDateShort(game.date)}`;
+
+            const gameLineups = allLineups.filter(lineup =>
+                lineup.date === game.date &&
+                (lineup.team_id === game.team1_id || lineup.team_id === game.team2_id) &&
+                (String(lineup.started).toUpperCase() === 'TRUE')
+            ).sort((a, b) => {
+                const aCaptain = String(a.captain).toUpperCase() === 'TRUE';
+                const bCaptain = String(b.captain).toUpperCase() === 'TRUE';
+                if (aCaptain && !bCaptain) return -1;
+                if (!aCaptain && bCaptain) return 1;
+                return parseNumber(b.points_final) - parseNumber(a.points_final);
+            });
+
+            const team1Lineups = gameLineups.filter(l => l.team_id === game.team1_id);
+            const team2Lineups = gameLineups.filter(l => l.team_id === game.team2_id);
+
+            const team1Total = parseNumber(game.team1_score);
+            const team2Total = parseNumber(game.team2_score);
+            const winner = game.winner;
+
+            const generateLineupTable = (lineups, teamIdForTable, totalScoreFromSchedule, isWinner, game, teamRecord) => {
+                const teamData = allTeams.find(t => t.team_id === teamIdForTable);
+                const isAllstarTeam = ALLSTAR_TEAM_IDS.includes(teamIdForTable);
+                const isGMGame = (game.team1_id === 'EGM' && game.team2_id === 'WGM') || (game.team1_id === 'WGM' && game.team2_id === 'EGM');
+                const logoExt = isAllstarTeam ? 'png' : 'webp';
+                const logoClass = 'team-logo' + (isAllstarTeam ? ' allstar' : '');
+                const headerOnClick = isAllstarTeam ? '' : `onclick="window.location.href='team.html?id=${escapeHTML(teamIdForTable)}'" style="cursor: pointer;"`;
+                const recordToShow = teamRecord || (teamData ? `${teamData.wins || 0}-${teamData.losses || 0}` : 'N/A');
+
+                if (lineups.length === 0) {
+                    return `
+                  <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+                    <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
+                      <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                      <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
+                    </div>
+                    <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
+                    <div style="padding: 1rem; text-align: center; color: #666;">No detailed lineup data available for this game.</div>
+                  </div>`;
+                }
+
+                const lineupRows = lineups.map(player => {
+                    const isCaptain = String(player.captain).toUpperCase() === 'TRUE';
+                    const fullPlayerData = allPlayers.find(p => p.player_handle === player.player_handle);
+                    const isPlayerAllStar = fullPlayerData && fullPlayerData.all_star === '1';
+                    const isRookie = fullPlayerData && fullPlayerData.rookie === '1';
+                    const allStarBadge = isPlayerAllStar ? '<span class="all-star-badge">★</span>' : '';
+                    const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
+                    const pointsRaw = parseNumber(player.points_raw);
+                    const globalRank = parseNumber(player.global_rank);
+                    const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
+
+                    let realTeamLogoHTML = '';
+                    if (isAllstarTeam) {
+                        const rosterInfo = allstarRosters.find(r => r.player_handle === player.player_handle);
+                        if (rosterInfo && rosterInfo.current_team_id) {
+                            const realTeamId = rosterInfo.current_team_id;
+                            realTeamLogoHTML = `<img src="icons/${escapeHTML(realTeamId)}.webp" alt="${escapeHTML(getTeamName(realTeamId))}" style="width: 24px; height: 24px; margin-right: 8px; vertical-align: middle;" class="team-logo" onerror="this.style.display='none'">`;
+                        }
+                    }
+
+                    const playerNameHTML = isGMGame
+                        ? escapeHTML(player.player_handle || 'Unknown')
+                        : `<a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>`;
+
+                    return `
+                  <tr class="${isCaptain ? 'captain-row' : ''}">
+                    <td class="player-name-cell">
+                      ${realTeamLogoHTML}
+                      ${playerNameHTML}
+                      ${rookieBadge}
+                      ${allStarBadge}
+                      ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
+                    </td>
+                    <td class="points-cell">
+                      ${Math.round(pointsRaw).toLocaleString()}
+                      ${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}
+                    </td>
+                    <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
+                  </tr>
+                `;
+                }).join('');
+
+                return `
+                <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+                  <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
+                     <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                    <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
+                  </div>
+                  <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
+                  <table class="lineup-table">
+                    <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
+                    <tbody>${lineupRows}</tbody>
+                  </table>
                 </div>
-                <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
-                <div style="padding: 1rem; text-align: center; color: #666;">No detailed lineup data available for this game.</div>
-              </div>`;
-          }
-          
-          const lineupRows = lineups.map(player => {
-            const isCaptain = String(player.captain).toUpperCase() === 'TRUE';
-            const fullPlayerData = allPlayers.find(p => p.player_handle === player.player_handle);
-            const isPlayerAllStar = fullPlayerData && fullPlayerData.all_star === '1';
-            const isRookie = fullPlayerData && fullPlayerData.rookie === '1';
-            const allStarBadge = isPlayerAllStar ? '<span class="all-star-badge">★</span>' : '';
-            const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
-            const pointsRaw = parseNumber(player.points_raw);
-            const globalRank = parseNumber(player.global_rank);
-            const captainBonus = isCaptain ? Math.round(pointsRaw * 0.5) : 0;
-            
-            let realTeamLogoHTML = '';
-            if (isAllstarTeam) {
-                const rosterInfo = allstarRosters.find(r => r.player_handle === player.player_handle);
-                if (rosterInfo && rosterInfo.current_team_id) {
-                    const realTeamId = rosterInfo.current_team_id;
-                    realTeamLogoHTML = `<img src="icons/${escapeHTML(realTeamId)}.webp" alt="${escapeHTML(getTeamName(realTeamId))}" style="width: 24px; height: 24px; margin-right: 8px; vertical-align: middle;" class="team-logo" onerror="this.style.display='none'">`;
-                }
-            }
+              `;
+            };
 
-            const playerNameHTML = isGMGame
-              ? escapeHTML(player.player_handle || 'Unknown')
-              : `<a href="player.html?player=${encodeURIComponent(player.player_handle || 'Unknown')}" class="player-link">${escapeHTML(player.player_handle || 'Unknown')}</a>`;
-
-            return `
-              <tr class="${isCaptain ? 'captain-row' : ''}">
-                <td class="player-name-cell">
-                  ${realTeamLogoHTML}
-                  ${playerNameHTML}
-                  ${rookieBadge}
-                  ${allStarBadge}
-                  ${isCaptain ? '<span class="captain-badge">C</span>' : ''}
-                </td>
-                <td class="points-cell">
-                  ${Math.round(pointsRaw).toLocaleString()}
-                  ${isCaptain ? `<div class="captain-bonus">+${captainBonus.toLocaleString()}</div>` : ''}
-                </td>
-                <td class="rank-cell">${globalRank > 0 ? Math.round(globalRank) : '-'}</td>
-              </tr>
-            `;
-          }).join('');
-          
-          return `
-            <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-              <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}" ${headerOnClick}>
-                 <img src="icons/${escapeHTML(teamIdForTable)}.${logoExt}" alt="${escapeHTML(getTeamName(teamIdForTable))}" class="${logoClass}" onerror="this.onerror=null; this.src='icons/FA.webp';">
-                <div><h4>${escapeHTML(getTeamName(teamIdForTable))}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${recordToShow}</div></div>
+            modalContent.innerHTML = `
+              <div class="game-details-grid">
+                ${generateLineupTable(team1Lineups, game.team1_id, team1Total, winner === game.team1_id, game, team1Record)}
+                ${generateLineupTable(team2Lineups, game.team2_id, team2Total, winner === game.team2_id, game, team2Record)}
               </div>
-              <div class="team-total">Total: ${formatInThousands(totalScoreFromSchedule)}</div>
-              <table class="lineup-table">
-                <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
-                <tbody>${lineupRows}</tbody>
-              </table>
-            </div>
-          `;
-        };
-        
-        modalContent.innerHTML = `
-          <div class="game-details-grid">
-            ${generateLineupTable(team1Lineups, game.team1_id, team1Total, winner === game.team1_id, game, team1Record)}
-            ${generateLineupTable(team2Lineups, game.team2_id, team2Total, winner === game.team2_id, game, team2Record)}
-          </div>
-        `;
-       }
-      
-      function closeGameModal() { 
-        document.getElementById('game-modal').style.display = 'none';
-       }
-      window.onclick = function(event) { 
-        const modal = document.getElementById('game-modal');
-        if (event.target === modal) {
-          closeGameModal();
+            `;
         }
-       }
-      
-      document.addEventListener('DOMContentLoaded', loadData);
+
+        function closeGameModal() {
+            document.getElementById('game-modal').style.display = 'none';
+        }
+        window.onclick = function (event) {
+            const modal = document.getElementById('game-modal');
+            if (event.target === modal) {
+                closeGameModal();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
-  </body>
+</body>
 </html>
