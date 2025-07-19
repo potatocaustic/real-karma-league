@@ -1178,6 +1178,7 @@
             const regSeasonComplete = week15Games.length > 0 && week15Games.every(g => g.completed === 'TRUE');
 
             let gamesToDisplay = [];
+            let weekOfGames = null;
 
             if (regSeasonComplete && postScheduleData) {
                 const completedPostGames = postScheduleData.filter(game => game.completed === 'TRUE' && game.date);
@@ -1187,6 +1188,9 @@
                     const mostRecentDate = completedPostGames[0].date;
 
                     gamesToDisplay = completedPostGames.filter(game => game.date === mostRecentDate);
+                    if (gamesToDisplay.length > 0) {
+                        weekOfGames = gamesToDisplay[0].week;
+                    }
                 }
             }
 
@@ -1203,7 +1207,9 @@
             }
 
             const finalSeedMap = {};
-            if (regSeasonComplete) {
+            const isPostseasonWeek = POSTSEASON_WEEK_IDS.includes(weekOfGames);
+
+            if (isPostseasonWeek && weekOfGames !== 'Play-In') {
                 const w7_final = getSeriesWinner('W-PI-7v8');
                 const w8_final = getSeriesWinner('W-PI-L78vW910');
                 const e7_final = getSeriesWinner('E-PI-7v8');
