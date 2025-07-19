@@ -999,15 +999,6 @@
                 topAwardsHTML += tbdCardHTML('Best Performance (Player)');
             }
 
-            // MVP
-            if (mvpRow && mvpRow.Player) {
-                const mvpTeam = allTeamsData.find(t => t.team_name === mvpRow.team_name);
-                const mvpPlayerStats = allPlayersProcessed.find(p => p.player_handle === mvpRow.Player);
-                topAwardsHTML += createAwardCard('League MVP', { name: mvpRow.Player, detail: mvpRow.team_name, detailLink: `team.html?id=${mvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(mvpRow.Player)}`, logoId: mvpTeam?.team_id, stats: createPlayerStatsString(mvpPlayerStats) });
-            } else {
-                topAwardsHTML += tbdCardHTML('League MVP');
-            }
-
             // Finals MVP
             if (fmvpRow && fmvpRow.Player) {
                 const fmvpTeam = allTeamsData.find(t => t.team_name === fmvpRow.team_name);
@@ -1017,6 +1008,15 @@
                 topAwardsHTML += tbdCardHTML('Finals MVP');
             }
 
+            // MVP
+            if (mvpRow && mvpRow.Player) {
+                const mvpTeam = allTeamsData.find(t => t.team_name === mvpRow.team_name);
+                const mvpPlayerStats = allPlayersProcessed.find(p => p.player_handle === mvpRow.Player);
+                topAwardsHTML += createAwardCard('League MVP', { name: mvpRow.Player, detail: mvpRow.team_name, detailLink: `team.html?id=${mvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(mvpRow.Player)}`, logoId: mvpTeam?.team_id, stats: createPlayerStatsString(mvpPlayerStats) });
+            } else {
+                topAwardsHTML += tbdCardHTML('League MVP');
+            }
+
             // Rookie of the Year
             if (royRow && royRow.Player) {
                 const royTeam = allTeamsData.find(t => t.team_name === royRow.team_name);
@@ -1024,6 +1024,14 @@
                 topAwardsHTML += createAwardCard('Rookie of the Year', { name: royRow.Player, detail: royRow.team_name, detailLink: `team.html?id=${royTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(royRow.Player)}`, logoId: royTeam?.team_id, stats: createPlayerStatsString(royPlayerStats) });
             } else {
                 topAwardsHTML += tbdCardHTML('Rookie of the Year');
+            }
+
+            // GM of the Year
+            if (gmoyRow && gmoyRow.gm_handle && gmoyRow.gm_team) {
+                const gmoyTeamData = allTeamsData.find(t => t.team_name === gmoyRow.gm_team);
+                topAwardsHTML += createAwardCard('GM of the Year', { name: gmoyRow.gm_handle, detail: gmoyRow.gm_team, detailLink: `team.html?id=${gmoyTeamData?.team_id}`, link: null, logoId: gmoyTeamData?.team_id, stats: createTeamStatsString(gmoyTeamData) });
+            } else {
+                topAwardsHTML += tbdCardHTML('GM of the Year');
             }
 
             // Sixth Man of the Year
@@ -1051,14 +1059,6 @@
                 topAwardsHTML += createAwardCard('League LVP', { name: lvpRow.Player, detail: lvpRow.team_name, detailLink: `team.html?id=${lvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(lvpRow.Player)}`, logoId: lvpTeam?.team_id, stats: createPlayerStatsString(lvpPlayerStats) });
             } else {
                 topAwardsHTML += tbdCardHTML('League LVP');
-            }
-
-            // GM of the Year
-            if (gmoyRow && gmoyRow.gm_handle && gmoyRow.gm_team) {
-                const gmoyTeamData = allTeamsData.find(t => t.team_name === gmoyRow.gm_team);
-                topAwardsHTML += createAwardCard('GM of the Year', { name: gmoyRow.gm_handle, detail: gmoyRow.gm_team, detailLink: `team.html?id=${gmoyTeamData?.team_id}`, link: null, logoId: gmoyTeamData?.team_id, stats: createTeamStatsString(gmoyTeamData) });
-            } else {
-                topAwardsHTML += tbdCardHTML('GM of the Year');
             }
 
             topAwardsContainer.innerHTML = topAwardsHTML;
