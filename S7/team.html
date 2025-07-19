@@ -1365,7 +1365,6 @@
 
     <main>
         <a href="teams.html" class="back-button">← Back to All Teams</a>
-        <a href="#" id="postseason-profile-btn" class="back-button" style="display: none; background-color: #28a745;">View Postseason Profile →</a>
 
         <div class="team-header-content">
             <div class="team-main-info" id="team-main-info">
@@ -1634,12 +1633,6 @@
 
             function displayTeamHeader() {
                 document.getElementById('page-title').textContent = `${escapeHTML(teamData.team_name)} - RKL Season 7`;
-
-                const postseasonBtn = document.getElementById('postseason-profile-btn');
-                if (postseasonBtn) {
-                    postseasonBtn.href = `team-postseason.html?id=${teamData.team_id}`;
-                    postseasonBtn.style.display = 'inline-block';
-                }
 
                 const wins = parseInt(teamData.wins || 0);
                 const losses = parseInt(teamData.losses || 0);
@@ -2041,7 +2034,7 @@
                         transactionsFromPromise,
                         transactionsToPromise,
                         schedulePromise,
-                        draftPicksResult
+                        draftPicksPromise
                     ]);
 
                     const allTransactionsMap = new Map();
