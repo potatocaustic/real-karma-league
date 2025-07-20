@@ -813,7 +813,7 @@
 
             // Playoff teams and play-in teams
             const playoffTeams = new Set();
-            for (let i = 1; i <= 8; i++) {
+            for (let i = 1; i <= 6; i++) {
                 const eastPlayoffTeam = allTeams.find(t => t.conference === 'Eastern' && parseInt(t.postseed) === i);
                 if (eastPlayoffTeam) playoffTeams.add(eastPlayoffTeam.team_id);
                 const westPlayoffTeam = allTeams.find(t => t.conference === 'Western' && parseInt(t.postseed) === i);
