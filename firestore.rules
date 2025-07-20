@@ -1,99 +1,79 @@
+// firestore.rules
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
-    // These functions make the rules easier to read and maintain.
-
-    // Checks if the currently signed-in user is an admin.
+    // Helper function to check if the signed-in user has an 'admin' role.
     function isAdmin() {
-      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      // Check the 'users' collection for a document matching the user's ID.
+      // The 'role' field in that document must be 'admin'.
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Checks if the signed-in user is the GM of a specific team.
-    function isTeamGM(teamId) {
-      // Gets the team document and compares its gm_uid field to the user's ID.
-      return request.auth.uid == get(/databases/$(database)/documents/teams/$(teamId)).data.gm_uid;
+    // == Rules for Existing S7 Collections (Public Read-Only) ==
+    // These rules keep your current live site functional.
+    match /admins/{doc} {
+      allow read, write: if false; // No public access
     }
-
-    // --- Collection Rules ---
-
-    // TRADEBLOCKS: This is the most important collection for user edits.
-    match /tradeblocks/{teamId} {
-      // Anyone can read any trade block.
+    match /players/{doc} {
       allow read: if true;
-      // A user can write (create, update, delete) to a trade block
-      // if they are an admin OR they are the GM of that specific team.
-      allow write: if isAdmin() || isTeamGM(teamId);
+      allow write: if false; // Lock down writes
+    }
+    match /teams/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /schedule/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /lineups/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+     match /draftPicks/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /tradeblocks/{doc} {
+      allow read: if true;
+      // Allow GMs or Admins to edit their own trade block
+      allow write: if request.auth.uid == resource.data.gm_uid || isAdmin();
+    }
+    match /weekly_averages/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+     match /transaction_log/{doc} {
+      allow read: if true;
+      allow write: if false;
     }
 
-    // SETTINGS: Controls the trade deadline status.
-    match /settings/{settingId} {
-      // Anyone can read the settings (to see if the deadline has passed).
-      allow read: if true;
-      // Only admins can change the settings.
-      allow write: if isAdmin();
+
+    // == Rules for NEW Admin-Managed Collections (Admin-Only) ==
+    // These collections will be used by the new admin portal.
+    // Default deny all access unless specified.
+    
+    // User role documents can be read by the owner, written by admin
+    match /users/{userId} {
+        allow read: if request.auth.uid == userId;
+        allow write: if isAdmin();
     }
     
-    // ADMINS: Stores who is an admin.
-    match /admins/{userId} {
-      // CORRECTED (Alternative): Allow any authenticated user to 'get' a 
-      // document from the admins collection. This is needed for the login flow 
-      // to check a user's admin status without causing a permission error.
-      allow get: if request.auth != null;
-
-      // We explicitly deny 'list' to prevent non-admins from seeing the 
-      // full list of admins.
-      allow list: if false;
-      
-      // No one can write to the admin list from the website.
-      allow write: if false;
+    // Admins have full control over the new structured collections.
+    match /seasons/{doc=**} {
+      allow read, write: if isAdmin();
     }
-
-    // PUBLIC READ-ONLY DATA
-    // The following collections contain data that is displayed publicly on the site.
-    // We allow anyone to read this data, but no one can write to it from the client.
-    // All writes are handled by your secure sync function.
-    match /players/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /new_players/{doc=**} { // Using a new name to avoid conflict
+      allow read, write: if isAdmin();
     }
-    match /teams/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /new_teams/{doc=**} { // Using a new name
+      allow read, write: if isAdmin();
     }
-    match /draftPicks/{doc=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /schedule/{doc=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /post_schedule/{doc=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /lineups/{doc=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /post_lineups/{doc=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /weekly_averages/{doc=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /post_weekly_averages/{doc=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /transaction_log/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /new_transactions/{doc=**} {
+      allow read, write: if isAdmin();
     }
   }
 }

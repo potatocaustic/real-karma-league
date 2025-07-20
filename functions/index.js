@@ -1,14 +1,90 @@
 // index.js
 
-const { onRequest } = require("firebase-functions/v2/https");
-const { onCall } = require("firebase-functions/v2/https");
+const { onRequest, onCall } = require("firebase-functions/v2/https");
+// Corrected import statement for both Firestore triggers
+const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// Helper functions (deleteCollection, parseCSV, parseNumber, getSafeDateString) remain unchanged...
+exports.onGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+
+    if (before.completed === 'TRUE' || after.completed !== 'TRUE') {
+        console.log(`Game ${event.params.gameId} was not newly completed. Exiting function.`);
+        return null;
+    }
+
+    console.log(`Processing newly completed game: ${event.params.gameId}`);
+
+    const winnerId = after.winner;
+    const loserId = after.team1_id === winnerId ? after.team2_id : after.team1_id;
+
+    if (!winnerId || !loserId) {
+        console.error(`Could not determine winner/loser for game ${event.params.gameId}.`);
+        return null;
+    }
+
+    const winnerRef = db.collection('teams').doc(winnerId);
+    const loserRef = db.collection('teams').doc(loserId);
+
+    try {
+        // --- Step 1: Update Team Win/Loss Records (Existing Logic) ---
+        await db.runTransaction(async (transaction) => {
+            transaction.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
+            transaction.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
+        });
+        console.log(`Successfully updated team records for game ${event.params.gameId}.`);
+
+        // --- Step 2: NEW - Process Player Stats ---
+        const gameDate = after.date;
+        const teamIds = [after.team1_id, after.team2_id];
+
+        // Fetch all lineup entries for the two teams on the game date.
+        const lineupsQuery = db.collection('lineups').where('date', '==', gameDate).where('team_id', 'in', teamIds);
+        const lineupsSnap = await lineupsQuery.get();
+
+        // Filter for only players who started the game.
+        const startingLineups = lineupsSnap.docs
+            .map(doc => doc.data())
+            .filter(lineup => lineup.started === 'TRUE');
+
+        if (startingLineups.length === 0) {
+            console.log("No starting lineups found for this game. No player stats to update.");
+            return null;
+        }
+
+        // Use a batched write to update all players efficiently.
+        const batch = db.batch();
+
+        for (const lineup of startingLineups) {
+            const playerRef = db.collection('players').doc(lineup.player_handle);
+
+            // Increment basic counting stats.
+            const statsUpdate = {
+                games_played: admin.firestore.FieldValue.increment(1),
+                total_points: admin.firestore.FieldValue.increment(Number(lineup.points_final) || 0)
+            };
+
+            // FUTURE ENHANCEMENT: This is where more complex stat calculations (REL, WAR, etc.)
+            // would be performed by fetching weekly averages and adding to value-over-replacement tallies.
+
+            batch.update(playerRef, statsUpdate);
+        }
+
+        // Commit all the player updates at once.
+        await batch.commit();
+        console.log(`Successfully updated stats for ${startingLineups.length} players.`);
+
+    } catch (e) {
+        console.error("An error occurred during game processing: ", e);
+    }
+
+    return null;
+});
 
 /**
  * Deletes a collection by batching deletes. This is used to clear collections

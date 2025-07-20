@@ -1,0 +1,67 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Games & Scores - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Manage Games & Scores</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select">Season:</label>
+                <select id="season-select"><option>Loading...</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="week-select">Week:</label>
+                <select id="week-select"><option>Select a season...</option></select>
+            </div>
+        </div>
+
+        <div id="games-list-container">
+            <p class="placeholder-text">Please select a season and week to view games.</p>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <div id="score-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="modal-title">Enter Score</h3>
+            <form id="score-form">
+                <input type="hidden" id="game-id-input">
+                <div class="form-grid">
+                    <div class="form-group-admin" id="team1-group">
+                        <label id="team1-label" for="team1-score">Team 1 Score</label>
+                        <input type="number" id="team1-score" required>
+                    </div>
+                    <div class="form-group-admin" id="team2-group">
+                        <label id="team2-label" for="team2-score">Team 2 Score</label>
+                        <input type="number" id="team2-score" required>
+                    </div>
+                </div>
+                <div class="form-group-admin">
+                    <input type="checkbox" id="game-completed-checkbox">
+                    <label for="game-completed-checkbox">Mark as Completed</label>
+                </div>
+                <button type="submit" class="btn-admin-save">Save Scores</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-games.js"></script>
+</body>
+</html>
