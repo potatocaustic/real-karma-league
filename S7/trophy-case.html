@@ -807,7 +807,7 @@
                             <div>
                               <h3>${title}</h3>
                               <div class="award-winner">
-                                <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/RETIRED.webp';">
+                                <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
                                 <div class="winner-info">
                                   <div class="winner-name">${winnerNameHTML}</div>
                                   <div class="winner-detail">${winnerDetailHTML}</div>
@@ -1098,7 +1098,7 @@
 
             return `
                                 <li class="all-star-item">
-                                    <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/RETIRED.webp';">
+                                    <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
                                     <div class="all-star-player-info">
                                         <a href="player.html?player=${encodeURIComponent(playerStats.player_handle)}">
                                             ${playerStats.player_handle}
