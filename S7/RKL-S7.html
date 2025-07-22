@@ -1224,14 +1224,6 @@
                             seriesRecords[game.series_id] = { [game.team1_id]: { wins: 0, losses: 0 }, [game.team2_id]: { wins: 0, losses: 0 } };
                         }
 
-                        const gameWithSnapshot = { ...game };
-
-                        const team1Rec = seriesRecords[game.series_id][game.team1_id];
-                        const team2Rec = seriesRecords[game.series_id][game.team2_id];
-
-                        gameWithSnapshot.team1_record_snapshot = `${team1Rec.wins}-${team1Rec.losses}`;
-                        gameWithSnapshot.team2_record_snapshot = `${team2Rec.wins}-${team2Rec.losses}`;
-
                         if (game.completed === 'TRUE') {
                             const winnerId = game.winner;
                             const loserId = winnerId === game.team1_id ? game.team2_id : game.team1_id;
@@ -1240,6 +1232,15 @@
                                 if (seriesRecords[game.series_id][loserId]) seriesRecords[game.series_id][loserId].losses++;
                             }
                         }
+
+                        const gameWithSnapshot = { ...game };
+
+                        const team1Rec = seriesRecords[game.series_id][game.team1_id];
+                        const team2Rec = seriesRecords[game.series_id][game.team2_id];
+
+                        gameWithSnapshot.team1_record_snapshot = `${team1Rec.wins}-${team1Rec.losses}`;
+                        gameWithSnapshot.team2_record_snapshot = `${team2Rec.wins}-${team2Rec.losses}`;
+
                         gamesWithSnapshots.push(gameWithSnapshot);
                     });
                 });
