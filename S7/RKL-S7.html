@@ -1554,8 +1554,8 @@
                 const seriesId = game.series_id;
                 const currentGameNumber = parseInt(game.series_game, 10);
 
-                // Filter for all completed games in the series up to and including the current one.
-                const relevantGamesInSeries = allPostSchedule.filter(g =>
+                // CORRECTED: Use the local 'scheduleData' variable, which contains the fresh data.
+                const relevantGamesInSeries = scheduleData.filter(g =>
                     g.series_id === seriesId &&
                     parseInt(g.series_game, 10) <= currentGameNumber &&
                     g.completed === 'TRUE'
@@ -1572,7 +1572,6 @@
                     }
                 });
 
-                // In a head-to-head series, one team's wins are the other's losses.
                 team1Record = `${team1SeriesWins}-${team2SeriesWins}`;
                 team2Record = `${team2SeriesWins}-${team1SeriesWins}`;
 
