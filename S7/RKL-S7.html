@@ -1547,7 +1547,6 @@
                 return;
             }
 
-            // --- NEW LOGIC for Postseason Records ---
             let team1Record = '';
             let team2Record = '';
 
@@ -1555,28 +1554,27 @@
                 const seriesId = game.series_id;
                 const currentGameNumber = parseInt(game.series_game, 10);
 
-                const previousGamesInSeries = allPostSchedule.filter(g =>
+                // Filter for all completed games in the series up to and including the current one.
+                const relevantGamesInSeries = allPostSchedule.filter(g =>
                     g.series_id === seriesId &&
-                    parseInt(g.series_game, 10) < currentGameNumber &&
+                    parseInt(g.series_game, 10) <= currentGameNumber &&
                     g.completed === 'TRUE'
                 );
 
                 let team1SeriesWins = 0;
                 let team2SeriesWins = 0;
 
-                previousGamesInSeries.forEach(prevGame => {
-                    if (prevGame.winner === team1Id) {
+                relevantGamesInSeries.forEach(seriesGame => {
+                    if (seriesGame.winner === team1Id) {
                         team1SeriesWins++;
-                    } else if (prevGame.winner === team2Id) {
+                    } else if (seriesGame.winner === team2Id) {
                         team2SeriesWins++;
                     }
                 });
 
-                const team1Losses = previousGamesInSeries.length - team1SeriesWins;
-                const team2Losses = previousGamesInSeries.length - team2SeriesWins;
-
-                team1Record = `${team1SeriesWins}-${team1Losses}`;
-                team2Record = `${team2SeriesWins}-${team2Losses}`;
+                // In a head-to-head series, one team's wins are the other's losses.
+                team1Record = `${team1SeriesWins}-${team2SeriesWins}`;
+                team2Record = `${team2SeriesWins}-${team1SeriesWins}`;
 
             } else {
                 const team1Data = allTeams.find(t => t.team_id === team1Id);
@@ -1584,7 +1582,6 @@
                 team1Record = team1Data ? `${team1Data.wins || 0}-${team1Data.losses || 0}` : '';
                 team2Record = team2Data ? `${team2Data.wins || 0}-${team2Data.losses || 0}` : '';
             }
-            // --- END NEW LOGIC ---
 
             const team1AllLineups = lineupsData.filter(lineup =>
                 lineup.team_id === team1Id && lineup.date === date
@@ -1608,14 +1605,13 @@
             const team2Total = team2Lineups.reduce((sum, p) => sum + parseNumber(p.points_final), 0);
             const winner = game.winner;
 
-            // Modified to accept the pre-calculated record
             const generateLineupTable = (lineups, teamIdForTable, record, total, isWinner) => {
                 if (lineups.length === 0) {
                     return `
                       <div class="team-breakdown ${isWinner ? 'winner' : ''}">
                         <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
                           <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
-                          <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">${record}</div></div>
+                          <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">(${record})</div></div>
                         </div>
                         <div class="team-total">Total: ${Math.round(total).toLocaleString()}</div>
                         <div style="padding: 2rem; text-align: center; color: #666;">No lineup data available</div>
@@ -1651,7 +1647,6 @@
                     </div>`;
             };
 
-            // Pass the correct records to the generating function
             modalContentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1Id, team1Record, team1Total, winner === team1Id)}${generateLineupTable(team2Lineups, team2Id, team2Record, team2Total, winner === team2Id)}</div>`;
         }
 
