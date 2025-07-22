@@ -1,4 +1,4 @@
-const lotteryOverride = [
+const lotteryResults = [
     "MM",
     "HH",
     "REA",
