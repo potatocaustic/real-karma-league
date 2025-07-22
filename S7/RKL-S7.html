@@ -1208,7 +1208,6 @@
                 return;
             }
 
-            // New logic for series records
             if (isPostseason) {
                 const seriesRecords = {};
                 const gamesWithSnapshots = [];
@@ -1302,31 +1301,31 @@
                 }
 
                 return `
-                    <div class="game-item" onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}', '${game.week}')">
-                      <div class="game-matchup">
-                        <div class="team ${winner === game.team1_id ? 'winner' : ''}">
-                          <img src="icons/${game.team1_id}.webp" alt="${game.team1_id}" class="team-logo" onerror="this.style.display='none'">
-                          <div class="team-info">
-                            <span class="team-name">${team1SeedHtml}${team1Name}</span>
-                            <span class="team-record">${team1Record}</span>
-                          </div>
-                          <span class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</span>
-                        </div>
-                        <span class="vs">vs</span>
-                        <div class="team ${winner === game.team2_id ? 'winner' : ''}">
-                          <img src="icons/${game.team2_id}.webp" alt="${game.team2_id}" class="team-logo" onerror="this.style.display='none'">
-                          <div class="team-info">
-                            <span class="team-name">${team2SeedHtml}${team2Name}</span>
-                            <span class="team-record">${team2Record}</span>
-                          </div>
-                          <span class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</span>
-                        </div>
-                      </div>
-                      <div class="game-date">
-                        ${formatDate(game.date)}
-                      </div>
-                    </div>
-                  `;
+            <div class="game-item" onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}', '${game.week}', '${team1Record}', '${team2Record}')">
+              <div class="game-matchup">
+                <div class="team ${winner === game.team1_id ? 'winner' : ''}">
+                  <img src="icons/${game.team1_id}.webp" alt="${game.team1_id}" class="team-logo" onerror="this.style.display='none'">
+                  <div class="team-info">
+                    <span class="team-name">${team1SeedHtml}${team1Name}</span>
+                    <span class="team-record">${team1Record}</span>
+                  </div>
+                  <span class="team-score ${winner === game.team1_id ? 'winner' : ''}">${formatInThousands(team1Score)}</span>
+                </div>
+                <span class="vs">vs</span>
+                <div class="team ${winner === game.team2_id ? 'winner' : ''}">
+                  <img src="icons/${game.team2_id}.webp" alt="${game.team2_id}" class="team-logo" onerror="this.style.display='none'">
+                  <div class="team-info">
+                    <span class="team-name">${team2SeedHtml}${team2Name}</span>
+                    <span class="team-record">${team2Record}</span>
+                  </div>
+                  <span class="team-score ${winner === game.team2_id ? 'winner' : ''}">${formatInThousands(team2Score)}</span>
+                </div>
+              </div>
+              <div class="game-date">
+                ${formatDate(game.date)}
+              </div>
+            </div>
+          `;
             }).join('');
             document.getElementById('recent-games').innerHTML = gamesHTML;
         }
