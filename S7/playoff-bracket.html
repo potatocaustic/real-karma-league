@@ -588,14 +588,14 @@
             }
 
             return `
-                        <a href="${teamHref}" class="team ${isWinner ? 'winner' : ''} ${isTBD ? 'tbd' : ''} ${nonInteractiveClass}" ${style}>
-                            <span class="team-seed">${seedToShow}</span>
-                            <img src="icons/${isTBD ? 'RKL' : teamData.team_id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='icons/RKL.webp';">
-                            <div class="team-info">
-                                <span class="team-name">${teamData.team_name}</span>
-                                ${scoreOrRecordHTML}
-                            </div>
-                        </a>`;
+                            <a href="${teamHref}" class="team ${isWinner ? 'winner' : ''} ${isTBD ? 'tbd' : ''} ${nonInteractiveClass}" ${style}>
+                                <span class="team-seed">${seedToShow}</span>
+                                <img src="icons/${isTBD ? 'RKL' : teamData.team_id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='icons/RKL.webp';">
+                                <div class="team-info">
+                                    <span class="team-name">${teamData.team_name}</span>
+                                    ${scoreOrRecordHTML}
+                                </div>
+                            </a>`;
         }
 
         function createMatchupHTML(seriesId, defaultTeam1Id, defaultTeam2Id, team1DisplaySeed = null, team2DisplaySeed = null) {
@@ -621,9 +621,9 @@
             const clickHandler = isClickable ? `onclick="window.location.href='${weekLink}'"` : '';
 
             return `<div class="${matchupClass}" ${clickHandler}>
-                        ${createTeamHTML(team1Id, series, weekLink, team1DisplaySeed, seriesWinner)}
-                        ${createTeamHTML(team2Id, series, weekLink, team2DisplaySeed, seriesWinner)}
-                    </div>`;
+                            ${createTeamHTML(team1Id, series, weekLink, team1DisplaySeed, seriesWinner)}
+                            ${createTeamHTML(team2Id, series, weekLink, team2DisplaySeed, seriesWinner)}
+                        </div>`;
         }
 
         function createPlayInMatchupHTML(label, seriesId, defaultTeam1Id, defaultTeam2Id) {
@@ -648,12 +648,12 @@
             const clickHandler = isClickable ? `onclick="window.location.href='${weekLink}'"` : '';
 
             return `
-                        <div class="${matchupClass}" ${clickHandler}>
-                            <div class="matchup-label">${label}</div>
-                            ${createTeamHTML(loserOf7v8Id || team1Id, series, weekLink, null, seriesWinner)}
-                            ${createTeamHTML(team2Id, series, weekLink, null, seriesWinner)}
-                        </div>
-                    `;
+                            <div class="${matchupClass}" ${clickHandler}>
+                                <div class="matchup-label">${label}</div>
+                                ${createTeamHTML(loserOf7v8Id || team1Id, series, weekLink, null, seriesWinner)}
+                                ${createTeamHTML(team2Id, series, weekLink, null, seriesWinner)}
+                            </div>
+                        `;
         }
 
         function checkRoundOneCompletion() {
@@ -677,33 +677,33 @@
             const winnerE9v10 = getSeriesWinner('E-PI-9v10');
 
             const westHTML = `
-                        <div class="play-in-conference">
-                            <h3 class="play-in-title">Western Conference Play-In</h3>
-                            ${createPlayInMatchupHTML('7th Seed Game', 'W-PI-7v8', w7, w8)}
-                            ${createPlayInMatchupHTML('9th/10th Seed Game', 'W-PI-9v10', w9, w10)}
-                            ${createPlayInMatchupHTML('8th Seed Game', 'W-PI-L78vW910', 'Loser of 7v8', winnerW9v10 || 'Winner of 9v10')}
-                        </div>
-                    `;
+                            <div class="play-in-conference">
+                                <h3 class="play-in-title">Western Conference Play-In</h3>
+                                ${createPlayInMatchupHTML('7th Seed Game', 'W-PI-7v8', w7, w8)}
+                                ${createPlayInMatchupHTML('9th/10th Seed Game', 'W-PI-9v10', w9, w10)}
+                                ${createPlayInMatchupHTML('8th Seed Game', 'W-PI-L78vW910', 'Loser of 7v8', winnerW9v10 || 'Winner of 9v10')}
+                            </div>
+                        `;
             const eastHTML = `
-                         <div class="play-in-conference">
-                            <h3 class="play-in-title">Eastern Conference Play-In</h3>
-                            ${createPlayInMatchupHTML('7th Seed Game', 'E-PI-7v8', e7, e8)}
-                            ${createPlayInMatchupHTML('9th/10th Seed Game', 'E-PI-9v10', e9, e10)}
-                            ${createPlayInMatchupHTML('8th Seed Game', 'E-PI-L78vW910', 'Loser of 7v8', winnerE9v10 || 'Winner of 9v10')}
-                        </div>
-                    `;
+                             <div class="play-in-conference">
+                                <h3 class="play-in-title">Eastern Conference Play-In</h3>
+                                ${createPlayInMatchupHTML('7th Seed Game', 'E-PI-7v8', e7, e8)}
+                                ${createPlayInMatchupHTML('9th/10th Seed Game', 'E-PI-9v10', e9, e10)}
+                                ${createPlayInMatchupHTML('8th Seed Game', 'E-PI-L78vW910', 'Loser of 7v8', winnerE9v10 || 'Winner of 9v10')}
+                            </div>
+                        `;
 
             playInSection.innerHTML = westHTML + eastHTML;
 
             if (checkRoundOneCompletion()) {
                 playInContainer.innerHTML = `
-                            <details id="play-in-details">
-                                <summary id="play-in-summary">Play-In Tournament Results</summary>
-                                <div class="play-in-content-wrapper">
-                                    ${playInSection.outerHTML}
-                                </div>
-                            </details>
-                        `;
+                                <details id="play-in-details">
+                                    <summary id="play-in-summary">Play-In Tournament Results</summary>
+                                    <div class="play-in-content-wrapper">
+                                        ${playInSection.outerHTML}
+                                    </div>
+                                </details>
+                            `;
             } else {
                 playInContainer.innerHTML = playInSection.outerHTML;
             }
@@ -747,6 +747,19 @@
             const e7_final = getSeriesWinner('E-PI-7v8');
             const e8_final = getSeriesWinner('E-PI-L78vW910');
 
+            // Create a map to hold the final playoff seed for each team.
+            const playoffSeedMap = {};
+            allTeams.forEach(team => {
+                const seed = parseInt(team.postseed, 10);
+                if (seed >= 1 && seed <= 6) {
+                    playoffSeedMap[team.team_id] = team.postseed;
+                }
+            });
+            if (w7_final) playoffSeedMap[w7_final] = '7';
+            if (w8_final) playoffSeedMap[w8_final] = '8';
+            if (e7_final) playoffSeedMap[e7_final] = '7';
+            if (e8_final) playoffSeedMap[e8_final] = '8';
+
             // Get series winners
             const W_R1_1v8_W = getSeriesWinner('W-R1-1v8');
             const W_R1_4v5_W = getSeriesWinner('W-R1-4v5');
@@ -768,95 +781,95 @@
 
             // Column-based HTML structure for the main bracket
             let bracketHTML = `
-                    <div class="bracket">
-                        <div class="bracket-header-row">
-                            <div class="round-title">Round 1<small class="series-format">(Best of 3)</small></div>
-                            <div class="round-title">Conference Semis<small class="series-format">(Best of 3)</small></div>
-                            <div class="round-title">Conference Finals<small class="series-format">(Best of 5)</small></div>
-                            <div class="round-title">RKL Finals<small class="series-format">(Best of 7)</small></div>
-                        </div>
-                        <div class="bracket-body-row">
-                            <div class="round-column">
-                                <div class="conference-section">
-                                    <h3 class="conference-subtitle">West</h3>
-                                    <div class="conference-group">
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('W-R1-1v8', w1, w8_final, '1', '8')}
-                                            ${createMatchupHTML('W-R1-4v5', w4, w5, '4', '5')}
-                                        </div>
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('W-R1-3v6', w3, w6, '3', '6')}
-                                            ${createMatchupHTML('W-R1-2v7', w2, w7_final, '2', '7')}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="conference-section">
-                                    <h3 class="conference-subtitle">East</h3>
-                                    <div class="conference-group">
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('E-R1-1v8', e1, e8_final, '1', '8')}
-                                            ${createMatchupHTML('E-R1-4v5', e4, e5, '4', '5')}
-                                        </div>
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('E-R1-3v6', e3, e6, '3', '6')}
-                                            ${createMatchupHTML('E-R1-2v7', e2, e7_final, '2', '7')}
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="bracket">
+                            <div class="bracket-header-row">
+                                <div class="round-title">Round 1<small class="series-format">(Best of 3)</small></div>
+                                <div class="round-title">Conference Semis<small class="series-format">(Best of 3)</small></div>
+                                <div class="round-title">Conference Finals<small class="series-format">(Best of 5)</small></div>
+                                <div class="round-title">RKL Finals<small class="series-format">(Best of 7)</small></div>
                             </div>
+                            <div class="bracket-body-row">
+                                <div class="round-column">
+                                    <div class="conference-section">
+                                        <h3 class="conference-subtitle">West</h3>
+                                        <div class="conference-group">
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('W-R1-1v8', w1, w8_final, '1', '8')}
+                                                ${createMatchupHTML('W-R1-4v5', w4, w5, '4', '5')}
+                                            </div>
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('W-R1-3v6', w3, w6, '3', '6')}
+                                                ${createMatchupHTML('W-R1-2v7', w2, w7_final, '2', '7')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="conference-section">
+                                        <h3 class="conference-subtitle">East</h3>
+                                        <div class="conference-group">
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('E-R1-1v8', e1, e8_final, '1', '8')}
+                                                ${createMatchupHTML('E-R1-4v5', e4, e5, '4', '5')}
+                                            </div>
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('E-R1-3v6', e3, e6, '3', '6')}
+                                                ${createMatchupHTML('E-R1-2v7', e2, e7_final, '2', '7')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                            <div class="round-column">
-                                <div class="conference-section">
-                                    <div class="conference-group">
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('W-R2-T', W_R1_1v8_W, W_R1_4v5_W)}
+                                <div class="round-column">
+                                    <div class="conference-section">
+                                        <div class="conference-group">
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('W-R2-T', W_R1_1v8_W, W_R1_4v5_W, playoffSeedMap[W_R1_1v8_W], playoffSeedMap[W_R1_4v5_W])}
+                                            </div>
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('W-R2-B', W_R1_3v6_W, W_R1_2v7_W, playoffSeedMap[W_R1_3v6_W], playoffSeedMap[W_R1_2v7_W])}
+                                            </div>
                                         </div>
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('W-R2-B', W_R1_3v6_W, W_R1_2v7_W)}
+                                    </div>
+                                    <div class="conference-section">
+                                        <div class="conference-group">
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('E-R2-T', E_R1_1v8_W, E_R1_4v5_W, playoffSeedMap[E_R1_1v8_W], playoffSeedMap[E_R1_4v5_W])}
+                                            </div>
+                                            <div class="matchup-subgroup">
+                                                ${createMatchupHTML('E-R2-B', E_R1_3v6_W, E_R1_2v7_W, playoffSeedMap[E_R1_3v6_W], playoffSeedMap[E_R1_2v7_W])}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="conference-section">
-                                    <div class="conference-group">
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('E-R2-T', E_R1_1v8_W, E_R1_4v5_W)}
-                                        </div>
-                                        <div class="matchup-subgroup">
-                                            ${createMatchupHTML('E-R2-B', E_R1_3v6_W, E_R1_2v7_W)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="round-column">
-                                <div class="conference-section">
-                                    <div class="conference-group">
-                                        ${createMatchupHTML('W-CF', W_R2_T_W, W_R2_B_W)}
-                                    </div>
-                                </div>
-                                <div class="conference-section">
-                                    <div class="conference-group">
-                                        ${createMatchupHTML('E-CF', E_R2_T_W, E_R2_B_W)}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="round-column final-round">
-                                ${Champion ? `
-                                    <div class="finals-champion">
-                                        <div class="champion-box is-clickable" onclick="window.location.href='schedule.html#week-Finals'">
-                                            <h3>🏆 RKL Champion 🏆</h3>
-                                            ${createTeamHTML(Champion, getSeries('FINALS'), 'schedule.html#week-Finals', null, Champion)}
+                                <div class="round-column">
+                                    <div class="conference-section">
+                                        <div class="conference-group">
+                                            ${createMatchupHTML('W-CF', W_R2_T_W, W_R2_B_W, playoffSeedMap[W_R2_T_W], playoffSeedMap[W_R2_B_W])}
                                         </div>
                                     </div>
-                                ` : `
-                                    <div class="conference-group">
-                                        ${createMatchupHTML('FINALS', W_CF_W, E_CF_W)}
+                                    <div class="conference-section">
+                                        <div class="conference-group">
+                                            ${createMatchupHTML('E-CF', E_R2_T_W, E_R2_B_W, playoffSeedMap[E_R2_T_W], playoffSeedMap[E_R2_B_W])}
+                                        </div>
                                     </div>
-                                `}
+                                </div>
+
+                                <div class="round-column final-round">
+                                    ${Champion ? `
+                                        <div class="finals-champion">
+                                            <div class="champion-box is-clickable" onclick="window.location.href='schedule.html#week-Finals'">
+                                                <h3>🏆 RKL Champion 🏆</h3>
+                                                ${createTeamHTML(Champion, getSeries('FINALS'), 'schedule.html#week-Finals', playoffSeedMap[Champion], Champion)}
+                                            </div>
+                                        </div>
+                                    ` : `
+                                        <div class="conference-group">
+                                            ${createMatchupHTML('FINALS', W_CF_W, E_CF_W, playoffSeedMap[W_CF_W], playoffSeedMap[E_CF_W])}
+                                        </div>
+                                    `}
+                                </div>
                             </div>
-                        </div>
-                    </div>`;
+                        </div>`;
 
             container.innerHTML = bracketHTML;
         }
