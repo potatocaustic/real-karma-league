@@ -1,0 +1,79 @@
+﻿<!-- /admin/manage-players.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Players - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Manage Players</h2>
+
+        <div class="search-container">
+            <input type="text" id="player-search-input" placeholder="Search by player handle...">
+        </div>
+
+        <div id="players-list-container">
+            <div class="loading">Loading players...</div>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Modal for editing a player -->
+    <div id="player-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="modal-title-player">Edit Player</h3>
+            <form id="player-form">
+                <input type="hidden" id="player-id-input">
+                <div class="form-group-admin">
+                    <label>Player Handle</label>
+                    <p id="player-handle-display" class="read-only-field"></p>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group-admin">
+                        <label for="player-team-select">Current Team</label>
+                        <select id="player-team-select" required></select>
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="player-status-select">Player Status</label>
+                        <select id="player-status-select" required>
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="RETIRED">RETIRED</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group-admin">
+                    <label>Accolades</label>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="player-rookie-checkbox">
+                        <label for="player-rookie-checkbox">Rookie</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="player-allstar-checkbox">
+                        <label for="player-allstar-checkbox">All-Star</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn-admin-save">Save Player Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-players.js"></script>
+</body>
+</html>

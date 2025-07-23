@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RKL Admin Portal</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <h2>Admin Dashboard</h2>
+        <p>Select a management task below.</p>
+        <div class="dashboard-grid">
+            <a href="/admin/manage-games.html" class="nav-card">
+                <div class="nav-card-icon">📅</div>
+                <div class="nav-card-title">Manage Games & Scores</div>
+                <div class="nav-card-description">Enter weekly scores and manage schedules.</div>
+            </a>
+            <a href="/admin/manage-players.html" class="nav-card">
+                <div class="nav-card-icon">👥</div>
+                <div class="nav-card-title">Manage Players</div>
+                <div class="nav-card-description">Edit player details and team assignments.</div>
+            </a>
+            <a href="/admin/manage-teams.html" class="nav-card">
+                <div class="nav-card-icon">🏆</div>
+                <div class="nav-card-title">Manage Teams</div>
+                <div class="nav-card-description">Update team information and GM roles.</div>
+            </a>
+            <a href="/admin/manage-transactions.html" class="nav-card">
+                <div class="nav-card-icon">🔄</div>
+                <div class="nav-card-title">Manage Transactions</div>
+                <div class="nav-card-description">Log trades, signings, and other roster moves.</div>
+            </a>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+﻿<!-- /admin/manage-teams.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Teams - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Manage Teams</h2>
+
+        <div id="teams-list-container">
+            <div class="loading">Loading teams...</div>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Modal for editing a team -->
+    <div id="team-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="modal-title-team">Edit Team</h3>
+            <form id="team-form">
+                <input type="hidden" id="team-id-input">
+                <div class="form-group-admin">
+                    <label>Team ID (Read-only)</label>
+                    <p id="team-id-display" class="read-only-field"></p>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-name-input">Team Name</label>
+                    <input type="text" id="team-name-input" required>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-conference-select">Conference</label>
+                    <select id="team-conference-select" required>
+                        <option value="Eastern">Eastern</option>
+                        <option value="Western">Western</option>
+                    </select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-gm-handle-input">GM Handle</label>
+                    <input type="text" id="team-gm-handle-input">
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-gm-uid-input">GM User ID (Firebase Auth UID)</label>
+                    <input type="text" id="team-gm-uid-input">
+                </div>
+                <button type="submit" class="btn-admin-save">Save Team Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-teams.js"></script>
+</body>
+</html>

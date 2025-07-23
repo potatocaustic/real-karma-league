@@ -1,0 +1,81 @@
+﻿<!-- /admin/manage-transactions.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Transactions - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Log New Transaction</h2>
+
+        <form id="transaction-form" class="form-container-admin">
+            <div class="form-group-admin">
+                <label for="transaction-type-select">Transaction Type</label>
+                <select id="transaction-type-select">
+                    <option value="">Select a type...</option>
+                    <option value="TRADE">Trade</option>
+                    <option value="SIGN">Free Agent Signing</option>
+                    <option value="CUT">Cut Player</option>
+                    <option value="DRAFT">Draft Pick</option>
+                </select>
+            </div>
+
+            <!-- Trade Section -->
+            <div id="trade-section" class="transaction-section" style="display: none;">
+                <h4>Trade Details</h4>
+                <div class="trade-parties-container">
+                    <!-- JS will generate team blocks here -->
+                </div>
+                <button type="button" id="add-team-btn" class="btn-admin-secondary">Add Another Team</button>
+            </div>
+
+            <!-- Sign Section -->
+            <div id="sign-section" class="transaction-section" style="display: none;">
+                <h4>Signing Details</h4>
+                <div class="form-group-admin">
+                    <label for="sign-team-select">Signing Team</label>
+                    <select id="sign-team-select" class="team-select"></select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="sign-player-select">Player to Sign (must be Free Agent)</label>
+                    <select id="sign-player-select" class="player-select"></select>
+                </div>
+            </div>
+
+            <!-- Cut Section -->
+            <div id="cut-section" class="transaction-section" style="display: none;">
+                <h4>Cut Details</h4>
+                <div class="form-group-admin">
+                    <label for="cut-player-select">Player to Cut</label>
+                    <select id="cut-player-select" class="player-select"></select>
+                </div>
+            </div>
+
+            <div class="form-group-admin">
+                <label for="transaction-notes">Notes (Optional)</label>
+                <textarea id="transaction-notes" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn-admin-save">Log Transaction</button>
+        </form>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Firebase -->
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-transactions.js"></script>
+</body>
+</html>
