@@ -1,6 +1,4 @@
-﻿<!-- /admin/manage-transactions.html -->
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -28,20 +26,16 @@
                     <option value="TRADE">Trade</option>
                     <option value="SIGN">Free Agent Signing</option>
                     <option value="CUT">Cut Player</option>
-                    <option value="DRAFT">Draft Pick</option>
-                </select>
+                    </select>
             </div>
 
-            <!-- Trade Section -->
             <div id="trade-section" class="transaction-section" style="display: none;">
                 <h4>Trade Details</h4>
                 <div class="trade-parties-container">
-                    <!-- JS will generate team blocks here -->
-                </div>
+                    </div>
                 <button type="button" id="add-team-btn" class="btn-admin-secondary">Add Another Team</button>
             </div>
 
-            <!-- Sign Section -->
             <div id="sign-section" class="transaction-section" style="display: none;">
                 <h4>Signing Details</h4>
                 <div class="form-group-admin">
@@ -54,7 +48,6 @@
                 </div>
             </div>
 
-            <!-- Cut Section -->
             <div id="cut-section" class="transaction-section" style="display: none;">
                 <h4>Cut Details</h4>
                 <div class="form-group-admin">
@@ -74,7 +67,6 @@
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
-    <!-- Firebase -->
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/admin/manage-transactions.js"></script>
 </body>

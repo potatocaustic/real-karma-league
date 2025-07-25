@@ -1,6 +1,4 @@
-﻿<!-- /admin/manage-players.html -->
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -24,6 +22,11 @@
             <input type="text" id="player-search-input" placeholder="Search by player handle...">
         </div>
 
+        <div style="text-align: right; margin-bottom: 1rem;">
+            <button id="create-player-btn" class="btn-admin-edit">Create New Player</button>
+        </div>
+
+
         <div id="players-list-container">
             <div class="loading">Loading players...</div>
         </div>
@@ -31,17 +34,22 @@
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
-    <!-- Modal for editing a player -->
     <div id="player-modal" class="modal-admin">
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
             <h3 id="modal-title-player">Edit Player</h3>
             <form id="player-form">
-                <input type="hidden" id="player-id-input">
+
                 <div class="form-group-admin">
-                    <label>Player Handle</label>
-                    <p id="player-handle-display" class="read-only-field"></p>
+                    <label for="player-id-input">Player ID (Cannot be changed)</label>
+                    <input type="text" id="player-id-input" class="read-only-field" readonly>
                 </div>
+
+                <div class="form-group-admin">
+                    <label for="player-handle-input">Player Handle</label>
+                    <input type="text" id="player-handle-input" required>
+                </div>
+
                 <div class="form-grid">
                     <div class="form-group-admin">
                         <label for="player-team-select">Current Team</label>
@@ -53,6 +61,7 @@
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="RETIRED">RETIRED</option>
                             <option value="INACTIVE">INACTIVE</option>
+                            <option value="FREE_AGENT">FREE_AGENT</option>
                         </select>
                     </div>
                 </div>
@@ -72,7 +81,6 @@
         </div>
     </div>
 
-    <!-- Firebase -->
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/admin/manage-players.js"></script>
 </body>

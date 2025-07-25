@@ -51,7 +51,7 @@ async function seedDatabase() {
         fetchSheetData("Players"),
         fetchSheetData("Teams"),
         fetchSheetData("Schedule"),
-        fetchSheetData("Draft_Capital"), // ADDED
+        fetchSheetData("Draft_Capital"),
     ]);
 
     // 2. Seed 'seasons' collection and its 'games' subcollection
@@ -65,7 +65,6 @@ async function seedDatabase() {
     const gamesBatch = db.batch();
     const gamesCollectionRef = seasonRef.collection("games");
     scheduleData.forEach(game => {
-        // Create a unique ID for each game
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
         const gameDocRef = gamesCollectionRef.doc(gameId);
         gamesBatch.set(gameDocRef, game);
@@ -85,23 +84,26 @@ async function seedDatabase() {
     await teamsBatch.commit();
     console.log(`  -> Seeded ${teamsData.length} teams into /new_teams`);
 
-    // 4. Seed 'new_players' Collection
+    // 4. Seed 'new_players' Collection (### THIS IS THE UPDATED LOGIC ###)
     console.log("Seeding 'new_players' collection...");
     const playersBatch = db.batch();
     playersData.forEach(player => {
-        if (player.player_handle) {
-            const playerDocRef = db.collection("new_players").doc(player.player_handle);
+        // Use the stable 'player_id' as the document ID
+        if (player.player_id) {
+            const playerDocRef = db.collection("new_players").doc(player.player_id);
+            // The player_handle is now just a field within the document
             playersBatch.set(playerDocRef, player);
         }
     });
     await playersBatch.commit();
     console.log(`  -> Seeded ${playersData.length} players into /new_players`);
 
-    // 5. Seed 'draftPicks' Collection (NEWLY ADDED)
+
+    // 5. Seed 'draftPicks' Collection
     console.log("Seeding 'draftPicks' collection...");
     const draftPicksBatch = db.batch();
     draftPicksData.forEach(pick => {
-        if (pick.pick_id) { // Use pick_id as the document key
+        if (pick.pick_id) {
             const pickDocRef = db.collection("draftPicks").doc(pick.pick_id);
             draftPicksBatch.set(pickDocRef, pick);
         }

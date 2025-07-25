@@ -11,7 +11,7 @@ const typeSelect = document.getElementById('transaction-type-select');
 
 let allPlayers = [];
 let allTeams = [];
-let allPicks = []; // This will be empty for now
+let allPicks = [];
 
 // --- Primary Auth Check ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,9 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         const [playersSnap, teamsSnap, picksSnap] = await Promise.all([
-            getDocs(collection(db, "new_players")), // CORRECTED
-            getDocs(collection(db, "new_teams")), // CORRECTED
-            getDocs(collection(db, "draftPicks")) // This will be empty but prevents an error
+            getDocs(collection(db, "new_players")),
+            getDocs(collection(db, "new_teams")),
+            getDocs(collection(db, "draftPicks"))
         ]);
 
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.id.localeCompare(b.id));
@@ -61,14 +61,14 @@ function populateInitialDropdowns() {
     const signTeamSelect = document.getElementById('sign-team-select');
     signTeamSelect.innerHTML = `<option value="">Select team...</option>` + allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
-    // Populate Sign Player Dropdown (Free Agents only)
+    // ### CORRECTED: Filter for "FREE_AGENT" ###
     const signPlayerSelect = document.getElementById('sign-player-select');
-    const freeAgents = allPlayers.filter(p => p.current_team_id === 'FA' || !p.current_team_id);
+    const freeAgents = allPlayers.filter(p => p.current_team_id === 'FREE_AGENT' || !p.current_team_id);
     signPlayerSelect.innerHTML = `<option value="">Select player...</option>` + freeAgents.map(p => `<option value="${p.id}">${p.id}</option>`).join('');
 
     // Populate Cut Player Dropdown
     const cutPlayerSelect = document.getElementById('cut-player-select');
-    const activeRosteredPlayers = allPlayers.filter(p => p.current_team_id && p.current_team_id !== 'FA');
+    const activeRosteredPlayers = allPlayers.filter(p => p.current_team_id && p.current_team_id !== 'FREE_AGENT');
     cutPlayerSelect.innerHTML = `<option value="">Select player...</option>` + activeRosteredPlayers.map(p => `<option value="${p.id}">${p.id} (${p.current_team_id})</option>`).join('');
 }
 
@@ -95,40 +95,47 @@ function setupEventListeners() {
 // --- Trade Block Logic ---
 function addTradePartyBlock() {
     const container = document.querySelector('.trade-parties-container');
-    const partyId = Date.now(); // Unique ID for the new block
+    // Using a more robust unique ID for the block
+    const partyId = `party-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const block = document.createElement('div');
     block.className = 'trade-party-block';
+    block.id = partyId; // Assign the unique ID to the block itself
     block.innerHTML = `
         <div class="form-group-admin">
             <label>Team</label>
-            <select class="team-select trade-team-select" data-party-id="${partyId}" required>
+            <select class="team-select trade-team-select" required>
                 <option value="">Select team...</option>
                 ${allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('')}
             </select>
         </div>
         <div class="assets-container">
             <label>Assets Sent by this Team:</label>
-            <div class="asset-list" data-party-id="${partyId}"></div>
+            <div class="asset-list"></div>
             <div class="asset-controls">
-                <select class="asset-type-select" data-party-id="${partyId}">
+                <select class="asset-type-select">
                     <option value="player">Player</option>
                     <option value="pick">Draft Pick</option>
                 </select>
-                <button type="button" class="btn-admin-add-asset" data-party-id="${partyId}">+ Add</button>
+                <button type="button" class="btn-admin-add-asset">+ Add</button>
             </div>
         </div>
     `;
     container.appendChild(block);
 
-    // Add event listeners for the new elements
+    // Add event listeners for the new elements within the block
     block.querySelector('.btn-admin-add-asset').addEventListener('click', addAssetToTrade);
 }
 
+// ### CORRECTED AND REFACTORED FUNCTION ###
 function addAssetToTrade(event) {
-    const partyId = event.target.dataset.partyId;
-    const assetList = document.querySelector(`.asset-list[data-party-id="${partyId}"]`);
-    const assetType = document.querySelector(`.asset-type-select[data-party-id="${partyId}"]`).value;
-    const teamId = document.querySelector(`.trade-team-select[data-party-id="${partyId}"]`).value;
+    // Find the parent block of the button that was clicked
+    const tradeBlock = event.target.closest('.trade-party-block');
+    if (!tradeBlock) return;
+
+    // Find elements *within* that specific block
+    const assetList = tradeBlock.querySelector('.asset-list');
+    const assetType = tradeBlock.querySelector('.asset-type-select').value;
+    const teamId = tradeBlock.querySelector('.trade-team-select').value;
 
     if (!teamId) {
         alert("Please select a team for this trade block first.");
@@ -141,9 +148,17 @@ function addAssetToTrade(event) {
     let selectHTML = '';
     if (assetType === 'player') {
         const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId);
+        if (teamPlayers.length === 0) {
+            alert(`No players found on team: ${teamId}`);
+            return;
+        }
         selectHTML = `<select class="asset-value-select" data-asset-type="player">${teamPlayers.map(p => `<option value="${p.id}">${p.id}</option>`).join('')}</select>`;
     } else { // pick
         const teamPicks = allPicks.filter(p => p.current_owner === teamId);
+        if (teamPicks.length === 0) {
+            alert(`No draft picks found for team: ${teamId}`);
+            return;
+        }
         selectHTML = `<select class="asset-value-select" data-asset-type="pick">${teamPicks.map(p => `<option value="${p.id}">${p.pick_description}</option>`).join('')}</select>`;
     }
 
@@ -170,25 +185,36 @@ async function handleFormSubmit(e) {
                 const tradeBlocks = document.querySelectorAll('.trade-party-block');
                 for (const block of tradeBlocks) {
                     const teamId = block.querySelector('.trade-team-select').value;
-                    if (!teamId) continue;
+                    if (!teamId) continue; // Skip blocks without a team selected
                     transactionData.involved_teams.push(teamId);
+
                     block.querySelectorAll('.asset-value-select').forEach(assetSelect => {
                         const assetId = assetSelect.value;
                         const assetType = assetSelect.dataset.assetType;
-                        if (assetType === 'player') transactionData.involved_players.push({ id: assetId, to: 'TBD' }); // Destination determined by backend
-                        else transactionData.involved_picks.push({ id: assetId, to: 'TBD' });
+                        if (assetType === 'player') {
+                            transactionData.involved_players.push({ id: assetId, from: teamId, to: 'TBD' });
+                        } else {
+                            transactionData.involved_picks.push({ id: assetId, from: teamId, to: 'TBD' });
+                        }
                     });
+                }
+                if (transactionData.involved_teams.length < 2) {
+                    throw new Error("A trade must involve at least two teams.");
                 }
                 break;
             case 'SIGN':
-                transactionData.involved_teams.push(document.getElementById('sign-team-select').value);
-                transactionData.involved_players.push({ id: document.getElementById('sign-player-select').value, to: document.getElementById('sign-team-select').value });
+                const signTeam = document.getElementById('sign-team-select').value;
+                const signPlayer = document.getElementById('sign-player-select').value;
+                if (!signTeam || !signPlayer) throw new Error("You must select a team and a player to sign.");
+                transactionData.involved_teams.push(signTeam);
+                transactionData.involved_players.push({ id: signPlayer, to: signTeam });
                 break;
             case 'CUT':
                 const cutPlayerId = document.getElementById('cut-player-select').value;
+                if (!cutPlayerId) throw new Error("You must select a player to cut.");
                 const playerToCut = allPlayers.find(p => p.id === cutPlayerId);
                 transactionData.involved_teams.push(playerToCut.current_team_id);
-                transactionData.involved_players.push({ id: cutPlayerId, to: 'FA' });
+                transactionData.involved_players.push({ id: cutPlayerId, to: 'FREE_AGENT' });
                 break;
             default:
                 throw new Error("Invalid transaction type.");
@@ -200,6 +226,8 @@ async function handleFormSubmit(e) {
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
+        // Repopulate dropdowns in case player rosters changed
+        populateInitialDropdowns();
 
     } catch (error) {
         console.error("Error logging transaction:", error);

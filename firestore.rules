@@ -51,6 +51,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ### NEWLY ADDED RULE ###
+    // Allows admins to create transaction documents in the correct collection.
+    match /transactions/{transactionId} {
+        allow read, write: if isAdmin();
+    }
+
 
     // == Rules for NEW Admin-Managed Collections (Admin-Only) ==
     // These collections will be used by the new admin portal.

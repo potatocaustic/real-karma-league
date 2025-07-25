@@ -57,19 +57,18 @@ async function initializePage() {
 }
 
 async function populateSeasons() {
-    // In the future, this will query the 'seasons' collection.
-    // For now, we'll hardcode S7 for development.
     seasonSelect.innerHTML = `<option value="S7">Season 7</option>`;
     currentSeasonId = "S7";
     await populateWeeks(currentSeasonId);
 }
 
+// ### CORRECTED FUNCTION ###
 async function populateWeeks(seasonId) {
-    // This will eventually be dynamic based on the season's schedule.
-    // For now, hardcoding S7 regular season + postseason stages.
+    // This function is now corrected to match the data in Firestore (e.g., value="1" instead of "Week 1")
     let weekOptions = '';
     for (let i = 1; i <= 15; i++) {
-        weekOptions += `<option value="Week ${i}">Week ${i}</option>`;
+        // The value attribute now correctly uses the number, which matches your database
+        weekOptions += `<option value="${i}">Week ${i}</option>`;
     }
     weekOptions += `
         <option value="Play-In">Play-In</option>
@@ -84,11 +83,8 @@ async function populateWeeks(seasonId) {
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
 
-    // CORRECTED: Query the subcollection for games
     const gamesQuery = query(collection(db, "seasons", seasonId, "games"), where("week", "==", week));
-    // CORRECTED: Query the 'new_teams' collection
     const teamsSnap = await getDocs(collection(db, "new_teams"));
-
     const teamsMap = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
 
     try {
@@ -129,7 +125,6 @@ async function fetchAndDisplayGames(seasonId, week) {
 gamesListContainer.addEventListener('click', async (e) => {
     if (e.target.matches('.btn-admin-edit')) {
         const gameId = e.target.dataset.gameId;
-        // CORRECTED: Reference the game document in the subcollection
         const gameRef = doc(db, "seasons", currentSeasonId, "games", gameId);
         const gameDoc = await getDoc(gameRef);
 
@@ -160,7 +155,7 @@ scoreForm.addEventListener('submit', async (e) => {
     const team2Score = document.getElementById('team2-score').value;
     const isCompleted = document.getElementById('game-completed-checkbox').checked;
 
-    const gameRef = doc(db, "seasons", currentSeasonId, "games", gameId); // CORRECTED
+    const gameRef = doc(db, "seasons", currentSeasonId, "games", gameId);
 
     try {
         await updateDoc(gameRef, {
