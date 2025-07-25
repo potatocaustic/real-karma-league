@@ -47,10 +47,11 @@ async function seedDatabase() {
     console.log("Starting database seed process...");
 
     // 1. Fetch all data from Google Sheets
-    const [playersData, teamsData, scheduleData] = await Promise.all([
+    const [playersData, teamsData, scheduleData, draftPicksData] = await Promise.all([
         fetchSheetData("Players"),
         fetchSheetData("Teams"),
         fetchSheetData("Schedule"),
+        fetchSheetData("Draft_Capital"), // ADDED
     ]);
 
     // 2. Seed 'seasons' collection and its 'games' subcollection
@@ -95,6 +96,19 @@ async function seedDatabase() {
     });
     await playersBatch.commit();
     console.log(`  -> Seeded ${playersData.length} players into /new_players`);
+
+    // 5. Seed 'draftPicks' Collection (NEWLY ADDED)
+    console.log("Seeding 'draftPicks' collection...");
+    const draftPicksBatch = db.batch();
+    draftPicksData.forEach(pick => {
+        if (pick.pick_id) { // Use pick_id as the document key
+            const pickDocRef = db.collection("draftPicks").doc(pick.pick_id);
+            draftPicksBatch.set(pickDocRef, pick);
+        }
+    });
+    await draftPicksBatch.commit();
+    console.log(`  -> Seeded ${draftPicksData.length} draft picks into /draftPicks`);
+
 
     console.log("✅ Database seeding complete!");
 }

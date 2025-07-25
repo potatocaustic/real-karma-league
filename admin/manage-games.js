@@ -84,10 +84,10 @@ async function populateWeeks(seasonId) {
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
 
-    // NOTE: This queries your existing 'schedule' collection for development.
-    // This will be updated to query '/seasons/S7/games' in the final version.
-    const gamesQuery = query(collection(db, "schedule"), where("week", "==", week));
-    const teamsSnap = await getDocs(collection(db, "teams"));
+    // CORRECTED: Query the subcollection for games
+    const gamesQuery = query(collection(db, "seasons", seasonId, "games"), where("week", "==", week));
+    // CORRECTED: Query the 'new_teams' collection
+    const teamsSnap = await getDocs(collection(db, "new_teams"));
 
     const teamsMap = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
 
@@ -129,7 +129,8 @@ async function fetchAndDisplayGames(seasonId, week) {
 gamesListContainer.addEventListener('click', async (e) => {
     if (e.target.matches('.btn-admin-edit')) {
         const gameId = e.target.dataset.gameId;
-        const gameRef = doc(db, "schedule", gameId);
+        // CORRECTED: Reference the game document in the subcollection
+        const gameRef = doc(db, "seasons", currentSeasonId, "games", gameId);
         const gameDoc = await getDoc(gameRef);
 
         if (gameDoc.exists()) {
@@ -159,7 +160,7 @@ scoreForm.addEventListener('submit', async (e) => {
     const team2Score = document.getElementById('team2-score').value;
     const isCompleted = document.getElementById('game-completed-checkbox').checked;
 
-    const gameRef = doc(db, "schedule", gameId);
+    const gameRef = doc(db, "seasons", currentSeasonId, "games", gameId); // CORRECTED
 
     try {
         await updateDoc(gameRef, {

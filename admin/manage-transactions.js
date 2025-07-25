@@ -11,7 +11,7 @@ const typeSelect = document.getElementById('transaction-type-select');
 
 let allPlayers = [];
 let allTeams = [];
-let allPicks = [];
+let allPicks = []; // This will be empty for now
 
 // --- Primary Auth Check ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,9 +38,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         const [playersSnap, teamsSnap, picksSnap] = await Promise.all([
-            getDocs(collection(db, "players")),
-            getDocs(collection(db, "teams")),
-            getDocs(collection(db, "draftPicks"))
+            getDocs(collection(db, "new_players")), // CORRECTED
+            getDocs(collection(db, "new_teams")), // CORRECTED
+            getDocs(collection(db, "draftPicks")) // This will be empty but prevents an error
         ]);
 
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.id.localeCompare(b.id));
@@ -208,5 +208,11 @@ async function handleFormSubmit(e) {
 }
 
 function addLogoutListener() {
-    // ... (same as other admin pages)
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            auth.signOut().then(() => { window.location.href = '/login.html'; });
+        });
+    }
 }

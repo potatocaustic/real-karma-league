@@ -42,8 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         const [playersSnap, teamsSnap] = await Promise.all([
-            getDocs(collection(db, "players")),
-            getDocs(collection(db, "teams"))
+            getDocs(collection(db, "new_players")), // CORRECTED LINE
+            getDocs(collection(db, "new_teams"))
         ]);
 
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -135,7 +135,7 @@ playerForm.addEventListener('submit', async (e) => {
         all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
     };
 
-    const playerRef = doc(db, "players", playerId);
+    const playerRef = doc(db, "new_players", playerId); // CORRECTED LINE
 
     try {
         await updateDoc(playerRef, updatedData);
