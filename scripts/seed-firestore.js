@@ -46,31 +46,69 @@ function parseCSV(csvText) {
 async function seedDatabase() {
     console.log("Starting database seed process...");
 
-    // 1. Fetch all data from Google Sheets
-    const [playersData, teamsData, scheduleData, draftPicksData] = await Promise.all([
+    const [
+        playersData,
+        teamsData,
+        scheduleData,
+        draftPicksData,
+        postScheduleData, // ADDED
+        lineupsData,      // ADDED
+        postLineupsData   // ADDED
+    ] = await Promise.all([
         fetchSheetData("Players"),
         fetchSheetData("Teams"),
         fetchSheetData("Schedule"),
         fetchSheetData("Draft_Capital"),
+        fetchSheetData("Post_Schedule"), // ADDED
+        fetchSheetData("Lineups"),       // ADDED
+        fetchSheetData("Post_Lineups")   // ADDED
     ]);
 
-    // 2. Seed 'seasons' collection and its 'games' subcollection
-    console.log("Seeding 'seasons' collection and games subcollection for S7...");
+    // Seed 'seasons' and 'games' (Regular Season)
+    console.log("Seeding regular season games...");
     const seasonRef = db.collection("seasons").doc("S7");
-    await seasonRef.set({
-        season_name: "Season 7",
-        status: "active",
-    });
-
+    await seasonRef.set({ season_name: "Season 7", status: "active" });
     const gamesBatch = db.batch();
     const gamesCollectionRef = seasonRef.collection("games");
     scheduleData.forEach(game => {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
-        const gameDocRef = gamesCollectionRef.doc(gameId);
-        gamesBatch.set(gameDocRef, game);
+        gamesBatch.set(gamesCollectionRef.doc(gameId), game);
     });
     await gamesBatch.commit();
-    console.log(`  -> Seeded ${scheduleData.length} games into /seasons/S7/games`);
+    console.log(`  -> Seeded ${scheduleData.length} regular season games.`);
+
+    // ADDED: Seed Postseason Games
+    console.log("Seeding postseason games...");
+    const postGamesBatch = db.batch();
+    const postGamesCollectionRef = seasonRef.collection("post_games"); // New subcollection
+    postScheduleData.forEach(game => {
+        const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
+        postGamesBatch.set(postGamesCollectionRef.doc(gameId), game);
+    });
+    await postGamesBatch.commit();
+    console.log(`  -> Seeded ${postScheduleData.length} postseason games.`);
+
+    // ADDED: Seed Lineups
+    console.log("Seeding lineups...");
+    const lineupsBatch = db.batch();
+    const lineupsCollectionRef = db.collection("lineups"); // New top-level collection
+    lineupsData.forEach(lineup => {
+        const lineupId = `${lineup.date}-${lineup.player_handle}`.replace(/\//g, "-");
+        lineupsBatch.set(lineupsCollectionRef.doc(lineupId), lineup);
+    });
+    await lineupsBatch.commit();
+    console.log(`  -> Seeded ${lineupsData.length} regular season lineups.`);
+
+    // ADDED: Seed Postseason Lineups
+    console.log("Seeding postseason lineups...");
+    const postLineupsBatch = db.batch();
+    const postLineupsCollectionRef = db.collection("post_lineups"); // New top-level collection
+    postLineupsData.forEach(lineup => {
+        const lineupId = `${lineup.date}-${lineup.player_handle}`.replace(/\//g, "-");
+        postLineupsBatch.set(postLineupsCollectionRef.doc(lineupId), lineup);
+    });
+    await postLineupsBatch.commit();
+    console.log(`  -> Seeded ${postLineupsData.length} postseason lineups.`);
 
     // 3. Seed 'new_teams' Collection
     console.log("Seeding 'new_teams' collection...");

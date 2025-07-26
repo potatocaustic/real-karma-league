@@ -9,56 +9,52 @@ const fetch = require("node-fetch");
 admin.initializeApp();
 const db = admin.firestore();
 
+// ### REWRITTEN AND CORRECTED FUNCTION ###
 exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", async (event) => {
     const transaction = event.data.data();
-    console.log(`Processing new transaction ${event.params.transactionId} of type: ${transaction.type}`);
+    const transactionId = event.params.transactionId;
+    console.log(`Processing new transaction ${transactionId} of type: ${transaction.type}`);
 
     const batch = db.batch();
 
     try {
-        // --- Process Player Moves ---
-        if (transaction.involved_players && transaction.involved_players.length > 0) {
-            for (const playerMove of transaction.involved_players) {
-                const playerRef = db.collection('players').doc(playerMove.id);
-                let newTeamId = playerMove.to;
+        if (transaction.type === 'SIGN') {
+            const playerMove = transaction.involved_players[0]; // Sign involves one player
+            const playerRef = db.collection('new_players').doc(playerMove.id);
+            batch.update(playerRef, { current_team_id: playerMove.to });
+            console.log(`SIGN: Updating player ${playerMove.id} to team ${playerMove.to}`);
 
-                // For trades, the 'to' is TBD. We need to figure out where they went.
-                if (transaction.type === 'TRADE') {
-                    // Simple logic for 2-team trade: player goes to the other team.
-                    // More complex logic needed for 3+ team trades.
-                    const playerDoc = await playerRef.get();
-                    const originalTeam = playerDoc.data().current_team_id;
-                    const otherTeam = transaction.involved_teams.find(t => t !== originalTeam);
-                    newTeamId = otherTeam;
-                }
+        } else if (transaction.type === 'CUT') {
+            const playerMove = transaction.involved_players[0]; // Cut involves one player
+            const playerRef = db.collection('new_players').doc(playerMove.id);
+            batch.update(playerRef, { current_team_id: 'FREE_AGENT' }); // A cut player becomes a free agent
+            console.log(`CUT: Updating player ${playerMove.id} to FREE_AGENT`);
 
-                if (newTeamId) {
-                    batch.update(playerRef, { current_team_id: newTeamId });
-                    console.log(`Updating player ${playerMove.id} to team ${newTeamId}`);
+        } else if (transaction.type === 'TRADE') {
+            // This logic now handles multi-team trades by looking at the 'to' field.
+            if (transaction.involved_players) {
+                for (const playerMove of transaction.involved_players) {
+                    const playerRef = db.collection('new_players').doc(playerMove.id);
+                    batch.update(playerRef, { current_team_id: playerMove.to });
+                    console.log(`TRADE: Updating player ${playerMove.id} to team ${playerMove.to}`);
                 }
             }
-        }
-
-        // --- Process Draft Pick Moves ---
-        if (transaction.involved_picks && transaction.involved_picks.length > 0) {
-            for (const pickMove of transaction.involved_picks) {
-                const pickRef = db.collection('draftPicks').doc(pickMove.id);
-                // Similar logic as players for trades
-                const pickDoc = await pickRef.get();
-                const originalOwner = pickDoc.data().current_owner;
-                const newOwner = transaction.involved_teams.find(t => t !== originalOwner);
-                if (newOwner) {
-                    batch.update(pickRef, { current_owner: newOwner });
-                    console.log(`Updating pick ${pickMove.id} to owner ${newOwner}`);
+            if (transaction.involved_picks) {
+                for (const pickMove of transaction.involved_picks) {
+                    const pickRef = db.collection('draftPicks').doc(pickMove.id);
+                    batch.update(pickRef, { current_owner: pickMove.to });
+                    console.log(`TRADE: Updating pick ${pickMove.id} to owner ${pickMove.to}`);
                 }
             }
         }
 
         await batch.commit();
-        console.log("Transaction processed successfully.");
+        console.log(`Transaction ${transactionId} processed successfully.`);
 
     } catch (error) {
-        console.error("Error processing transaction:", error);
+        console.error(`Error processing transaction ${transactionId}:`, error);
+        // Optionally, update the transaction document to mark it as failed
+        await event.data.ref.update({ status: 'FAILED', error: error.message });
     }
     return null;
 });

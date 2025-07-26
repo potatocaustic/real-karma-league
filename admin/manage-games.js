@@ -83,7 +83,14 @@ async function populateWeeks(seasonId) {
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
 
-    const gamesQuery = query(collection(db, "seasons", seasonId, "games"), where("week", "==", week));
+    // Determine if the selected week is postseason
+    const postseasonWeeks = ["Play-In", "Round 1", "Round 2", "Conf Finals", "Finals"];
+    const isPostseason = postseasonWeeks.includes(week);
+
+    // Choose the correct collection to query based on the week
+    const collectionName = isPostseason ? "post_games" : "games";
+    const gamesQuery = query(collection(db, "seasons", seasonId, collectionName), where("week", "==", week));
+
     const teamsSnap = await getDocs(collection(db, "new_teams"));
     const teamsMap = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
 
@@ -100,10 +107,12 @@ async function fetchAndDisplayGames(seasonId, week) {
             const team1 = teamsMap.get(game.team1_id);
             const team2 = teamsMap.get(game.team2_id);
 
+            // ADDED: Display game date
             gamesHTML += `
-                <div class="game-entry">
-                    <span class="game-teams">
-                        <strong>${team1?.team_name || game.team1_id}</strong> vs <strong>${team2?.team_name || game.team2_id}</strong>
+                <div class="game-entry" data-is-postseason="${isPostseason}">
+                    <span class="game-details">
+                        <span class="game-teams"><strong>${team1?.team_name || game.team1_id}</strong> vs <strong>${team2?.team_name || game.team2_id}</strong></span>
+                        <span class="game-date">Date: ${game.date || 'N/A'}</span>
                     </span>
                     <span class="game-score">
                         ${game.completed === 'TRUE' ? `${game.team1_score} - ${game.team2_score}` : 'Pending'}
@@ -120,21 +129,30 @@ async function fetchAndDisplayGames(seasonId, week) {
     }
 }
 
-// --- Event Handlers and Modal Logic ---
 
+// --- Event Handlers and Modal Logic ---
 gamesListContainer.addEventListener('click', async (e) => {
     if (e.target.matches('.btn-admin-edit')) {
         const gameId = e.target.dataset.gameId;
-        const gameRef = doc(db, "seasons", currentSeasonId, "games", gameId);
+        const gameEntry = e.target.closest('.game-entry');
+        const isPostseason = gameEntry.dataset.isPostseason === 'true';
+        const collectionName = isPostseason ? "post_games" : "games";
+
+        // The full overhaul of this modal will come next, for now it opens as before
+        const gameRef = doc(db, "seasons", currentSeasonId, collectionName, gameId);
         const gameDoc = await getDoc(gameRef);
 
         if (gameDoc.exists()) {
-            openScoreModal(gameDoc.data(), gameId);
+            openScoreModal(gameDoc.data(), gameId, collectionName);
         }
     }
 });
 
-function openScoreModal(gameData, gameId) {
+// Pass collectionName to know where to save the data
+function openScoreModal(gameData, gameId, collectionName) {
+    const scoreForm = document.getElementById('score-form');
+    scoreForm.dataset.collectionName = collectionName; // Store collection name on the form
+    document.getElementById('game-id-input').value = gameId;
     document.getElementById('game-id-input').value = gameId;
     document.getElementById('team1-label').textContent = `${gameData.team1_id} Score`;
     document.getElementById('team2-label').textContent = `${gameData.team2_id} Score`;
@@ -151,11 +169,17 @@ closeModalBtn.addEventListener('click', () => {
 scoreForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const gameId = document.getElementById('game-id-input').value;
+    const collectionName = e.target.dataset.collectionName; // Get collection name from form
+    if (!collectionName) {
+        alert("Error: could not determine game collection.");
+        return;
+    }
+
     const team1Score = document.getElementById('team1-score').value;
     const team2Score = document.getElementById('team2-score').value;
     const isCompleted = document.getElementById('game-completed-checkbox').checked;
 
-    const gameRef = doc(db, "seasons", currentSeasonId, "games", gameId);
+    const gameRef = doc(db, "seasons", currentSeasonId, collectionName, gameId);
 
     try {
         await updateDoc(gameRef, {
