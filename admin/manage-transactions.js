@@ -61,13 +61,15 @@ function populateAllDropdowns() {
 
     // Sign section
     document.getElementById('sign-team-select').innerHTML = `<option value="">Select team...</option>${teamOptions}`;
+
+    // MODIFIED: Populate datalist instead of select for free agents
+    const freeAgentDataList = document.getElementById('free-agent-list');
     const freeAgents = allPlayers.filter(p => p.current_team_id === 'FREE_AGENT' && p.player_status !== 'RETIRED');
-    document.getElementById('sign-player-select').innerHTML = `<option value="">Select player...</option>` +
-        freeAgents.map(p => `<option value="${p.id}">${p.player_handle}</option>`).join('');
+    freeAgentDataList.innerHTML = freeAgents.map(p => `<option value="${p.player_handle}"></option>`).join('');
 
     // Cut section
     cutTeamFilter.innerHTML = `<option value="">All Teams</option>${teamOptions}`;
-    populateCutPlayerDropdown(); // Initial population
+    populateCutPlayerDropdown();
 }
 
 function populateCutPlayerDropdown(teamId = '') {
@@ -98,7 +100,16 @@ function setupEventListeners() {
         }
     });
 
-    cutTeamFilter.addEventListener('change', (e) => populateCutPlayerDropdown(e.target.value));
+    // ADDED: Listener for the new form reset button
+    transactionForm.addEventListener('reset', () => {
+        // Hide all the specific transaction sections when the form is reset
+        document.querySelectorAll('.transaction-section').forEach(sec => {
+            sec.style.display = 'none';
+        });
+        // Clear the trade parties container
+        document.querySelector('.trade-parties-container').innerHTML = '';
+    });
+
     document.getElementById('add-team-btn').addEventListener('click', addTradePartyBlock);
     transactionForm.addEventListener('submit', handleFormSubmit);
 }
@@ -113,7 +124,7 @@ function addTradePartyBlock() {
 
     // ADDED: Remove button for blocks beyond the second one
     const removeButtonHTML = container.children.length >= 2
-        ? `<button type="button" class="btn-admin-remove-asset" onclick="this.closest('.trade-party-block').remove()">Remove Team</button>`
+        ? `<button type="button" class="btn-admin-remove-asset" onclick="this.closest('.trade-party-block').remove()" style="color: white;">&times;</button>`
         : '';
 
     block.innerHTML = `
@@ -217,10 +228,21 @@ async function handleFormSubmit(e) {
             });
         } else if (type === 'SIGN') {
             const teamId = document.getElementById('sign-team-select').value;
-            const playerId = document.getElementById('sign-player-select').value;
-            if (!teamId || !playerId) throw new Error("A team and player must be selected.");
+            // MODIFIED: Get player handle from the new input field
+            const playerHandle = document.getElementById('sign-player-input').value;
+
+            // Find the player's ID based on their handle.
+            const playerToSign = allPlayers.find(p => p.player_handle === playerHandle);
+
+            if (!teamId || !playerToSign) {
+                throw new Error("A valid team and free agent must be selected.");
+            }
+            if (playerToSign.current_team_id !== 'FREE_AGENT') {
+                throw new Error(`${playerHandle} is not a free agent.`);
+            }
+
             transactionData.involved_teams = [teamId];
-            transactionData.involved_players = [{ id: playerId, to: teamId }];
+            transactionData.involved_players = [{ id: playerToSign.id, to: teamId }];
         } else if (type === 'CUT') {
             const playerId = document.getElementById('cut-player-select').value;
             if (!playerId) throw new Error("A player must be selected to cut.");

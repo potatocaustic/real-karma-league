@@ -38,21 +38,37 @@ exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", 
                 for (const playerMove of transaction.involved_players) {
                     const playerRef = db.collection('new_players').doc(playerMove.id);
                     batch.update(playerRef, { current_team_id: playerMove.to });
+                    console.log(`TRADE: Updating player ${playerMove.id} to team ${playerMove.to}`);
                 }
             }
             if (transaction.involved_picks) {
+                // Get the current date for the notes field
+                const today = new Date();
+                const dateString = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+
                 for (const pickMove of transaction.involved_picks) {
                     const pickRef = db.collection('draftPicks').doc(pickMove.id);
-                    batch.update(pickRef, { current_owner: pickMove.to });
+
+                    // MODIFIED: Create the notes string and add the new fields to the update
+                    const tradeNotes = `${pickMove.from}/${pickMove.to} ${dateString}`;
+                    batch.update(pickRef, {
+                        current_owner: pickMove.to,
+                        trade_id: transactionId,
+                        notes: tradeNotes
+                    });
+                    console.log(`TRADE: Updating pick ${pickMove.id} to owner ${pickMove.to} with notes and trade_id.`);
                 }
             }
         }
+
         await batch.commit();
-        console.log(`NEW: Transaction ${transactionId} processed successfully.`);
+        console.log(`Transaction ${transactionId} processed successfully.`);
+
     } catch (error) {
-        console.error(`NEW: Error processing transaction ${transactionId}:`, error);
+        console.error(`Error processing transaction ${transactionId}:`, error);
         await event.data.ref.update({ status: 'FAILED', error: error.message });
     }
+    return null;
 });
 
 
