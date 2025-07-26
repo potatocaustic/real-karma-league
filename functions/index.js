@@ -1,75 +1,69 @@
 // index.js
 
-const { onRequest, onCall } = require("firebase-functions/v2/https");
-// Corrected import statement for both Firestore triggers
 const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onRequest, onCall } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// ### REWRITTEN AND CORRECTED FUNCTION ###
+// ===================================================================
+// NEW: Functions for the Admin Portal (Feature Branch)
+// These functions operate ONLY on the new data structures.
+// ===================================================================
+
+/**
+ * Triggered when a transaction is created in the new admin portal.
+ * Updates player and draft pick ownership based on the transaction type.
+ */
 exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", async (event) => {
     const transaction = event.data.data();
     const transactionId = event.params.transactionId;
-    console.log(`Processing new transaction ${transactionId} of type: ${transaction.type}`);
+    console.log(`NEW: Processing transaction ${transactionId} of type: ${transaction.type}`);
 
     const batch = db.batch();
 
     try {
         if (transaction.type === 'SIGN') {
-            const playerMove = transaction.involved_players[0]; // Sign involves one player
+            const playerMove = transaction.involved_players[0];
             const playerRef = db.collection('new_players').doc(playerMove.id);
             batch.update(playerRef, { current_team_id: playerMove.to });
-            console.log(`SIGN: Updating player ${playerMove.id} to team ${playerMove.to}`);
-
         } else if (transaction.type === 'CUT') {
-            const playerMove = transaction.involved_players[0]; // Cut involves one player
+            const playerMove = transaction.involved_players[0];
             const playerRef = db.collection('new_players').doc(playerMove.id);
-            batch.update(playerRef, { current_team_id: 'FREE_AGENT' }); // A cut player becomes a free agent
-            console.log(`CUT: Updating player ${playerMove.id} to FREE_AGENT`);
-
+            batch.update(playerRef, { current_team_id: 'FREE_AGENT' });
         } else if (transaction.type === 'TRADE') {
-            // This logic now handles multi-team trades by looking at the 'to' field.
             if (transaction.involved_players) {
                 for (const playerMove of transaction.involved_players) {
                     const playerRef = db.collection('new_players').doc(playerMove.id);
                     batch.update(playerRef, { current_team_id: playerMove.to });
-                    console.log(`TRADE: Updating player ${playerMove.id} to team ${playerMove.to}`);
                 }
             }
             if (transaction.involved_picks) {
                 for (const pickMove of transaction.involved_picks) {
                     const pickRef = db.collection('draftPicks').doc(pickMove.id);
                     batch.update(pickRef, { current_owner: pickMove.to });
-                    console.log(`TRADE: Updating pick ${pickMove.id} to owner ${pickMove.to}`);
                 }
             }
         }
-
         await batch.commit();
-        console.log(`Transaction ${transactionId} processed successfully.`);
-
+        console.log(`NEW: Transaction ${transactionId} processed successfully.`);
     } catch (error) {
-        console.error(`Error processing transaction ${transactionId}:`, error);
-        // Optionally, update the transaction document to mark it as failed
+        console.error(`NEW: Error processing transaction ${transactionId}:`, error);
         await event.data.ref.update({ status: 'FAILED', error: error.message });
     }
-    return null;
 });
 
 
-exports.onGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event) => {
+exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event) => {
     const before = event.data.before.data();
     const after = event.data.after.data();
 
     if (before.completed === 'TRUE' || after.completed !== 'TRUE') {
-        console.log(`Game ${event.params.gameId} was not newly completed. Exiting function.`);
-        return null;
+        return null; // The game wasn't newly completed.
     }
-
-    console.log(`Processing newly completed game: ${event.params.gameId}`);
+    console.log(`LEGACY: Processing game: ${event.params.gameId}`);
 
     const winnerId = after.winner;
     const loserId = after.team1_id === winnerId ? after.team2_id : after.team1_id;
