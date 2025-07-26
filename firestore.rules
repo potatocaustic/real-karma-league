@@ -1,25 +1,19 @@
-// firestore.rules
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the signed-in user has an 'admin' role.
     function isAdmin() {
-      // Check the 'users' collection for a document matching the user's ID.
-      // The 'role' field in that document must be 'admin'.
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // == Rules for Existing S7 Collections (Public Read-Only) ==
-    // These rules keep your current live site functional.
+    // == Rules for Live S7 Site (Public Read, Admin Write) ==
     match /admins/{doc} {
-      allow read, write: if false; // No public access
+      allow read, write: if false; 
     }
     match /players/{doc} {
       allow read: if true;
-      allow write: if false; // Lock down writes
+      allow write: if false; 
     }
     match /teams/{doc} {
       allow read: if true;
@@ -29,17 +23,28 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    
+    // ### ADDED THIS RULE BLOCK ###
+    // This allows the live team-postseason.html page to read game data.
+    match /post_schedule/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     match /lineups/{doc} {
       allow read: if true;
       allow write: if false;
     }
+    match /post_lineups/{doc} {
+        allow read: if true;
+        allow write: if false;
+    }
      match /draftPicks/{doc} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin(); // Admins can now edit picks
     }
     match /tradeblocks/{doc} {
       allow read: if true;
-      // Allow GMs or Admins to edit their own trade block
       allow write: if request.auth.uid == resource.data.gm_uid || isAdmin();
     }
     match /weekly_averages/{doc} {
@@ -50,35 +55,22 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
-
-    // ### NEWLY ADDED RULE ###
-    // Allows admins to create transaction documents in the correct collection.
     match /transactions/{transactionId} {
         allow read, write: if isAdmin();
     }
 
-
     // == Rules for NEW Admin-Managed Collections (Admin-Only) ==
-    // These collections will be used by the new admin portal.
-    // Default deny all access unless specified.
-    
-    // User role documents can be read by the owner, written by admin
     match /users/{userId} {
-        allow read: if request.auth.uid == userId;
+        allow read: if request.auth.uid == userId || isAdmin();
         allow write: if isAdmin();
     }
-    
-    // Admins have full control over the new structured collections.
     match /seasons/{doc=**} {
       allow read, write: if isAdmin();
     }
-    match /new_players/{doc=**} { // Using a new name to avoid conflict
+    match /new_players/{doc=**} {
       allow read, write: if isAdmin();
     }
-    match /new_teams/{doc=**} { // Using a new name
-      allow read, write: if isAdmin();
-    }
-    match /new_transactions/{doc=**} {
+    match /new_teams/{doc=**} {
       allow read, write: if isAdmin();
     }
   }
