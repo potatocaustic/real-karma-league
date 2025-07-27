@@ -1,10 +1,11 @@
 // /admin/manage-games.js
 
-// Revert to the single, unified import strategy that works in your other admin files.
-// This assumes firebase-init.js exports all the necessary functions, including writeBatch.
-import { 
-    auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch 
-} from '/js/firebase-init.js';
+// Import necessary functions from your custom init file, but REMOVE writeBatch, which it doesn't export.
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc } from '/js/firebase-init.js';
+
+// Import writeBatch separately and directly from the official Firebase SDK module.
+// This is the correct source for the function and resolves the error.
+import { writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 
 // --- Page Elements (will be assigned after DOM loads) ---
@@ -40,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadingContainer.style.display = 'none';
                     adminContainer.style.display = 'block';
                     authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
-                    
+
                     addLogoutListener();
                     await initializePage(); // Await the async initialization
                 } else {
@@ -168,7 +169,7 @@ async function handleOpenModalClick(e) {
         const gameEntry = e.target.closest('.game-entry');
         const gameId = gameEntry.dataset.gameId;
         const isPostseason = gameEntry.dataset.isPostseason === 'true';
-        
+
         const collectionName = isPostseason ? "post_games" : "games";
         const gameRef = doc(db, "seasons", currentSeasonId, collectionName, gameId);
         const gameDoc = await getDoc(gameRef);
@@ -263,7 +264,7 @@ function handleStarterChange(event) {
 function addStarterCard(checkbox, lineupData = null) {
     const { teamPrefix, playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`${teamPrefix}-starters`);
-    
+
     const card = document.createElement('div');
     card.className = 'starter-card';
     card.id = `starter-card-${playerId}`;
@@ -314,9 +315,9 @@ function calculateAllScores() {
             const playerId = card.id.replace('starter-card-', '');
             const rawScore = parseFloat(document.getElementById(`raw-score-${playerId}`).value) || 0;
             const adjustments = parseFloat(document.getElementById(`adjustments-${playerId}`).value) || 0;
-            
+
             let adjustedScore = rawScore - adjustments;
-            
+
             if (playerId === captainId) {
                 adjustedScore *= 1.5; // Apply 50% captain bonus
             }
@@ -375,7 +376,7 @@ async function handleLineupFormSubmit(e) {
         fullRoster.forEach(player => {
             const starterCard = document.getElementById(`starter-card-${player.id}`);
             const lineupDocRef = doc(lineupCollectionRef, `${gameId}-${player.id}`);
-            
+
             let lineupData = {
                 game_id: gameId,
                 date: gameDate,
@@ -402,7 +403,7 @@ async function handleLineupFormSubmit(e) {
                 lineupData.raw_score = raw_score;
                 lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.id}`).value) || 0;
                 lineupData.adjustments = adjustments;
-                
+
                 if (lineupData.is_captain === 'TRUE') {
                     final_score *= 1.5;
                 }
