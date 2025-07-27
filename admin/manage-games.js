@@ -77,6 +77,7 @@ async function initializePage() {
 
     await populateSeasons();
 
+    // --- Attach All Event Listeners ---
     seasonSelect.addEventListener('change', async () => {
         currentSeasonId = seasonSelect.value;
         await populateWeeks(currentSeasonId);
@@ -90,7 +91,10 @@ async function initializePage() {
         }
     });
 
-    // --- New Lineup Modal Listeners ---
+    // Listener for opening the lineup modal
+    gamesListContainer.addEventListener('click', handleOpenModalClick);
+
+    // Listeners for inside the lineup modal
     closeLineupModalBtn.addEventListener('click', () => lineupModal.style.display = 'none');
     lineupForm.addEventListener('submit', handleLineupFormSubmit);
     lineupForm.addEventListener('input', calculateAllScores); // Recalculate on any input change
@@ -158,8 +162,10 @@ async function fetchAndDisplayGames(seasonId, week) {
 }
 
 // --- Lineup Modal Opening and Rendering ---
-gamesListContainer.addEventListener('click', async (e) => {
-    if (e.target.matches('.btn-admin-edit')) {
+async function handleOpenModalClick(e) {
+    if (!e.target.matches('.btn-admin-edit')) return;
+
+    try {
         const gameEntry = e.target.closest('.game-entry');
         const gameId = gameEntry.dataset.gameId;
         const isPostseason = gameEntry.dataset.isPostseason === 'true';
@@ -171,9 +177,15 @@ gamesListContainer.addEventListener('click', async (e) => {
         if (gameDoc.exists()) {
             currentGameData = { id: gameDoc.id, ...gameDoc.data() };
             openLineupModal(currentGameData, isPostseason);
+        } else {
+            console.error("Could not find game document for ID:", gameId);
+            alert("Error: Could not load data for the selected game.");
         }
+    } catch (error) {
+        console.error("Error opening lineup modal:", error);
+        alert("An error occurred while trying to load game data. Please check the console.");
     }
-});
+}
 
 async function openLineupModal(game, isPostseason) {
     lineupForm.reset();
