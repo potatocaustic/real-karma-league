@@ -7,6 +7,117 @@
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <!-- Page-specific styles for the new lineup modal -->
+    <style>
+        .lineup-modal .modal-content-admin {
+            max-width: 1200px; /* Wider modal for lineup details */
+            width: 95%;
+        }
+
+        .lineup-entry-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .team-lineup-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: #fdfdfd;
+        }
+
+            .team-lineup-section h4 {
+                text-align: center;
+                background-color: #f0f2f5;
+                padding: 0.5rem;
+                margin: -1rem -1rem 1rem -1rem;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+
+        .roster-selection h5, .starters-entry h5 {
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .roster-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .player-checkbox-item {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .starters-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .starter-card {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 0.75rem;
+        }
+
+        .starter-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+            .starter-card-header strong {
+                font-size: 1.05rem;
+            }
+
+        .starter-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+
+            .starter-inputs .form-group-admin {
+                margin-bottom: 0;
+            }
+
+            .starter-inputs label {
+                font-size: 0.8rem;
+                margin-bottom: 0.2rem;
+            }
+
+            .starter-inputs input[type="number"] {
+                padding: 0.5rem;
+                width: 100%;
+            }
+
+        .team-score-summary {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #e9f5ff;
+            color: #0056b3;
+            border: 1px solid #b3d7ff;
+            border-radius: 6px;
+        }
+
+        .validation-error {
+            border-color: #dc3545 !important;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -36,27 +147,56 @@
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
-    <div id="score-modal" class="modal-admin">
+    <!-- NEW Lineup & Score Entry Modal -->
+    <div id="lineup-modal" class="modal-admin lineup-modal">
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
-            <h3 id="modal-title">Enter Score</h3>
-            <form id="score-form">
-                <input type="hidden" id="game-id-input">
-                <div class="form-grid">
-                    <div class="form-group-admin" id="team1-group">
-                        <label id="team1-label" for="team1-score">Team 1 Score</label>
-                        <input type="number" id="team1-score" required>
+            <h3 id="lineup-modal-title">Enter Lineups & Scores</h3>
+            <form id="lineup-form">
+                <input type="hidden" id="lineup-game-id">
+                <input type="hidden" id="lineup-game-date">
+                <input type="hidden" id="lineup-is-postseason">
+
+                <div class="lineup-entry-container">
+                    <!-- Team 1 Section -->
+                    <div id="team1-section" class="team-lineup-section">
+                        <h4 id="team1-name-header">Team 1</h4>
+                        <div class="roster-selection">
+                            <h5>Select 6 Starters</h5>
+                            <div id="team1-roster" class="roster-list"></div>
+                        </div>
+                        <div class="starters-entry">
+                            <h5>Enter Starter Scores (<span id="team1-starter-count">0</span>/6)</h5>
+                            <div id="team1-starters" class="starters-list"></div>
+                        </div>
+                        <div class="team-score-summary">
+                            Final Score: <span id="team1-final-score">0</span>
+                        </div>
                     </div>
-                    <div class="form-group-admin" id="team2-group">
-                        <label id="team2-label" for="team2-score">Team 2 Score</label>
-                        <input type="number" id="team2-score" required>
+
+                    <!-- Team 2 Section -->
+                    <div id="team2-section" class="team-lineup-section">
+                        <h4 id="team2-name-header">Team 2</h4>
+                        <div class="roster-selection">
+                            <h5>Select 6 Starters</h5>
+                            <div id="team2-roster" class="roster-list"></div>
+                        </div>
+                        <div class="starters-entry">
+                            <h5>Enter Starter Scores (<span id="team2-starter-count">0</span>/6)</h5>
+                            <div id="team2-starters" class="starters-list"></div>
+                        </div>
+                        <div class="team-score-summary">
+                            Final Score: <span id="team2-final-score">0</span>
+                        </div>
                     </div>
                 </div>
-                <div class="form-group-admin">
-                    <input type="checkbox" id="game-completed-checkbox">
-                    <label for="game-completed-checkbox">Mark as Completed</label>
+
+                <div class="form-group-admin" style="margin-top: 1.5rem;">
+                    <input type="checkbox" id="lineup-game-completed-checkbox">
+                    <label for="lineup-game-completed-checkbox">Mark Game as Completed</label>
                 </div>
-                <button type="submit" class="btn-admin-save">Save Scores</button>
+
+                <button type="submit" class="btn-admin-save">Save Lineups & Final Score</button>
             </form>
         </div>
     </div>
