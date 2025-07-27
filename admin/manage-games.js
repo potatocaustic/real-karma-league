@@ -193,46 +193,46 @@ async function handleOpenModalClick(e) {
 
 async function openLineupModal(game, isPostseason) {
     lineupForm.reset();
+    lastCheckedCaptain = { team1: null, team2: null }; // FIX: Reset captain state
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
     document.querySelectorAll('.team-lineup-section').forEach(el => el.classList.remove('validation-error'));
 
-
-    // Set hidden inputs
     document.getElementById('lineup-game-id').value = game.id;
     document.getElementById('lineup-game-date').value = game.date;
     document.getElementById('lineup-is-postseason').value = isPostseason;
     document.getElementById('lineup-game-completed-checkbox').checked = game.completed === 'TRUE';
 
-    // Fetch existing lineup data for this game to pre-populate
     const lineupCollectionName = isPostseason ? "post_lineups" : "lineups";
     const lineupsQuery = query(collection(db, lineupCollectionName), where("game_id", "==", game.id));
     const lineupsSnap = await getDocs(lineupsQuery);
-    const existingLineups = new Map(lineupsSnap.docs.map(d => [d.data().player_id, d.data()]));
+    const existingLineups = new Map(lineupsSnap.docs.map(d => [d.data().player_id, { id: d.id, ...d.data() }]));
 
-    // --- Render Team 1 ---
+    // --- FIX: Build rosters from historical lineup data, not current player data ---
+    // This ensures players who have changed teams still appear in the correct historical lineup.
     const team1 = allTeams.get(game.team1_id);
-    const team1Roster = Array.from(allPlayers.values()).filter(p => p.current_team_id === game.team1_id);
-    renderTeamUI('team1', team1, team1Roster, existingLineups);
+    const team1LineupEntries = Array.from(existingLineups.values()).filter(l => l.team_id === game.team1_id);
+    renderTeamUI('team1', team1, team1LineupEntries, existingLineups);
 
-    // --- Render Team 2 ---
     const team2 = allTeams.get(game.team2_id);
-    const team2Roster = Array.from(allPlayers.values()).filter(p => p.current_team_id === game.team2_id);
-    renderTeamUI('team2', team2, team2Roster, existingLineups);
+    const team2LineupEntries = Array.from(existingLineups.values()).filter(l => l.team_id === game.team2_id);
+    renderTeamUI('team2', team2, team2LineupEntries, existingLineups);
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1?.team_name} vs ${team2?.team_name}`;
     lineupModal.classList.add('is-visible');
 }
 
-function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
+function renderTeamUI(teamPrefix, teamData, lineupEntries, existingLineups) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
-    rosterContainer.innerHTML = ''; // Clear previous roster
-    roster.forEach(player => {
-        const isStarter = existingLineups.has(player.id) && existingLineups.get(player.id).started === 'TRUE';
+    rosterContainer.innerHTML = '';
+
+    // FIX: Iterate over the historical lineup entries for this game
+    lineupEntries.forEach(lineup => {
+        const isStarter = lineup.started === 'TRUE';
         const playerHtml = `
             <label class="player-checkbox-item">
-                <input type="checkbox" class="starter-checkbox" data-team-prefix="${teamPrefix}" data-player-id="${player.id}" data-player-handle="${player.player_handle}" ${isStarter ? 'checked' : ''}>
-                ${player.player_handle}
+                <input type="checkbox" class="starter-checkbox" data-team-prefix="${teamPrefix}" data-player-id="${lineup.player_id}" data-player-handle="${lineup.player_handle}" ${isStarter ? 'checked' : ''}>
+                ${lineup.player_handle}
             </label>
         `;
         rosterContainer.insertAdjacentHTML('beforeend', playerHtml);
@@ -246,22 +246,24 @@ function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
             addStarterCard(checkbox, lineupData);
         }
     });
+
+    // FIX: After rendering, find the checked captain and set it in our state tracker
+    // so the toggle-to-uncheck functionality works correctly.
+    const checkedRadio = document.querySelector(`#${teamPrefix}-starters input[name="${teamPrefix}-captain"]:checked`);
+    if (checkedRadio) {
+        lastCheckedCaptain[teamPrefix] = checkedRadio;
+    }
 }
 
 
 function handleCaptainToggle(e) {
-    // Only act on radio button clicks
     if (e.target.type !== 'radio') return;
-
     const radio = e.target;
     const teamPrefix = radio.name.replace('-captain', '');
-
-    // If the clicked radio was the last one we stored, uncheck it
     if (radio === lastCheckedCaptain[teamPrefix]) {
         radio.checked = false;
         lastCheckedCaptain[teamPrefix] = null;
     } else {
-        // Otherwise, store this new radio as the last checked one
         lastCheckedCaptain[teamPrefix] = radio;
     }
 }
@@ -286,7 +288,11 @@ function handleStarterChange(event) {
 function addStarterCard(checkbox, lineupData = null) {
     const { teamPrefix, playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`${teamPrefix}-starters`);
-    const rawScoreValue = lineupData?.raw_score ?? lineupData?.points_raw ?? 0;
+
+    // FIX: Correctly parse raw scores, which may be strings with commas from old data
+    const rawScoreFromDB = lineupData?.raw_score ?? lineupData?.points_raw ?? 0;
+    const parsedRawScore = parseFloat(String(rawScoreFromDB).replace(/,/g, '')) || 0;
+
     const card = document.createElement('div');
     card.className = 'starter-card';
     card.id = `starter-card-${playerId}`;
@@ -298,7 +304,7 @@ function addStarterCard(checkbox, lineupData = null) {
         <div class="starter-inputs">
             <div class="form-group-admin">
                 <label for="raw-score-${playerId}">Raw Score</label>
-                <input type="number" id="raw-score-${playerId}" value="${lineupData?.raw_score || 0}" step="any">
+                <input type="number" id="raw-score-${playerId}" value="${parsedRawScore}" step="any">
             </div>
             <div class="form-group-admin">
                 <label for="global-rank-${playerId}">Global Rank</label>
@@ -389,49 +395,39 @@ async function handleLineupFormSubmit(e) {
 
         const team1Id = currentGameData.team1_id;
         const team2Id = currentGameData.team2_id;
-        const team1Roster = Array.from(allPlayers.values()).filter(p => p.current_team_id === team1Id);
-        const team2Roster = Array.from(allPlayers.values()).filter(p => p.current_team_id === team2Id);
-        const fullRoster = [...team1Roster, ...team2Roster];
 
-        // Process lineups for every player on both rosters
-        fullRoster.forEach(player => {
-            const starterCard = document.getElementById(`starter-card-${player.id}`);
-            const lineupDocRef = doc(lineupCollectionRef, `${gameId}-${player.id}`);
+        // This logic now processes all players who have a lineup entry for the game
+        const lineupEntries = await getDocs(query(lineupCollectionRef, where("game_id", "==", gameId)));
 
-            let lineupData = {
-                game_id: gameId,
-                date: gameDate,
-                player_id: player.id,
-                player_handle: player.player_handle,
-                team_id: player.current_team_id,
-                started: 'FALSE',
-                is_captain: 'FALSE',
-                raw_score: 0,
-                global_rank: 0,
-                adjustments: 0,
-                final_score: 0
-            };
+        lineupEntries.docs.forEach(doc => {
+            const player = doc.data();
+            const starterCard = document.getElementById(`starter-card-${player.player_id}`);
+            const lineupDocRef = doc.ref;
+
+            let lineupData = { ...player }; // Start with existing data
 
             if (starterCard) { // Player is a starter
-                const teamPrefix = player.current_team_id === team1Id ? 'team1' : 'team2';
+                const teamPrefix = player.team_id === team1Id ? 'team1' : 'team2';
                 const captainId = lineupForm.querySelector(`input[name="${teamPrefix}-captain"]:checked`)?.value;
-                const raw_score = parseFloat(document.getElementById(`raw-score-${player.id}`).value) || 0;
-                // CHANGE the ID here from 'adjustments-' to 'reductions-'
-                const adjustments = parseFloat(document.getElementById(`reductions-${player.id}`).value) || 0;
+                const raw_score = parseFloat(document.getElementById(`raw-score-${player.player_id}`).value) || 0;
+                const adjustments = parseFloat(document.getElementById(`reductions-${player.player_id}`).value) || 0;
                 let final_score = raw_score - adjustments;
 
                 lineupData.started = 'TRUE';
-                lineupData.is_captain = (player.id === captainId) ? 'TRUE' : 'FALSE';
+                lineupData.is_captain = (player.player_id === captainId) ? 'TRUE' : 'FALSE';
                 lineupData.raw_score = raw_score;
-                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.id}`).value) || 0;
-                lineupData.adjustments = adjustments; // Database field remains 'adjustments'
+                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.player_id}`).value) || 0;
+                lineupData.adjustments = adjustments;
 
                 if (lineupData.is_captain === 'TRUE') {
                     final_score *= 1.5;
                 }
                 lineupData.final_score = final_score;
+            } else { // Player is a reserve
+                lineupData.started = 'FALSE';
+                lineupData.is_captain = 'FALSE';
             }
-            batch.set(lineupDocRef, lineupData);
+            batch.set(lineupDocRef, lineupData, { merge: true }); // Use set with merge to update
         });
 
         // Update the game document

@@ -1,0 +1,165 @@
+[debug] [2025-07-27T21:01:59.761Z] ----------------------------------------------------------------------
+[debug] [2025-07-27T21:01:59.763Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\alexf\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js emulators:start --import=./emulator-data
+[debug] [2025-07-27T21:01:59.763Z] CLI Version:   14.10.1
+[debug] [2025-07-27T21:01:59.763Z] Platform:      win32
+[debug] [2025-07-27T21:01:59.763Z] Node Version:  v22.17.0
+[debug] [2025-07-27T21:01:59.763Z] Time:          Sun Jul 27 2025 16:01:59 GMT-0500 (Central Daylight Time)
+[debug] [2025-07-27T21:01:59.764Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-07-27T21:01:59.908Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-27T21:01:59.909Z] > authorizing via signed-in user (alexfeyerherm@gmail.com)
+[debug] [2025-07-27T21:01:59.996Z] java version "21.0.8" 2025-07-15 LTS
+Java(TM) SE Runtime Environment (build 21.0.8+12-LTS-250)
+Java HotSpot(TM) 64-Bit Server VM (build 21.0.8+12-LTS-250, mixed mode, sharing)
+
+[debug] [2025-07-27T21:02:00.016Z] Parsed Java major version: 21
+[info] i  emulators: Starting emulators: auth, functions, firestore, hosting, extensions {"metadata":{"emulator":{"name":"hub"},"message":"Starting emulators: auth, functions, firestore, hosting, extensions"}}
+[debug] [2025-07-27T21:02:00.019Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:00.019Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:00.019Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/real-karma-league [none]
+[debug] [2025-07-27T21:02:00.251Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/real-karma-league 200
+[debug] [2025-07-27T21:02:00.251Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/real-karma-league {"projectNumber":"158995195520","projectId":"real-karma-league","lifecycleState":"ACTIVE","name":"real-karma-league","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2025-06-15T20:54:37.016936Z"}
+[debug] [2025-07-27T21:02:00.261Z] [logging] Logging Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.261Z] [auth] Authentication Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.261Z] [firestore] Firestore Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.261Z] [firestore.websocket] websocket server for firestore only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.261Z] [hosting] Hosting Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.261Z] assigned listening specs for emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5000}]},"metadata":{"message":"assigned listening specs for emulators"}}
+[debug] [2025-07-27T21:02:00.264Z] [hub] writing locator at C:\Users\alexf\AppData\Local\Temp\hub-real-karma-league.json
+[debug] [2025-07-27T21:02:00.270Z] [Extensions] Started Extensions emulator, this is a noop.
+[debug] [2025-07-27T21:02:00.274Z] [functions] Functions Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.274Z] [eventarc] Eventarc Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.274Z] [tasks] Cloud Tasks Emulator only supports listening on one address (127.0.0.1). Not listening on ::1
+[debug] [2025-07-27T21:02:00.274Z] late-assigned ports for functions and eventarc emulators {"user":{"hub":[{"address":"127.0.0.1","family":"IPv4","port":4400},{"address":"::1","family":"IPv6","port":4400}],"ui":[{"address":"127.0.0.1","family":"IPv4","port":4000},{"address":"::1","family":"IPv6","port":4000}],"logging":[{"address":"127.0.0.1","family":"IPv4","port":4500}],"auth":[{"address":"127.0.0.1","family":"IPv4","port":9099}],"firestore":[{"address":"127.0.0.1","family":"IPv4","port":8080}],"firestore.websocket":[{"address":"127.0.0.1","family":"IPv4","port":9150}],"hosting":[{"address":"127.0.0.1","family":"IPv4","port":5000}],"functions":[{"address":"127.0.0.1","family":"IPv4","port":5001}],"eventarc":[{"address":"127.0.0.1","family":"IPv4","port":9299}],"tasks":[{"address":"127.0.0.1","family":"IPv4","port":9499}]},"metadata":{"message":"late-assigned ports for functions and eventarc emulators"}}
+[warn] !  functions: The following emulators are not running, calls to these services from the Functions emulator will affect production: apphosting, database, pubsub, storage, dataconnect {"metadata":{"emulator":{"name":"functions"},"message":"The following emulators are not running, calls to these services from the Functions emulator will affect production: \u001b[1mapphosting, database, pubsub, storage, dataconnect\u001b[22m"}}
+[debug] [2025-07-27T21:02:00.313Z] defaultcredentials: writing to file C:\Users\alexf\AppData\Roaming\firebase\alexfeyerherm_gmail_com_application_default_credentials.json
+[debug] [2025-07-27T21:02:00.314Z] Setting GAC to C:\Users\alexf\AppData\Roaming\firebase\alexfeyerherm_gmail_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\alexf\\AppData\\Roaming\\firebase\\alexfeyerherm_gmail_com_application_default_credentials.json"}}
+[debug] [2025-07-27T21:02:00.315Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:00.315Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:00.315Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league/adminSdkConfig [none]
+[debug] [2025-07-27T21:02:00.566Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league/adminSdkConfig 200
+[debug] [2025-07-27T21:02:00.567Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league/adminSdkConfig {"projectId":"real-karma-league","storageBucket":"real-karma-league.firebasestorage.app"}
+[info] i  firestore: Importing data from C:\Users\alexf\OneDrive\Desktop\real-karma-league\emulator-data\firestore_export\firestore_export.overall_export_metadata {"metadata":{"emulator":{"name":"firestore"},"message":"Importing data from C:\\Users\\alexf\\OneDrive\\Desktop\\real-karma-league\\emulator-data\\firestore_export\\firestore_export.overall_export_metadata"}}
+[debug] [2025-07-27T21:02:00.585Z] Ignoring unsupported arg: auto_download {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: auto_download"}}
+[debug] [2025-07-27T21:02:00.586Z] Ignoring unsupported arg: single_project_mode_error {"metadata":{"emulator":{"name":"firestore"},"message":"Ignoring unsupported arg: single_project_mode_error"}}
+[debug] [2025-07-27T21:02:00.586Z] Starting Firestore Emulator with command {"binary":"java","args":["-Dgoogle.cloud_firestore.debug_log_level=FINE","-Duser.language=en","-jar","C:\\Users\\alexf\\.cache\\firebase\\emulators\\cloud-firestore-emulator-v1.19.8.jar","--host","127.0.0.1","--port",8080,"--websocket_port",9150,"--project_id","real-karma-league","--seed_from_export","C:\\Users\\alexf\\OneDrive\\Desktop\\real-karma-league\\emulator-data\\firestore_export\\firestore_export.overall_export_metadata","--rules","C:\\Users\\alexf\\OneDrive\\Desktop\\real-karma-league\\firestore.rules","--single_project_mode",true,"--functions_emulator","127.0.0.1:5001"],"optionalArgs":["port","webchannel_port","host","rules","websocket_port","functions_emulator","seed_from_export","project_id","single_project_mode"],"joinArgs":false,"shell":false,"port":8080} {"metadata":{"emulator":{"name":"firestore"},"message":"Starting Firestore Emulator with command {\"binary\":\"java\",\"args\":[\"-Dgoogle.cloud_firestore.debug_log_level=FINE\",\"-Duser.language=en\",\"-jar\",\"C:\\\\Users\\\\alexf\\\\.cache\\\\firebase\\\\emulators\\\\cloud-firestore-emulator-v1.19.8.jar\",\"--host\",\"127.0.0.1\",\"--port\",8080,\"--websocket_port\",9150,\"--project_id\",\"real-karma-league\",\"--seed_from_export\",\"C:\\\\Users\\\\alexf\\\\OneDrive\\\\Desktop\\\\real-karma-league\\\\emulator-data\\\\firestore_export\\\\firestore_export.overall_export_metadata\",\"--rules\",\"C:\\\\Users\\\\alexf\\\\OneDrive\\\\Desktop\\\\real-karma-league\\\\firestore.rules\",\"--single_project_mode\",true,\"--functions_emulator\",\"127.0.0.1:5001\"],\"optionalArgs\":[\"port\",\"webchannel_port\",\"host\",\"rules\",\"websocket_port\",\"functions_emulator\",\"seed_from_export\",\"project_id\",\"single_project_mode\"],\"joinArgs\":false,\"shell\":false,\"port\":8080}"}}
+[info] i  firestore: Firestore Emulator logging to firestore-debug.log {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator logging to \u001b[1mfirestore-debug.log\u001b[22m"}}
+[info] +  firestore: Firestore Emulator UI websocket is running on 9150. {"metadata":{"emulator":{"name":"firestore"},"message":"Firestore Emulator UI websocket is running on 9150."}}
+[info] i  auth: Importing config from C:\Users\alexf\OneDrive\Desktop\real-karma-league\emulator-data\auth_export\config.json {"metadata":{"emulator":{"name":"auth"},"message":"Importing config from C:\\Users\\alexf\\OneDrive\\Desktop\\real-karma-league\\emulator-data\\auth_export\\config.json"}}
+[info] i  auth: Importing accounts from C:\Users\alexf\OneDrive\Desktop\real-karma-league\emulator-data\auth_export\accounts.json {"metadata":{"emulator":{"name":"auth"},"message":"Importing accounts from C:\\Users\\alexf\\OneDrive\\Desktop\\real-karma-league\\emulator-data\\auth_export\\accounts.json"}}
+[debug] [2025-07-27T21:02:08.047Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:08.047Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:08.047Z] >>> [apiv2][query] GET https://firebasehosting.googleapis.com/v1beta1/projects/real-karma-league/sites 
+[debug] [2025-07-27T21:02:08.343Z] <<< [apiv2][status] GET https://firebasehosting.googleapis.com/v1beta1/projects/real-karma-league/sites 200
+[debug] [2025-07-27T21:02:08.343Z] <<< [apiv2][body] GET https://firebasehosting.googleapis.com/v1beta1/projects/real-karma-league/sites {"sites":[{"name":"projects/real-karma-league/sites/real-karma-league","defaultUrl":"https://real-karma-league.web.app","type":"DEFAULT_SITE"}]}
+[debug] [2025-07-27T21:02:08.344Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:08.344Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:08.344Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league/webApps/-/config [none]
+[debug] [2025-07-27T21:02:08.749Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league/webApps/-/config 200
+[debug] [2025-07-27T21:02:08.749Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league/webApps/-/config {"projectId":"real-karma-league","appId":"1:158995195520:web:0e12dd5095595c0a42e865","storageBucket":"real-karma-league.firebasestorage.app","apiKey":"AIzaSyDch0dQ1c9_mDzANAvfMoK1HAnMrRl1WnY","authDomain":"real-karma-league.firebaseapp.com","messagingSenderId":"158995195520","measurementId":"G-E8LNVNG5M1"}
+[debug] [2025-07-27T21:02:08.755Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:08.755Z] Checked if tokens are valid: true, expires at: 1753652446227
+[debug] [2025-07-27T21:02:08.755Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league [none]
+[debug] [2025-07-27T21:02:09.008Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league 200
+[debug] [2025-07-27T21:02:09.008Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/real-karma-league {"projectId":"real-karma-league","projectNumber":"158995195520","displayName":"real-karma-league","name":"projects/real-karma-league","resources":{"hostingSite":"real-karma-league"},"state":"ACTIVE","etag":"1_2e0def22-3685-4d3c-bb90-6e41aff8d9e8"}
+[info] +  hosting[real-karma-league]: Local server: http://127.0.0.1:5000 {"metadata":{"emulator":{"name":"hosting"},"message":"Local server: \u001b[4m\u001b[1mhttp://127.0.0.1:5000\u001b[22m\u001b[24m"}}
+[debug] [2025-07-27T21:02:09.021Z] [Extensions] Connecting Extensions emulator, this is a noop.
+[info] i  functions: Watching "C:\Users\alexf\OneDrive\Desktop\real-karma-league\functions" for Cloud Functions... {"metadata":{"emulator":{"name":"functions"},"message":"Watching \"C:\\Users\\alexf\\OneDrive\\Desktop\\real-karma-league\\functions\" for Cloud Functions..."}}
+[debug] [2025-07-27T21:02:09.024Z] Validating nodejs source
+[warn] !  functions: package.json indicates an outdated version of firebase-functions. Please upgrade using npm install --save firebase-functions@latest in your functions directory. 
+[warn] !  functions: Please note that there will be breaking changes when you upgrade. 
+[debug] [2025-07-27T21:02:09.703Z] > [functions] package.json contents: {
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.3.0",
+    "firebase-functions": "^5.0.1",
+    "googleapis": "^150.0.1",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^0.3.3"
+  },
+  "private": true
+}
+[debug] [2025-07-27T21:02:09.704Z] Building nodejs source
+[debug] [2025-07-27T21:02:09.704Z] Failed to find version of module node: reached end of search path C:\Users\alexf\OneDrive\Desktop\real-karma-league\functions\node_modules
+[info] +  functions: Using node@22 from host. 
+[debug] [2025-07-27T21:02:09.707Z] Could not find functions.yaml. Must use http discovery
+[debug] [2025-07-27T21:02:09.713Z] Found firebase-functions binary at 'C:\Users\alexf\OneDrive\Desktop\real-karma-league\functions\node_modules\.bin\firebase-functions'
+[info] Serving at port 8331
+
+[debug] [2025-07-27T21:02:10.077Z] Got response from /__/functions.yaml {"endpoints":{"onTransactionCreate":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.created","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"transactions/{transactionId}"},"retry":false},"entryPoint":"onTransactionCreate"},"onLegacyGameUpdate":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","labels":{},"eventTrigger":{"eventType":"google.cloud.firestore.document.v1.updated","eventFilters":{"database":"(default)","namespace":"(default)"},"eventFilterPathPatterns":{"document":"schedule/{gameId}"},"retry":false},"entryPoint":"onLegacyGameUpdate"},"syncSheetsToFirestore":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"httpsTrigger":{},"entryPoint":"syncSheetsToFirestore"},"clearAllTradeBlocks":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"callableTrigger":{},"entryPoint":"clearAllTradeBlocks"},"reopenTradeBlocks":{"availableMemoryMb":null,"timeoutSeconds":null,"minInstances":null,"maxInstances":null,"ingressSettings":null,"concurrency":null,"serviceAccountEmail":null,"vpc":null,"platform":"gcfv2","region":["us-central1"],"labels":{},"callableTrigger":{},"entryPoint":"reopenTradeBlocks"}},"specVersion":"v1alpha1","requiredAPIs":[],"extensions":{}}
+[debug] [2025-07-27T21:02:14.116Z] defaultcredentials: writing to file C:\Users\alexf\AppData\Roaming\firebase\alexfeyerherm_gmail_com_application_default_credentials.json
+[debug] [2025-07-27T21:02:14.117Z] Setting GAC to C:\Users\alexf\AppData\Roaming\firebase\alexfeyerherm_gmail_com_application_default_credentials.json {"metadata":{"emulator":{"name":"functions"},"message":"Setting GAC to C:\\Users\\alexf\\AppData\\Roaming\\firebase\\alexfeyerherm_gmail_com_application_default_credentials.json"}}
+[info] +  functions: Loaded functions definitions from source: onTransactionCreate, onLegacyGameUpdate, syncSheetsToFirestore, clearAllTradeBlocks, reopenTradeBlocks. {"metadata":{"emulator":{"name":"functions"},"message":"Loaded functions definitions from source: onTransactionCreate, onLegacyGameUpdate, syncSheetsToFirestore, clearAllTradeBlocks, reopenTradeBlocks."}}
+[debug] [2025-07-27T21:02:14.121Z] Found a v2 firestore trigger.
+[debug] [2025-07-27T21:02:14.121Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"transactions/{transactionId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2025-07-27T21:02:14.122Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onTransactionCreate-0 [none]
+[debug] [2025-07-27T21:02:14.122Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onTransactionCreate-0 "{\"eventType\":\"google.cloud.firestore.document.v1.created\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"transactions/{transactionId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2025-07-27T21:02:15.369Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onTransactionCreate-0 200
+[debug] [2025-07-27T21:02:15.369Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onTransactionCreate-0 {"eventType":"google.cloud.firestore.document.v1.created","database":"(default)","namespace":"(default)","document":{"value":"transactions/{transactionId}","matchType":"PATH_PATTERN"}}
+[info] +  functions[us-central1-onTransactionCreate]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[debug] [2025-07-27T21:02:15.370Z] Found a v2 firestore trigger.
+[debug] [2025-07-27T21:02:15.370Z] addFirestoreTrigger "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"schedule/{gameId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2025-07-27T21:02:15.370Z] >>> [apiv2][query] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onLegacyGameUpdate-0 [none]
+[debug] [2025-07-27T21:02:15.370Z] >>> [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onLegacyGameUpdate-0 "{\"eventType\":\"google.cloud.firestore.document.v1.updated\",\"database\":\"(default)\",\"namespace\":\"(default)\",\"document\":{\"value\":\"schedule/{gameId}\",\"matchType\":\"PATH_PATTERN\"}}"
+[debug] [2025-07-27T21:02:15.381Z] <<< [apiv2][status] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onLegacyGameUpdate-0 200
+[debug] [2025-07-27T21:02:15.381Z] <<< [apiv2][body] POST http://127.0.0.1:8080/emulator/v1/projects/real-karma-league/eventarcTrigger?eventarcTriggerId=us-central1-onLegacyGameUpdate-0 {"eventType":"google.cloud.firestore.document.v1.updated","database":"(default)","namespace":"(default)","document":{"value":"schedule/{gameId}","matchType":"PATH_PATTERN"}}
+[info] +  functions[us-central1-onLegacyGameUpdate]: firestore function initialized. {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mfirestore\u001b[22m function initialized."}}
+[info] +  functions[us-central1-syncSheetsToFirestore]: http function initialized (http://127.0.0.1:5001/real-karma-league/us-central1/syncSheetsToFirestore). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/real-karma-league/us-central1/syncSheetsToFirestore)."}}
+[info] +  functions[us-central1-clearAllTradeBlocks]: http function initialized (http://127.0.0.1:5001/real-karma-league/us-central1/clearAllTradeBlocks). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/real-karma-league/us-central1/clearAllTradeBlocks)."}}
+[info] +  functions[us-central1-reopenTradeBlocks]: http function initialized (http://127.0.0.1:5001/real-karma-league/us-central1/reopenTradeBlocks). {"metadata":{"emulator":{"name":"functions"},"message":"\u001b[1mhttp\u001b[22m function initialized (http://127.0.0.1:5001/real-karma-league/us-central1/reopenTradeBlocks)."}}
+[debug] [2025-07-27T21:02:15.386Z] Could not find VSCode notification endpoint: FetchError: request to http://localhost:40001/vscode/notify failed, reason: . If you are not running the Firebase Data Connect VSCode extension, this is expected and not an issue.
+[info] 
+┌─────────────────────────────────────────────────────────────┐
+│ ✔  All emulators ready! It is now safe to connect your app. │
+│ i  View Emulator UI at http://127.0.0.1:4000/               │
+└─────────────────────────────────────────────────────────────┘
+
+┌────────────────┬────────────────┬──────────────────────────────────┐
+│ Emulator       │ Host:Port      │ View in Emulator UI              │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Authentication │ 127.0.0.1:9099 │ http://127.0.0.1:4000/auth       │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Functions      │ 127.0.0.1:5001 │ http://127.0.0.1:4000/functions  │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Firestore      │ 127.0.0.1:8080 │ http://127.0.0.1:4000/firestore  │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Hosting        │ 127.0.0.1:5000 │ n/a                              │
+├────────────────┼────────────────┼──────────────────────────────────┤
+│ Extensions     │ 127.0.0.1:5001 │ http://127.0.0.1:4000/extensions │
+└────────────────┴────────────────┴──────────────────────────────────┘
+  Emulator Hub host: 127.0.0.1 port: 4400
+  Other reserved ports: 4500, 9150
+┌─────────────────────────┬───────────────┬─────────────────────┐
+│ Extension Instance Name │ Extension Ref │ View in Emulator UI │
+└─────────────────────────┴───────────────┴─────────────────────┘
+Issues? Report them at https://github.com/firebase/firebase-tools/issues and attach the *-debug.log files.
+ 
+[debug] [2025-07-27T21:04:31.647Z] >>> [apiv2][query] POST http://127.0.0.1:5001/functions/projects/real-karma-league/trigger_multicast [none]
+[debug] [2025-07-27T21:04:31.647Z] >>> [apiv2][body] POST http://127.0.0.1:5001/functions/projects/real-karma-league/trigger_multicast {"eventId":"97d92b68-5a9a-402c-bd08-5bc02ea0d36f","eventType":"providers/firebase.auth/eventTypes/user.create","resource":{"name":"projects/real-karma-league","service":"firebaseauth.googleapis.com"},"params":{},"timestamp":"2025-07-27T21:04:31.646Z","data":{"uid":"5DSPirb4MJIL63TG0BmEOlymAbsO","email":"gm_admin@rkl.league","emailVerified":false,"displayName":"","photoURL":"","metadata":{"creationTime":"2025-07-27T21:04:31.646Z","lastSignInTime":"2025-07-27T21:04:31.646Z"},"customClaims":{},"providerData":[{"rawId":"gm_admin@rkl.league","providerId":"password","displayName":"","email":"gm_admin@rkl.league","federatedId":"gm_admin@rkl.league","photoURL":""}],"mfaInfo":[]}}
+[debug] [2025-07-27T21:04:31.651Z] <<< [apiv2][status] POST http://127.0.0.1:5001/functions/projects/real-karma-league/trigger_multicast 200
+[debug] [2025-07-27T21:04:31.651Z] <<< [apiv2][body] POST http://127.0.0.1:5001/functions/projects/real-karma-league/trigger_multicast {"status":"multicast_acknowledged"}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:04:56 +0000] "GET /js/firebase-init.js HTTP/1.1" 200 - "http://127.0.0.1:5000/js/main.js" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:04:56 +0000] \"GET /js/firebase-init.js HTTP/1.1\" 200 - \"http://127.0.0.1:5000/js/main.js\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:04:56 +0000] "GET /S7/RKL-S7.html HTTP/1.1" 200 - "http://127.0.0.1:5000/" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:04:56 +0000] \"GET /S7/RKL-S7.html HTTP/1.1\" 200 - \"http://127.0.0.1:5000/\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:04:58 +0000] "GET /S7/icons/EMP.webp HTTP/1.1" - - "http://127.0.0.1:5000/S7/RKL-S7.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:04:58 +0000] \"GET /S7/icons/EMP.webp HTTP/1.1\" - - \"http://127.0.0.1:5000/S7/RKL-S7.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:04:58 +0000] "GET /S7/icons/GD.webp HTTP/1.1" - - "http://127.0.0.1:5000/S7/RKL-S7.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:04:58 +0000] \"GET /S7/icons/GD.webp HTTP/1.1\" - - \"http://127.0.0.1:5000/S7/RKL-S7.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:04:58 +0000] "GET /S7/icons/AMI.webp HTTP/1.1" 200 21548 "http://127.0.0.1:5000/S7/RKL-S7.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:04:58 +0000] \"GET /S7/icons/AMI.webp HTTP/1.1\" 200 21548 \"http://127.0.0.1:5000/S7/RKL-S7.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:04:59 +0000] "GET /S7/trade-block.html HTTP/1.1" - - "http://127.0.0.1:5000/S7/RKL-S7.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:04:59 +0000] \"GET /S7/trade-block.html HTTP/1.1\" - - \"http://127.0.0.1:5000/S7/RKL-S7.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:05:08 +0000] "GET /admin/dashboard.html HTTP/1.1" 200 - "-" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:05:08 +0000] \"GET /admin/dashboard.html HTTP/1.1\" 200 - \"-\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:05:08 +0000] "GET /admin/admin-styles.css HTTP/1.1" 200 - "http://127.0.0.1:5000/admin/dashboard.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:05:08 +0000] \"GET /admin/admin-styles.css HTTP/1.1\" 200 - \"http://127.0.0.1:5000/admin/dashboard.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:05:08 +0000] "GET /admin/admin.js HTTP/1.1" 200 - "http://127.0.0.1:5000/admin/dashboard.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:05:08 +0000] \"GET /admin/admin.js HTTP/1.1\" 200 - \"http://127.0.0.1:5000/admin/dashboard.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:05:09 +0000] "GET /admin/manage-games.html HTTP/1.1" 200 - "http://127.0.0.1:5000/admin/dashboard.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:05:09 +0000] \"GET /admin/manage-games.html HTTP/1.1\" 200 - \"http://127.0.0.1:5000/admin/dashboard.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
+[info] i  hosting: 127.0.0.1 - - [27/Jul/2025:21:05:09 +0000] "GET /admin/manage-games.js HTTP/1.1" 200 - "http://127.0.0.1:5000/admin/manage-games.html" "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0" {"metadata":{"emulator":{"name":"hosting"},"message":"127.0.0.1 - - [27/Jul/2025:21:05:09 +0000] \"GET /admin/manage-games.js HTTP/1.1\" 200 - \"http://127.0.0.1:5000/admin/manage-games.html\" \"Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:141.0) Gecko/20100101 Firefox/141.0\""}}
