@@ -1,6 +1,12 @@
 // /admin/manage-games.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch } from '/js/firebase-init.js';
+// Import necessary functions from your custom init file, but REMOVE writeBatch, which it doesn't export.
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc } from '/js/firebase-init.js';
+
+// Import writeBatch separately and directly from the official Firebase SDK module.
+// This is the correct source for the function and resolves the error.
+import { writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
 
 // --- Page Elements (will be assigned after DOM loads) ---
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn;
