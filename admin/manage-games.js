@@ -1,13 +1,10 @@
 // /admin/manage-games.js
 
-// Import auth-related objects and functions from your custom init file.
-import { auth, db, onAuthStateChanged } from '/js/firebase-init.js';
-
-// Import ALL required Firestore functions directly from the official Firebase SDK module.
-// This ensures all functions come from the same SDK instance.
+// Revert to the single, unified import strategy that works in your other files.
+// This assumes firebase-init.js exports all the necessary functions.
 import {
-    doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch
+} from '/js/firebase-init.js';
 
 
 // --- Page Elements (will be assigned after DOM loads) ---
@@ -19,7 +16,7 @@ let allTeams = new Map();
 let allPlayers = new Map();
 let currentGameData = null;
 
-// --- Primary Auth Check & Initialization ---
+// --- Primary Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     // Assign elements now that the DOM is guaranteed to be loaded
     loadingContainer = document.getElementById('loading-container');
@@ -32,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     lineupForm = document.getElementById('lineup-form');
     closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
 
+    // --- Authentication Check ---
+    // This now ONLY handles showing/hiding content based on auth state.
     onAuthStateChanged(auth, async (user) => {
         try {
             if (user) {
@@ -39,13 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const userDoc = await getDoc(userRef);
 
                 if (userDoc.exists() && userDoc.data().role === 'admin') {
-                    // This is the correct point to show the main content
                     loadingContainer.style.display = 'none';
                     adminContainer.style.display = 'block';
                     authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
-
                     addLogoutListener();
-                    await initializePage(); // Await the async initialization
                 } else {
                     loadingContainer.innerHTML = '<div class="error">Access Denied.</div>';
                 }
@@ -53,10 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = '/login.html';
             }
         } catch (error) {
-            console.error("Fatal Error during Authentication/Initialization:", error);
-            loadingContainer.innerHTML = `<div class="error">A critical error occurred. Please check the console and refresh.</div>`;
+            console.error("Fatal Error during Authentication:", error);
+            loadingContainer.innerHTML = `<div class="error">A critical error occurred during authentication.</div>`;
         }
     });
+
+    // --- Page Data Initialization ---
+    // This now runs independently of the auth check to prevent race conditions.
+    initializePage();
 });
 
 // --- Initialization and Data Fetching ---
@@ -73,6 +73,7 @@ async function initializePage() {
         console.log(`Cached ${allTeams.size} teams and ${allPlayers.size} players.`);
     } catch (error) {
         console.error("Failed to cache teams and players:", error);
+        // Display error in the main container, as the loading container might be hidden by the auth check
         adminContainer.innerHTML = `<div class="error">Could not load core league data. Please refresh.</div>`;
         return;
     }
@@ -260,7 +261,7 @@ function handleStarterChange(event) {
     } else {
         removeStarterCard(checkbox);
     }
-    updateStarterCount(checkbox.dataset.teamPrefix);
+    updateStarterCount(teamPrefix);
 }
 
 function addStarterCard(checkbox, lineupData = null) {
