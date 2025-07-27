@@ -1,12 +1,12 @@
 // /admin/manage-games.js
 
-// Import only the initialized auth and db objects from your custom init file.
-import { auth, db } from '/js/firebase-init.js';
+// Import auth-related objects and functions from your custom init file.
+import { auth, db, onAuthStateChanged } from '/js/firebase-init.js';
 
 // Import ALL required Firestore functions directly from the official Firebase SDK module.
-// This ensures all functions come from the same SDK instance, resolving the error.
+// This ensures all functions come from the same SDK instance.
 import {
-    doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch, onAuthStateChanged
+    doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 
