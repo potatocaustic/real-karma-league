@@ -95,7 +95,7 @@ async function initializePage() {
     gamesListContainer.addEventListener('click', handleOpenModalClick);
 
     // Listeners for inside the lineup modal
-    closeLineupModalBtn.addEventListener('click', () => lineupModal.style.display = 'none');
+    closeLineupModalBtn.addEventListener('click', () => lineupModal.classList.remove('is-visible'));
     lineupForm.addEventListener('submit', handleLineupFormSubmit);
     lineupForm.addEventListener('input', calculateAllScores); // Recalculate on any input change
 }
@@ -216,8 +216,7 @@ async function openLineupModal(game, isPostseason) {
     renderTeamUI('team2', team2, team2Roster, existingLineups);
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1?.team_name} vs ${team2?.team_name}`;
-    lineupModal.style.display = 'block';
-    calculateAllScores();
+    lineupModal.classList.add('is-visible');
 }
 
 function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
@@ -428,7 +427,7 @@ async function handleLineupFormSubmit(e) {
 
         await batch.commit();
         alert('Lineups and scores saved successfully!');
-        lineupModal.style.display = 'none';
+        lineupModal.classList.remove('is-visible');
         fetchAndDisplayGames(currentSeasonId, weekSelect.value); // Refresh list
 
     } catch (error) {

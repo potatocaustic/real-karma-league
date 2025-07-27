@@ -9,10 +9,27 @@
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <!-- Page-specific styles for the new lineup modal -->
     <style>
+        /* --- MODAL CENTERING & SCROLLING FIX --- */
+        /* Base state of the modal is hidden. We use flexbox for centering. */
+        .modal-admin {
+            display: none; /* Hidden by default */
+            align-items: center; /* Vertical center */
+            justify-content: center; /* Horizontal center */
+            padding: 1rem; /* Give space on smaller screens */
+        }
+            /* When modal is active, we change its display property to flex */
+            .modal-admin.is-visible {
+                display: flex;
+            }
+
         .lineup-modal .modal-content-admin {
             max-width: 1200px; /* Wider modal for lineup details */
             width: 95%;
+            margin: 0; /* Reset margin, flexbox now handles centering */
+            max-height: 90vh; /* Limit height to 90% of the viewport height */
+            overflow-y: auto; /* Add a scrollbar if the content overflows this height */
         }
+        /* --- END FIX --- */
 
         .lineup-entry-container {
             display: grid;
