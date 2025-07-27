@@ -16,6 +16,7 @@ let currentSeasonId = null;
 let allTeams = new Map();
 let allPlayers = new Map();
 let currentGameData = null;
+let lastCheckedCaptain = { team1: null, team2: null };
 
 // --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -98,6 +99,9 @@ async function initializePage() {
     closeLineupModalBtn.addEventListener('click', () => lineupModal.classList.remove('is-visible'));
     lineupForm.addEventListener('submit', handleLineupFormSubmit);
     lineupForm.addEventListener('input', calculateAllScores); // Recalculate on any input change
+
+    document.getElementById('team1-starters').addEventListener('click', handleCaptainToggle);
+    document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
 }
 
 async function populateSeasons() {
@@ -244,6 +248,24 @@ function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
     });
 }
 
+
+function handleCaptainToggle(e) {
+    // Only act on radio button clicks
+    if (e.target.type !== 'radio') return;
+
+    const radio = e.target;
+    const teamPrefix = radio.name.replace('-captain', '');
+
+    // If the clicked radio was the last one we stored, uncheck it
+    if (radio === lastCheckedCaptain[teamPrefix]) {
+        radio.checked = false;
+        lastCheckedCaptain[teamPrefix] = null;
+    } else {
+        // Otherwise, store this new radio as the last checked one
+        lastCheckedCaptain[teamPrefix] = radio;
+    }
+}
+
 function handleStarterChange(event) {
     const checkbox = event.target;
     if (checkbox.checked) {
@@ -283,9 +305,7 @@ function addStarterCard(checkbox, lineupData = null) {
                 <input type="number" id="global-rank-${playerId}" value="${lineupData?.global_rank || 0}">
             </div>
             <div class="form-group-admin">
-                <label for="adjustments-${playerId}">Adjustments</label>
-                <input type="number" id="adjustments-${playerId}" value="${lineupData?.adjustments || 0}" step="any">
-            </div>
+                <label for="reductions-${playerId}">Reductions</label> <input type="number" id="reductions-${playerId}" value="${lineupData?.adjustments || 0}" step="any"> </div>
         </div>
     `;
     startersContainer.appendChild(card);
@@ -314,7 +334,8 @@ function calculateAllScores() {
         starterCards.forEach(card => {
             const playerId = card.id.replace('starter-card-', '');
             const rawScore = parseFloat(document.getElementById(`raw-score-${playerId}`).value) || 0;
-            const adjustments = parseFloat(document.getElementById(`adjustments-${playerId}`).value) || 0;
+            // CHANGE the ID here from 'adjustments-' to 'reductions-'
+            const adjustments = parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0;
 
             let adjustedScore = rawScore - adjustments;
 
@@ -395,14 +416,15 @@ async function handleLineupFormSubmit(e) {
                 const teamPrefix = player.current_team_id === team1Id ? 'team1' : 'team2';
                 const captainId = lineupForm.querySelector(`input[name="${teamPrefix}-captain"]:checked`)?.value;
                 const raw_score = parseFloat(document.getElementById(`raw-score-${player.id}`).value) || 0;
-                const adjustments = parseFloat(document.getElementById(`adjustments-${player.id}`).value) || 0;
+                // CHANGE the ID here from 'adjustments-' to 'reductions-'
+                const adjustments = parseFloat(document.getElementById(`reductions-${player.id}`).value) || 0;
                 let final_score = raw_score - adjustments;
 
                 lineupData.started = 'TRUE';
                 lineupData.is_captain = (player.id === captainId) ? 'TRUE' : 'FALSE';
                 lineupData.raw_score = raw_score;
                 lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.id}`).value) || 0;
-                lineupData.adjustments = adjustments;
+                lineupData.adjustments = adjustments; // Database field remains 'adjustments'
 
                 if (lineupData.is_captain === 'TRUE') {
                     final_score *= 1.5;

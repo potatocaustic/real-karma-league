@@ -51,20 +51,40 @@ async function seedDatabase() {
         teamsData,
         scheduleData,
         draftPicksData,
-        postScheduleData, // ADDED
-        lineupsData,      // ADDED
-        postLineupsData   // ADDED
+        postScheduleData,
+        lineupsData,
+        postLineupsData
     ] = await Promise.all([
         fetchSheetData("Players"),
         fetchSheetData("Teams"),
         fetchSheetData("Schedule"),
         fetchSheetData("Draft_Capital"),
-        fetchSheetData("Post_Schedule"), // ADDED
-        fetchSheetData("Lineups"),       // ADDED
-        fetchSheetData("Post_Lineups")   // ADDED
+        fetchSheetData("Post_Schedule"),
+        fetchSheetData("Lineups"),
+        fetchSheetData("Post_Lineups")
     ]);
 
-    // Seed 'seasons' and 'games' (Regular Season)
+    // --- NEW: Create a Game ID Lookup Map ---
+    console.log("Creating game ID lookup map...");
+    const gameIdLookup = new Map();
+    // Combine regular and postseason games into one list for the map
+    const allScheduleData = [...scheduleData, ...postScheduleData];
+
+    allScheduleData.forEach(game => {
+        if (game.date && game.team1_id && game.team2_id) {
+            const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
+            // Create a key for each team in the game using the date
+            const key1 = `${game.date}-${game.team1_id}`;
+            const key2 = `${game.date}-${game.team2_id}`;
+            // Map both keys to the same unique gameId
+            gameIdLookup.set(key1, gameId);
+            gameIdLookup.set(key2, gameId);
+        }
+    });
+    console.log(`  -> Game ID lookup map created with ${gameIdLookup.size} entries.`);
+
+
+    // Seed 'seasons' and 'games' (Regular Season) - NO CHANGES HERE
     console.log("Seeding regular season games...");
     const seasonRef = db.collection("seasons").doc("S7");
     await seasonRef.set({ season_name: "Season 7", status: "active" });
@@ -77,10 +97,10 @@ async function seedDatabase() {
     await gamesBatch.commit();
     console.log(`  -> Seeded ${scheduleData.length} regular season games.`);
 
-    // ADDED: Seed Postseason Games
+    // Seed Postseason Games - NO CHANGES HERE
     console.log("Seeding postseason games...");
     const postGamesBatch = db.batch();
-    const postGamesCollectionRef = seasonRef.collection("post_games"); // New subcollection
+    const postGamesCollectionRef = seasonRef.collection("post_games");
     postScheduleData.forEach(game => {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
         postGamesBatch.set(postGamesCollectionRef.doc(gameId), game);
@@ -88,24 +108,40 @@ async function seedDatabase() {
     await postGamesBatch.commit();
     console.log(`  -> Seeded ${postScheduleData.length} postseason games.`);
 
-    // ADDED: Seed Lineups
+
+    // --- MODIFIED: Seed Lineups ---
     console.log("Seeding lineups...");
     const lineupsBatch = db.batch();
-    const lineupsCollectionRef = db.collection("lineups"); // New top-level collection
+    const lineupsCollectionRef = db.collection("lineups");
     lineupsData.forEach(lineup => {
-        const lineupId = `${lineup.date}-${lineup.player_handle}`.replace(/\//g, "-");
-        lineupsBatch.set(lineupsCollectionRef.doc(lineupId), lineup);
+        // Find the game_id using the lookup map.
+        // This assumes the 'Lineups' sheet has columns for 'date', 'team_id', and 'player_id'.
+        const lookupKey = `${lineup.date}-${lineup.team_id}`;
+        const gameId = gameIdLookup.get(lookupKey);
+
+        if (gameId && lineup.player_id) {
+            lineup.game_id = gameId; // Add the found game_id to the lineup object
+            const lineupId = `${gameId}-${lineup.player_id}`; // Create the correct doc ID
+            lineupsBatch.set(lineupsCollectionRef.doc(lineupId), lineup);
+        }
     });
     await lineupsBatch.commit();
     console.log(`  -> Seeded ${lineupsData.length} regular season lineups.`);
 
-    // ADDED: Seed Postseason Lineups
+    // --- MODIFIED: Seed Postseason Lineups ---
     console.log("Seeding postseason lineups...");
     const postLineupsBatch = db.batch();
-    const postLineupsCollectionRef = db.collection("post_lineups"); // New top-level collection
+    const postLineupsCollectionRef = db.collection("post_lineups");
     postLineupsData.forEach(lineup => {
-        const lineupId = `${lineup.date}-${lineup.player_handle}`.replace(/\//g, "-");
-        postLineupsBatch.set(postLineupsCollectionRef.doc(lineupId), lineup);
+        // Find the game_id using the lookup map
+        const lookupKey = `${lineup.date}-${lineup.team_id}`;
+        const gameId = gameIdLookup.get(lookupKey);
+
+        if (gameId && lineup.player_id) {
+            lineup.game_id = gameId; // Add the found game_id to the lineup object
+            const lineupId = `${gameId}-${lineup.player_id}`; // Create the correct doc ID
+            postLineupsBatch.set(postLineupsCollectionRef.doc(lineupId), lineup);
+        }
     });
     await postLineupsBatch.commit();
     console.log(`  -> Seeded ${postLineupsData.length} postseason lineups.`);
