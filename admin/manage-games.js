@@ -286,7 +286,7 @@ function handleStarterChange(event) {
 function addStarterCard(checkbox, lineupData = null) {
     const { teamPrefix, playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`${teamPrefix}-starters`);
-
+    const rawScoreValue = lineupData?.raw_score ?? lineupData?.points_raw ?? 0;
     const card = document.createElement('div');
     card.className = 'starter-card';
     card.id = `starter-card-${playerId}`;
