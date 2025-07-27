@@ -2,18 +2,8 @@
 
 import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch } from '/js/firebase-init.js';
 
-// --- Page Elements ---
-const loadingContainer = document.getElementById('loading-container');
-const adminContainer = document.getElementById('admin-container');
-const authStatusDiv = document.getElementById('auth-status');
-const seasonSelect = document.getElementById('season-select');
-const weekSelect = document.getElementById('week-select');
-const gamesListContainer = document.getElementById('games-list-container');
-
-// --- New Lineup Modal Elements ---
-const lineupModal = document.getElementById('lineup-modal');
-const lineupForm = document.getElementById('lineup-form');
-const closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
+// --- Page Elements (will be assigned after DOM loads) ---
+let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn;
 
 // --- Global Data Cache ---
 let currentSeasonId = null;
@@ -21,24 +11,42 @@ let allTeams = new Map();
 let allPlayers = new Map();
 let currentGameData = null;
 
-// --- Primary Auth Check ---
+// --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
-    onAuthStateChanged(auth, async (user) => {
-        if (user) {
-            const userRef = doc(db, "users", user.uid);
-            const userDoc = await getDoc(userRef);
+    // Assign elements now that the DOM is guaranteed to be loaded
+    loadingContainer = document.getElementById('loading-container');
+    adminContainer = document.getElementById('admin-container');
+    authStatusDiv = document.getElementById('auth-status');
+    seasonSelect = document.getElementById('season-select');
+    weekSelect = document.getElementById('week-select');
+    gamesListContainer = document.getElementById('games-list-container');
+    lineupModal = document.getElementById('lineup-modal');
+    lineupForm = document.getElementById('lineup-form');
+    closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
 
-            if (userDoc.exists() && userDoc.data().role === 'admin') {
-                loadingContainer.style.display = 'none';
-                adminContainer.style.display = 'block';
-                authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
-                addLogoutListener();
-                initializePage();
+    onAuthStateChanged(auth, async (user) => {
+        try {
+            if (user) {
+                const userRef = doc(db, "users", user.uid);
+                const userDoc = await getDoc(userRef);
+
+                if (userDoc.exists() && userDoc.data().role === 'admin') {
+                    // This is the correct point to show the main content
+                    loadingContainer.style.display = 'none';
+                    adminContainer.style.display = 'block';
+                    authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
+
+                    addLogoutListener();
+                    await initializePage(); // Await the async initialization
+                } else {
+                    loadingContainer.innerHTML = '<div class="error">Access Denied.</div>';
+                }
             } else {
-                loadingContainer.innerHTML = '<div class="error">Access Denied.</div>';
+                window.location.href = '/login.html';
             }
-        } else {
-            window.location.href = '/login.html';
+        } catch (error) {
+            console.error("Fatal Error during Authentication/Initialization:", error);
+            loadingContainer.innerHTML = `<div class="error">A critical error occurred. Please check the console and refresh.</div>`;
         }
     });
 });
@@ -197,6 +205,7 @@ async function openLineupModal(game, isPostseason) {
 function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
+    rosterContainer.innerHTML = ''; // Clear previous roster
     roster.forEach(player => {
         const isStarter = existingLineups.has(player.id) && existingLineups.get(player.id).started === 'TRUE';
         const playerHtml = `
