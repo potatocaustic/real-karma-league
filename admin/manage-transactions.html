@@ -29,6 +29,13 @@
                 </select>
             </div>
 
+            <div id="trade-section" class="transaction-section" style="display: none;">
+                <h4>Trade Details</h4>
+                <div class="trade-parties-container">
+                </div>
+                <button type="button" id="add-team-btn" class="btn-admin-secondary">Add Another Team</button>
+            </div>
+
             <div id="sign-section" class="transaction-section" style="display: none;">
                 <h4>Signing Details</h4>
                 <div class="form-group-admin">
@@ -40,6 +47,25 @@
                     <input type="text" id="sign-player-input" list="free-agent-list" placeholder="Start typing a free agent's handle..." autocomplete="off">
                     <datalist id="free-agent-list"></datalist>
                 </div>
+            </div>
+
+            <div id="cut-section" class="transaction-section" style="display: none;">
+                <h4>Cut Details</h4>
+                <div class="form-group-admin">
+                    <label for="cut-team-filter-select">Filter by Team</label>
+                    <select id="cut-team-filter-select" class="team-select">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="cut-player-select">Player to Cut</label>
+                    <select id="cut-player-select" class="player-select"></select>
+                </div>
+            </div>
+
+            <div class="form-group-admin">
+                <label for="transaction-notes">Notes (Optional)</label>
+                <textarea id="transaction-notes" rows="3"></textarea>
             </div>
 
             <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
