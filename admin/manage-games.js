@@ -5,7 +5,7 @@ import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, ge
 
 // Import writeBatch separately and directly from the official Firebase SDK module.
 // This is the correct source for the function and resolves the error.
-import { writeBatch } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 
 // --- Page Elements (will be assigned after DOM loads) ---

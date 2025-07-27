@@ -33,11 +33,11 @@ service cloud.firestore {
 
     match /lineups/{doc} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
     match /post_lineups/{doc} {
         allow read: if true;
-        allow write: if false;
+        allow write: if isAdmin();
     }
      match /draftPicks/{doc} {
       allow read: if true;
