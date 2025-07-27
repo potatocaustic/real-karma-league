@@ -72,6 +72,105 @@ exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", 
 });
 
 
+/**
+ * V2 Function: Triggered when a transaction is created.
+ * Operates on the NEW multi-season data architecture.
+ * Updates player and team subcollections.
+ */
+exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
+    const transaction = event.data.data();
+    const transactionId = event.params.transactionId;
+    // TODO: Make this dynamic, perhaps from a global config document
+    const currentSeason = "S7";
+    console.log(`V2: Processing transaction ${transactionId} for season ${currentSeason}`);
+
+    const batch = db.batch();
+
+    try {
+        if (transaction.type === 'SIGN' || transaction.type === 'CUT') {
+            const playerMove = transaction.involved_players[0];
+            const playerRef = db.collection('v2_players').doc(playerMove.id);
+            const newTeamId = (transaction.type === 'SIGN') ? playerMove.to : 'FREE_AGENT';
+            batch.update(playerRef, { current_team_id: newTeamId });
+        } else if (transaction.type === 'TRADE') {
+            // Update player team affiliations
+            if (transaction.involved_players) {
+                for (const playerMove of transaction.involved_players) {
+                    const playerRef = db.collection('v2_players').doc(playerMove.id);
+                    batch.update(playerRef, { current_team_id: playerMove.to });
+                    console.log(`V2 TRADE: Player ${playerMove.id} -> ${playerMove.to}`);
+                }
+            }
+            // Update draft pick ownership
+            if (transaction.involved_picks) {
+                for (const pickMove of transaction.involved_picks) {
+                    const pickRef = db.collection('draftPicks').doc(pickMove.id);
+                    batch.update(pickRef, { current_owner: pickMove.to });
+                    console.log(`V2 TRADE: Pick ${pickMove.id} -> ${pickMove.to}`);
+                }
+            }
+        }
+
+        // Mark the transaction as complete in a separate operation
+        await event.data.ref.update({ status: 'PROCESSED', processed_at: admin.firestore.FieldValue.serverTimestamp() });
+        await batch.commit();
+        console.log(`V2 Transaction ${transactionId} processed successfully.`);
+
+    } catch (error) {
+        console.error(`Error processing V2 transaction ${transactionId}:`, error);
+        await event.data.ref.update({ status: 'FAILED', error: error.message });
+    }
+    return null;
+});
+
+/**
+ * V2 Function: Triggered when a game in the new structure is marked as complete.
+ * Operates on the NEW multi-season data architecture.
+ */
+exports.onGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const seasonId = event.params.seasonId;
+    const gameId = event.params.gameId;
+
+    // Only run if the game was just completed
+    if (before.completed === 'TRUE' || after.completed !== 'TRUE') {
+        return null;
+    }
+    console.log(`V2: Processing game ${gameId} in season ${seasonId}`);
+
+    const winnerId = after.winner;
+    const loserId = after.team1_id === winnerId ? after.team2_id : after.team1_id;
+
+    if (!winnerId || !loserId) return null;
+
+    const batch = db.batch();
+
+    // 1. Update team win/loss records in the seasonal subcollection
+    const winnerRef = db.collection('v2_teams').doc(winnerId).collection('seasonal_records').doc(seasonId);
+    const loserRef = db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId);
+    batch.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
+    batch.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
+
+    // 2. Update player stats in their seasonal subcollections
+    const lineupsQuery = db.collection('seasons').doc(seasonId).collection('lineups')
+        .where('game_id', '==', gameId)
+        .where('started', '==', 'TRUE');
+    const lineupsSnap = await lineupsQuery.get();
+
+    for (const lineupDoc of lineupsSnap.docs) {
+        const lineup = lineupDoc.data();
+        const playerRef = db.collection('v2_players').doc(lineup.player_id).collection('seasonal_stats').doc(seasonId);
+        batch.update(playerRef, {
+            games_played: admin.firestore.FieldValue.increment(1),
+            total_points: admin.firestore.FieldValue.increment(Number(lineup.final_score) || 0)
+        });
+    }
+
+    await batch.commit();
+    console.log(`V2: Successfully updated records and stats for game ${gameId}.`);
+});
+
 exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event) => {
     const before = event.data.before.data();
     const after = event.data.after.data();

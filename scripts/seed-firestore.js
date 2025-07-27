@@ -69,8 +69,8 @@ async function seedDatabase() {
         scheduleData,
         draftPicksData,
         postScheduleData,
-        lineupsData,
-        postLineupsData
+        lineupsData, // Regular Season
+        postLineupsData // Postseason
     ] = await Promise.all([
         fetchSheetData("Players"),
         fetchSheetData("Teams"),
@@ -78,7 +78,7 @@ async function seedDatabase() {
         fetchSheetData("Draft_Capital"),
         fetchSheetData("Post_Schedule"),
         fetchSheetData("Lineups"),
-        fetchSheetData("Post_Lineups")
+        fetchSheetData("Post_Lineups"),
     ]);
 
     // --- Create a Game ID Lookup Map ---
@@ -97,89 +97,113 @@ async function seedDatabase() {
     });
     console.log(`  -> Game ID lookup map created with ${gameIdLookup.size} entries.`);
 
-
-    // Seed 'seasons' and 'games' (Regular Season)
-    console.log("Seeding regular season games...");
+    // --- Seed 'seasons' collection with games and lineups ---
     const seasonRef = db.collection("seasons").doc("S7");
     await seasonRef.set({ season_name: "Season 7", status: "active" });
+    console.log("Seeding games into /seasons/S7...");
+
     const gamesBatch = db.batch();
     const gamesCollectionRef = seasonRef.collection("games");
     scheduleData.forEach(game => {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
         gamesBatch.set(gamesCollectionRef.doc(gameId), game);
     });
-    await gamesBatch.commit();
-    console.log(`  -> Seeded ${scheduleData.length} regular season games.`);
-
-    // Seed Postseason Games
-    console.log("Seeding postseason games...");
-    const postGamesBatch = db.batch();
     const postGamesCollectionRef = seasonRef.collection("post_games");
     postScheduleData.forEach(game => {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
-        postGamesBatch.set(postGamesCollectionRef.doc(gameId), game);
+        gamesBatch.set(postGamesCollectionRef.doc(gameId), game);
     });
-    await postGamesBatch.commit();
-    console.log(`  -> Seeded ${postScheduleData.length} postseason games.`);
+    await gamesBatch.commit();
+    console.log(`  -> Seeded ${scheduleData.length} regular season and ${postScheduleData.length} postseason games.`);
 
-
-    // --- MODIFIED: Seed Lineups ---
-    console.log("Seeding lineups...");
+    console.log("Seeding lineups into /seasons/S7/lineups...");
     const lineupsBatch = db.batch();
-    const lineupsCollectionRef = db.collection("lineups");
+    const lineupsCollectionRef = seasonRef.collection("lineups");
     lineupsData.forEach(lineup => {
         const lookupKey = `${lineup.date}-${lineup.team_id}`;
         const gameId = gameIdLookup.get(lookupKey);
 
         if (gameId && lineup.player_id) {
             lineup.game_id = gameId;
+            lineup.game_type = "regular"; // Add game_type field
             const lineupId = `${gameId}-${lineup.player_id}`;
             lineupsBatch.set(lineupsCollectionRef.doc(lineupId), lineup);
         }
     });
-    await lineupsBatch.commit();
-    console.log(`  -> Seeded ${lineupsData.length} regular season lineups.`);
-
-    // --- MODIFIED: Seed Postseason Lineups ---
-    console.log("Seeding postseason lineups...");
-    const postLineupsBatch = db.batch();
-    const postLineupsCollectionRef = db.collection("post_lineups");
     postLineupsData.forEach(lineup => {
         const lookupKey = `${lineup.date}-${lineup.team_id}`;
         const gameId = gameIdLookup.get(lookupKey);
 
         if (gameId && lineup.player_id) {
             lineup.game_id = gameId;
+            lineup.game_type = "postseason"; // Add game_type field
             const lineupId = `${gameId}-${lineup.player_id}`;
-            postLineupsBatch.set(postLineupsCollectionRef.doc(lineupId), lineup);
+            lineupsBatch.set(lineupsCollectionRef.doc(lineupId), lineup);
         }
     });
-    await postLineupsBatch.commit();
-    console.log(`  -> Seeded ${postLineupsData.length} postseason lineups.`);
+    await lineupsBatch.commit();
+    console.log(`  -> Seeded ${lineupsData.length + postLineupsData.length} total lineups.`);
 
-    // Seed 'new_teams' Collection
-    console.log("Seeding 'new_teams' collection...");
+
+    // Seed 'v2_teams' Collection with subcollections
+    console.log("Seeding 'v2_teams' collection with seasonal subcollections...");
     const teamsBatch = db.batch();
     teamsData.forEach(team => {
         if (team.team_id) {
-            const teamDocRef = db.collection("new_teams").doc(team.team_id);
-            teamsBatch.set(teamDocRef, team);
+            const teamDocRef = db.collection("v2_teams").doc(team.team_id);
+            const staticData = {
+                team_name: team.team_name,
+                conference: team.conference,
+                current_gm_handle: team.current_gm_handle,
+                gm_uid: team.gm_uid
+            };
+            teamsBatch.set(teamDocRef, staticData);
+
+            // Create the seasonal record subcollection
+            const seasonRecordRef = teamDocRef.collection("seasonal_records").doc("S7");
+            const seasonalData = {
+                wins: parseInt(team.wins) || 0,
+                losses: parseInt(team.losses) || 0,
+                ties: 0 // Assuming ties start at 0
+            };
+            teamsBatch.set(seasonRecordRef, seasonalData);
         }
     });
     await teamsBatch.commit();
-    console.log(`  -> Seeded ${teamsData.length} teams into /new_teams`);
+    console.log(`  -> Seeded ${teamsData.length} teams into /v2_teams`);
 
-    // Seed 'new_players' Collection
-    console.log("Seeding 'new_players' collection...");
+    // Seed 'v2_players' Collection with subcollections
+    console.log("Seeding 'v2_players' collection with seasonal subcollections...");
     const playersBatch = db.batch();
     playersData.forEach(player => {
         if (player.player_id) {
-            const playerDocRef = db.collection("new_players").doc(player.player_id);
-            playersBatch.set(playerDocRef, player);
+            const playerDocRef = db.collection("v2_players").doc(player.player_id);
+            // Static data from your Google Doc
+            const staticData = {
+                player_handle: player.player_handle,
+                player_status: player.player_status,
+                rookie: player.rookie,
+                all_star: player.all_star,
+                current_team_id: player.current_team_id // Still useful at the top level
+            };
+            playersBatch.set(playerDocRef, staticData);
+
+            // Seasonal stats subcollection
+            const seasonStatsRef = playerDocRef.collection("seasonal_stats").doc("S7");
+            const seasonalData = {
+                games_played: parseInt(player.games_played) || 0,
+                total_points: parseFloat(player.total_points) || 0,
+                aag_mean: parseFloat(player.aag_mean) || 0,
+                aag_median: parseFloat(player.aag_median) || 0,
+                GEM: parseFloat(player.GEM) || 0,
+                REL: parseFloat(player.REL) || 0,
+                WAR: parseFloat(player.WAR) || 0
+            };
+            playersBatch.set(seasonStatsRef, seasonalData);
         }
     });
     await playersBatch.commit();
-    console.log(`  -> Seeded ${playersData.length} players into /new_players`);
+    console.log(`  -> Seeded ${playersData.length} players into /v2_players`);
 
 
     // Seed 'draftPicks' Collection

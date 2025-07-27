@@ -12,6 +12,7 @@ const closeModalBtn = teamModal.querySelector('.close-btn-admin');
 const teamForm = document.getElementById('team-form');
 
 let allTeams = [];
+let currentSeasonId = "S7"; // Hardcode for now
 
 // --- Primary Auth Check ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -38,10 +39,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Initialization and Data Fetching ---
 async function initializePage() {
     try {
-        // NOTE: This queries the 'new_teams' collection created by your seeder script.
-        const teamsSnap = await getDocs(collection(db, "new_teams"));
+        const teamsSnap = await getDocs(collection(db, "v2_teams"));
 
-        allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Fetch seasonal records for each team
+        const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+            const teamData = { id: teamDoc.id, ...teamDoc.data() };
+            const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", currentSeasonId);
+            const seasonRecordSnap = await getDoc(seasonRecordRef);
+            if (seasonRecordSnap.exists()) {
+                teamData.season_record = seasonRecordSnap.data();
+            } else {
+                teamData.season_record = { wins: 0, losses: 0 }; // Default object
+            }
+            return teamData;
+        });
+        allTeams = await Promise.all(teamPromises);
         allTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
 
         displayTeams(allTeams);
@@ -62,7 +74,7 @@ function displayTeams(teams) {
         <div class="team-entry">
             <div class="team-details">
                 <span class="team-name">${team.team_name}</span>
-                <span class="team-sub-details">Conference: ${team.conference || 'N/A'} | GM: ${team.current_gm_handle || 'N/A'}</span>
+                <span class="team-sub-details">${team.season_record.wins}-${team.season_record.losses} | GM: ${team.current_gm_handle || 'N/A'}</span>
             </div>
             <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
         </div>
@@ -108,7 +120,7 @@ teamForm.addEventListener('submit', async (e) => {
         gm_uid: document.getElementById('team-gm-uid-input').value
     };
 
-    const teamRef = doc(db, "new_teams", teamId);
+    const teamRef = doc(db, "v2_teams", teamId);
 
     try {
         await updateDoc(teamRef, updatedData);

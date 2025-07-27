@@ -14,7 +14,8 @@ const playerForm = document.getElementById('player-form');
 const createPlayerBtn = document.getElementById('create-player-btn');
 
 let allPlayers = [];
-let allTeams = [];
+let allTeams = new Map(); // Use a Map for efficient team lookups
+let currentSeasonId = "S7"; // Hardcode for now
 let isEditMode = false;
 
 // --- Primary Auth Check ---
@@ -43,16 +44,27 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         const [playersSnap, teamsSnap] = await Promise.all([
-            getDocs(collection(db, "new_players")),
-            getDocs(collection(db, "new_teams"))
+            getDocs(collection(db, "v2_players")),
+            getDocs(collection(db, "v2_teams"))
         ]);
 
-        // The document ID is now the player_id, which is stored as 'id'
-        allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        teamsSnap.docs.forEach(doc => allTeams.set(doc.id, doc.data()));
 
-        allPlayers.sort((a, b) => a.player_handle.localeCompare(b.player_handle));
-        allTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
+        // Fetch seasonal stats for each player for the current season
+        const playerPromises = playersSnap.docs.map(async (playerDoc) => {
+            const playerData = { id: playerDoc.id, ...playerDoc.data() };
+            const seasonStatsRef = doc(db, "v2_players", playerDoc.id, "seasonal_stats", currentSeasonId);
+            const seasonStatsSnap = await getDoc(seasonStatsRef);
+            if (seasonStatsSnap.exists()) {
+                playerData.season_stats = seasonStatsSnap.data();
+            } else {
+                playerData.season_stats = { games_played: 0, WAR: 0 }; // Default object
+            }
+            return playerData;
+        });
+
+        allPlayers = await Promise.all(playerPromises);
+        allPlayers.sort((a, b) => (a.player_handle || '').localeCompare(b.player_handle));
 
         displayPlayers(allPlayers);
 
@@ -75,12 +87,12 @@ function displayPlayers(players) {
     }
 
     const playersHTML = players.map(player => {
-        const team = allTeams.find(t => t.id === player.current_team_id);
+        const team = allTeams.get(player.current_team_id);
         return `
             <div class="player-entry">
                 <div class="player-details">
                     <span class="player-handle">${player.player_handle}</span>
-                    <span class="player-sub-details">Team: ${team?.team_name || 'N/A'} | Status: ${player.player_status || 'N/A'}</span>
+                    <span class="player-sub-details">Team: ${team?.team_name || 'Free Agent'} | Status: ${player.player_status || 'N/A'}</span>
                 </div>
                 <button class="btn-admin-edit" data-player-id="${player.id}">Edit</button>
             </div>
@@ -127,8 +139,8 @@ function openPlayerModal(player = null) {
     // Populate team dropdown
     const teamSelect = document.getElementById('player-team-select');
     const freeAgentOption = `<option value="FREE_AGENT">Free Agent</option>`;
-    teamSelect.innerHTML = freeAgentOption + allTeams
-        .map(team => `<option value="${team.id}" ${player && player.current_team_id === team.id ? 'selected' : ''}>${team.team_name}</option>`)
+    teamSelect.innerHTML = freeAgentOption + Array.from(allTeams.entries())
+        .map(([id, team]) => `<option value="${id}" ${player && player.current_team_id === id ? 'selected' : ''}>${team.team_name}</option>`)
         .join('');
 
     if (isEditMode && player.current_team_id) {
@@ -152,7 +164,8 @@ playerForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    const dataToSave = {
+    // Data for the top-level player document
+    const staticDataToSave = {
         player_handle: document.getElementById('player-handle-input').value.trim(),
         current_team_id: document.getElementById('player-team-select').value,
         player_status: document.getElementById('player-status-select').value,
@@ -160,12 +173,12 @@ playerForm.addEventListener('submit', async (e) => {
         all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
     };
 
-    const playerRef = doc(db, "new_players", playerId);
+    const playerRef = doc(db, "v2_players", playerId);
 
     try {
         if (isEditMode) {
             // Editing existing player - we use updateDoc
-            await updateDoc(playerRef, dataToSave);
+            await updateDoc(playerRef, staticDataToSave);
             alert('Player updated successfully!');
         } else {
             // Creating a new player - we use setDoc
@@ -174,12 +187,13 @@ playerForm.addEventListener('submit', async (e) => {
                 alert("A player with this ID already exists. Please choose a unique ID.");
                 return;
             }
-            // Add default stats for a new player
-            dataToSave.games_played = 0;
-            dataToSave.total_points = 0;
-            // ... etc.
+            await setDoc(playerRef, staticDataToSave);
 
-            await setDoc(playerRef, dataToSave);
+            // Also create the initial seasonal stats subcollection document
+            const seasonStatsRef = doc(db, "v2_players", playerId, "seasonal_stats", currentSeasonId);
+            const initialStats = { games_played: 0, total_points: 0, WAR: 0, REL: 0, GEM: 0, aag_mean: 0, aag_median: 0 };
+            await setDoc(seasonStatsRef, initialStats);
+
             alert('New player created successfully!');
         }
 

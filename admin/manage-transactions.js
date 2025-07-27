@@ -38,8 +38,8 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         const [playersSnap, teamsSnap, picksSnap] = await Promise.all([
-            getDocs(collection(db, "new_players")),
-            getDocs(collection(db, "new_teams")),
+            getDocs(collection(db, "v2_players")),
+            getDocs(collection(db, "v2_teams")),
             getDocs(collection(db, "draftPicks"))
         ]);
 

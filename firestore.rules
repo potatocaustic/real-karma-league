@@ -7,30 +7,36 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
+    // == Rules for NEW Multi-Season Admin Portal (Admin-Only) ==
+    match /v2_players/{playerId}/{documents=**} {
+      allow read, write: if isAdmin();
+    }
+    match /v2_teams/{teamId}/{documents=**} {
+      allow read, write: if isAdmin();
+    }
+    match /seasons/{seasonId}/{documents=**} {
+      allow read, write: if isAdmin();
+    }
+    match /transactions/{transactionId} {
+        allow read, write: if isAdmin();
+    }
+
     // == Rules for Live S7 Site (Public Read, Admin Write) ==
     match /admins/{doc} {
-      allow read, write: if false; 
+      allow read, write: if false;
     }
-    match /players/{doc} {
-      allow read: if true;
-      allow write: if false; 
-    }
-    match /teams/{doc} {
-      allow read: if true;
-      allow write: if false;
-    }
+    // Legacy collections for the live site.
+    match /players/{doc} { allow read: if true; allow write: if false; }
+    match /teams/{doc} { allow read: if true; allow write: if false; }
     match /schedule/{doc} {
       allow read: if true;
       allow write: if false;
     }
-    
-    // ### ADDED THIS RULE BLOCK ###
-    // This allows the live team-postseason.html page to read game data.
-    match /post_schedule/{doc} {
-      allow read: if true;
-      allow write: if false;
-    }
+    match /post_schedule/{doc} { allow read: if true; allow write: if false; }
+    match /weekly_averages/{doc} { allow read: if true; allow write: if false; }
+    match /transaction_log/{doc} { allow read: if true; allow write: if false; }
 
+    // Legacy Lineups (to be replaced by seasons/{seasonId}/lineups)
     match /lineups/{doc} {
       allow read: if true;
       allow write: if isAdmin();
@@ -47,26 +53,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth.uid == resource.data.gm_uid || isAdmin();
     }
-    match /weekly_averages/{doc} {
-      allow read: if true;
-      allow write: if false;
-    }
-     match /transaction_log/{doc} {
-      allow read: if true;
-      allow write: if false;
-    }
-    match /transactions/{transactionId} {
-        allow read, write: if isAdmin();
-    }
 
-    // == Rules for NEW Admin-Managed Collections (Admin-Only) ==
+    // == Rules for User Profiles & Legacy Admin Collections ==
     match /users/{userId} {
-        allow read: if request.auth.uid == userId || isAdmin();
+        allow read: if request.auth.uid == userId ||
+isAdmin();
         allow write: if isAdmin();
     }
-    match /seasons/{doc=**} {
-      allow read, write: if isAdmin();
-    }
+    // These 'new_' collections will eventually be deprecated.
     match /new_players/{doc=**} {
       allow read, write: if isAdmin();
     }

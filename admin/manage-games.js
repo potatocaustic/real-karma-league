@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         const [teamsSnap, playersSnap] = await Promise.all([
-            getDocs(collection(db, "new_teams")),
-            getDocs(collection(db, "new_players"))
+            getDocs(collection(db, "v2_teams")),
+            getDocs(collection(db, "v2_players"))
         ]);
         teamsSnap.docs.forEach(doc => allTeams.set(doc.id, { id: doc.id, ...doc.data() }));
         playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
@@ -181,8 +181,8 @@ async function openLineupModal(game, isPostseason) {
     document.getElementById('lineup-is-postseason').value = isPostseason;
     document.getElementById('lineup-game-completed-checkbox').checked = game.completed === 'TRUE';
 
-    const lineupCollectionName = isPostseason ? "post_lineups" : "lineups";
-    const lineupsQuery = query(collection(db, lineupCollectionName), where("game_id", "==", game.id));
+    // NEW: Query the single 'lineups' subcollection within the current season
+    const lineupsQuery = query(collection(db, "seasons", currentSeasonId, "lineups"), where("game_id", "==", game.id));
     const lineupsSnap = await getDocs(lineupsQuery);
     const existingLineups = lineupsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -356,11 +356,10 @@ async function handleLineupFormSubmit(e) {
         const gameId = document.getElementById('lineup-game-id').value;
         const gameDate = document.getElementById('lineup-game-date').value;
         const isPostseason = document.getElementById('lineup-is-postseason').value === 'true';
-        const lineupCollectionName = isPostseason ? 'post_lineups' : 'lineups';
-        const lineupCollectionRef = collection(db, lineupCollectionName);
+        // NEW: Get a reference to the single 'lineups' subcollection
+        const lineupsCollectionRef = collection(db, "seasons", currentSeasonId, "lineups");
         const team1Id = currentGameData.team1_id;
-
-        const lineupEntriesQuery = query(collection(db, lineupCollectionName), where("game_id", "==", gameId));
+        const lineupEntriesQuery = query(lineupsCollectionRef, where("game_id", "==", gameId));
         const lineupEntriesSnap = await getDocs(lineupEntriesQuery);
 
         lineupEntriesSnap.docs.forEach(lineupDoc => {
@@ -378,9 +377,10 @@ async function handleLineupFormSubmit(e) {
 
                 lineupData.started = 'TRUE';
                 lineupData.is_captain = (player.player_id === captainId) ? 'TRUE' : 'FALSE';
-                lineupData.raw_score = raw_score;
-                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.player_id}`).value) || 0;
-                lineupData.adjustments = adjustments;
+                lineupData.raw_score = raw_score; // NEW field from your sheet
+                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.player_id}`).value) || 0; // NEW field from your sheet
+                lineupData.adjustments = adjustments; // NEW field from your sheet
+
                 delete lineupData.captain; // Remove old field if it exists
                 delete lineupData.points_raw; // Remove old field if it exists
 
@@ -392,7 +392,9 @@ async function handleLineupFormSubmit(e) {
                 lineupData.started = 'FALSE';
                 lineupData.is_captain = 'FALSE';
             }
-            batch.set(lineupDocRef, lineupData, { merge: true });
+            // Use the original ref to update the document in the subcollection
+            const docRef = doc(db, "seasons", currentSeasonId, "lineups", lineupDoc.id);
+            batch.set(docRef, lineupData, { merge: true });
         });
 
         const gameCollectionName = isPostseason ? "post_games" : "games";
@@ -404,7 +406,7 @@ async function handleLineupFormSubmit(e) {
             team1_score: team1FinalScore,
             team2_score: team2FinalScore,
             completed: document.getElementById('lineup-game-completed-checkbox').checked ? 'TRUE' : 'FALSE',
-            winner: team1FinalScore > team2FinalScore ? team1Id : team2Id
+            winner: team1FinalScore > team2FinalScore ? team1Id : currentGameData.team2_id
         });
 
         await batch.commit();
