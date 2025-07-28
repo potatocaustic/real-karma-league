@@ -10,8 +10,306 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // ===================================================================
-// NEW: Functions for the Admin Portal (Feature Branch)
-// These functions operate ONLY on the new data structures.
+// V2 FUNCTIONS - DO NOT MODIFY LEGACY FUNCTIONS BELOW
+// ===================================================================
+
+/**
+ * V2 Function: Triggered when a transaction is created for the new data structure.
+ * Updates player team assignments.
+ */
+exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
+    const transaction = event.data.data();
+    const transactionId = event.params.transactionId;
+    console.log(`V2: Processing transaction ${transactionId} for player/pick moves.`);
+
+    const batch = db.batch();
+    try {
+        if (transaction.type === 'SIGN' || transaction.type === 'CUT') {
+            const playerMove = transaction.involved_players[0];
+            const playerRef = db.collection('v2_players').doc(playerMove.id);
+            const newTeamId = (transaction.type === 'SIGN') ? playerMove.to : 'FREE_AGENT';
+            batch.update(playerRef, { current_team_id: newTeamId });
+        } else if (transaction.type === 'TRADE') {
+            if (transaction.involved_players) {
+                for (const playerMove of transaction.involved_players) {
+                    const playerRef = db.collection('v2_players').doc(playerMove.id);
+                    batch.update(playerRef, { current_team_id: playerMove.to });
+                }
+            }
+            if (transaction.involved_picks) {
+                for (const pickMove of transaction.involved_picks) {
+                    const pickRef = db.collection('draftPicks').doc(pickMove.id);
+                    batch.update(pickRef, { current_owner: pickMove.to });
+                }
+            }
+        }
+        await event.data.ref.update({ status: 'PROCESSED', processed_at: FieldValue.serverTimestamp() });
+        await batch.commit();
+        console.log(`V2 Transaction ${transactionId} processed successfully for player/pick moves.`);
+    } catch (error) {
+        console.error(`Error processing V2 transaction ${transactionId} for player/pick moves:`, error);
+        await event.data.ref.update({ status: 'FAILED', error: error.message });
+    }
+    return null;
+});
+
+/**
+ * V2 Function: Triggered when a transaction is created to update team stats.
+ */
+exports.onTransactionUpdate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
+    const transaction = event.data.data();
+    const seasonId = "S7"; // Hardcoded for now
+    console.log(`V2: Updating transaction counts for transaction ${event.params.transactionId}`);
+
+    const involvedTeams = new Set(transaction.involved_teams || []);
+    if (involvedTeams.size === 0) return null;
+
+    const batch = db.batch();
+    for (const teamId of involvedTeams) {
+        const teamStatsRef = db.collection('v2_teams').doc(teamId).collection('seasonal_records').doc(seasonId);
+        batch.update(teamStatsRef, { total_transactions: FieldValue.increment(1) });
+    }
+    await batch.commit();
+    console.log(`Successfully updated transaction counts for teams: ${[...involvedTeams].join(', ')}`);
+});
+
+function calculateMedian(numbers) {
+    if (numbers.length === 0) return 0;
+    const sorted = [...numbers].sort((a, b) => a - b);
+    const middleIndex = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) {
+        return (sorted[middleIndex - 1] + sorted[middleIndex]) / 2;
+    }
+    return sorted[middleIndex];
+}
+
+function calculateGeometricMean(numbers) {
+    if (numbers.length === 0) return 0;
+    const nonZeroNumbers = numbers.filter(num => num > 0);
+    if (nonZeroNumbers.length === 0) return 0;
+    const product = nonZeroNumbers.reduce((prod, num) => prod * num, 1);
+    return Math.pow(product, 1 / nonZeroNumbers.length);
+}
+
+async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch) {
+    const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
+    const dailyAveragesCollectionName = isPostseason ? 'post_daily_averages' : 'daily_averages';
+
+    const playerLineupsQuery = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName)
+        .where('player_id', '==', playerId).where('started', '==', 'TRUE');
+    const playerLineupsSnap = await playerLineupsQuery.get();
+    const lineups = playerLineupsSnap.docs.map(doc => doc.data());
+
+    if (lineups.length === 0) return;
+
+    const games_played = lineups.length;
+    const total_points = lineups.reduce((sum, l) => sum + (l.points_adjusted || 0), 0);
+    const WAR = lineups.reduce((sum, l) => sum + (l.SingleGameWar || 0), 0);
+    const aag_mean = lineups.reduce((sum, l) => sum + (l.AboveAvg || 0), 0);
+    const aag_median = lineups.reduce((sum, l) => sum + (l.AboveMed || 0), 0);
+
+    const globalRanks = lineups.map(l => l.global_rank || 0).filter(r => r > 0);
+    const medrank = calculateMedian(globalRanks);
+    const GEM = calculateGeometricMean(globalRanks);
+
+    const uniqueDates = [...new Set(lineups.map(l => l.date))];
+    let meansum = 0, medsum = 0;
+    for (const date of uniqueDates) {
+        const [month, day, year] = date.split('/');
+        const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        const seasonNum = seasonId.replace('S', '');
+        const dailyAvgDoc = await db.doc(`${dailyAveragesCollectionName}/season_${seasonNum}/S${seasonNum}_${dailyAveragesCollectionName}/${yyyymmdd}`).get();
+        if (dailyAvgDoc.exists) {
+            const avgData = dailyAvgDoc.data();
+            meansum += avgData.mean_score || 0;
+            medsum += avgData.median_score || 0;
+        }
+    }
+
+    const statsUpdate = {};
+    const prefix = isPostseason ? 'post_' : '';
+    statsUpdate[`${prefix}games_played`] = games_played;
+    statsUpdate[`${prefix}total_points`] = total_points;
+    statsUpdate[`${prefix}medrank`] = medrank;
+    statsUpdate[`${prefix}aag_mean`] = aag_mean;
+    statsUpdate[`${prefix}aag_mean_pct`] = games_played > 0 ? aag_mean / games_played : 0;
+    statsUpdate[`${prefix}meansum`] = meansum;
+    statsUpdate[`${prefix}rel_mean`] = meansum > 0 ? total_points / meansum : 0;
+    statsUpdate[`${prefix}aag_median`] = aag_median;
+    statsUpdate[`${prefix}aag_median_pct`] = games_played > 0 ? aag_median / games_played : 0;
+    statsUpdate[`${prefix}medsum`] = medsum;
+    statsUpdate[`${prefix}rel_median`] = medsum > 0 ? total_points / medsum : 0;
+    statsUpdate[`${prefix}GEM`] = GEM;
+    statsUpdate[`${prefix}WAR`] = WAR;
+
+    const playerStatsRef = db.collection('v2_players').doc(playerId).collection('seasonal_stats').doc(seasonId);
+    batch.set(playerStatsRef, statsUpdate, { merge: true });
+}
+
+async function updateAllTeamStats(seasonId, isPostseason, batch) {
+    const teamsSnap = await db.collection('v2_teams').get();
+    const allTeamData = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const teamStatsPromises = allTeamData.map(async team => {
+        const teamId = team.id;
+        let wins = 0, losses = 0, pam = 0, apPAM = 0, med_starter_rank = 0;
+
+        const gamesCollection = isPostseason ? 'post_games' : 'games';
+        const scoresCollection = isPostseason ? 'post_daily_scores' : 'daily_scores';
+        const lineupsCollection = isPostseason ? 'post_lineups' : 'lineups';
+
+        const teamGames1 = await db.collection('seasons').doc(seasonId).collection(gamesCollection).where('team1_id', '==', teamId).where('completed', '==', 'TRUE').get();
+        const teamGames2 = await db.collection('seasons').doc(seasonId).collection(gamesCollection).where('team2_id', '==', teamId).where('completed', '==', 'TRUE').get();
+
+        [...teamGames1.docs, ...teamGames2.docs].forEach(doc => {
+            const game = doc.data();
+            if (game.winner === teamId) wins++; else losses++;
+        });
+
+        const scoresSnap = await db.collection(scoresCollection).doc(`season_${seasonId.replace('S', '')}`).collection(`S${seasonId.replace('S', '')}_${scoresCollection}`).where('team_id', '==', teamId).get();
+        const scoresDocs = scoresSnap.docs.map(d => d.data());
+        pam = scoresDocs.reduce((sum, s) => sum + (s.points_above_median || 0), 0);
+        apPAM = scoresDocs.length > 0 ? scoresDocs.reduce((sum, s) => sum + (s.pct_above_median || 0), 0) / scoresDocs.length : 0;
+
+        const lineupsSnap = await db.collection('seasons').doc(seasonId).collection(lineupsCollection).where('team_id', '==', teamId).where('started', '==', 'TRUE').get();
+        const ranks = lineupsSnap.docs.map(d => d.data().global_rank || 0).filter(r => r > 0);
+        med_starter_rank = calculateMedian(ranks);
+
+        const wpct = (wins + losses) > 0 ? wins / (wins + losses) : 0;
+        return { teamId, conference: team.conference, wins, losses, wpct, pam, apPAM, med_starter_rank, sortscore: wpct + (pam * 0.00000001), MaxPotWins: 15 - losses };
+    });
+
+    const calculatedStats = await Promise.all(teamStatsPromises);
+    const eastConf = calculatedStats.filter(t => t.conference === 'Eastern');
+    const westConf = calculatedStats.filter(t => t.conference === 'Western');
+
+    const rankAndSort = (teams, stat, ascending = true) => {
+        const sorted = [...teams].sort((a, b) => ascending ? a[stat] - b[stat] : b[stat] - a[stat]);
+        sorted.forEach((team, i) => team[`${stat}_rank`] = i + 1);
+    };
+    rankAndSort(calculatedStats, 'med_starter_rank');
+    rankAndSort(calculatedStats, 'pam', false);
+
+    [eastConf, westConf].forEach(conf => {
+        conf.sort((a, b) => b.sortscore - a.sortscore).forEach((t, i) => t.postseed = i + 1);
+        const maxPotWinsSorted = [...conf].sort((a, b) => b.MaxPotWins - a.MaxPotWins);
+        const winsSorted = [...conf].sort((a, b) => b.wins - a.wins);
+        conf.forEach(t => {
+            t.playin = t.wins > (maxPotWinsSorted[10]?.MaxPotWins || 0) ? 1 : 0;
+            t.playoffs = t.wins > (maxPotWinsSorted[6]?.MaxPotWins || 0) ? 1 : 0;
+            t.elim = t.MaxPotWins < (winsSorted[9]?.wins || 0) ? 1 : 0;
+        });
+    });
+
+    for (const team of calculatedStats) {
+        const { teamId, ...stats } = team;
+        const prefix = isPostseason ? 'post_' : '';
+        const finalUpdate = {};
+        for (const [key, value] of Object.entries(stats)) {
+            if (['wins', 'losses', 'med_starter_rank', 'pam'].includes(key)) {
+                finalUpdate[`${prefix}${key}`] = value;
+            } else if (!['conference', 'sortscore', 'MaxPotWins'].includes(key)) {
+                finalUpdate[key] = value;
+            }
+        }
+        if (!isPostseason) {
+            finalUpdate.sortscore = stats.sortscore;
+            finalUpdate.MaxPotWins = stats.MaxPotWins;
+        }
+        const teamStatsRef = db.collection('v2_teams').doc(teamId).collection('seasonal_records').doc(seasonId);
+        batch.set(teamStatsRef, finalUpdate, { merge: true });
+    }
+}
+
+async function processCompletedGame(event) {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const seasonId = event.params.seasonId;
+
+    if (after.completed !== 'TRUE') return null;
+    console.log(`V2: Processing completed game ${event.params.gameId} in season ${seasonId}`);
+
+    if (before.completed !== 'TRUE' && after.completed === 'TRUE') {
+        const { winner, team1_id, team2_id } = after;
+        const loserId = team1_id === winner ? team2_id : team1_id;
+        if (winner && loserId) {
+            const batch = db.batch();
+            batch.update(db.collection('v2_teams').doc(winner).collection('seasonal_records').doc(seasonId), { wins: FieldValue.increment(1) });
+            batch.update(db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId), { losses: FieldValue.increment(1) });
+            await batch.commit();
+        }
+    }
+
+    const gameDate = after.date;
+    const regIncomplete = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+    const postIncomplete = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+
+    if (regIncomplete.size > 0 || postIncomplete.size > 0) return null;
+    console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
+
+    const batch = db.batch();
+    const isPostseason = !/^\d+$/.test(after.week);
+    const averagesColl = isPostseason ? 'post_daily_averages' : 'daily_averages';
+    const scoresColl = isPostseason ? 'post_daily_scores' : 'daily_scores';
+    const lineupsColl = isPostseason ? 'post_lineups' : 'lineups';
+
+    const lineupsSnap = await db.collection('seasons').doc(seasonId).collection(lineupsColl).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
+    if (lineupsSnap.empty) return null;
+
+    const scores = lineupsSnap.docs.map(d => d.data().points_adjusted || 0);
+    const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
+    const median = calculateMedian(scores);
+    const replacement = median * 0.9;
+    const win = median * 0.92;
+
+    const seasonNum = seasonId.replace('S', '');
+    const [month, day, year] = gameDate.split('/');
+    const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const dailyAvgRef = db.doc(`${averagesColl}/season_${seasonNum}/S${seasonNum}_${averagesColl}/${yyyymmdd}`);
+    batch.set(dailyAvgRef, { date: gameDate, week: after.week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win: win });
+
+    const playerIds = new Set();
+    lineupsSnap.docs.forEach(doc => {
+        playerIds.add(doc.data().player_id);
+        const points = doc.data().points_adjusted || 0;
+        const aboveMean = points - mean;
+        const aboveMedian = points - median;
+        batch.update(doc.ref, {
+            above_mean: aboveMean, AboveAvg: aboveMean > 0 ? 1 : 0, pct_above_mean: mean ? aboveMean / mean : 0,
+            above_median: aboveMedian, AboveMed: aboveMedian > 0 ? 1 : 0, pct_above_median: median ? aboveMedian / median : 0,
+            SingleGameWar: win ? (points - replacement) / win : 0,
+        });
+    });
+
+    const regGames = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
+    const postGames = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
+    const teamScores = [...regGames.docs, ...postGames.docs].flatMap(d => [d.data().team1_score, d.data().team2_score]);
+    const teamMedian = calculateMedian(teamScores);
+
+    [...regGames.docs, ...postGames.docs].forEach(doc => {
+        const game = doc.data();
+        [{ id: game.team1_id, score: game.team1_score }, { id: game.team2_id, score: game.team2_score }].forEach(team => {
+            const scoreRef = db.doc(`${scoresColl}/season_${seasonNum}/S${seasonNum}_${scoresColl}/${team.id}-${game.week}`);
+            const pam = team.score - teamMedian;
+            batch.set(scoreRef, { week: game.week, team_id: team.id, date: gameDate, score: team.score, daily_median: teamMedian, above_median: pam > 0 ? 1 : 0, points_above_median: pam, pct_above_median: teamMedian ? pam / teamMedian : 0 }, { merge: true });
+        });
+    });
+
+    for (const pid of playerIds) {
+        await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch);
+    }
+
+    await updateAllTeamStats(seasonId, isPostseason, batch);
+
+    await batch.commit();
+    console.log(`Successfully saved all daily calculations and stats for ${gameDate}.`);
+    return null;
+}
+
+exports.onRegularGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", processCompletedGame);
+exports.onPostGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/post_games/{gameId}", processCompletedGame);
+
+// ===================================================================
+// LEGACY FUNCTIONS - DO NOT MODIFY
 // ===================================================================
 
 /**
@@ -72,228 +370,6 @@ exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", 
     return null;
 });
 
-
-/**
- * V2 Function: Triggered when a transaction is created.
- * Operates on the NEW multi-season data architecture.
- * Updates player and team subcollections.
- */
-exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
-    const transaction = event.data.data();
-    const transactionId = event.params.transactionId;
-    // TODO: Make this dynamic, perhaps from a global config document
-    const currentSeason = "S7";
-    console.log(`V2: Processing transaction ${transactionId} for season ${currentSeason}`);
-
-    const batch = db.batch();
-
-    try {
-        if (transaction.type === 'SIGN' || transaction.type === 'CUT') {
-            const playerMove = transaction.involved_players[0];
-            const playerRef = db.collection('v2_players').doc(playerMove.id);
-            const newTeamId = (transaction.type === 'SIGN') ? playerMove.to : 'FREE_AGENT';
-            batch.update(playerRef, { current_team_id: newTeamId });
-        } else if (transaction.type === 'TRADE') {
-            // Update player team affiliations
-            if (transaction.involved_players) {
-                for (const playerMove of transaction.involved_players) {
-                    const playerRef = db.collection('v2_players').doc(playerMove.id);
-                    batch.update(playerRef, { current_team_id: playerMove.to });
-                    console.log(`V2 TRADE: Player ${playerMove.id} -> ${playerMove.to}`);
-                }
-            }
-            // Update draft pick ownership
-            if (transaction.involved_picks) {
-                for (const pickMove of transaction.involved_picks) {
-                    const pickRef = db.collection('draftPicks').doc(pickMove.id);
-                    batch.update(pickRef, { current_owner: pickMove.to });
-                    console.log(`V2 TRADE: Pick ${pickMove.id} -> ${pickMove.to}`);
-                }
-            }
-        }
-
-        // Mark the transaction as complete in a separate operation
-        await event.data.ref.update({ status: 'PROCESSED', processed_at: FieldValue.serverTimestamp() });
-        await batch.commit();
-        console.log(`V2 Transaction ${transactionId} processed successfully.`);
-
-    } catch (error) {
-        console.error(`Error processing V2 transaction ${transactionId}:`, error);
-        await event.data.ref.update({ status: 'FAILED', error: error.message });
-    }
-    return null;
-});
-
-// ===================================================================
-// NEW: Automated Statistics Calculation (Phase 1)
-// ===================================================================
-
-/**
- * Helper function to calculate the median of an array of numbers.
- * @param {number[]} numbers - An array of numbers.
- * @returns {number} The median value.
- */
-function calculateMedian(numbers) {
-    if (numbers.length === 0) return 0;
-    const sorted = [...numbers].sort((a, b) => a - b);
-    const middleIndex = Math.floor(sorted.length / 2);
-    if (sorted.length % 2 === 0) {
-        return (sorted[middleIndex - 1] + sorted[middleIndex]) / 2;
-    } else {
-        return sorted[middleIndex];
-    }
-}
-
-/**
- * Core logic to process a completed game, check if the day's games are finished,
- * and then calculate and save daily statistics.
- * @param {object} event - The Firestore event object from the trigger.
- */
-async function processCompletedGame(event) {
-    const before = event.data.before.data();
-    const after = event.data.after.data();
-    const seasonId = event.params.seasonId;
-
-    // 1. Only run if the game is marked as completed. This allows re-calculation on edits.
-    if (after.completed !== 'TRUE') {
-        console.log(`Game ${event.params.gameId} is not completed. Exiting.`);
-        return null;
-    }
-    console.log(`V2: Processing completed game ${event.params.gameId} in season ${seasonId}`);
-
-    // 2. Update team win/loss records ONLY if the game was just now marked as completed.
-    if (before.completed !== 'TRUE' && after.completed === 'TRUE') {
-        const winnerId = after.winner;
-        const loserId = after.team1_id === winnerId ? after.team2_id : after.team1_id;
-
-        if (winnerId && loserId) {
-            const winLossBatch = db.batch();
-            const winnerRef = db.collection('v2_teams').doc(winnerId).collection('seasonal_records').doc(seasonId);
-            const loserRef = db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId);
-            winLossBatch.update(winnerRef, { wins: FieldValue.increment(1) });
-            winLossBatch.update(loserRef, { losses: FieldValue.increment(1) });
-            await winLossBatch.commit();
-            console.log(`Successfully updated win/loss records for game ${event.params.gameId}.`);
-        } else {
-            console.error(`Could not determine winner/loser for game ${event.params.gameId}.`);
-        }
-    }
-
-    // 3. Check if all games for the day are complete
-    const gameDate = after.date;
-    const regularGamesQuery = db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
-    const postGamesQuery = db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
-
-    const [regularIncomplete, postIncomplete] = await Promise.all([regularGamesQuery, postGamesQuery]);
-
-    if (regularIncomplete.size > 0 || postIncomplete.size > 0) {
-        console.log(`Not all games for ${gameDate} are complete. Deferring daily calculations.`);
-        return null;
-    }
-    console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
-
-    // --- All games for the day are done, proceed with calculations ---
-    const dailyCalculationsBatch = db.batch();
-    
-    // 4. Determine if it's regular season or postseason
-    const isPostseason = !/^\d+$/.test(after.week);
-    const averagesCollectionName = isPostseason ? 'post_daily_averages' : 'daily_averages';
-    const scoresCollectionName = isPostseason ? 'post_daily_scores' : 'daily_scores';
-    const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
-    console.log(`Season Type: ${isPostseason ? 'Postseason' : 'Regular Season'}. Using collections: ${averagesCollectionName}, ${scoresCollectionName}, ${lineupsCollectionName}`);
-
-    // 5. Calculate and Save daily_averages
-    const lineupsQuery = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName)
-        .where('date', '==', gameDate)
-        .where('started', '==', 'TRUE');
-    const lineupsSnap = await lineupsQuery.get();
-
-    if (lineupsSnap.empty) {
-        console.log(`No starting lineups found for ${gameDate} in ${lineupsCollectionName}. Cannot calculate daily averages.`);
-        return null;
-    }
-
-    const adjustedScores = lineupsSnap.docs.map(doc => doc.data().points_adjusted || 0);
-    const totalPlayers = adjustedScores.length;
-    const sumOfScores = adjustedScores.reduce((sum, score) => sum + score, 0);
-    const meanScore = totalPlayers > 0 ? sumOfScores / totalPlayers : 0;
-    const medianScore = calculateMedian(adjustedScores); // This is the PLAYER median
-    const replacementLevel = medianScore * 0.9;
-    const winLevel = medianScore * 0.92;
-
-    const seasonNum = seasonId.replace('S', '');
-    const [month, day, year] = gameDate.split('/');
-    const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-
-    const dailyAveragesRef = db.doc(`${averagesCollectionName}/season_${seasonNum}/S${seasonNum}_${averagesCollectionName}/${yyyymmdd}`);
-    const dailyAveragesData = {
-        date: gameDate,
-        week: after.week,
-        total_players: totalPlayers,
-        mean_score: meanScore,
-        median_score: medianScore,
-        replacement_level: replacementLevel,
-        win: winLevel
-    };
-    dailyCalculationsBatch.set(dailyAveragesRef, dailyAveragesData);
-    console.log(`Calculated ${averagesCollectionName} for ${gameDate}:`, dailyAveragesData);
-
-    // 6. Calculate and Save daily_scores for all teams that played today
-    const allGamesForDateRegular = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
-    const allGamesForDatePost = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
-    const allGamesToday = [...allGamesForDateRegular.docs, ...allGamesForDatePost.docs];
-    
-    const allTeamScoresToday = allGamesToday.flatMap(gameDoc => [gameDoc.data().team1_score || 0, gameDoc.data().team2_score || 0]);
-    const teamMedianScore = calculateMedian(allTeamScoresToday);
-    console.log(`Calculated TEAM median score for ${gameDate}: ${teamMedianScore}`);
-
-    for (const gameDoc of allGamesToday) {
-        const gameData = gameDoc.data();
-        const teams = [
-            { id: gameData.team1_id, score: gameData.team1_score },
-            { id: gameData.team2_id, score: gameData.team2_score }
-        ];
-
-        for (const team of teams) {
-            const dailyScoresRef = db.doc(`${scoresCollectionName}/season_${seasonNum}/S${seasonNum}_${scoresCollectionName}/${team.id}-${gameData.week}`);
-            const teamScore = team.score || 0;
-            const pointsAboveMedian = teamScore - teamMedianScore;
-            const dailyScoresData = {
-                week: gameData.week,
-                team_id: team.id,
-                date: gameDate,
-                score: teamScore,
-                daily_median: teamMedianScore,
-                above_median: teamScore > teamMedianScore ? 1 : 0,
-                points_above_median: pointsAboveMedian,
-                pct_above_median: teamMedianScore > 0 ? (teamScore / teamMedianScore) - 1 : 0
-            };
-            dailyCalculationsBatch.set(dailyScoresRef, dailyScoresData, { merge: true });
-            console.log(`Calculated ${scoresCollectionName} for team ${team.id} for week ${gameData.week}:`, dailyScoresData);
-        }
-    }
-
-    // 7. Commit all daily calculations
-    await dailyCalculationsBatch.commit();
-    console.log(`Successfully saved ${averagesCollectionName} and ${scoresCollectionName} for ${gameDate}.`);
-
-    return null;
-}
-
-
-/**
- * V2 Function: Triggers when a REGULAR season game is updated.
- * This function calls the core processing logic.
- */
-exports.onRegularGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", processCompletedGame);
-
-/**
- * V2 Function: Triggers when a POSTSEASON game is updated.
- * This function calls the core processing logic.
- */
-exports.onPostGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/post_games/{gameId}", processCompletedGame);
-
-
 exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event) => {
     const before = event.data.before.data();
     const after = event.data.after.data();
@@ -317,8 +393,8 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
     try {
         // --- Step 1: Update Team Win/Loss Records (Existing Logic) ---
         await db.runTransaction(async (transaction) => {
-            transaction.update(winnerRef, { wins: FieldValue.increment(1) });
-            transaction.update(loserRef, { losses: FieldValue.increment(1) });
+            transaction.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
+            transaction.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
         });
         console.log(`Successfully updated team records for game ${event.params.gameId}.`);
 
@@ -348,13 +424,17 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
 
             // Increment basic counting stats.
             const statsUpdate = {
-                games_played: FieldValue.increment(1),
-                total_points: FieldValue.increment(Number(lineup.points_final) || 0)
+                games_played: admin.firestore.FieldValue.increment(1),
+                total_points: admin.firestore.FieldValue.increment(Number(lineup.points_final) || 0)
             };
+
+            // FUTURE ENHANCEMENT: This is where more complex stat calculations (REL, WAR, etc.)
+            // would be performed by fetching weekly averages and adding to value-over-replacement tallies.
 
             batch.update(playerRef, statsUpdate);
         }
 
+        // Commit all the player updates at once.
         await batch.commit();
         console.log(`Successfully updated stats for ${startingLineups.length} players.`);
 
@@ -395,7 +475,7 @@ async function deleteCollection(db, collectionPath, batchSize) {
  * Parses a CSV string into an array of objects.
  * This version is enhanced to filter out empty or malformed rows.
  * @param {string} csvText The raw CSV text to parse.
- * @returns {Array<object>} An array of objects representing the CSV rows.
+ * @returns {Array<Object>} An array of objects representing the CSV rows.
  */
 function parseCSV(csvText) {
     // Filter out any blank lines or lines that only contain commas and whitespace.
@@ -456,7 +536,7 @@ function getSafeDateString(dateString) {
 exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req, res) => {
     try {
         const SPREADSHEET_ID = "12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4";
-        
+
         // Helper to fetch and parse a single sheet from Google Sheets.
         const fetchAndParseSheet = async (sheetName) => {
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
@@ -468,7 +548,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 
         console.log("Fetching all sheets...");
         const [
-            playersRaw, 
+            playersRaw,
             draftPicksRaw,
             teamsRaw,
             scheduleRaw,
@@ -496,13 +576,13 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         console.log("Clearing the 'players' collection...");
         await deleteCollection(db, 'players', 200);
         console.log("'players' collection cleared successfully.");
-        
+
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
-            if (player.player_handle && player.player_handle.trim()) { 
+            if (player.player_handle && player.player_handle.trim()) {
                 const docRef = db.collection("players").doc(player.player_handle.trim());
                 const playerData = { ...player };
-                
+
                 playerData.GEM = parseNumber(player.GEM);
                 playerData.REL = parseNumber(player.REL);
                 playerData.WAR = parseNumber(player.WAR);
@@ -510,7 +590,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
                 playerData.aag_median = parseNumber(player.aag_median);
                 playerData.games_played = parseNumber(player.games_played);
                 playerData.total_points = parseNumber(player.total_points);
-                
+
                 playersBatch.set(docRef, playerData);
             }
         });
@@ -542,14 +622,14 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
         teamsRaw.forEach(team => {
-            if(team.team_id && team.team_id.trim()) {
+            if (team.team_id && team.team_id.trim()) {
                 const docRef = db.collection("teams").doc(team.team_id.trim());
                 teamsBatch.set(docRef, team);
             }
         });
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
-        
+
         // --- Clear and Sync Schedule collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);

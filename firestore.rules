@@ -21,6 +21,20 @@ service cloud.firestore {
         allow read, write: if isAdmin();
     }
 
+    // == Rules for NEW Statistics Collections (Admin-Only) ==
+    match /daily_averages/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    match /post_daily_averages/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    match /daily_scores/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    match /post_daily_scores/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+
     // == Rules for Live S7 Site (Public Read, Admin Write) ==
     match /admins/{doc} {
       allow read, write: if false;
