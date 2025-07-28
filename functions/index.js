@@ -3,6 +3,7 @@
 const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onRequest, onCall } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore"); // Import FieldValue directly
 const fetch = require("node-fetch");
 
 admin.initializeApp();
@@ -112,7 +113,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}
         }
 
         // Mark the transaction as complete in a separate operation
-        await event.data.ref.update({ status: 'PROCESSED', processed_at: admin.firestore.FieldValue.serverTimestamp() });
+        await event.data.ref.update({ status: 'PROCESSED', processed_at: FieldValue.serverTimestamp() });
         await batch.commit();
         console.log(`V2 Transaction ${transactionId} processed successfully.`);
 
@@ -146,7 +147,7 @@ function calculateMedian(numbers) {
 /**
  * Core logic to process a completed game, check if the day's games are finished,
  * and then calculate and save daily statistics.
- * @param {Event} event - The Firestore event object from the trigger.
+ * @param {object} event - The Firestore event object from the trigger.
  */
 async function processCompletedGame(event) {
     const before = event.data.before.data();
@@ -172,8 +173,8 @@ async function processCompletedGame(event) {
     const winLossBatch = db.batch();
     const winnerRef = db.collection('v2_teams').doc(winnerId).collection('seasonal_records').doc(seasonId);
     const loserRef = db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId);
-    winLossBatch.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
-    winLossBatch.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
+    winLossBatch.update(winnerRef, { wins: FieldValue.increment(1) });
+    winLossBatch.update(loserRef, { losses: FieldValue.increment(1) });
     await winLossBatch.commit();
     console.log(`Successfully updated win/loss records for game ${event.params.gameId}.`);
 
@@ -304,8 +305,8 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
     try {
         // --- Step 1: Update Team Win/Loss Records (Existing Logic) ---
         await db.runTransaction(async (transaction) => {
-            transaction.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
-            transaction.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
+            transaction.update(winnerRef, { wins: FieldValue.increment(1) });
+            transaction.update(loserRef, { losses: FieldValue.increment(1) });
         });
         console.log(`Successfully updated team records for game ${event.params.gameId}.`);
 
@@ -335,8 +336,8 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
 
             // Increment basic counting stats.
             const statsUpdate = {
-                games_played: admin.firestore.FieldValue.increment(1),
-                total_points: admin.firestore.FieldValue.increment(Number(lineup.points_final) || 0)
+                games_played: FieldValue.increment(1),
+                total_points: FieldValue.increment(Number(lineup.points_final) || 0)
             };
 
             batch.update(playerRef, statsUpdate);
@@ -382,7 +383,7 @@ async function deleteCollection(db, collectionPath, batchSize) {
  * Parses a CSV string into an array of objects.
  * This version is enhanced to filter out empty or malformed rows.
  * @param {string} csvText The raw CSV text to parse.
- * @returns {Array<Object>} An array of objects representing the CSV rows.
+ * @returns {Array<object>} An array of objects representing the CSV rows.
  */
 function parseCSV(csvText) {
     // Filter out any blank lines or lines that only contain commas and whitespace.
@@ -443,7 +444,7 @@ function getSafeDateString(dateString) {
 exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req, res) => {
     try {
         const SPREADSHEET_ID = "12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4";
-
+        
         // Helper to fetch and parse a single sheet from Google Sheets.
         const fetchAndParseSheet = async (sheetName) => {
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
@@ -455,7 +456,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 
         console.log("Fetching all sheets...");
         const [
-            playersRaw,
+            playersRaw, 
             draftPicksRaw,
             teamsRaw,
             scheduleRaw,
@@ -483,13 +484,13 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         console.log("Clearing the 'players' collection...");
         await deleteCollection(db, 'players', 200);
         console.log("'players' collection cleared successfully.");
-
+        
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
-            if (player.player_handle && player.player_handle.trim()) {
+            if (player.player_handle && player.player_handle.trim()) { 
                 const docRef = db.collection("players").doc(player.player_handle.trim());
                 const playerData = { ...player };
-
+                
                 playerData.GEM = parseNumber(player.GEM);
                 playerData.REL = parseNumber(player.REL);
                 playerData.WAR = parseNumber(player.WAR);
@@ -497,7 +498,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
                 playerData.aag_median = parseNumber(player.aag_median);
                 playerData.games_played = parseNumber(player.games_played);
                 playerData.total_points = parseNumber(player.total_points);
-
+                
                 playersBatch.set(docRef, playerData);
             }
         });
@@ -529,14 +530,14 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
         teamsRaw.forEach(team => {
-            if (team.team_id && team.team_id.trim()) {
+            if(team.team_id && team.team_id.trim()) {
                 const docRef = db.collection("teams").doc(team.team_id.trim());
                 teamsBatch.set(docRef, team);
             }
         });
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
-
+        
         // --- Clear and Sync Schedule collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);
