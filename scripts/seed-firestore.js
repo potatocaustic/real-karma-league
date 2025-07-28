@@ -100,6 +100,7 @@ async function seedDatabase() {
     const dailyAvgBatch = db.batch();
 
     for (const date of allDates) {
+        if (!date) continue;
         const startedLineupsToday = allLineups.filter(l => l.date === date && l.started === 'TRUE');
         if (startedLineupsToday.length === 0) continue;
 
