@@ -123,53 +123,163 @@ exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}
     return null;
 });
 
+// ===================================================================
+// NEW: Automated Statistics Calculation (Phase 1)
+// ===================================================================
+
 /**
- * V2 Function: Triggered when a game in the new structure is marked as complete.
- * Operates on the NEW multi-season data architecture.
+ * Helper function to calculate the median of an array of numbers.
+ * @param {number[]} numbers - An array of numbers.
+ * @returns {number} The median value.
  */
-exports.onGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", async (event) => {
+function calculateMedian(numbers) {
+    if (numbers.length === 0) return 0;
+    const sorted = [...numbers].sort((a, b) => a - b);
+    const middleIndex = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) {
+        return (sorted[middleIndex - 1] + sorted[middleIndex]) / 2;
+    } else {
+        return sorted[middleIndex];
+    }
+}
+
+/**
+ * Core logic to process a completed game, check if the day's games are finished,
+ * and then calculate and save daily statistics.
+ * @param {Event} event - The Firestore event object from the trigger.
+ */
+async function processCompletedGame(event) {
     const before = event.data.before.data();
     const after = event.data.after.data();
     const seasonId = event.params.seasonId;
-    const gameId = event.params.gameId;
 
-    // Only run if the game was just completed
+    // 1. Only run if the game was just completed
     if (before.completed === 'TRUE' || after.completed !== 'TRUE') {
+        console.log(`Game ${event.params.gameId} was not newly completed. Exiting.`);
         return null;
     }
-    console.log(`V2: Processing game ${gameId} in season ${seasonId}`);
+    console.log(`V2: Processing newly completed game ${event.params.gameId} in season ${seasonId}`);
 
     const winnerId = after.winner;
     const loserId = after.team1_id === winnerId ? after.team2_id : after.team1_id;
 
-    if (!winnerId || !loserId) return null;
+    if (!winnerId || !loserId) {
+        console.error(`Could not determine winner/loser for game ${event.params.gameId}.`);
+        return null;
+    }
 
-    const batch = db.batch();
-
-    // 1. Update team win/loss records in the seasonal subcollection
+    // 2. Update team win/loss records immediately
+    const winLossBatch = db.batch();
     const winnerRef = db.collection('v2_teams').doc(winnerId).collection('seasonal_records').doc(seasonId);
     const loserRef = db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId);
-    batch.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
-    batch.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
+    winLossBatch.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
+    winLossBatch.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
+    await winLossBatch.commit();
+    console.log(`Successfully updated win/loss records for game ${event.params.gameId}.`);
 
-    // 2. Update player stats in their seasonal subcollections
+    // 3. Check if all games for the day are complete
+    const gameDate = after.date;
+    const regularGamesQuery = db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+    const postGamesQuery = db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+
+    const [regularIncomplete, postIncomplete] = await Promise.all([regularGamesQuery, postGamesQuery]);
+
+    if (regularIncomplete.size > 0 || postIncomplete.size > 0) {
+        console.log(`Not all games for ${gameDate} are complete. Deferring daily calculations.`);
+        return null;
+    }
+    console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
+
+    // --- All games for the day are done, proceed with calculations ---
+    const dailyCalculationsBatch = db.batch();
+
+    // 4. Calculate and Save daily_averages
     const lineupsQuery = db.collection('seasons').doc(seasonId).collection('lineups')
-        .where('game_id', '==', gameId)
+        .where('date', '==', gameDate)
         .where('started', '==', 'TRUE');
     const lineupsSnap = await lineupsQuery.get();
 
-    for (const lineupDoc of lineupsSnap.docs) {
-        const lineup = lineupDoc.data();
-        const playerRef = db.collection('v2_players').doc(lineup.player_id).collection('seasonal_stats').doc(seasonId);
-        batch.update(playerRef, {
-            games_played: admin.firestore.FieldValue.increment(1),
-            total_points: admin.firestore.FieldValue.increment(Number(lineup.final_score) || 0)
-        });
+    if (lineupsSnap.empty) {
+        console.log(`No starting lineups found for ${gameDate}. Cannot calculate daily averages.`);
+        return null;
     }
 
-    await batch.commit();
-    console.log(`V2: Successfully updated records and stats for game ${gameId}.`);
-});
+    const adjustedScores = lineupsSnap.docs.map(doc => doc.data().points_adjusted || 0);
+    const totalPlayers = adjustedScores.length;
+    const sumOfScores = adjustedScores.reduce((sum, score) => sum + score, 0);
+    const meanScore = totalPlayers > 0 ? sumOfScores / totalPlayers : 0;
+    const medianScore = calculateMedian(adjustedScores);
+    const replacementLevel = medianScore * 0.9;
+    const winLevel = medianScore * 0.92;
+
+    const seasonNum = seasonId.replace('S', '');
+    const [month, day, year] = gameDate.split('/');
+    const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
+    const dailyAveragesRef = db.doc(`daily_averages/season_${seasonNum}/S${seasonNum}_daily_averages/${yyyymmdd}`);
+    const dailyAveragesData = {
+        date: gameDate,
+        week: after.week, // Assuming week is consistent for all games on a date
+        total_players: totalPlayers,
+        mean_score: meanScore,
+        median_score: medianScore,
+        replacement_level: replacementLevel,
+        win: winLevel
+    };
+    dailyCalculationsBatch.set(dailyAveragesRef, dailyAveragesData);
+    console.log(`Calculated daily_averages for ${gameDate}:`, dailyAveragesData);
+
+    // 5. Calculate and Save daily_scores for all teams that played today
+    const allGamesForDateRegular = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
+    const allGamesForDatePost = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
+    const allGamesToday = [...allGamesForDateRegular.docs, ...allGamesForDatePost.docs];
+
+    for (const gameDoc of allGamesToday) {
+        const gameData = gameDoc.data();
+        const teams = [
+            { id: gameData.team1_id, score: gameData.team1_score },
+            { id: gameData.team2_id, score: gameData.team2_score }
+        ];
+
+        for (const team of teams) {
+            const dailyScoresRef = db.doc(`daily_scores/season_${seasonNum}/S${seasonNum}_daily_scores/${team.id}-${gameData.week}`);
+            const teamScore = team.score || 0;
+            const pointsAboveMedian = teamScore - medianScore;
+            const dailyScoresData = {
+                week: gameData.week,
+                team_id: team.id,
+                date: gameDate,
+                score: teamScore,
+                daily_median: medianScore,
+                above_median: teamScore > medianScore ? 1 : 0,
+                points_above_median: pointsAboveMedian,
+                pct_above_median: medianScore > 0 ? (teamScore / medianScore) - 1 : 0
+            };
+            dailyCalculationsBatch.set(dailyScoresRef, dailyScoresData, { merge: true });
+            console.log(`Calculated daily_scores for team ${team.id} for week ${gameData.week}:`, dailyScoresData);
+        }
+    }
+
+    // 6. Commit all daily calculations
+    await dailyCalculationsBatch.commit();
+    console.log(`Successfully saved daily_averages and daily_scores for ${gameDate}.`);
+
+    return null;
+}
+
+
+/**
+ * V2 Function: Triggers when a REGULAR season game is updated.
+ * This function calls the core processing logic.
+ */
+exports.onRegularGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", processCompletedGame);
+
+/**
+ * V2 Function: Triggers when a POSTSEASON game is updated.
+ * This function calls the core processing logic.
+ */
+exports.onPostGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/post_games/{gameId}", processCompletedGame);
+
 
 exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event) => {
     const before = event.data.before.data();
@@ -229,13 +339,9 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
                 total_points: admin.firestore.FieldValue.increment(Number(lineup.points_final) || 0)
             };
 
-            // FUTURE ENHANCEMENT: This is where more complex stat calculations (REL, WAR, etc.)
-            // would be performed by fetching weekly averages and adding to value-over-replacement tallies.
-
             batch.update(playerRef, statsUpdate);
         }
 
-        // Commit all the player updates at once.
         await batch.commit();
         console.log(`Successfully updated stats for ${startingLineups.length} players.`);
 
@@ -337,7 +443,7 @@ function getSafeDateString(dateString) {
 exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req, res) => {
     try {
         const SPREADSHEET_ID = "12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4";
-        
+
         // Helper to fetch and parse a single sheet from Google Sheets.
         const fetchAndParseSheet = async (sheetName) => {
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
@@ -349,7 +455,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 
         console.log("Fetching all sheets...");
         const [
-            playersRaw, 
+            playersRaw,
             draftPicksRaw,
             teamsRaw,
             scheduleRaw,
@@ -377,13 +483,13 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         console.log("Clearing the 'players' collection...");
         await deleteCollection(db, 'players', 200);
         console.log("'players' collection cleared successfully.");
-        
+
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
-            if (player.player_handle && player.player_handle.trim()) { 
+            if (player.player_handle && player.player_handle.trim()) {
                 const docRef = db.collection("players").doc(player.player_handle.trim());
                 const playerData = { ...player };
-                
+
                 playerData.GEM = parseNumber(player.GEM);
                 playerData.REL = parseNumber(player.REL);
                 playerData.WAR = parseNumber(player.WAR);
@@ -391,7 +497,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
                 playerData.aag_median = parseNumber(player.aag_median);
                 playerData.games_played = parseNumber(player.games_played);
                 playerData.total_points = parseNumber(player.total_points);
-                
+
                 playersBatch.set(docRef, playerData);
             }
         });
@@ -423,14 +529,14 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
         teamsRaw.forEach(team => {
-            if(team.team_id && team.team_id.trim()) {
+            if (team.team_id && team.team_id.trim()) {
                 const docRef = db.collection("teams").doc(team.team_id.trim());
                 teamsBatch.set(docRef, team);
             }
         });
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
-        
+
         // --- Clear and Sync Schedule collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);

@@ -181,7 +181,6 @@ async function openLineupModal(game, isPostseason) {
     document.getElementById('lineup-is-postseason').value = isPostseason;
     document.getElementById('lineup-game-completed-checkbox').checked = game.completed === 'TRUE';
 
-    // NEW: Query the single 'lineups' subcollection within the current season
     const lineupsQuery = query(collection(db, "seasons", currentSeasonId, "lineups"), where("game_id", "==", game.id));
     const lineupsSnap = await getDocs(lineupsQuery);
     const existingLineups = lineupsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -251,11 +250,9 @@ function addStarterCard(checkbox, lineupData = null) {
     const { teamPrefix, playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`${teamPrefix}-starters`);
 
-    // FIX: Check for new field 'raw_score' (number) or old field 'points_raw' (string w/ comma)
     const rawScoreFromDB = lineupData?.raw_score ?? lineupData?.points_raw ?? 0;
     const parsedRawScore = parseFloat(String(rawScoreFromDB).replace(/,/g, '')) || 0;
 
-    // FIX: Check for new field 'is_captain' or old field 'captain'
     const isCaptain = lineupData?.is_captain === 'TRUE' || lineupData?.captain === 'TRUE';
 
     const card = document.createElement('div');
@@ -354,9 +351,7 @@ async function handleLineupFormSubmit(e) {
     try {
         const batch = writeBatch(db);
         const gameId = document.getElementById('lineup-game-id').value;
-        const gameDate = document.getElementById('lineup-game-date').value;
         const isPostseason = document.getElementById('lineup-is-postseason').value === 'true';
-        // NEW: Get a reference to the single 'lineups' subcollection
         const lineupsCollectionRef = collection(db, "seasons", currentSeasonId, "lineups");
         const team1Id = currentGameData.team1_id;
         const lineupEntriesQuery = query(lineupsCollectionRef, where("game_id", "==", gameId));
@@ -365,7 +360,6 @@ async function handleLineupFormSubmit(e) {
         lineupEntriesSnap.docs.forEach(lineupDoc => {
             const player = lineupDoc.data();
             const starterCard = document.getElementById(`starter-card-${player.player_id}`);
-            const lineupDocRef = lineupDoc.ref;
             let lineupData = { ...player };
 
             if (starterCard) {
@@ -373,26 +367,31 @@ async function handleLineupFormSubmit(e) {
                 const captainId = lineupForm.querySelector(`input[name="${teamPrefix}-captain"]:checked`)?.value;
                 const raw_score = parseFloat(document.getElementById(`raw-score-${player.player_id}`).value) || 0;
                 const adjustments = parseFloat(document.getElementById(`reductions-${player.player_id}`).value) || 0;
-                let final_score = raw_score - adjustments;
+
+                // *** NEW: Calculate and store points_adjusted ***
+                const points_adjusted = raw_score - adjustments;
+                let final_score = points_adjusted; // The final score starts from the adjusted score
 
                 lineupData.started = 'TRUE';
                 lineupData.is_captain = (player.player_id === captainId) ? 'TRUE' : 'FALSE';
-                lineupData.raw_score = raw_score; // NEW field from your sheet
-                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.player_id}`).value) || 0; // NEW field from your sheet
-                lineupData.adjustments = adjustments; // NEW field from your sheet
+                lineupData.raw_score = raw_score;
+                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.player_id}`).value) || 0;
+                lineupData.adjustments = adjustments;
+                lineupData.points_adjusted = points_adjusted; // Save the new field
 
-                delete lineupData.captain; // Remove old field if it exists
-                delete lineupData.points_raw; // Remove old field if it exists
+                delete lineupData.captain;
+                delete lineupData.points_raw;
 
                 if (lineupData.is_captain === 'TRUE') {
-                    final_score *= 1.5;
+                    final_score *= 1.5; // Apply captain bonus to the final score
                 }
                 lineupData.final_score = final_score;
             } else {
                 lineupData.started = 'FALSE';
                 lineupData.is_captain = 'FALSE';
+                lineupData.points_adjusted = 0; // Ensure non-starters have this field
             }
-            // Use the original ref to update the document in the subcollection
+
             const docRef = doc(db, "seasons", currentSeasonId, "lineups", lineupDoc.id);
             batch.set(docRef, lineupData, { merge: true });
         });
