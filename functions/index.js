@@ -154,29 +154,30 @@ async function processCompletedGame(event) {
     const after = event.data.after.data();
     const seasonId = event.params.seasonId;
 
-    // 1. Only run if the game was just completed
-    if (before.completed === 'TRUE' || after.completed !== 'TRUE') {
-        console.log(`Game ${event.params.gameId} was not newly completed. Exiting.`);
+    // 1. Only run if the game is marked as completed. This allows re-calculation on edits.
+    if (after.completed !== 'TRUE') {
+        console.log(`Game ${event.params.gameId} is not completed. Exiting.`);
         return null;
     }
-    console.log(`V2: Processing newly completed game ${event.params.gameId} in season ${seasonId}`);
+    console.log(`V2: Processing completed game ${event.params.gameId} in season ${seasonId}`);
 
-    const winnerId = after.winner;
-    const loserId = after.team1_id === winnerId ? after.team2_id : after.team1_id;
+    // 2. Update team win/loss records ONLY if the game was just now marked as completed.
+    if (before.completed !== 'TRUE' && after.completed === 'TRUE') {
+        const winnerId = after.winner;
+        const loserId = after.team1_id === winnerId ? after.team2_id : after.team1_id;
 
-    if (!winnerId || !loserId) {
-        console.error(`Could not determine winner/loser for game ${event.params.gameId}.`);
-        return null;
+        if (winnerId && loserId) {
+            const winLossBatch = db.batch();
+            const winnerRef = db.collection('v2_teams').doc(winnerId).collection('seasonal_records').doc(seasonId);
+            const loserRef = db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId);
+            winLossBatch.update(winnerRef, { wins: FieldValue.increment(1) });
+            winLossBatch.update(loserRef, { losses: FieldValue.increment(1) });
+            await winLossBatch.commit();
+            console.log(`Successfully updated win/loss records for game ${event.params.gameId}.`);
+        } else {
+            console.error(`Could not determine winner/loser for game ${event.params.gameId}.`);
+        }
     }
-
-    // 2. Update team win/loss records immediately
-    const winLossBatch = db.batch();
-    const winnerRef = db.collection('v2_teams').doc(winnerId).collection('seasonal_records').doc(seasonId);
-    const loserRef = db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId);
-    winLossBatch.update(winnerRef, { wins: FieldValue.increment(1) });
-    winLossBatch.update(loserRef, { losses: FieldValue.increment(1) });
-    await winLossBatch.commit();
-    console.log(`Successfully updated win/loss records for game ${event.params.gameId}.`);
 
     // 3. Check if all games for the day are complete
     const gameDate = after.date;
@@ -194,7 +195,13 @@ async function processCompletedGame(event) {
     // --- All games for the day are done, proceed with calculations ---
     const dailyCalculationsBatch = db.batch();
 
-    // 4. Calculate and Save daily_averages
+    // 4. Determine if it's regular season or postseason
+    const isPostseason = !/^\d+$/.test(after.week);
+    const averagesCollectionName = isPostseason ? 'post_daily_averages' : 'daily_averages';
+    const scoresCollectionName = isPostseason ? 'post_daily_scores' : 'daily_scores';
+    console.log(`Season Type: ${isPostseason ? 'Postseason' : 'Regular Season'}. Using collections: ${averagesCollectionName}, ${scoresCollectionName}`);
+
+    // 5. Calculate and Save daily_averages
     const lineupsQuery = db.collection('seasons').doc(seasonId).collection('lineups')
         .where('date', '==', gameDate)
         .where('started', '==', 'TRUE');
@@ -209,7 +216,7 @@ async function processCompletedGame(event) {
     const totalPlayers = adjustedScores.length;
     const sumOfScores = adjustedScores.reduce((sum, score) => sum + score, 0);
     const meanScore = totalPlayers > 0 ? sumOfScores / totalPlayers : 0;
-    const medianScore = calculateMedian(adjustedScores);
+    const medianScore = calculateMedian(adjustedScores); // This is the PLAYER median
     const replacementLevel = medianScore * 0.9;
     const winLevel = medianScore * 0.92;
 
@@ -217,10 +224,10 @@ async function processCompletedGame(event) {
     const [month, day, year] = gameDate.split('/');
     const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
-    const dailyAveragesRef = db.doc(`daily_averages/season_${seasonNum}/S${seasonNum}_daily_averages/${yyyymmdd}`);
+    const dailyAveragesRef = db.doc(`${averagesCollectionName}/season_${seasonNum}/S${seasonNum}_${averagesCollectionName}/${yyyymmdd}`);
     const dailyAveragesData = {
         date: gameDate,
-        week: after.week, // Assuming week is consistent for all games on a date
+        week: after.week,
         total_players: totalPlayers,
         mean_score: meanScore,
         median_score: medianScore,
@@ -228,12 +235,16 @@ async function processCompletedGame(event) {
         win: winLevel
     };
     dailyCalculationsBatch.set(dailyAveragesRef, dailyAveragesData);
-    console.log(`Calculated daily_averages for ${gameDate}:`, dailyAveragesData);
+    console.log(`Calculated ${averagesCollectionName} for ${gameDate}:`, dailyAveragesData);
 
-    // 5. Calculate and Save daily_scores for all teams that played today
+    // 6. Calculate and Save daily_scores for all teams that played today
     const allGamesForDateRegular = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
     const allGamesForDatePost = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
     const allGamesToday = [...allGamesForDateRegular.docs, ...allGamesForDatePost.docs];
+
+    const allTeamScoresToday = allGamesToday.flatMap(gameDoc => [gameDoc.data().team1_score || 0, gameDoc.data().team2_score || 0]);
+    const teamMedianScore = calculateMedian(allTeamScoresToday);
+    console.log(`Calculated TEAM median score for ${gameDate}: ${teamMedianScore}`);
 
     for (const gameDoc of allGamesToday) {
         const gameData = gameDoc.data();
@@ -243,27 +254,27 @@ async function processCompletedGame(event) {
         ];
 
         for (const team of teams) {
-            const dailyScoresRef = db.doc(`daily_scores/season_${seasonNum}/S${seasonNum}_daily_scores/${team.id}-${gameData.week}`);
+            const dailyScoresRef = db.doc(`${scoresCollectionName}/season_${seasonNum}/S${seasonNum}_${scoresCollectionName}/${team.id}-${gameData.week}`);
             const teamScore = team.score || 0;
-            const pointsAboveMedian = teamScore - medianScore;
+            const pointsAboveMedian = teamScore - teamMedianScore;
             const dailyScoresData = {
                 week: gameData.week,
                 team_id: team.id,
                 date: gameDate,
                 score: teamScore,
-                daily_median: medianScore,
-                above_median: teamScore > medianScore ? 1 : 0,
+                daily_median: teamMedianScore,
+                above_median: teamScore > teamMedianScore ? 1 : 0,
                 points_above_median: pointsAboveMedian,
-                pct_above_median: medianScore > 0 ? (teamScore / medianScore) - 1 : 0
+                pct_above_median: teamMedianScore > 0 ? (teamScore / teamMedianScore) - 1 : 0
             };
             dailyCalculationsBatch.set(dailyScoresRef, dailyScoresData, { merge: true });
-            console.log(`Calculated daily_scores for team ${team.id} for week ${gameData.week}:`, dailyScoresData);
+            console.log(`Calculated ${scoresCollectionName} for team ${team.id} for week ${gameData.week}:`, dailyScoresData);
         }
     }
 
-    // 6. Commit all daily calculations
+    // 7. Commit all daily calculations
     await dailyCalculationsBatch.commit();
-    console.log(`Successfully saved daily_averages and daily_scores for ${gameDate}.`);
+    console.log(`Successfully saved ${averagesCollectionName} and ${scoresCollectionName} for ${gameDate}.`);
 
     return null;
 }
@@ -444,7 +455,7 @@ function getSafeDateString(dateString) {
 exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req, res) => {
     try {
         const SPREADSHEET_ID = "12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4";
-        
+
         // Helper to fetch and parse a single sheet from Google Sheets.
         const fetchAndParseSheet = async (sheetName) => {
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
@@ -456,7 +467,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 
         console.log("Fetching all sheets...");
         const [
-            playersRaw, 
+            playersRaw,
             draftPicksRaw,
             teamsRaw,
             scheduleRaw,
@@ -484,13 +495,13 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         console.log("Clearing the 'players' collection...");
         await deleteCollection(db, 'players', 200);
         console.log("'players' collection cleared successfully.");
-        
+
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
-            if (player.player_handle && player.player_handle.trim()) { 
+            if (player.player_handle && player.player_handle.trim()) {
                 const docRef = db.collection("players").doc(player.player_handle.trim());
                 const playerData = { ...player };
-                
+
                 playerData.GEM = parseNumber(player.GEM);
                 playerData.REL = parseNumber(player.REL);
                 playerData.WAR = parseNumber(player.WAR);
@@ -498,7 +509,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
                 playerData.aag_median = parseNumber(player.aag_median);
                 playerData.games_played = parseNumber(player.games_played);
                 playerData.total_points = parseNumber(player.total_points);
-                
+
                 playersBatch.set(docRef, playerData);
             }
         });
@@ -530,14 +541,14 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
         teamsRaw.forEach(team => {
-            if(team.team_id && team.team_id.trim()) {
+            if (team.team_id && team.team_id.trim()) {
                 const docRef = db.collection("teams").doc(team.team_id.trim());
                 teamsBatch.set(docRef, team);
             }
         });
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
-        
+
         // --- Clear and Sync Schedule collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);
