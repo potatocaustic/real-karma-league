@@ -91,16 +91,18 @@ function calculateGeometricMean(numbers) {
     return Math.pow(product, 1 / nonZeroNumbers.length);
 }
 
-async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch) {
+async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch, dailyAveragesMap) {
     const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
-    const dailyAveragesCollectionName = isPostseason ? 'post_daily_averages' : 'daily_averages';
 
     const playerLineupsQuery = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName)
         .where('player_id', '==', playerId).where('started', '==', 'TRUE');
     const playerLineupsSnap = await playerLineupsQuery.get();
     const lineups = playerLineupsSnap.docs.map(doc => doc.data());
 
-    if (lineups.length === 0) return;
+    if (lineups.length === 0) {
+        console.log(`No lineups found for player ${playerId} in ${seasonId} (${lineupsCollectionName}). Skipping stats update.`);
+        return;
+    }
 
     const games_played = lineups.length;
     const total_points = lineups.reduce((sum, l) => sum + (l.points_adjusted || 0), 0);
@@ -112,17 +114,15 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     const medrank = calculateMedian(globalRanks);
     const GEM = calculateGeometricMean(globalRanks);
 
+    let meansum = 0;
+    let medsum = 0;
     const uniqueDates = [...new Set(lineups.map(l => l.date))];
-    let meansum = 0, medsum = 0;
+
     for (const date of uniqueDates) {
-        const [month, day, year] = date.split('/');
-        const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-        const seasonNum = seasonId.replace('S', '');
-        const dailyAvgDoc = await db.doc(`${dailyAveragesCollectionName}/season_${seasonNum}/S${seasonNum}_${dailyAveragesCollectionName}/${yyyymmdd}`).get();
-        if (dailyAvgDoc.exists) {
-            const avgData = dailyAvgDoc.data();
-            meansum += avgData.mean_score || 0;
-            medsum += avgData.median_score || 0;
+        const dailyAvgData = dailyAveragesMap.get(date);
+        if (dailyAvgData) {
+            meansum += dailyAvgData.mean_score || 0;
+            medsum += dailyAvgData.median_score || 0;
         }
     }
 
@@ -147,74 +147,128 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
 }
 
 async function updateAllTeamStats(seasonId, isPostseason, batch) {
-    const teamsSnap = await db.collection('v2_teams').get();
+    const prefix = isPostseason ? 'post_' : '';
+    const gamesCollection = isPostseason ? 'post_games' : 'games';
+    const scoresCollection = isPostseason ? 'post_daily_scores' : 'daily_scores';
+    const lineupsCollection = isPostseason ? 'post_lineups' : 'lineups';
+
+    // 1. Fetch all data upfront
+    const [teamsSnap, gamesSnap, scoresSnap, lineupsSnap] = await Promise.all([
+        db.collection('v2_teams').get(),
+        db.collection('seasons').doc(seasonId).collection(gamesCollection).where('completed', '==', 'TRUE').get(),
+        db.collection(scoresCollection).doc(`season_${seasonId.replace('S', '')}`).collection(`S${seasonId.replace('S', '')}_${scoresCollection}`).get(),
+        db.collection('seasons').doc(seasonId).collection(lineupsCollection).where('started', '==', 'TRUE').get()
+    ]);
+
     const allTeamData = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const teamStatsPromises = allTeamData.map(async team => {
-        const teamId = team.id;
-        let wins = 0, losses = 0, pam = 0, apPAM = 0, med_starter_rank = 0;
 
-        const gamesCollection = isPostseason ? 'post_games' : 'games';
-        const scoresCollection = isPostseason ? 'post_daily_scores' : 'daily_scores';
-        const lineupsCollection = isPostseason ? 'post_lineups' : 'lineups';
+    // 2. Process data into maps for efficient lookup
+    const teamStatsMap = new Map();
+    allTeamData.forEach(t => teamStatsMap.set(t.id, {
+        wins: 0, losses: 0, pam: 0, scores_count: 0, total_pct_above_median: 0, ranks: [], conference: t.conference
+    }));
 
-        const teamGames1 = await db.collection('seasons').doc(seasonId).collection(gamesCollection).where('team1_id', '==', teamId).where('completed', '==', 'TRUE').get();
-        const teamGames2 = await db.collection('seasons').doc(seasonId).collection(gamesCollection).where('team2_id', '==', teamId).where('completed', '==', 'TRUE').get();
+    gamesSnap.docs.forEach(doc => {
+        const game = doc.data();
+        if (teamStatsMap.has(game.winner)) {
+            teamStatsMap.get(game.winner).wins++;
+        }
+        const loserId = game.team1_id === game.winner ? game.team2_id : game.team1_id;
+        if (teamStatsMap.has(loserId)) {
+            teamStatsMap.get(loserId).losses++;
+        }
+    });
 
-        [...teamGames1.docs, ...teamGames2.docs].forEach(doc => {
-            const game = doc.data();
-            if (game.winner === teamId) wins++; else losses++;
-        });
+    scoresSnap.docs.forEach(doc => {
+        const score = doc.data();
+        if (teamStatsMap.has(score.team_id)) {
+            const teamData = teamStatsMap.get(score.team_id);
+            teamData.pam += score.points_above_median || 0;
+            teamData.total_pct_above_median += score.pct_above_median || 0;
+            teamData.scores_count++;
+        }
+    });
 
-        const scoresSnap = await db.collection(scoresCollection).doc(`season_${seasonId.replace('S', '')}`).collection(`S${seasonId.replace('S', '')}_${scoresCollection}`).where('team_id', '==', teamId).get();
-        const scoresDocs = scoresSnap.docs.map(d => d.data());
-        pam = scoresDocs.reduce((sum, s) => sum + (s.points_above_median || 0), 0);
-        apPAM = scoresDocs.length > 0 ? scoresDocs.reduce((sum, s) => sum + (s.pct_above_median || 0), 0) / scoresDocs.length : 0;
+    lineupsSnap.docs.forEach(doc => {
+        const lineup = doc.data();
+        if (teamStatsMap.has(lineup.team_id) && lineup.global_rank > 0) {
+            teamStatsMap.get(lineup.team_id).ranks.push(lineup.global_rank);
+        }
+    });
 
-        const lineupsSnap = await db.collection('seasons').doc(seasonId).collection(lineupsCollection).where('team_id', '==', teamId).where('started', '==', 'TRUE').get();
-        const ranks = lineupsSnap.docs.map(d => d.data().global_rank || 0).filter(r => r > 0);
-        med_starter_rank = calculateMedian(ranks);
+    // 3. Calculate stats for each team
+    const calculatedStats = allTeamData.map(team => {
+        const stats = teamStatsMap.get(team.id);
+        const { wins, losses, pam, scores_count, total_pct_above_median, ranks, conference } = stats;
 
         const wpct = (wins + losses) > 0 ? wins / (wins + losses) : 0;
-        return { teamId, conference: team.conference, wins, losses, wpct, pam, apPAM, med_starter_rank, sortscore: wpct + (pam * 0.00000001), MaxPotWins: 15 - losses };
+        const apPAM = scores_count > 0 ? total_pct_above_median / scores_count : 0;
+        const med_starter_rank = calculateMedian(ranks);
+        const MaxPotWins = 15 - losses;
+        const sortscore = wpct + (pam * 0.00000001);
+
+        return { teamId: team.id, conference, wins, losses, wpct, pam, apPAM, med_starter_rank, MaxPotWins, sortscore };
     });
 
-    const calculatedStats = await Promise.all(teamStatsPromises);
-    const eastConf = calculatedStats.filter(t => t.conference === 'Eastern');
-    const westConf = calculatedStats.filter(t => t.conference === 'Western');
-
-    const rankAndSort = (teams, stat, ascending = true) => {
+    // 4. Perform league-wide and conference-wide rankings
+    const rankAndSort = (teams, stat, ascending = true, rankKey) => {
         const sorted = [...teams].sort((a, b) => ascending ? a[stat] - b[stat] : b[stat] - a[stat]);
-        sorted.forEach((team, i) => team[`${stat}_rank`] = i + 1);
+        sorted.forEach((team, i) => team[rankKey] = i + 1);
     };
-    rankAndSort(calculatedStats, 'med_starter_rank');
-    rankAndSort(calculatedStats, 'pam', false);
 
-    [eastConf, westConf].forEach(conf => {
-        conf.sort((a, b) => b.sortscore - a.sortscore).forEach((t, i) => t.postseed = i + 1);
-        const maxPotWinsSorted = [...conf].sort((a, b) => b.MaxPotWins - a.MaxPotWins);
-        const winsSorted = [...conf].sort((a, b) => b.wins - a.wins);
-        conf.forEach(t => {
-            t.playin = t.wins > (maxPotWinsSorted[10]?.MaxPotWins || 0) ? 1 : 0;
-            t.playoffs = t.wins > (maxPotWinsSorted[6]?.MaxPotWins || 0) ? 1 : 0;
-            t.elim = t.MaxPotWins < (winsSorted[9]?.wins || 0) ? 1 : 0;
+    rankAndSort(calculatedStats, 'med_starter_rank', true, `${prefix}msr_rank`);
+    rankAndSort(calculatedStats, 'pam', false, `${prefix}pam_rank`);
+
+    // 5. Regular Season-Only Calculations
+    if (!isPostseason) {
+        const eastConf = calculatedStats.filter(t => t.conference === 'Eastern');
+        const westConf = calculatedStats.filter(t => t.conference === 'Western');
+
+        [eastConf, westConf].forEach(conf => {
+            if (conf.length === 0) return;
+            // Postseason Seeding
+            conf.sort((a, b) => b.sortscore - a.sortscore).forEach((t, i) => t.postseed = i + 1);
+
+            // Clinching Logic
+            const maxPotWinsSorted = [...conf].sort((a, b) => b.MaxPotWins - a.MaxPotWins);
+            const winsSorted = [...conf].sort((a, b) => b.wins - a.wins);
+            const playoffWinsThreshold = maxPotWinsSorted[6]?.MaxPotWins ?? 0; // 7th best
+            const playinWinsThreshold = maxPotWinsSorted[10]?.MaxPotWins ?? 0; // 11th best
+            const elimWinsThreshold = winsSorted[9]?.wins ?? 0; // 10th best
+
+            conf.forEach(t => {
+                t.playoffs = t.wins > playoffWinsThreshold ? 1 : 0;
+                t.playin = t.wins > playinWinsThreshold ? 1 : 0;
+                t.elim = t.MaxPotWins < elimWinsThreshold ? 1 : 0;
+            });
         });
-    });
+    }
 
+    // 6. Batch write final updates
     for (const team of calculatedStats) {
         const { teamId, ...stats } = team;
-        const prefix = isPostseason ? 'post_' : '';
-        const finalUpdate = {};
-        for (const [key, value] of Object.entries(stats)) {
-            if (['wins', 'losses', 'med_starter_rank', 'pam'].includes(key)) {
-                finalUpdate[`${prefix}${key}`] = value;
-            } else if (!['conference', 'sortscore', 'MaxPotWins'].includes(key)) {
-                finalUpdate[key] = value;
-            }
-        }
+        const finalUpdate = {
+            [`${prefix}wins`]: stats.wins,
+            [`${prefix}losses`]: stats.losses,
+            [`${prefix}pam`]: stats.pam,
+            [`${prefix}med_starter_rank`]: stats.med_starter_rank,
+            [`${prefix}msr_rank`]: stats[`${prefix}msr_rank`],
+            [`${prefix}pam_rank`]: stats[`${prefix}pam_rank`],
+        };
+
         if (!isPostseason) {
-            finalUpdate.sortscore = stats.sortscore;
-            finalUpdate.MaxPotWins = stats.MaxPotWins;
+            Object.assign(finalUpdate, {
+                wpct: stats.wpct,
+                apPAM: stats.apPAM,
+                sortscore: stats.sortscore,
+                MaxPotWins: stats.MaxPotWins,
+                postseed: stats.postseed,
+                playin: stats.playin,
+                playoffs: stats.playoffs,
+                elim: stats.elim,
+            });
         }
+
         const teamStatsRef = db.collection('v2_teams').doc(teamId).collection('seasonal_records').doc(seasonId);
         batch.set(teamStatsRef, finalUpdate, { merge: true });
     }
@@ -225,25 +279,21 @@ async function processCompletedGame(event) {
     const after = event.data.after.data();
     const seasonId = event.params.seasonId;
 
-    if (after.completed !== 'TRUE') return null;
+    if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
+         return null;
+    }
     console.log(`V2: Processing completed game ${event.params.gameId} in season ${seasonId}`);
 
-    if (before.completed !== 'TRUE' && after.completed === 'TRUE') {
-        const { winner, team1_id, team2_id } = after;
-        const loserId = team1_id === winner ? team2_id : team1_id;
-        if (winner && loserId) {
-            const batch = db.batch();
-            batch.update(db.collection('v2_teams').doc(winner).collection('seasonal_records').doc(seasonId), { wins: FieldValue.increment(1) });
-            batch.update(db.collection('v2_teams').doc(loserId).collection('seasonal_records').doc(seasonId), { losses: FieldValue.increment(1) });
-            await batch.commit();
-        }
-    }
-
     const gameDate = after.date;
-    const regIncomplete = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
-    const postIncomplete = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+    const regIncompleteQuery = db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+    const postIncompleteQuery = db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+    
+    const [regIncomplete, postIncomplete] = await Promise.all([regIncompleteQuery, postIncompleteQuery]);
 
-    if (regIncomplete.size > 0 || postIncomplete.size > 0) return null;
+    if (regIncomplete.size > 0 || postIncomplete.size > 0) {
+        console.log(`Not all games for ${gameDate} are complete. Deferring calculations.`);
+        return null;
+    }
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 
     const batch = db.batch();
@@ -265,12 +315,14 @@ async function processCompletedGame(event) {
     const [month, day, year] = gameDate.split('/');
     const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
     const dailyAvgRef = db.doc(`${averagesColl}/season_${seasonNum}/S${seasonNum}_${averagesColl}/${yyyymmdd}`);
-    batch.set(dailyAvgRef, { date: gameDate, week: after.week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win: win });
+    const dailyAvgDataForMap = { date: gameDate, week: after.week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win: win };
+    batch.set(dailyAvgRef, dailyAvgDataForMap);
 
     const playerIds = new Set();
     lineupsSnap.docs.forEach(doc => {
-        playerIds.add(doc.data().player_id);
-        const points = doc.data().points_adjusted || 0;
+        const lineupData = doc.data();
+        playerIds.add(lineupData.player_id);
+        const points = lineupData.points_adjusted || 0;
         const aboveMean = points - mean;
         const aboveMedian = points - median;
         batch.update(doc.ref, {
@@ -280,12 +332,13 @@ async function processCompletedGame(event) {
         });
     });
 
-    const regGames = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
-    const postGames = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
-    const teamScores = [...regGames.docs, ...postGames.docs].flatMap(d => [d.data().team1_score, d.data().team2_score]);
+    const regGamesSnap = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
+    const postGamesSnap = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
+    const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
+    const teamScores = allGamesForDate.flatMap(d => [d.data().team1_score, d.data().team2_score]);
     const teamMedian = calculateMedian(teamScores);
 
-    [...regGames.docs, ...postGames.docs].forEach(doc => {
+    allGamesForDate.forEach(doc => {
         const game = doc.data();
         [{ id: game.team1_id, score: game.team1_score }, { id: game.team2_id, score: game.team2_score }].forEach(team => {
             const scoreRef = db.doc(`${scoresColl}/season_${seasonNum}/S${seasonNum}_${scoresColl}/${team.id}-${game.week}`);
@@ -294,9 +347,15 @@ async function processCompletedGame(event) {
         });
     });
 
+    // Create a map containing the daily averages for just this completed day
+    const dailyAveragesMap = new Map();
+    dailyAveragesMap.set(gameDate, dailyAvgDataForMap);
+    
+    const playerStatPromises = [];
     for (const pid of playerIds) {
-        await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch);
+        playerStatPromises.push(updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, dailyAveragesMap));
     }
+    await Promise.all(playerStatPromises);
 
     await updateAllTeamStats(seasonId, isPostseason, batch);
 
@@ -307,6 +366,7 @@ async function processCompletedGame(event) {
 
 exports.onRegularGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", processCompletedGame);
 exports.onPostGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/post_games/{gameId}", processCompletedGame);
+
 
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
