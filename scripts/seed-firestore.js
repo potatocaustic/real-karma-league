@@ -180,7 +180,6 @@ async function seedDatabase() {
     const playerSeasonalStats = new Map();
     const aggregatePlayerStats = (lineups, dailyAverages, isPostseason) => {
         const prefix = isPostseason ? 'post_' : '';
-        // FIX: Moved statKey definition to the top-level scope of the function
         const statKey = (key) => `${prefix}${key}`;
 
         lineups.forEach(l => {
@@ -364,7 +363,17 @@ async function seedDatabase() {
     // Seed Intermediate Collections
     const seedIntermediate = (map, collName) => {
         for (const [date, data] of map.entries()) {
+            // FIX: Add a guard clause to check for a valid date string before processing.
+            if (!date || typeof date !== 'string' || !date.includes('/')) {
+                console.warn(`Skipping invalid or empty date key found in source data for collection: ${collName}`);
+                continue;
+            }
             const [month, day, year] = date.split('/');
+            // Add a second check to ensure the split was successful
+            if (!year || !month || !day) {
+                console.warn(`Skipping malformed date key: "${date}" in ${collName}.`);
+                continue;
+            }
             const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
             const docRef = db.doc(`${collName}/season_${SEASON_NUM}/S${SEASON_NUM}_${collName}/${yyyymmdd}`);
             batch.set(docRef, data);
