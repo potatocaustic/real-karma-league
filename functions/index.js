@@ -194,21 +194,22 @@ async function processCompletedGame(event) {
 
     // --- All games for the day are done, proceed with calculations ---
     const dailyCalculationsBatch = db.batch();
-
+    
     // 4. Determine if it's regular season or postseason
     const isPostseason = !/^\d+$/.test(after.week);
     const averagesCollectionName = isPostseason ? 'post_daily_averages' : 'daily_averages';
     const scoresCollectionName = isPostseason ? 'post_daily_scores' : 'daily_scores';
-    console.log(`Season Type: ${isPostseason ? 'Postseason' : 'Regular Season'}. Using collections: ${averagesCollectionName}, ${scoresCollectionName}`);
+    const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
+    console.log(`Season Type: ${isPostseason ? 'Postseason' : 'Regular Season'}. Using collections: ${averagesCollectionName}, ${scoresCollectionName}, ${lineupsCollectionName}`);
 
     // 5. Calculate and Save daily_averages
-    const lineupsQuery = db.collection('seasons').doc(seasonId).collection('lineups')
+    const lineupsQuery = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName)
         .where('date', '==', gameDate)
         .where('started', '==', 'TRUE');
     const lineupsSnap = await lineupsQuery.get();
 
     if (lineupsSnap.empty) {
-        console.log(`No starting lineups found for ${gameDate}. Cannot calculate daily averages.`);
+        console.log(`No starting lineups found for ${gameDate} in ${lineupsCollectionName}. Cannot calculate daily averages.`);
         return null;
     }
 
@@ -241,7 +242,7 @@ async function processCompletedGame(event) {
     const allGamesForDateRegular = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
     const allGamesForDatePost = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
     const allGamesToday = [...allGamesForDateRegular.docs, ...allGamesForDatePost.docs];
-
+    
     const allTeamScoresToday = allGamesToday.flatMap(gameDoc => [gameDoc.data().team1_score || 0, gameDoc.data().team2_score || 0]);
     const teamMedianScore = calculateMedian(allTeamScoresToday);
     console.log(`Calculated TEAM median score for ${gameDate}: ${teamMedianScore}`);
@@ -455,7 +456,7 @@ function getSafeDateString(dateString) {
 exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req, res) => {
     try {
         const SPREADSHEET_ID = "12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4";
-
+        
         // Helper to fetch and parse a single sheet from Google Sheets.
         const fetchAndParseSheet = async (sheetName) => {
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
@@ -467,7 +468,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 
         console.log("Fetching all sheets...");
         const [
-            playersRaw,
+            playersRaw, 
             draftPicksRaw,
             teamsRaw,
             scheduleRaw,
@@ -495,13 +496,13 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         console.log("Clearing the 'players' collection...");
         await deleteCollection(db, 'players', 200);
         console.log("'players' collection cleared successfully.");
-
+        
         const playersBatch = db.batch();
         playersRaw.forEach(player => {
-            if (player.player_handle && player.player_handle.trim()) {
+            if (player.player_handle && player.player_handle.trim()) { 
                 const docRef = db.collection("players").doc(player.player_handle.trim());
                 const playerData = { ...player };
-
+                
                 playerData.GEM = parseNumber(player.GEM);
                 playerData.REL = parseNumber(player.REL);
                 playerData.WAR = parseNumber(player.WAR);
@@ -509,7 +510,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
                 playerData.aag_median = parseNumber(player.aag_median);
                 playerData.games_played = parseNumber(player.games_played);
                 playerData.total_points = parseNumber(player.total_points);
-
+                
                 playersBatch.set(docRef, playerData);
             }
         });
@@ -541,14 +542,14 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
         teamsRaw.forEach(team => {
-            if (team.team_id && team.team_id.trim()) {
+            if(team.team_id && team.team_id.trim()) {
                 const docRef = db.collection("teams").doc(team.team_id.trim());
                 teamsBatch.set(docRef, team);
             }
         });
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
-
+        
         // --- Clear and Sync Schedule collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);

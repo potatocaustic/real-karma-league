@@ -116,7 +116,8 @@ async function seedDatabase() {
     await gamesBatch.commit();
     console.log(`  -> Seeded ${scheduleData.length} regular season and ${postScheduleData.length} postseason games.`);
 
-    console.log("Seeding lineups into /seasons/S7/lineups...");
+    // --- Seed Regular Season Lineups ---
+    console.log("Seeding regular season lineups into /seasons/S7/lineups...");
     const lineupsBatch = db.batch();
     const lineupsCollectionRef = seasonRef.collection("lineups");
     lineupsData.forEach(lineup => {
@@ -125,24 +126,31 @@ async function seedDatabase() {
 
         if (gameId && lineup.player_id) {
             lineup.game_id = gameId;
-            lineup.game_type = "regular"; // Add game_type field
+            lineup.game_type = "regular";
             const lineupId = `${gameId}-${lineup.player_id}`;
             lineupsBatch.set(lineupsCollectionRef.doc(lineupId), lineup);
         }
     });
+    await lineupsBatch.commit();
+    console.log(`  -> Seeded ${lineupsData.length} regular season lineups.`);
+
+    // --- Seed Postseason Lineups ---
+    console.log("Seeding postseason lineups into /seasons/S7/post_lineups...");
+    const postLineupsBatch = db.batch();
+    const postLineupsCollectionRef = seasonRef.collection("post_lineups");
     postLineupsData.forEach(lineup => {
         const lookupKey = `${lineup.date}-${lineup.team_id}`;
         const gameId = gameIdLookup.get(lookupKey);
 
         if (gameId && lineup.player_id) {
             lineup.game_id = gameId;
-            lineup.game_type = "postseason"; // Add game_type field
+            lineup.game_type = "postseason";
             const lineupId = `${gameId}-${lineup.player_id}`;
-            lineupsBatch.set(lineupsCollectionRef.doc(lineupId), lineup);
+            postLineupsBatch.set(postLineupsCollectionRef.doc(lineupId), lineup);
         }
     });
-    await lineupsBatch.commit();
-    console.log(`  -> Seeded ${lineupsData.length + postLineupsData.length} total lineups.`);
+    await postLineupsBatch.commit();
+    console.log(`  -> Seeded ${postLineupsData.length} postseason lineups.`);
 
 
     // Seed 'v2_teams' Collection with subcollections

@@ -181,7 +181,8 @@ async function openLineupModal(game, isPostseason) {
     document.getElementById('lineup-is-postseason').value = isPostseason;
     document.getElementById('lineup-game-completed-checkbox').checked = game.completed === 'TRUE';
 
-    const lineupsQuery = query(collection(db, "seasons", currentSeasonId, "lineups"), where("game_id", "==", game.id));
+    const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
+    const lineupsQuery = query(collection(db, "seasons", currentSeasonId, lineupsCollectionName), where("game_id", "==", game.id));
     const lineupsSnap = await getDocs(lineupsQuery);
     const existingLineups = lineupsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
@@ -189,7 +190,7 @@ async function openLineupModal(game, isPostseason) {
     let team2LineupEntries;
 
     if (existingLineups.length > 0) {
-        console.log("Found existing lineup data for this game.");
+        console.log(`Found existing lineup data in '${lineupsCollectionName}' for this game.`);
         team1LineupEntries = existingLineups.filter(l => l.team_id === game.team1_id);
         team2LineupEntries = existingLineups.filter(l => l.team_id === game.team2_id);
     } else {
@@ -371,7 +372,8 @@ async function handleLineupFormSubmit(e) {
         const gameId = document.getElementById('lineup-game-id').value;
         const gameDate = document.getElementById('lineup-game-date').value;
         const isPostseason = document.getElementById('lineup-is-postseason').value === 'true';
-        const lineupsCollectionRef = collection(db, "seasons", currentSeasonId, "lineups");
+        const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
+        const lineupsCollectionRef = collection(db, "seasons", currentSeasonId, lineupsCollectionName);
         const team1Id = currentGameData.team1_id;
         const team2Id = currentGameData.team2_id;
 
