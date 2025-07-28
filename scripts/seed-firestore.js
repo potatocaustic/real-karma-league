@@ -180,13 +180,15 @@ async function seedDatabase() {
     const playerSeasonalStats = new Map();
     const aggregatePlayerStats = (lineups, dailyAverages, isPostseason) => {
         const prefix = isPostseason ? 'post_' : '';
+        // FIX: Moved statKey definition to the top-level scope of the function
+        const statKey = (key) => `${prefix}${key}`;
+
         lineups.forEach(l => {
             if (l.started !== 'TRUE') return;
 
             if (!playerSeasonalStats.has(l.player_id)) playerSeasonalStats.set(l.player_id, {});
             const stats = playerSeasonalStats.get(l.player_id);
 
-            const statKey = (key) => `${prefix}${key}`;
             stats[statKey('games_played')] = (stats[statKey('games_played')] || 0) + 1;
             stats[statKey('total_points')] = (stats[statKey('total_points')] || 0) + l.points_adjusted;
             stats[statKey('WAR')] = (stats[statKey('WAR')] || 0) + l.SingleGameWar;
