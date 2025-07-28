@@ -185,12 +185,30 @@ async function openLineupModal(game, isPostseason) {
     const lineupsSnap = await getDocs(lineupsQuery);
     const existingLineups = lineupsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    let team1LineupEntries;
+    let team2LineupEntries;
+
+    if (existingLineups.length > 0) {
+        console.log("Found existing lineup data for this game.");
+        team1LineupEntries = existingLineups.filter(l => l.team_id === game.team1_id);
+        team2LineupEntries = existingLineups.filter(l => l.team_id === game.team2_id);
+    } else {
+        console.log("No existing lineup data. Generating from team rosters.");
+        team1LineupEntries = [];
+        team2LineupEntries = [];
+        for (const player of allPlayers.values()) {
+            if (player.current_team_id === game.team1_id) {
+                team1LineupEntries.push({ player_id: player.id, player_handle: player.player_handle, team_id: game.team1_id, started: 'FALSE' });
+            } else if (player.current_team_id === game.team2_id) {
+                team2LineupEntries.push({ player_id: player.id, player_handle: player.player_handle, team_id: game.team2_id, started: 'FALSE' });
+            }
+        }
+    }
+
     const team1 = allTeams.get(game.team1_id);
-    const team1LineupEntries = existingLineups.filter(l => l.team_id === game.team1_id);
     renderTeamUI('team1', team1, team1LineupEntries);
 
     const team2 = allTeams.get(game.team2_id);
-    const team2LineupEntries = existingLineups.filter(l => l.team_id === game.team2_id);
     renderTeamUI('team2', team2, team2LineupEntries);
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1?.team_name} vs ${team2?.team_name}`;
@@ -351,50 +369,61 @@ async function handleLineupFormSubmit(e) {
     try {
         const batch = writeBatch(db);
         const gameId = document.getElementById('lineup-game-id').value;
+        const gameDate = document.getElementById('lineup-game-date').value;
         const isPostseason = document.getElementById('lineup-is-postseason').value === 'true';
         const lineupsCollectionRef = collection(db, "seasons", currentSeasonId, "lineups");
         const team1Id = currentGameData.team1_id;
-        const lineupEntriesQuery = query(lineupsCollectionRef, where("game_id", "==", gameId));
-        const lineupEntriesSnap = await getDocs(lineupEntriesQuery);
+        const team2Id = currentGameData.team2_id;
 
-        lineupEntriesSnap.docs.forEach(lineupDoc => {
-            const player = lineupDoc.data();
-            const starterCard = document.getElementById(`starter-card-${player.player_id}`);
-            let lineupData = { ...player };
+        const playersInGame = [];
+        for (const player of allPlayers.values()) {
+            if (player.current_team_id === team1Id || player.current_team_id === team2Id) {
+                playersInGame.push(player);
+            }
+        }
+
+        for (const player of playersInGame) {
+            const starterCard = document.getElementById(`starter-card-${player.id}`);
+            const lineupId = `${gameId}-${player.id}`;
+            const docRef = doc(lineupsCollectionRef, lineupId);
+
+            let lineupData = {
+                player_id: player.id,
+                player_handle: player.player_handle,
+                team_id: player.current_team_id,
+                game_id: gameId,
+                date: gameDate,
+                game_type: isPostseason ? "postseason" : "regular",
+                started: 'FALSE',
+                is_captain: 'FALSE',
+                raw_score: 0,
+                adjustments: 0,
+                points_adjusted: 0,
+                final_score: 0,
+                global_rank: 0
+            };
 
             if (starterCard) {
-                const teamPrefix = player.team_id === team1Id ? 'team1' : 'team2';
+                const teamPrefix = player.current_team_id === team1Id ? 'team1' : 'team2';
                 const captainId = lineupForm.querySelector(`input[name="${teamPrefix}-captain"]:checked`)?.value;
-                const raw_score = parseFloat(document.getElementById(`raw-score-${player.player_id}`).value) || 0;
-                const adjustments = parseFloat(document.getElementById(`reductions-${player.player_id}`).value) || 0;
-
-                // *** NEW: Calculate and store points_adjusted ***
+                const raw_score = parseFloat(document.getElementById(`raw-score-${player.id}`).value) || 0;
+                const adjustments = parseFloat(document.getElementById(`reductions-${player.id}`).value) || 0;
                 const points_adjusted = raw_score - adjustments;
-                let final_score = points_adjusted; // The final score starts from the adjusted score
-
-                lineupData.started = 'TRUE';
-                lineupData.is_captain = (player.player_id === captainId) ? 'TRUE' : 'FALSE';
-                lineupData.raw_score = raw_score;
-                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.player_id}`).value) || 0;
-                lineupData.adjustments = adjustments;
-                lineupData.points_adjusted = points_adjusted; // Save the new field
-
-                delete lineupData.captain;
-                delete lineupData.points_raw;
-
-                if (lineupData.is_captain === 'TRUE') {
-                    final_score *= 1.5; // Apply captain bonus to the final score
+                let final_score = points_adjusted;
+                const isCaptain = player.id === captainId;
+                if (isCaptain) {
+                    final_score *= 1.5;
                 }
+                lineupData.started = 'TRUE';
+                lineupData.is_captain = isCaptain ? 'TRUE' : 'FALSE';
+                lineupData.raw_score = raw_score;
+                lineupData.adjustments = adjustments;
+                lineupData.points_adjusted = points_adjusted;
                 lineupData.final_score = final_score;
-            } else {
-                lineupData.started = 'FALSE';
-                lineupData.is_captain = 'FALSE';
-                lineupData.points_adjusted = 0; // Ensure non-starters have this field
+                lineupData.global_rank = parseInt(document.getElementById(`global-rank-${player.id}`).value) || 0;
             }
-
-            const docRef = doc(db, "seasons", currentSeasonId, "lineups", lineupDoc.id);
             batch.set(docRef, lineupData, { merge: true });
-        });
+        }
 
         const gameCollectionName = isPostseason ? "post_games" : "games";
         const gameRef = doc(db, "seasons", currentSeasonId, gameCollectionName, gameId);
@@ -405,7 +434,7 @@ async function handleLineupFormSubmit(e) {
             team1_score: team1FinalScore,
             team2_score: team2FinalScore,
             completed: document.getElementById('lineup-game-completed-checkbox').checked ? 'TRUE' : 'FALSE',
-            winner: team1FinalScore > team2FinalScore ? team1Id : currentGameData.team2_id
+            winner: team1FinalScore > team2FinalScore ? team1Id : team2Id
         });
 
         await batch.commit();
