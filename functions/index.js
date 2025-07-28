@@ -278,11 +278,12 @@ async function processCompletedGame(event) {
     const before = event.data.before.data();
     const after = event.data.after.data();
     const seasonId = event.params.seasonId;
+    const gameId = event.params.gameId; // Get the gameId from the event parameters
 
     if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
         return null;
     }
-    console.log(`V2: Processing completed game ${event.params.gameId} in season ${seasonId}`);
+    console.log(`V2: Processing completed game ${gameId} in season ${seasonId}`);
 
     const gameDate = after.date;
     const regIncompleteQuery = db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
@@ -340,8 +341,10 @@ async function processCompletedGame(event) {
 
     allGamesForDate.forEach(doc => {
         const game = doc.data();
+        const currentGameId = doc.id; // Get the game's document ID
         [{ id: game.team1_id, score: game.team1_score }, { id: game.team2_id, score: game.team2_score }].forEach(team => {
-            const scoreRef = db.doc(`${scoresColl}/season_${seasonNum}/S${seasonNum}_${scoresColl}/${team.id}-${game.week}`);
+            // MODIFICATION: Use the unique game ID in the document path to prevent overwrites
+            const scoreRef = db.doc(`${scoresColl}/season_${seasonNum}/S${seasonNum}_${scoresColl}/${team.id}-${currentGameId}`);
             const pam = team.score - teamMedian;
             batch.set(scoreRef, { week: game.week, team_id: team.id, date: gameDate, score: team.score, daily_median: teamMedian, above_median: pam > 0 ? 1 : 0, points_above_median: pam, pct_above_median: teamMedian ? pam / teamMedian : 0 }, { merge: true });
         });
@@ -660,8 +663,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         // --- Clear and Sync 'draftPicks' collection ---
         console.log("Clearing the 'draftPicks' collection for a fresh sync...");
         await deleteCollection(db, 'draftPicks', 200);
-        console.log("'draftPicks' collection cleared successfully.");
-
         const draftPicksBatch = db.batch();
         draftPicksRaw.forEach(pick => {
             if (pick.pick_id && pick.pick_id.trim()) {
