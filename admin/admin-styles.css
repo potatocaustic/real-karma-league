@@ -448,7 +448,8 @@ main {
     color: #721c24; /* Dark red text */
 }
 
-.draft-table tr.is-forfeited input,
+/* FIX: Use a more specific selector to avoid disabling the checkbox itself */
+.draft-table tr.is-forfeited input:not([type="checkbox"]),
 .draft-table tr.is-forfeited select {
     background-color: #f1b0b7;
     pointer-events: none; /* Disable inputs on forfeited rows */
