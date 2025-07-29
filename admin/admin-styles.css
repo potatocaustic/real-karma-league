@@ -393,3 +393,63 @@ main {
     color: #666;
     margin-top: 0.25rem;
 }
+
+/* --- NEW: Draft Management Styles --- */
+.draft-table-container {
+    overflow-x: auto; /* Allows horizontal scrolling on small screens */
+}
+
+.draft-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+
+.draft-table th, .draft-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    vertical-align: middle;
+}
+
+.draft-table th {
+    background-color: #f2f2f2;
+}
+
+.draft-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Make inputs and selects in the table take up full cell width */
+.draft-table input[type="text"],
+.draft-table select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.draft-table input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+}
+
+/* Read-only cells for overall and round numbers */
+.draft-table td.read-only {
+    font-weight: bold;
+    background-color: #e9ecef;
+    text-align: center;
+}
+
+/* Style for forfeited rows */
+.draft-table tr.is-forfeited {
+    background-color: #f8d7da; /* Light red */
+    text-decoration: line-through;
+    color: #721c24; /* Dark red text */
+}
+
+.draft-table tr.is-forfeited input,
+.draft-table tr.is-forfeited select {
+    background-color: #f1b0b7;
+    pointer-events: none; /* Disable inputs on forfeited rows */
+}

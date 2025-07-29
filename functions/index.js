@@ -14,6 +14,67 @@ const db = admin.firestore();
 // ===================================================================
 
 /**
+ * NEW: V2 Function to process a new draft pick.
+ * Creates a new player document when a draft pick is submitted.
+ */
+exports.onDraftResultCreate = onDocumentCreated("draft_results/season_{seasonNum}/S{seasonNum}_draft_results/{draftPickId}", async (event) => {
+    const pickData = event.data.data();
+    const { season, team_id, player_handle, forfeit } = pickData;
+
+    // Exit if the pick was forfeited or if no player handle was entered.
+    if (forfeit || !player_handle) {
+        console.log(`Pick ${pickData.overall} was forfeited or had no player. No action taken.`);
+        return null;
+    }
+
+    console.log(`Processing draft pick ${pickData.overall}: ${player_handle} to team ${team_id}.`);
+
+    try {
+        // Generate a new, unique player ID.
+        // A simple method is to combine the handle (sanitized) with the season and overall pick number.
+        const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const newPlayerId = `${sanitizedHandle}${season.replace('S', '')}${pickData.overall}`;
+
+        const playerRef = db.collection('v2_players').doc(newPlayerId);
+
+        // Check if a player with this generated ID already exists to prevent duplicates.
+        const playerDoc = await playerRef.get();
+        if (playerDoc.exists) {
+            console.warn(`Player with generated ID ${newPlayerId} already exists. Skipping creation.`);
+            return null;
+        }
+
+        const batch = db.batch();
+
+        // 1. Create the new player document
+        const newPlayerData = {
+            player_handle: player_handle,
+            current_team_id: team_id,
+            player_status: 'ACTIVE',
+            rookie: '1', // All drafted players are rookies
+            all_star: '0'
+        };
+        batch.set(playerRef, newPlayerData);
+
+        // 2. Create the initial seasonal stats sub-document for that player
+        const seasonStatsRef = playerRef.collection('seasonal_stats').doc(season);
+        const initialStats = {
+            games_played: 0, total_points: 0, WAR: 0, REL: 0, GEM: 0, aag_mean: 0, aag_median: 0,
+            post_games_played: 0, post_total_points: 0, post_WAR: 0, post_REL: 0, post_GEM: 0, post_aag_mean: 0, post_aag_median: 0
+        };
+        batch.set(seasonStatsRef, initialStats);
+
+        await batch.commit();
+        console.log(`Successfully created new player '${player_handle}' with ID ${newPlayerId} and assigned to team ${team_id}.`);
+
+    } catch (error) {
+        console.error(`Error processing draft pick for ${player_handle}:`, error);
+    }
+    return null;
+});
+
+
+/**
  * V2 Function: Triggered when a transaction is created for the new data structure.
  * Updates player team assignments.
  */

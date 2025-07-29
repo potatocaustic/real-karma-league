@@ -1,0 +1,60 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Draft Results - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Enter Draft Results</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select">Select Draft Season:</label>
+                <select id="season-select">
+                    <!-- Seasons will be populated by JS -->
+                </select>
+            </div>
+        </div>
+
+        <form id="draft-form">
+            <div class="draft-table-container">
+                <table class="draft-table">
+                    <thead>
+                        <tr>
+                            <th>Overall</th>
+                            <th>Round</th>
+                            <th>Team</th>
+                            <th>Player Handle</th>
+                            <th>Forfeit?</th>
+                        </tr>
+                    </thead>
+                    <tbody id="draft-table-body">
+                        <!-- Draft picks will be populated by JS -->
+                        <tr><td colspan="5" class="loading">Loading draft board...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="text-align: right; margin-top: 2rem;">
+                <button type="submit" class="btn-admin-save">Save Draft Results</button>
+            </div>
+        </form>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Firebase -->
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-draft.js"></script>
+</body>
+</html>

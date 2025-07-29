@@ -20,6 +20,10 @@ service cloud.firestore {
     match /transactions/{transactionId} {
         allow read, write: if isAdmin();
     }
+    // NEW: Rule for draft results
+    match /draft_results/{doc=**} {
+      allow read, write: if isAdmin();
+    }
 
     // == Rules for NEW Statistics Collections (Admin-Only) ==
     match /daily_averages/{doc=**} {
@@ -70,8 +74,7 @@ service cloud.firestore {
 
     // == Rules for User Profiles & Legacy Admin Collections ==
     match /users/{userId} {
-        allow read: if request.auth.uid == userId ||
-isAdmin();
+        allow read: if request.auth.uid == userId || isAdmin();
         allow write: if isAdmin();
     }
     // These 'new_' collections will eventually be deprecated.
