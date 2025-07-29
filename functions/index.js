@@ -17,9 +17,24 @@ const db = admin.firestore();
  * NEW: V2 Function to process a new draft pick.
  * Creates a new player document when a draft pick is submitted.
  */
-exports.onDraftResultCreate = onDocumentCreated("draft_results/season_{seasonNum}/S{seasonNum}_draft_results/{draftPickId}", async (event) => {
+exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{resultsCollectionId}/{draftPickId}", async (event) => {
+    // FIX: Validate the path to ensure this function only runs on the correct documents.
+    const { seasonDocId, resultsCollectionId } = event.params;
+
+    const seasonMatch = seasonDocId.match(/^season_(\d+)$/);
+    const collectionMatch = resultsCollectionId.match(/^S(\d+)_draft_results$/);
+
+    // If the path doesn't match the expected structure (e.g., "season_7" and "S7_draft_results")
+    // or the season numbers don't match, then exit gracefully.
+    if (!seasonMatch || !collectionMatch || seasonMatch[1] !== collectionMatch[1]) {
+        console.log(`Function triggered on a non-draft path, exiting. Path: ${seasonDocId}/${resultsCollectionId}`);
+        return null;
+    }
+
+    // Path is valid, proceed with the function logic.
+    const season = `S${seasonMatch[1]}`; // Construct the season ID (e.g., "S7")
     const pickData = event.data.data();
-    const { season, team_id, player_handle, forfeit } = pickData;
+    const { team_id, player_handle, forfeit } = pickData;
 
     // Exit if the pick was forfeited or if no player handle was entered.
     if (forfeit || !player_handle) {
@@ -31,7 +46,6 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/season_{seasonNum
 
     try {
         // Generate a new, unique player ID.
-        // A simple method is to combine the handle (sanitized) with the season and overall pick number.
         const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
         const newPlayerId = `${sanitizedHandle}${season.replace('S', '')}${pickData.overall}`;
 
