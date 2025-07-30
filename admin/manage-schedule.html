@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Manager - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Schedule Manager</h2>
+
+        <div class="schedule-grid">
+            <!-- Regular Season Management -->
+            <div class="schedule-section">
+                <h3>Regular Season Schedule</h3>
+                <div id="regular-season-schedule-container"></div>
+                <button id="add-game-btn" class="btn-admin-edit" style="margin-top: 1rem;">+ Add Game</button>
+            </div>
+
+            <!-- Postseason Management -->
+            <div class="schedule-section">
+                <h3>Postseason Automation</h3>
+                <p>Set the dates for each round. The bracket will be generated automatically after Week 15 is completed.</p>
+                <div id="postseason-dates-grid" class="postseason-dates-grid">
+                    <!-- Date inputs will be populated here -->
+                </div>
+                <button id="generate-postseason-btn" class="btn-admin-save" style="margin-top: 1.5rem;">Generate/Update Postseason Schedule</button>
+                <div id="postseason-schedule-container" style="margin-top: 1.5rem;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for Adding/Editing a Game -->
+    <div id="game-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="game-modal-title">Add New Game</h3>
+            <form id="game-form">
+                <div class="form-group-admin">
+                    <label for="game-date">Date (MM/DD/YYYY)</label>
+                    <input type="text" id="game-date" required placeholder="e.g., 10/28/2024">
+                </div>
+                <div class="form-group-admin">
+                    <label for="game-week">Week</label>
+                    <input type="number" id="game-week" required min="1" max="15">
+                </div>
+                <div class="form-group-admin">
+                    <label for="team1-select">Team 1</label>
+                    <select id="team1-select" required></select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team2-select">Team 2</label>
+                    <select id="team2-select" required></select>
+                </div>
+                <button type="submit" class="btn-admin-save">Save Game</button>
+            </form>
+        </div>
+    </div>
+
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-schedule.js"></script>
+</body>
+</html>

@@ -15,6 +15,124 @@ const db = admin.firestore();
 /**
  * NEW: Callable V2 Function to calculate performance-based awards.
  */
+
+/**
+ * NEW: Callable V2 Function to generate the postseason schedule.
+ */
+exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth || !request.auth.uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    const { seasonId, dates } = request.data;
+    if (!seasonId || !dates) {
+        throw new functions.https.HttpsError('invalid-argument', 'Missing seasonId or dates.');
+    }
+
+    console.log(`Generating postseason schedule for ${seasonId}`);
+
+    try {
+        // --- 1. Fetch and Prepare Data ---
+        const teamsRef = db.collection('v2_teams');
+        const teamsSnap = await teamsRef.get();
+        const allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const teamRecords = await Promise.all(allTeams.map(async (team) => {
+            const recordRef = db.doc(`v2_teams/${team.id}/seasonal_records/${seasonId}`);
+            const recordSnap = await recordRef.get();
+            return { ...team, ...recordSnap.data() };
+        }));
+
+        const eastConf = teamRecords.filter(t => t.conference === 'Eastern' && t.postseed).sort((a, b) => a.postseed - b.postseed);
+        const westConf = teamRecords.filter(t => t.conference === 'Western' && t.postseed).sort((a, b) => a.postseed - b.postseed);
+
+        if (eastConf.length < 10 || westConf.length < 10) {
+            throw new functions.https.HttpsError('failed-precondition', 'Not all teams have a final postseed. Ensure the regular season is complete.');
+        }
+
+        const batch = db.batch();
+        const postGamesRef = db.collection(`seasons/${seasonId}/post_games`);
+
+        // --- 2. Clear Existing Postseason Schedule ---
+        const existingGamesSnap = await postGamesRef.get();
+        existingGamesSnap.forEach(doc => batch.delete(doc.ref));
+        console.log(`Cleared ${existingGamesSnap.size} existing postseason games.`);
+
+        // --- 3. Helper Functions ---
+        const TBD_TEAM = { id: 'TBD', team_name: 'TBD' };
+        const dateValidators = {
+            'Play-In': 2, 'Round 1': 3, 'Round 2': 3, 'Conf Finals': 5, 'Finals': 7
+        };
+
+        const createSeries = (week, seriesName, numGames, team1, team2, dateArray) => {
+            const parsedDates = dateArray.split(',').map(d => d.trim()).filter(d => d);
+            if (parsedDates.length < numGames) {
+                throw new Error(`Not enough dates provided for ${week} (${seriesName}). Expected ${numGames}, got ${parsedDates.length}.`);
+            }
+            for (let i = 0; i < numGames; i++) {
+                const gameData = {
+                    week, series_name: `${seriesName} Game ${i + 1}`, date: parsedDates[i],
+                    team1_id: team1.id, team2_id: team2.id,
+                    completed: 'FALSE', team1_score: 0, team2_score: 0, winner: ''
+                };
+                // Use auto-generated doc ID for TBD games to avoid collisions
+                const docRef = (team1.id === 'TBD' || team2.id === 'TBD')
+                    ? postGamesRef.doc()
+                    : postGamesRef.doc(`${parsedDates[i]}-${team1.id}-${team2.id}`.replace(/\//g, "-"));
+                batch.set(docRef, gameData);
+            }
+        };
+
+        // --- 4. Generate Play-In Tournament Games ---
+        console.log("Generating Play-In games...");
+        const playInDates = dates['Play-In'].split(',').map(d => d.trim());
+        if (playInDates.length < dateValidators['Play-In']) throw new Error("Not enough dates for Play-In tournament.");
+
+        // 7 vs 8 Game (Winner becomes 7th seed)
+        createSeries('Play-In', 'E7vE8', 1, eastConf[6], eastConf[7], playInDates[0]);
+        createSeries('Play-In', 'W7vW8', 1, westConf[6], westConf[7], playInDates[0]);
+        // 9 vs 10 Game (Loser is eliminated)
+        createSeries('Play-In', 'E9vE10', 1, eastConf[8], eastConf[9], playInDates[0]);
+        createSeries('Play-In', 'W9vW10', 1, westConf[8], westConf[9], playInDates[0]);
+        // Final Play-In Game (Winner becomes 8th seed)
+        createSeries('Play-In', 'E8thSeedGame', 1, TBD_TEAM, TBD_TEAM, playInDates[1]);
+        createSeries('Play-In', 'W8thSeedGame', 1, TBD_TEAM, TBD_TEAM, playInDates[1]);
+
+        // --- 5. Generate Round 1 (Best-of-3) ---
+        console.log("Generating Round 1 schedule...");
+        createSeries('Round 1', 'E1vE8', 3, eastConf[0], TBD_TEAM, dates['Round 1']);
+        createSeries('Round 1', 'E4vE5', 3, eastConf[3], eastConf[4], dates['Round 1']);
+        createSeries('Round 1', 'E3vE6', 3, eastConf[2], eastConf[5], dates['Round 1']);
+        createSeries('Round 1', 'E2vE7', 3, eastConf[1], TBD_TEAM, dates['Round 1']);
+        createSeries('Round 1', 'W1vW8', 3, westConf[0], TBD_TEAM, dates['Round 1']);
+        createSeries('Round 1', 'W4vW5', 3, westConf[3], westConf[4], dates['Round 1']);
+        createSeries('Round 1', 'W3vW6', 3, westConf[2], westConf[5], dates['Round 1']);
+        createSeries('Round 1', 'W2vW7', 3, westConf[1], TBD_TEAM, dates['Round 1']);
+
+        // --- 6. Generate Round 2 (Best-of-3) ---
+        console.log("Generating Round 2 schedule...");
+        createSeries('Round 2', 'E-Semi1', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+        createSeries('Round 2', 'E-Semi2', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+        createSeries('Round 2', 'W-Semi1', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+        createSeries('Round 2', 'W-Semi2', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+
+        // --- 7. Generate Conference Finals (Best-of-5) ---
+        console.log("Generating Conference Finals schedule...");
+        createSeries('Conf Finals', 'ECF', 5, TBD_TEAM, TBD_TEAM, dates['Conf Finals']);
+        createSeries('Conf Finals', 'WCF', 5, TBD_TEAM, TBD_TEAM, dates['Conf Finals']);
+
+        // --- 8. Generate Finals (Best-of-7) ---
+        console.log("Generating Finals schedule...");
+        createSeries('Finals', 'Finals', 7, TBD_TEAM, TBD_TEAM, dates['Finals']);
+
+        await batch.commit();
+        return { message: "Postseason schedule generated successfully!" };
+
+    } catch (error) {
+        console.error("Error generating postseason schedule:", error);
+        throw new functions.https.HttpsError('internal', `Failed to generate schedule: ${error.message}`);
+    }
+});
+
 exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (request) => {
     // Basic validation
     if (!request.auth || !request.auth.uid) {

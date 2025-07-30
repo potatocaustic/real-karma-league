@@ -555,3 +555,41 @@ main {
     font-weight: bold;
     text-align: right;
 }
+
+/* --- NEW: Schedule Manager Styles --- */
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+.schedule-section {
+    background-color: #fff;
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+    .schedule-section h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .schedule-table th, .schedule-table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        text-align: left;
+    }
+
+.postseason-dates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
