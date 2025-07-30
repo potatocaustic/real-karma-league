@@ -454,3 +454,53 @@ main {
     background-color: #f1b0b7;
     pointer-events: none; /* Disable inputs on forfeited rows */
 }
+
+/* --- NEW: Awards Management Styles --- */
+.awards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.awards-section {
+    background-color: #fff;
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+    .awards-section h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+.team-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.player-list-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.auto-award-display {
+    background-color: #f0f2f5;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+    .auto-award-display p {
+        margin: 0.5rem 0;
+        font-size: 1rem;
+    }
+
+    .auto-award-display strong {
+        color: #0056b3;
+    }

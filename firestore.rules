@@ -20,9 +20,12 @@ service cloud.firestore {
     match /transactions/{transactionId} {
         allow read, write: if isAdmin();
     }
-    // NEW: Rule for draft results
     match /draft_results/{doc=**} {
       allow read, write: if isAdmin();
+    }
+    // NEW: Rule for awards
+    match /awards/{doc=**} {
+        allow read, write: if isAdmin();
     }
 
     // == Rules for NEW Statistics Collections (Admin-Only) ==

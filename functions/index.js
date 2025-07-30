@@ -12,6 +12,71 @@ const db = admin.firestore();
 // ===================================================================
 // V2 FUNCTIONS - DO NOT MODIFY LEGACY FUNCTIONS BELOW
 // ===================================================================
+/**
+ * NEW: Callable V2 Function to calculate performance-based awards.
+ */
+exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (request) => {
+    // Basic validation
+    if (!request.auth || !request.auth.uid) {
+        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    const { seasonId } = request.data;
+    if (!seasonId) {
+        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "seasonId" argument.');
+    }
+
+    console.log(`Calculating performance awards for season: ${seasonId}`);
+    const seasonNumber = seasonId.replace('S', '');
+
+    try {
+        const batch = db.batch();
+        const awardsCollectionRef = db.collection(`awards/season_${seasonNumber}/S${seasonNumber}_awards`);
+
+        // 1. Find Best Player Performance
+        const lineupsRef = db.collection(`seasons/${seasonId}/lineups`);
+        const bestPlayerQuery = lineupsRef.orderBy('pct_above_median', 'desc').limit(1);
+        const bestPlayerSnap = await bestPlayerQuery.get();
+
+        if (!bestPlayerSnap.empty) {
+            const bestPlayerPerf = bestPlayerSnap.docs[0].data();
+            const awardData = {
+                award_name: "Best Performance (Player)",
+                player_id: bestPlayerPerf.player_id,
+                player_handle: bestPlayerPerf.player_handle,
+                team_id: bestPlayerPerf.team_id,
+                date: bestPlayerPerf.date,
+                value: bestPlayerPerf.pct_above_median
+            };
+            batch.set(awardsCollectionRef.doc('best_performance_player'), awardData);
+        }
+
+        // 2. Find Best Team Performance
+        const dailyScoresRef = db.collection(`daily_scores/season_${seasonNumber}/S${seasonNumber}_daily_scores`);
+        const bestTeamQuery = dailyScoresRef.orderBy('pct_above_median', 'desc').limit(1);
+        const bestTeamSnap = await bestTeamQuery.get();
+
+        if (!bestTeamSnap.empty) {
+            const bestTeamPerf = bestTeamSnap.docs[0].data();
+            const teamDoc = await db.collection('v2_teams').doc(bestTeamPerf.team_id).get();
+            const awardData = {
+                award_name: "Best Performance (Team)",
+                team_id: bestTeamPerf.team_id,
+                team_name: teamDoc.exists ? teamDoc.data().team_name : 'Unknown',
+                date: bestTeamPerf.date,
+                value: bestTeamPerf.pct_above_median
+            };
+            batch.set(awardsCollectionRef.doc('best_performance_team'), awardData);
+        }
+
+        await batch.commit();
+        console.log("Successfully calculated and saved performance awards.");
+        return { message: "Performance awards calculated and saved successfully!" };
+
+    } catch (error) {
+        console.error("Error calculating performance awards:", error);
+        throw new functions.https.HttpsError('internal', 'Failed to calculate performance awards.');
+    }
+});
 
 /**
  * NEW: V2 Function to process a new draft pick.
