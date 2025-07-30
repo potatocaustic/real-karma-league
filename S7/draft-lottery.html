@@ -438,7 +438,7 @@
     <script src="../js/main.js" type="module"></script>
     <!-- REFACTORED SCRIPT TO USE FIREBASE -->
     <script type="module">
-        import { db, getDoc, getDocs, collection, doc, query, where } from '../js/firebase-init.js';
+        import { db, getDoc, getDocs, collection, doc, query, where } from '/js/firebase-init.js';
 
         // --- DATA AND CONFIGURATION ---
         const lotteryOdds = [
@@ -462,14 +462,14 @@
         function renderTableHeader(isSimulatedView = false) {
             const pickOrSeed = isSimulatedView ? 'Pick' : 'Seed';
             document.getElementById('lottery-table-head').innerHTML = `
-                        <tr>
-                            <th scope="col">${pickOrSeed}</th>
-                            <th scope="col">Team</th>
-                            <th scope="col" class="text-center hidden-mobile">Record</th>
-                            <th scope="col" class="text-center">#1 Pick Odds</th>
-                            <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
-                        </tr>
-                    `;
+                    <tr>
+                        <th scope="col">${pickOrSeed}</th>
+                        <th scope="col">Team</th>
+                        <th scope="col" class="text-center hidden-mobile">Record</th>
+                        <th scope="col" class="text-center">#1 Pick Odds</th>
+                        <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
+                    </tr>
+                `;
         }
 
         function getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded) {
@@ -479,21 +479,21 @@
 
             if (isTraded) {
                 return `
-                            <a href="team.html?id=${ownerId}" class="team-cell">
-                                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
-                                <div class="team-cell-content">
-                                    <span class="font-semibold">${teamName}</span>
-                                    <span class="original-team-traded">${originalTeamName}</span>
-                                </div>
-                            </a>
-                        `;
+                        <a href="team.html?id=${ownerId}" class="team-cell">
+                            <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                            <div class="team-cell-content">
+                                <span class="font-semibold">${teamName}</span>
+                                <span class="original-team-traded">${originalTeamName}</span>
+                            </div>
+                        </a>
+                    `;
             } else {
                 return `
-                            <a href="team.html?id=${ownerId}" class="team-cell">
-                                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
-                                <span class="font-semibold whitespace-nowrap">${teamName}</span>
-                            </a>
-                        `;
+                        <a href="team.html?id=${ownerId}" class="team-cell">
+                            <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                            <span class="font-semibold whitespace-nowrap">${teamName}</span>
+                        </a>
+                    `;
             }
         }
 
@@ -509,14 +509,14 @@
                 const teamCellHtml = getTeamCellHtml(ownerTeam, team, ownerId, isTraded);
 
                 html += `
-                            <tr>
-                                <td class="font-semibold">${team.seed}</td>
-                                <td>${teamCellHtml}</td>
-                                <td class="text-center hidden-mobile">${team.wins || 0} - ${team.losses || 0}</td>
-                                <td class="text-center">${(team.pct1st || 0).toFixed(2)}%</td>
-                                <td class="text-center hidden-mobile">${(team.pctTop4 || 0).toFixed(2)}%</td>
-                            </tr>
-                        `;
+                        <tr>
+                            <td class="font-semibold">${team.seed}</td>
+                            <td>${teamCellHtml}</td>
+                            <td class="text-center hidden-mobile">${team.wins || 0} - ${team.losses || 0}</td>
+                            <td class="text-center">${(team.pct1st || 0).toFixed(2)}%</td>
+                            <td class="text-center hidden-mobile">${(team.pctTop4 || 0).toFixed(2)}%</td>
+                        </tr>
+                    `;
             });
             tableBody.innerHTML = html;
         }
@@ -539,19 +539,19 @@
                 const teamCellHtml = getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded);
 
                 html += `
-                            <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
-                                <td class="font-semibold">
-                                    <div style="display: flex; align-items: center; white-space: nowrap;">
-                                        <span>${pickNumber}</span>
-                                        ${movementHtml}
-                                    </div>
-                                </td>
-                                <td>${teamCellHtml}</td>
-                                <td class="text-center hidden-mobile">${originalTeam.wins || 0} - ${originalTeam.losses || 0}</td>
-                                <td class="text-center">${(originalTeam.pct1st || 0).toFixed(2)}%</td>
-                                <td class="text-center hidden-mobile">${(originalTeam.pctTop4 || 0).toFixed(2)}%</td>
-                            </tr>
-                        `;
+                        <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
+                            <td class="font-semibold">
+                                <div style="display: flex; align-items: center; white-space: nowrap;">
+                                    <span>${pickNumber}</span>
+                                    ${movementHtml}
+                                </div>
+                            </td>
+                            <td>${teamCellHtml}</td>
+                            <td class="text-center hidden-mobile">${originalTeam.wins || 0} - ${originalTeam.losses || 0}</td>
+                            <td class="text-center">${(originalTeam.pct1st || 0).toFixed(2)}%</td>
+                            <td class="text-center hidden-mobile">${(originalTeam.pctTop4 || 0).toFixed(2)}%</td>
+                        </tr>
+                    `;
             });
             tableBody.innerHTML = html;
         }
@@ -592,9 +592,9 @@
 
         function renderSimulatedButtons() {
             buttonContainer.innerHTML = `
-                        <button id="simulateAgainBtn" class="action-button">Simulate Again</button>
-                        <button id="resetBtn" class="action-button">Reset</button>
-                    `;
+                    <button id="simulateAgainBtn" class="action-button">Simulate Again</button>
+                    <button id="resetBtn" class="action-button">Reset</button>
+                `;
         }
 
         function resetView() {
