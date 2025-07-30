@@ -59,8 +59,9 @@ async function loadLotteryTeams() {
 
     const teamRecordsPromises = teamsSnap.docs.map(async teamDoc => {
         const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${currentSeasonId}`);
-        const recordSnap = await recordRef.get();
-        return { id: teamDoc.id, ...teamDoc.data(), ...recordSnap.data() };
+        // CORRECTED: Used getDoc(recordRef) instead of recordRef.get()
+        const recordSnap = await getDoc(recordRef);
+        return { id: teamDoc.id, ...teamDoc.data(), ...(recordSnap.exists() ? recordSnap.data() : {}) };
     });
 
     allTeams = await Promise.all(teamRecordsPromises);
