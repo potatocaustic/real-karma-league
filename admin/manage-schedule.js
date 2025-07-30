@@ -21,6 +21,7 @@ const team2Select = document.getElementById('team2-select');
 
 let allTeams = [];
 let gamesByWeek = {};
+let exhibitionGamesByWeek = {};
 let currentSeasonId = ''; // Start with an empty string
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -48,15 +49,13 @@ async function initializePage() {
 
         allTeams = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // FIX: Check if seasons exist before trying to load schedule data
         if (seasonsSnap.empty) {
             adminContainer.innerHTML = `<div class="error">No seasons found in the database. Please run the seeder script.</div>`;
             loadingContainer.style.display = 'none';
             adminContainer.style.display = 'block';
-            return; // Stop execution
+            return;
         }
 
-        // Populate season selector
         seasonSelect.innerHTML = seasonsSnap.docs.map(doc => `<option value="${doc.id}">${doc.data().season_name}</option>`).join('');
         currentSeasonId = seasonSelect.value;
 
@@ -91,14 +90,9 @@ function populatePostseasonDates() {
 
     let html = '';
     for (const [round, count] of Object.entries(rounds)) {
-        html += `<details class="round-details">
-                    <summary class="round-summary">${round}</summary>
-                    <div class="round-date-inputs">`;
+        html += `<details class="round-details"><summary class="round-summary">${round}</summary><div class="round-date-inputs">`;
         for (let i = 1; i <= count; i++) {
-            html += `<div class="form-group-admin" style="margin-bottom: 0.5rem;">
-                        <label for="date-${round.replace(' ', '-')}-${i}">Game ${i} Date</label>
-                        <input type="date" id="date-${round.replace(' ', '-')}-${i}">
-                     </div>`;
+            html += `<div class="form-group-admin" style="margin-bottom: 0.5rem;"><label for="date-${round.replace(' ', '-')}-${i}">Game ${i} Date</label><input type="date" id="date-${round.replace(' ', '-')}-${i}"></div>`;
         }
         html += `</div></details>`;
     }
@@ -106,25 +100,38 @@ function populatePostseasonDates() {
 }
 
 async function loadSchedules() {
-    // Ensure we have a valid season ID before querying
     if (!currentSeasonId) {
         console.error("Cannot load schedules without a valid season ID.");
         return;
     }
+
     gamesByWeek = {};
-    const gamesRef = collection(db, `seasons/${currentSeasonId}/games`);
-    const gamesSnap = await getDocs(gamesRef);
-    gamesSnap.docs.forEach(doc => {
+    exhibitionGamesByWeek = {};
+
+    const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
+        getDocs(collection(db, `seasons/${currentSeasonId}/games`)),
+        getDocs(collection(db, `seasons/${currentSeasonId}/post_games`)),
+        getDocs(collection(db, `seasons/${currentSeasonId}/exhibition_games`))
+    ]);
+
+    gamesSnap.forEach(doc => {
         const game = { id: doc.id, ...doc.data() };
         if (!gamesByWeek[game.week]) gamesByWeek[game.week] = [];
         gamesByWeek[game.week].push(game);
     });
-    renderSchedule(regularSeasonContainer, true);
 
-    const postGamesRef = collection(db, `seasons/${currentSeasonId}/post_games`);
-    const postGamesSnap = await getDocs(postGamesRef);
+    exhibitionGamesSnap.forEach(doc => {
+        const game = { id: doc.id, ...doc.data() };
+        if (!exhibitionGamesByWeek[game.week]) exhibitionGamesByWeek[game.week] = [];
+        exhibitionGamesByWeek[game.week].push(game);
+    });
+
+    // Combine regular and exhibition for the main display
+    const combinedGames = { ...gamesByWeek, ...exhibitionGamesByWeek };
+    renderSchedule(regularSeasonContainer, true, combinedGames);
+
     const postGamesByWeek = {};
-    postGamesSnap.docs.forEach(doc => {
+    postGamesSnap.forEach(doc => {
         const game = { id: doc.id, ...doc.data() };
         if (!postGamesByWeek[game.week]) postGamesByWeek[game.week] = [];
         postGamesByWeek[game.week].push(game);
@@ -139,23 +146,20 @@ function renderSchedule(container, allowDelete = true, gamesSource = gamesByWeek
     }
 
     let finalHTML = '';
-    const sortedWeeks = Object.keys(gamesSource).sort((a, b) => {
-        if (!isNaN(a) && !isNaN(b)) return a - b;
-        const weekOrder = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
-        return weekOrder.indexOf(a) - weekOrder.indexOf(b);
-    });
+    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'All-Star', 'Relegation', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+    const sortedWeeks = Object.keys(gamesSource).sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
     for (const week of sortedWeeks) {
         finalHTML += `<details class="week-details"><summary class="week-summary">${isNaN(week) ? week : `Week ${week}`}</summary>`;
         finalHTML += '<table class="schedule-table">';
         gamesSource[week].forEach(game => {
-            const team1 = allTeams.find(t => t.id === game.team1_id)?.team_name || 'TBD';
-            const team2 = allTeams.find(t => t.id === game.team2_id)?.team_name || 'TBD';
+            const team1 = allTeams.find(t => t.id === game.team1_id)?.team_name || game.team1_id || 'TBD';
+            const team2 = allTeams.find(t => t.id === game.team2_id)?.team_name || game.team2_id || 'TBD';
             finalHTML += `
                 <tr>
                     <td>${game.date}</td>
                     <td>${team1} vs ${team2}</td>
-                    ${allowDelete ? `<td><button class="btn-admin-delete" data-game-id="${game.id}">Delete</button></td>` : ''}
+                    ${allowDelete && !isNaN(week) ? `<td><button class="btn-admin-delete" data-game-id="${game.id}" data-is-exhibition="${game.week === 'All-Star' || game.week === 'Relegation'}">Delete</button></td>` : '<td></td>'}
                 </tr>
             `;
         });
@@ -170,7 +174,10 @@ function openGameModal() {
     for (let i = 1; i <= 15; i++) {
         weekOptions += `<option value="${i}">Week ${i}</option>`;
     }
+    weekOptions += `<option value="All-Star">All-Star</option>`;
+    weekOptions += `<option value="Relegation">Relegation</option>`;
     gameWeekSelect.innerHTML = weekOptions;
+
     team1Select.innerHTML = '';
     team2Select.innerHTML = '';
     team1Select.disabled = true;
@@ -187,15 +194,18 @@ function populateAvailableTeams() {
         return;
     }
 
-    const scheduledTeams = new Set();
-    if (gamesByWeek[week]) {
-        gamesByWeek[week].forEach(game => {
-            scheduledTeams.add(game.team1_id);
-            scheduledTeams.add(game.team2_id);
-        });
+    let availableTeams = allTeams;
+    if (!isNaN(week)) { // Only filter for regular season weeks
+        const scheduledTeams = new Set();
+        if (gamesByWeek[week]) {
+            gamesByWeek[week].forEach(game => {
+                scheduledTeams.add(game.team1_id);
+                scheduledTeams.add(game.team2_id);
+            });
+        }
+        availableTeams = allTeams.filter(team => !scheduledTeams.has(team.id));
     }
 
-    const availableTeams = allTeams.filter(team => !scheduledTeams.has(team.id));
     const teamOptions = '<option value="">-- Select a Team --</option>' + availableTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
     team1Select.innerHTML = teamOptions;
@@ -206,16 +216,14 @@ function populateAvailableTeams() {
 
 async function handleSaveGame(e) {
     e.preventDefault();
-    const dateValue = document.getElementById('game-date').value; // YYYY-MM-DD
+    const dateValue = document.getElementById('game-date').value;
     const [year, month, day] = dateValue.split('-');
-
-    // Format date for display (MM/DD/YYYY)
     const formattedDateForDoc = `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
-    // Format date for ID (M-D-YYYY)
     const formattedDateForId = `${parseInt(month, 10)}-${parseInt(day, 10)}-${year}`;
 
     const team1Id = team1Select.value;
     const team2Id = team2Select.value;
+    const week = gameWeekSelect.value;
 
     if (team1Id === team2Id) {
         alert("A team cannot play against itself.");
@@ -223,20 +231,16 @@ async function handleSaveGame(e) {
     }
 
     const gameData = {
-        date: formattedDateForDoc,
-        week: gameWeekSelect.value,
-        team1_id: team1Id,
-        team2_id: team2Id,
-        completed: 'FALSE',
-        team1_score: 0,
-        team2_score: 0,
-        winner: ''
+        date: formattedDateForDoc, week, team1_id: team1Id, team2_id: team2Id,
+        completed: 'FALSE', team1_score: 0, team2_score: 0, winner: ''
     };
 
+    const isExhibition = week === 'All-Star' || week === 'Relegation';
+    const collectionName = isExhibition ? 'exhibition_games' : 'games';
     const gameId = `${formattedDateForId}-${team1Id}-${team2Id}`;
 
     try {
-        await setDoc(doc(db, `seasons/${currentSeasonId}/games`, gameId), gameData);
+        await setDoc(doc(db, `seasons/${currentSeasonId}/${collectionName}`, gameId), gameData);
         gameModal.style.display = 'none';
         await loadSchedules();
     } catch (error) {
@@ -248,9 +252,12 @@ async function handleSaveGame(e) {
 async function handleDeleteGame(e) {
     if (!e.target.matches('.btn-admin-delete')) return;
     const gameId = e.target.dataset.gameId;
+    const isExhibition = e.target.dataset.isExhibition === 'true';
+    const collectionName = isExhibition ? 'exhibition_games' : 'games';
+
     if (confirm("Are you sure you want to delete this game?")) {
         try {
-            await deleteDoc(doc(db, `seasons/${currentSeasonId}/games`, gameId));
+            await deleteDoc(doc(db, `seasons/${currentSeasonId}/${collectionName}`, gameId));
             await loadSchedules();
         } catch (error) {
             console.error("Error deleting game:", error);

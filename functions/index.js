@@ -12,10 +12,23 @@ const db = admin.firestore();
 // ===================================================================
 // V2 FUNCTIONS - DO NOT MODIFY LEGACY FUNCTIONS BELOW
 // ===================================================================
-/**
-/**
- * Callable V2 Function to generate the postseason schedule.
- */
+
+exports.processCompletedExhibitionGame = onDocumentUpdated("seasons/{seasonId}/exhibition_games/{gameId}", async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const { seasonId, gameId } = event.params;
+
+    // Only proceed if the game was just marked as completed.
+    if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
+        return null;
+    }
+
+    console.log(`Logging completion of EXHIBITION game ${gameId} in season ${seasonId}. No stat aggregation will occur.`);
+
+    // No further action is needed as exhibition games do not affect player or team stats.
+    return null;
+});
+
 exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');

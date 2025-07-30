@@ -26,10 +26,17 @@ service cloud.firestore {
     match /awards/{doc=**} {
         allow read, write: if isAdmin();
     }
-    // NEW: Rule for power rankings
     match /power_rankings/{doc=**} {
         allow read, write: if isAdmin();
     }
+    // NEW: Rules for exhibition games
+    match /seasons/{seasonId}/exhibition_games/{gameId} {
+        allow read, write: if isAdmin();
+    }
+    match /seasons/{seasonId}/exhibition_lineups/{lineupId} {
+        allow read, write: if isAdmin();
+    }
+
 
     // == Rules for NEW Statistics Collections (Admin-Only) ==
     match /daily_averages/{doc=**} {
