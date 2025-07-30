@@ -686,28 +686,34 @@
                     seed: index + 1
                 }));
 
-                // --- Display Logic ---
-                if (lotteryResultsSnap.exists() && Array.isArray(lotteryResultsSnap.data().final_order)) {
-                    const finalOrderIds = lotteryResultsSnap.data().final_order;
-                    const finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId));
+                // --- REVISED Display Logic ---
+                let showOfficialResults = false;
+                let finalOrder = [];
 
-                    if (finalOrder.some(team => team === undefined)) {
-                        console.warn("Data mismatch: Saved lottery results contain teams that are no longer in the lottery pool. Displaying pre-lottery odds instead.");
-                        document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
-                        document.getElementById('table-description').innerHTML = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams. <br><strong style="color: #dc3545;">Official results are hidden due to a data mismatch.</strong>`;
-                        renderLotteryOddsTable();
-                        document.getElementById('simulateBtn').disabled = false;
-                        setupButtonListeners();
+                if (lotteryResultsSnap.exists()) {
+                    const resultsData = lotteryResultsSnap.data();
+                    if (resultsData && Array.isArray(resultsData.final_order)) {
+                        const finalOrderIds = resultsData.final_order;
+                        const mappedOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId));
+
+                        // Validate that the saved order is complete and matches the current lottery pool
+                        if (mappedOrder.length === 14 && !mappedOrder.some(t => t === undefined)) {
+                            showOfficialResults = true;
+                            finalOrder = mappedOrder;
+                        } else {
+                            console.warn("Data mismatch: Saved lottery results contain teams that are no longer in the lottery pool or is incomplete. Displaying pre-lottery odds instead.");
+                        }
                     } else {
-                        document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
-                        document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
-                        renderFinalResults(finalOrder);
-                        buttonContainer.innerHTML = '';
-                    }
-                } else {
-                    if (lotteryResultsSnap.exists()) {
                         console.error("Malformed lottery results found in Firestore. 'final_order' is missing or not an array.");
                     }
+                }
+
+                if (showOfficialResults) {
+                    document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
+                    document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
+                    renderFinalResults(finalOrder);
+                    buttonContainer.innerHTML = '';
+                } else {
                     document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
                     document.getElementById('table-description').textContent = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams.`;
                     renderLotteryOddsTable();
