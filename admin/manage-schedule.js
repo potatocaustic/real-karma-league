@@ -67,7 +67,7 @@ async function initializePage() {
             loadSchedules();
         });
         addGameBtn.addEventListener('click', openGameModal);
-        closeModalBtn.addEventListener('click', () => gameModal.style.display = 'none');
+        closeModalBtn.addEventListener('click', () => gameModal.classList.remove('is-visible')); // FIX: Use classList to hide
         gameForm.addEventListener('submit', handleSaveGame);
         gameWeekSelect.addEventListener('change', populateAvailableTeams);
         generatePostseasonBtn.addEventListener('click', handleGeneratePostseason);
@@ -170,6 +170,7 @@ function renderSchedule(container, allowDelete = true, gamesSource = gamesByWeek
 
 function openGameModal() {
     gameForm.reset();
+    // FIX: Add "All-Star" and "Relegation" to the week options
     let weekOptions = '<option value="">-- Select a Week --</option>';
     for (let i = 1; i <= 15; i++) {
         weekOptions += `<option value="${i}">Week ${i}</option>`;
@@ -183,7 +184,7 @@ function openGameModal() {
     team1Select.disabled = true;
     team2Select.disabled = true;
     document.getElementById('game-date').valueAsDate = new Date();
-    gameModal.style.display = 'flex';
+    gameModal.classList.add('is-visible'); // FIX: Use classList to show
 }
 
 function populateAvailableTeams() {
@@ -219,7 +220,7 @@ async function handleSaveGame(e) {
     const dateValue = document.getElementById('game-date').value;
     const [year, month, day] = dateValue.split('-');
     const formattedDateForDoc = `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
-    const formattedDateForId = `${parseInt(month, 10)}-${parseInt(day, 10)}-${year}`;
+    const formattedDateForId = `${year}-${month}-${day}`; // Using YYYY-MM-DD for a more standard ID
 
     const team1Id = team1Select.value;
     const team2Id = team2Select.value;
@@ -235,13 +236,14 @@ async function handleSaveGame(e) {
         completed: 'FALSE', team1_score: 0, team2_score: 0, winner: ''
     };
 
+    // This logic correctly determines the collection based on the week
     const isExhibition = week === 'All-Star' || week === 'Relegation';
     const collectionName = isExhibition ? 'exhibition_games' : 'games';
     const gameId = `${formattedDateForId}-${team1Id}-${team2Id}`;
 
     try {
         await setDoc(doc(db, `seasons/${currentSeasonId}/${collectionName}`, gameId), gameData);
-        gameModal.style.display = 'none';
+        gameModal.classList.remove('is-visible');
         await loadSchedules();
     } catch (error) {
         console.error("Error saving game:", error);

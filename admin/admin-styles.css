@@ -127,7 +127,7 @@ main {
 }
 
 /* Admin Buttons */
-.btn-admin-edit, .btn-admin-save {
+.btn-admin-edit, .btn-admin-save, .btn-admin-delete {
     padding: 0.5rem 1rem;
     border: none;
     border-radius: 4px;
@@ -156,27 +156,48 @@ main {
         background-color: #218838;
     }
 
+.btn-admin-delete {
+    background-color: #dc3545;
+    color: white;
+}
 
-/* Score Entry Modal */
+    .btn-admin-delete:hover {
+        background-color: #c82333;
+    }
+
+
+/* MODAL STYLING FIX */
 .modal-admin {
-    display: none;
+    display: none; /* Hidden by default */
     position: fixed;
     z-index: 1001;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.6);
+    background-color: rgba(0, 0, 0, 0.6);
+    /* Use flexbox for centering */
+    align-items: center;
+    justify-content: center;
+    padding: 1rem; /* Provides spacing on smaller viewports */
 }
 
+    .modal-admin.is-visible {
+        display: flex;
+    }
+
 .modal-content-admin {
-    background-color: #fff;
-    margin: 15% auto;
+    background-color: #fefefe;
+    margin: 0; /* Let flexbox handle positioning */
     padding: 2rem;
     border-radius: 8px;
     width: 90%;
     max-width: 500px;
     position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    /* Handle content overflow */
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .close-btn-admin {
@@ -190,6 +211,7 @@ main {
 }
 
 .modal-content-admin h3 {
+    margin-top: 0;
     margin-bottom: 1.5rem;
 }
 
@@ -202,12 +224,16 @@ main {
         margin-bottom: 0.5rem;
     }
 
-    .form-group-admin input[type="number"] {
+    .form-group-admin input[type="number"],
+    .form-group-admin input[type="text"],
+    .form-group-admin input[type="date"],
+    .form-group-admin select {
         width: 100%;
         padding: 0.75rem;
         border: 1px solid #ddd;
         border-radius: 4px;
     }
+
 
 .form-grid {
     display: grid;
@@ -405,55 +431,55 @@ main {
     margin-top: 1.5rem;
 }
 
-.draft-table th, .draft-table td {
-    border: 1px solid #ddd;
-    padding: 0.75rem;
-    text-align: left;
-    vertical-align: middle;
-}
+    .draft-table th, .draft-table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        text-align: left;
+        vertical-align: middle;
+    }
 
-.draft-table th {
-    background-color: #f2f2f2;
-}
+    .draft-table th {
+        background-color: #f2f2f2;
+    }
 
-.draft-table tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
+    .draft-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
 
-/* Make inputs and selects in the table take up full cell width */
-.draft-table input[type="text"],
-.draft-table select {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
+    /* Make inputs and selects in the table take up full cell width */
+    .draft-table input[type="text"],
+    .draft-table select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
 
-.draft-table input[type="checkbox"] {
-    width: 20px;
-    height: 20px;
-}
+    .draft-table input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
 
-/* Read-only cells for overall and round numbers */
-.draft-table td.read-only {
-    font-weight: bold;
-    background-color: #e9ecef;
-    text-align: center;
-}
+    /* Read-only cells for overall and round numbers */
+    .draft-table td.read-only {
+        font-weight: bold;
+        background-color: #e9ecef;
+        text-align: center;
+    }
 
-/* Style for forfeited rows */
-.draft-table tr.is-forfeited {
-    background-color: #f8d7da; /* Light red */
-    text-decoration: line-through;
-    color: #721c24; /* Dark red text */
-}
+    /* Style for forfeited rows */
+    .draft-table tr.is-forfeited {
+        background-color: #f8d7da; /* Light red */
+        text-decoration: line-through;
+        color: #721c24; /* Dark red text */
+    }
 
-/* FIX: Use a more specific selector to avoid disabling the checkbox itself */
-.draft-table tr.is-forfeited input:not([type="checkbox"]),
-.draft-table tr.is-forfeited select {
-    background-color: #f1b0b7;
-    pointer-events: none; /* Disable inputs on forfeited rows */
-}
+        /* FIX: Use a more specific selector to avoid disabling the checkbox itself */
+        .draft-table tr.is-forfeited input:not([type="checkbox"]),
+        .draft-table tr.is-forfeited select {
+            background-color: #f1b0b7;
+            pointer-events: none; /* Disable inputs on forfeited rows */
+        }
 
 /* --- NEW: Awards Management Styles --- */
 .awards-grid {
@@ -506,48 +532,48 @@ main {
     }
 
 
-    /* --- NEW: Power Rankings Styles --- */
+/* --- NEW: Power Rankings Styles --- */
 .power-rankings-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1.5rem;
 }
 
-.power-rankings-table th, .power-rankings-table td {
-    border: 1px solid #ddd;
-    padding: 0.75rem;
-    text-align: center;
-    vertical-align: middle;
-}
+    .power-rankings-table th, .power-rankings-table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        text-align: center;
+        vertical-align: middle;
+    }
 
-.power-rankings-table th {
-    background-color: #f2f2f2;
-}
+    .power-rankings-table th {
+        background-color: #f2f2f2;
+    }
 
-.power-rankings-table td:first-child {
-    text-align: left;
-    font-weight: bold;
-}
+    .power-rankings-table td:first-child {
+        text-align: left;
+        font-weight: bold;
+    }
 
-.power-rankings-table .rank-select {
-    width: 80px;
-    padding: 0.5rem;
-}
+    .power-rankings-table .rank-select {
+        width: 80px;
+        padding: 0.5rem;
+    }
 
-.power-rankings-table .rank-change.positive {
-    color: #28a745;
-    font-weight: bold;
-}
+    .power-rankings-table .rank-change.positive {
+        color: #28a745;
+        font-weight: bold;
+    }
 
-.power-rankings-table .rank-change.negative {
-    color: #dc3545;
-    font-weight: bold;
-}
+    .power-rankings-table .rank-change.negative {
+        color: #dc3545;
+        font-weight: bold;
+    }
 
-.power-rankings-table tr.has-duplicate .rank-select {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
-}
+    .power-rankings-table tr.has-duplicate .rank-select {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+    }
 
 .validation-message {
     margin-top: 1rem;
@@ -627,8 +653,3 @@ main {
     padding: 1rem;
 }
 
-/* FIX: Add Game Modal styling */
-#game-modal .modal-content-admin {
-    max-width: 500px;
-    width: 90%;
-}
