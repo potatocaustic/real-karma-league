@@ -653,32 +653,25 @@
                     .filter(p => parseInt(p.data().season) === parseInt(DRAFT_SEASON.replace('S', '')) && parseInt(p.data().round) === 1)
                     .forEach(p => pickOwnership.set(p.data().original_team, p.data().current_owner));
 
-                // --- NEW: Full Play-In Logic ---
+                // --- Full Play-In Logic ---
                 const playoffTeams = new Set();
-                // 1. Add top 6 seeds from each conference
                 allTeamsWithRecords.forEach(team => {
                     if (team.postseed && team.postseed <= 6) {
                         playoffTeams.add(team.id);
                     }
                 });
 
-                // 2. Determine play-in winners
                 const playInGames = postGamesSnap.docs.map(d => d.data());
-
                 for (const conf of ['E', 'W']) {
-                    // Find 7v8 game winner (7th seed)
                     const game7v8 = playInGames.find(g => g.series_name && g.series_name.includes(`${conf}7v${conf}8`));
                     if (game7v8 && game7v8.winner) {
                         playoffTeams.add(game7v8.winner);
                     }
-
-                    // Find 8th seed winner
                     const game8thSeed = playInGames.find(g => g.series_name && g.series_name.includes(`${conf}8thSeedGame`));
                     if (game8thSeed && game8thSeed.winner) {
                         playoffTeams.add(game8thSeed.winner);
                     }
                 }
-                // --- End of New Logic ---
 
                 const nonPlayoffTeams = allTeamsWithRecords.filter(t => t.conference && !playoffTeams.has(t.id));
 
@@ -693,14 +686,28 @@
                     seed: index + 1
                 }));
 
-                if (lotteryResultsSnap.exists()) {
-                    document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
-                    document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
+                // --- Display Logic ---
+                if (lotteryResultsSnap.exists() && Array.isArray(lotteryResultsSnap.data().final_order)) {
                     const finalOrderIds = lotteryResultsSnap.data().final_order;
-                    const finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId)).filter(Boolean);
-                    renderFinalResults(finalOrder);
-                    buttonContainer.innerHTML = '';
+                    const finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId));
+
+                    if (finalOrder.some(team => team === undefined)) {
+                        console.warn("Data mismatch: Saved lottery results contain teams that are no longer in the lottery pool. Displaying pre-lottery odds instead.");
+                        document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
+                        document.getElementById('table-description').innerHTML = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams. <br><strong style="color: #dc3545;">Official results are hidden due to a data mismatch.</strong>`;
+                        renderLotteryOddsTable();
+                        document.getElementById('simulateBtn').disabled = false;
+                        setupButtonListeners();
+                    } else {
+                        document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
+                        document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
+                        renderFinalResults(finalOrder);
+                        buttonContainer.innerHTML = '';
+                    }
                 } else {
+                    if (lotteryResultsSnap.exists()) {
+                        console.error("Malformed lottery results found in Firestore. 'final_order' is missing or not an array.");
+                    }
                     document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
                     document.getElementById('table-description').textContent = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams.`;
                     renderLotteryOddsTable();
