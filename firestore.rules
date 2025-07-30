@@ -23,8 +23,11 @@ service cloud.firestore {
     match /draft_results/{doc=**} {
       allow read, write: if isAdmin();
     }
-    // NEW: Rule for awards
     match /awards/{doc=**} {
+        allow read, write: if isAdmin();
+    }
+    // NEW: Rule for power rankings
+    match /power_rankings/{doc=**} {
         allow read, write: if isAdmin();
     }
 

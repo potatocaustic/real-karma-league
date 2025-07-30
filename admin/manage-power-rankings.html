@@ -1,0 +1,61 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Power Rankings - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Enter Power Rankings</h2>
+
+        <div class="filters-container" style="display: flex; gap: 1.5rem;">
+            <div class="filter-group" style="flex-grow: 1;">
+                <label for="season-select">Season:</label>
+                <select id="season-select"></select>
+            </div>
+            <div class="filter-group" style="flex-grow: 1;">
+                <label for="version-select">Version:</label>
+                <select id="version-select"></select>
+            </div>
+        </div>
+
+        <form id="power-rankings-form">
+            <div class="draft-table-container">
+                <table class="power-rankings-table">
+                    <thead>
+                        <tr>
+                            <th>Team</th>
+                            <th>New Rank</th>
+                            <th>Previous Rank</th>
+                            <th>Change</th>
+                        </tr>
+                    </thead>
+                    <tbody id="power-rankings-body">
+                        <!-- Rankings will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="validation-message-container"></div>
+            <div style="text-align: right; margin-top: 1rem;">
+                <button type="submit" id="save-rankings-btn" class="btn-admin-save">Save Rankings</button>
+            </div>
+        </form>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Firebase -->
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-power-rankings.js"></script>
+</body>
+</html>
