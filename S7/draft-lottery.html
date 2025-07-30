@@ -665,10 +665,9 @@
                 // --- CORRECTED PLAY-IN LOGIC ---
                 const playInGames = postGamesSnap.docs.map(d => d.data());
                 for (const conf of ['E', 'W']) {
-                    // Find games using the correct series_name format
-                    const game7v8 = playInGames.find(g => g.series_name === `${conf}-PI-7v8`);
-                    const game9v10 = playInGames.find(g => g.series_name === `${conf}-PI-9v10`);
-                    const finalPlayInGame = playInGames.find(g => g.series_name === `${conf}-PI-L78vW910`);
+                    // Find games using the correct series_id format from the screenshot
+                    const game7v8 = playInGames.find(g => g.series_id === `${conf}-PI-7v8`);
+                    const finalPlayInGame = playInGames.find(g => g.series_id === `${conf}-PI-L78vW910`);
 
                     // Determine the 7th seed
                     if (game7v8 && game7v8.winner) {
