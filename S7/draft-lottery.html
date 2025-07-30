@@ -438,7 +438,7 @@
     <script src="../js/main.js" type="module"></script>
     <!-- REFACTORED SCRIPT TO USE FIREBASE -->
     <script type="module">
-        import { db, getDoc, getDocs, collection, doc, query, where } from '/js/firebase-init.js';
+        import { db, getDoc, getDocs, collection, doc, query, where } from '../js/firebase-init.js';
 
         // --- DATA AND CONFIGURATION ---
         const lotteryOdds = [
@@ -636,7 +636,6 @@
                     getDoc(doc(db, `lottery_results/${DRAFT_SEASON}_lottery_results`))
                 ]);
 
-                // UPDATED: Filter teams to only include those with a conference
                 const teamRecordsPromises = teamsSnap.docs
                     .filter(doc => doc.data() && doc.data().conference)
                     .map(async teamDoc => {
@@ -693,7 +692,8 @@
 
                 if (lotteryResultsSnap.exists()) {
                     const resultsData = lotteryResultsSnap.data();
-                    if (resultsData && Array.isArray(resultsData.final_order)) {
+                    // PARANOID CHECK: Ensure resultsData and final_order are valid arrays with content
+                    if (resultsData && Array.isArray(resultsData.final_order) && resultsData.final_order.length > 0) {
                         const finalOrderIds = resultsData.final_order;
                         finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId)).filter(Boolean);
 
@@ -703,7 +703,7 @@
                             console.warn("Data mismatch: Saved lottery results are incomplete or contain invalid teams. Displaying simulator.");
                         }
                     } else {
-                        console.warn("Malformed lottery results found in Firestore. Displaying simulator.");
+                        console.warn("Malformed lottery results found in Firestore (or final_order is empty). Displaying simulator.");
                     }
                 }
 
