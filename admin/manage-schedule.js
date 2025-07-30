@@ -1,6 +1,6 @@
 // /admin/manage-schedule.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, deleteDoc, addDoc, httpsCallable } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, writeBatch, deleteDoc, setDoc, httpsCallable } from '/js/firebase-init.js';
 
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -14,8 +14,12 @@ const generatePostseasonBtn = document.getElementById('generate-postseason-btn')
 const gameModal = document.getElementById('game-modal');
 const gameForm = document.getElementById('game-form');
 const closeModalBtn = gameModal.querySelector('.close-btn-admin');
+const gameWeekInput = document.getElementById('game-week');
+const team1Select = document.getElementById('team1-select');
+const team2Select = document.getElementById('team2-select');
 
 let allTeams = [];
+let gamesByWeek = {};
 let currentSeasonId = 'S7';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,6 +49,7 @@ async function initializePage() {
         addGameBtn.addEventListener('click', openGameModal);
         closeModalBtn.addEventListener('click', () => gameModal.style.display = 'none');
         gameForm.addEventListener('submit', handleSaveGame);
+        gameWeekInput.addEventListener('change', populateAvailableTeams);
         generatePostseasonBtn.addEventListener('click', handleGeneratePostseason);
         regularSeasonContainer.addEventListener('click', handleDeleteGame);
 
@@ -57,50 +62,65 @@ async function initializePage() {
 }
 
 function populatePostseasonDates() {
-    const rounds = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
-    postseasonDatesContainer.innerHTML = rounds.map(round => `
-        <div class="form-group-admin">
-            <label for="date-${round.replace(' ', '-')}">${round} Dates</label>
-            <input type="text" id="date-${round.replace(' ', '-')}" placeholder="e.g., 4/15/2025, 4/17/2025">
-        </div>
-    `).join('');
+    const rounds = {
+        'Play-In': 2, 'Round 1': 3, 'Round 2': 3, 'Conf Finals': 5, 'Finals': 7
+    };
+
+    let html = '';
+    for (const [round, count] of Object.entries(rounds)) {
+        html += `<div class="form-group-admin"><h4>${round}</h4>`;
+        for (let i = 1; i <= count; i++) {
+            html += `<label for="date-${round.replace(' ', '-')}-${i}">Game ${i} Date</label>
+                     <input type="date" id="date-${round.replace(' ', '-')}-${i}">`;
+        }
+        html += `</div>`;
+    }
+    postseasonDatesContainer.innerHTML = html;
 }
 
 async function loadSchedules() {
+    gamesByWeek = {};
     // Load Regular Season
     const gamesRef = collection(db, `seasons/${currentSeasonId}/games`);
     const gamesSnap = await getDocs(gamesRef);
-    renderSchedule(regularSeasonContainer, gamesSnap.docs);
+    gamesSnap.docs.forEach(doc => {
+        const game = { id: doc.id, ...doc.data() };
+        if (!gamesByWeek[game.week]) gamesByWeek[game.week] = [];
+        gamesByWeek[game.week].push(game);
+    });
+    renderSchedule(regularSeasonContainer, true);
 
     // Load Postseason
     const postGamesRef = collection(db, `seasons/${currentSeasonId}/post_games`);
     const postGamesSnap = await getDocs(postGamesRef);
-    renderSchedule(postseasonContainer, postGamesSnap.docs, false);
+    const postGamesByWeek = {};
+    postGamesSnap.docs.forEach(doc => {
+        const game = { id: doc.id, ...doc.data() };
+        if (!postGamesByWeek[game.week]) postGamesByWeek[game.week] = [];
+        postGamesByWeek[game.week].push(game);
+    });
+    renderSchedule(postseasonContainer, false, postGamesByWeek);
 }
 
-function renderSchedule(container, gameDocs, allowDelete = true) {
-    if (gameDocs.empty) {
+function renderSchedule(container, allowDelete = true, gamesSource = gamesByWeek) {
+    if (Object.keys(gamesSource).length === 0) {
         container.innerHTML = '<p>No games scheduled.</p>';
         return;
     }
 
-    const gamesByWeek = {};
-    gameDocs.forEach(doc => {
-        const game = { id: doc.id, ...doc.data() };
-        if (!gamesByWeek[game.week]) {
-            gamesByWeek[game.week] = [];
-        }
-        gamesByWeek[game.week].push(game);
+    let finalHTML = '';
+    const sortedWeeks = Object.keys(gamesSource).sort((a, b) => {
+        if (!isNaN(a) && !isNaN(b)) return a - b;
+        return a.localeCompare(b); // For postseason week names
     });
 
-    let tableHTML = '';
-    for (const week in gamesByWeek) {
-        tableHTML += `<h4>${isNaN(week) ? week : `Week ${week}`}</h4>`;
-        tableHTML += '<table class="schedule-table">';
-        gamesByWeek[week].forEach(game => {
+    for (const week of sortedWeeks) {
+        finalHTML += `<details class="week-details"><summary class="week-summary">${isNaN(week) ? week : `Week ${week}`}</summary>`;
+        finalHTML += '<table class="schedule-table">';
+        gamesSource[week].forEach(game => {
             const team1 = allTeams.find(t => t.id === game.team1_id)?.team_name || 'TBD';
             const team2 = allTeams.find(t => t.id === game.team2_id)?.team_name || 'TBD';
-            tableHTML += `
+            finalHTML += `
                 <tr>
                     <td>${game.date}</td>
                     <td>${team1} vs ${team2}</td>
@@ -108,34 +128,77 @@ function renderSchedule(container, gameDocs, allowDelete = true) {
                 </tr>
             `;
         });
-        tableHTML += '</table>';
+        finalHTML += '</table></details>';
     }
-    container.innerHTML = tableHTML;
+    container.innerHTML = finalHTML;
 }
 
 function openGameModal() {
     gameForm.reset();
-    const teamOptions = allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
-    document.getElementById('team1-select').innerHTML = teamOptions;
-    document.getElementById('team2-select').innerHTML = teamOptions;
+    team1Select.innerHTML = '';
+    team2Select.innerHTML = '';
+    team1Select.disabled = true;
+    team2Select.disabled = true;
+    // Set default date to today
+    document.getElementById('game-date').valueAsDate = new Date();
     gameModal.style.display = 'flex';
+}
+
+function populateAvailableTeams() {
+    const week = gameWeekInput.value;
+    if (!week) {
+        team1Select.disabled = true;
+        team2Select.disabled = true;
+        return;
+    }
+
+    const scheduledTeams = new Set();
+    if (gamesByWeek[week]) {
+        gamesByWeek[week].forEach(game => {
+            scheduledTeams.add(game.team1_id);
+            scheduledTeams.add(game.team2_id);
+        });
+    }
+
+    const availableTeams = allTeams.filter(team => !scheduledTeams.has(team.id));
+    const teamOptions = availableTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
+
+    team1Select.innerHTML = teamOptions;
+    team2Select.innerHTML = teamOptions;
+    team1Select.disabled = false;
+    team2Select.disabled = false;
 }
 
 async function handleSaveGame(e) {
     e.preventDefault();
+    const dateValue = document.getElementById('game-date').value; // YYYY-MM-DD
+    const [year, month, day] = dateValue.split('-');
+    const formattedDateForDoc = `${month}/${day}/${year}`;
+    const formattedDateForId = `${month}-${day}-${year}`;
+
+    const team1Id = team1Select.value;
+    const team2Id = team2Select.value;
+
+    if (team1Id === team2Id) {
+        alert("A team cannot play against itself.");
+        return;
+    }
+
     const gameData = {
-        date: document.getElementById('game-date').value,
-        week: document.getElementById('game-week').value,
-        team1_id: document.getElementById('team1-select').value,
-        team2_id: document.getElementById('team2-select').value,
+        date: formattedDateForDoc,
+        week: gameWeekInput.value,
+        team1_id: team1Id,
+        team2_id: team2Id,
         completed: 'FALSE',
         team1_score: 0,
         team2_score: 0,
         winner: ''
     };
 
+    const gameId = `${formattedDateForId}-${team1Id}-${team2Id}`;
+
     try {
-        await addDoc(collection(db, `seasons/${currentSeasonId}/games`), gameData);
+        await setDoc(doc(db, `seasons/${currentSeasonId}/games`, gameId), gameData);
         gameModal.style.display = 'none';
         await loadSchedules();
     } catch (error) {
@@ -163,12 +226,17 @@ async function handleGeneratePostseason() {
     generatePostseasonBtn.textContent = 'Generating...';
 
     const dates = {
-        'Play-In': document.getElementById('date-Play-In').value,
-        'Round 1': document.getElementById('date-Round-1').value,
-        'Round 2': document.getElementById('date-Round-2').value,
-        'Conf Finals': document.getElementById('date-Conf-Finals').value,
-        'Finals': document.getElementById('date-Finals').value,
+        'Play-In': [], 'Round 1': [], 'Round 2': [], 'Conf Finals': [], 'Finals': []
     };
+
+    document.querySelectorAll('#postseason-dates-grid input[type="date"]').forEach(input => {
+        const [prefix, round, gameNum] = input.id.split('-');
+        const roundName = round === 'Conf' ? 'Conf Finals' : round;
+        if (dates[roundName] && input.value) {
+            const [year, month, day] = input.value.split('-');
+            dates[roundName].push(`${month}/${day}/${year}`);
+        }
+    });
 
     try {
         const generateSchedule = httpsCallable(functions, 'generatePostseasonSchedule');

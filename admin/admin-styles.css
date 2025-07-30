@@ -556,7 +556,7 @@ main {
     text-align: right;
 }
 
-/* --- NEW: Schedule Manager Styles --- */
+/* --- Schedule Manager Styles --- */
 .schedule-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -592,4 +592,30 @@ main {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
+}
+
+/* NEW: Collapsible week styles */
+.week-details {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.week-summary {
+    font-weight: bold;
+    padding: 0.75rem;
+    cursor: pointer;
+    background-color: #f8f9fa;
+}
+
+    .week-summary:hover {
+        background-color: #e9ecef;
+    }
+
+.week-details[open] .week-summary {
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-content-admin {
+    max-width: 600px; /* Increased width for the modal */
 }

@@ -46,20 +46,20 @@
             <h3 id="game-modal-title">Add New Game</h3>
             <form id="game-form">
                 <div class="form-group-admin">
-                    <label for="game-date">Date (MM/DD/YYYY)</label>
-                    <input type="text" id="game-date" required placeholder="e.g., 10/28/2024">
-                </div>
-                <div class="form-group-admin">
-                    <label for="game-week">Week</label>
+                    <label for="game-week">1. Select Week</label>
                     <input type="number" id="game-week" required min="1" max="15">
                 </div>
                 <div class="form-group-admin">
-                    <label for="team1-select">Team 1</label>
-                    <select id="team1-select" required></select>
+                    <label for="game-date">2. Select Date</label>
+                    <input type="date" id="game-date" required>
                 </div>
                 <div class="form-group-admin">
-                    <label for="team2-select">Team 2</label>
-                    <select id="team2-select" required></select>
+                    <label for="team1-select">3. Select Team 1</label>
+                    <select id="team1-select" required disabled></select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team2-select">4. Select Team 2</label>
+                    <select id="team2-select" required disabled></select>
                 </div>
                 <button type="submit" class="btn-admin-save">Save Game</button>
             </form>

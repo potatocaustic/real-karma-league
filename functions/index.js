@@ -13,11 +13,8 @@ const db = admin.firestore();
 // V2 FUNCTIONS - DO NOT MODIFY LEGACY FUNCTIONS BELOW
 // ===================================================================
 /**
- * NEW: Callable V2 Function to calculate performance-based awards.
- */
-
 /**
- * NEW: Callable V2 Function to generate the postseason schedule.
+ * Callable V2 Function to generate the postseason schedule.
  */
 exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
@@ -64,38 +61,35 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         };
 
         const createSeries = (week, seriesName, numGames, team1, team2, dateArray) => {
-            const parsedDates = dateArray.split(',').map(d => d.trim()).filter(d => d);
-            if (parsedDates.length < numGames) {
-                throw new Error(`Not enough dates provided for ${week} (${seriesName}). Expected ${numGames}, got ${parsedDates.length}.`);
+            if (!dateArray || dateArray.length < numGames) {
+                throw new Error(`Not enough dates provided for ${week} (${seriesName}). Expected ${numGames}, got ${dateArray?.length || 0}.`);
             }
             for (let i = 0; i < numGames; i++) {
+                const gameDate = dateArray[i];
                 const gameData = {
-                    week, series_name: `${seriesName} Game ${i + 1}`, date: parsedDates[i],
+                    week, series_name: `${seriesName} Game ${i + 1}`, date: gameDate,
                     team1_id: team1.id, team2_id: team2.id,
                     completed: 'FALSE', team1_score: 0, team2_score: 0, winner: ''
                 };
-                // Use auto-generated doc ID for TBD games to avoid collisions
+
+                const formattedDateForId = gameDate.replace(/\//g, "-");
                 const docRef = (team1.id === 'TBD' || team2.id === 'TBD')
                     ? postGamesRef.doc()
-                    : postGamesRef.doc(`${parsedDates[i]}-${team1.id}-${team2.id}`.replace(/\//g, "-"));
+                    : postGamesRef.doc(`${formattedDateForId}-${team1.id}-${team2.id}`);
                 batch.set(docRef, gameData);
             }
         };
 
         // --- 4. Generate Play-In Tournament Games ---
         console.log("Generating Play-In games...");
-        const playInDates = dates['Play-In'].split(',').map(d => d.trim());
-        if (playInDates.length < dateValidators['Play-In']) throw new Error("Not enough dates for Play-In tournament.");
+        if (dates['Play-In'].length < dateValidators['Play-In']) throw new Error("Not enough dates for Play-In tournament.");
 
-        // 7 vs 8 Game (Winner becomes 7th seed)
-        createSeries('Play-In', 'E7vE8', 1, eastConf[6], eastConf[7], playInDates[0]);
-        createSeries('Play-In', 'W7vW8', 1, westConf[6], westConf[7], playInDates[0]);
-        // 9 vs 10 Game (Loser is eliminated)
-        createSeries('Play-In', 'E9vE10', 1, eastConf[8], eastConf[9], playInDates[0]);
-        createSeries('Play-In', 'W9vW10', 1, westConf[8], westConf[9], playInDates[0]);
-        // Final Play-In Game (Winner becomes 8th seed)
-        createSeries('Play-In', 'E8thSeedGame', 1, TBD_TEAM, TBD_TEAM, playInDates[1]);
-        createSeries('Play-In', 'W8thSeedGame', 1, TBD_TEAM, TBD_TEAM, playInDates[1]);
+        createSeries('Play-In', 'E7vE8', 1, eastConf[6], eastConf[7], [dates['Play-In'][0]]);
+        createSeries('Play-In', 'W7vW8', 1, westConf[6], westConf[7], [dates['Play-In'][0]]);
+        createSeries('Play-In', 'E9vE10', 1, eastConf[8], eastConf[9], [dates['Play-In'][0]]);
+        createSeries('Play-In', 'W9vW10', 1, westConf[8], westConf[9], [dates['Play-In'][0]]);
+        createSeries('Play-In', 'E8thSeedGame', 1, TBD_TEAM, TBD_TEAM, [dates['Play-In'][1]]);
+        createSeries('Play-In', 'W8thSeedGame', 1, TBD_TEAM, TBD_TEAM, [dates['Play-In'][1]]);
 
         // --- 5. Generate Round 1 (Best-of-3) ---
         console.log("Generating Round 1 schedule...");
@@ -132,6 +126,7 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         throw new functions.https.HttpsError('internal', `Failed to generate schedule: ${error.message}`);
     }
 });
+
 
 exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (request) => {
     // Basic validation
