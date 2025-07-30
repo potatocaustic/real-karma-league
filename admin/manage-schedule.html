@@ -18,6 +18,13 @@
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2>Schedule Manager</h2>
 
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select">Season:</label>
+                <select id="season-select"></select>
+            </div>
+        </div>
+
         <div class="schedule-grid">
             <!-- Regular Season Management -->
             <div class="schedule-section">
@@ -30,8 +37,8 @@
             <div class="schedule-section">
                 <h3>Postseason Automation</h3>
                 <p>Set the dates for each round. The bracket will be generated automatically after Week 15 is completed.</p>
-                <div id="postseason-dates-grid" class="postseason-dates-grid">
-                    <!-- Date inputs will be populated here -->
+                <div id="postseason-dates-container">
+                    <!-- Date inputs will be populated here as collapsible sections -->
                 </div>
                 <button id="generate-postseason-btn" class="btn-admin-save" style="margin-top: 1.5rem;">Generate/Update Postseason Schedule</button>
                 <div id="postseason-schedule-container" style="margin-top: 1.5rem;"></div>
@@ -47,7 +54,9 @@
             <form id="game-form">
                 <div class="form-group-admin">
                     <label for="game-week">1. Select Week</label>
-                    <input type="number" id="game-week" required min="1" max="15">
+                    <select id="game-week" required>
+                        <!-- Populated by JS -->
+                    </select>
                 </div>
                 <div class="form-group-admin">
                     <label for="game-date">2. Select Date</label>
