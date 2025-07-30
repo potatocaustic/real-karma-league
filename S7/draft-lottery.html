@@ -462,14 +462,14 @@
         function renderTableHeader(isSimulatedView = false) {
             const pickOrSeed = isSimulatedView ? 'Pick' : 'Seed';
             document.getElementById('lottery-table-head').innerHTML = `
-                    <tr>
-                        <th scope="col">${pickOrSeed}</th>
-                        <th scope="col">Team</th>
-                        <th scope="col" class="text-center hidden-mobile">Record</th>
-                        <th scope="col" class="text-center">#1 Pick Odds</th>
-                        <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
-                    </tr>
-                `;
+                        <tr>
+                            <th scope="col">${pickOrSeed}</th>
+                            <th scope="col">Team</th>
+                            <th scope="col" class="text-center hidden-mobile">Record</th>
+                            <th scope="col" class="text-center">#1 Pick Odds</th>
+                            <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
+                        </tr>
+                    `;
         }
 
         function getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded) {
@@ -479,21 +479,21 @@
 
             if (isTraded) {
                 return `
-                        <a href="team.html?id=${ownerId}" class="team-cell">
-                            <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-cell-content">
-                                <span class="font-semibold">${teamName}</span>
-                                <span class="original-team-traded">${originalTeamName}</span>
-                            </div>
-                        </a>
-                    `;
+                            <a href="team.html?id=${ownerId}" class="team-cell">
+                                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-cell-content">
+                                    <span class="font-semibold">${teamName}</span>
+                                    <span class="original-team-traded">${originalTeamName}</span>
+                                </div>
+                            </a>
+                        `;
             } else {
                 return `
-                        <a href="team.html?id=${ownerId}" class="team-cell">
-                            <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
-                            <span class="font-semibold whitespace-nowrap">${teamName}</span>
-                        </a>
-                    `;
+                            <a href="team.html?id=${ownerId}" class="team-cell">
+                                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                                <span class="font-semibold whitespace-nowrap">${teamName}</span>
+                            </a>
+                        `;
             }
         }
 
@@ -509,14 +509,14 @@
                 const teamCellHtml = getTeamCellHtml(ownerTeam, team, ownerId, isTraded);
 
                 html += `
-                        <tr>
-                            <td class="font-semibold">${team.seed}</td>
-                            <td>${teamCellHtml}</td>
-                            <td class="text-center hidden-mobile">${team.wins || 0} - ${team.losses || 0}</td>
-                            <td class="text-center">${(team.pct1st || 0).toFixed(2)}%</td>
-                            <td class="text-center hidden-mobile">${(team.pctTop4 || 0).toFixed(2)}%</td>
-                        </tr>
-                    `;
+                            <tr>
+                                <td class="font-semibold">${team.seed}</td>
+                                <td>${teamCellHtml}</td>
+                                <td class="text-center hidden-mobile">${team.wins || 0} - ${team.losses || 0}</td>
+                                <td class="text-center">${(team.pct1st || 0).toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${(team.pctTop4 || 0).toFixed(2)}%</td>
+                            </tr>
+                        `;
             });
             tableBody.innerHTML = html;
         }
@@ -539,19 +539,19 @@
                 const teamCellHtml = getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded);
 
                 html += `
-                        <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
-                            <td class="font-semibold">
-                                <div style="display: flex; align-items: center; white-space: nowrap;">
-                                    <span>${pickNumber}</span>
-                                    ${movementHtml}
-                                </div>
-                            </td>
-                            <td>${teamCellHtml}</td>
-                            <td class="text-center hidden-mobile">${originalTeam.wins || 0} - ${originalTeam.losses || 0}</td>
-                            <td class="text-center">${(originalTeam.pct1st || 0).toFixed(2)}%</td>
-                            <td class="text-center hidden-mobile">${(originalTeam.pctTop4 || 0).toFixed(2)}%</td>
-                        </tr>
-                    `;
+                            <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
+                                <td class="font-semibold">
+                                    <div style="display: flex; align-items: center; white-space: nowrap;">
+                                        <span>${pickNumber}</span>
+                                        ${movementHtml}
+                                    </div>
+                                </td>
+                                <td>${teamCellHtml}</td>
+                                <td class="text-center hidden-mobile">${originalTeam.wins || 0} - ${originalTeam.losses || 0}</td>
+                                <td class="text-center">${(originalTeam.pct1st || 0).toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${(originalTeam.pctTop4 || 0).toFixed(2)}%</td>
+                            </tr>
+                        `;
             });
             tableBody.innerHTML = html;
         }
@@ -592,9 +592,9 @@
 
         function renderSimulatedButtons() {
             buttonContainer.innerHTML = `
-                    <button id="simulateAgainBtn" class="action-button">Simulate Again</button>
-                    <button id="resetBtn" class="action-button">Reset</button>
-                `;
+                        <button id="simulateAgainBtn" class="action-button">Simulate Again</button>
+                        <button id="resetBtn" class="action-button">Reset</button>
+                    `;
         }
 
         function resetView() {
@@ -629,26 +629,12 @@
             document.getElementById('simulateBtn').disabled = true;
 
             try {
-                console.log("--- DEBUG: 1. Starting Initialization ---");
-
-                console.log("--- DEBUG: 2. Fetching teamsSnap ---");
-                const teamsSnap = await getDocs(collection(db, "v2_teams"));
-                console.log("--- DEBUG: 3. Fetched teamsSnap successfully ---", teamsSnap.size);
-
-                console.log("--- DEBUG: 4. Fetching draftPicksSnap ---");
-                const draftPicksSnap = await getDocs(collection(db, "draftPicks"));
-                console.log("--- DEBUG: 5. Fetched draftPicksSnap successfully ---", draftPicksSnap.size);
-
-                console.log("--- DEBUG: 6. Fetching postGamesSnap ---");
-                const postGamesSnap = await getDocs(query(collection(db, `seasons/${COMPLETED_SEASON}/post_games`), where("week", "==", "Play-In")));
-                console.log("--- DEBUG: 7. Fetched postGamesSnap successfully ---", postGamesSnap.size);
-
-                console.log("--- DEBUG: 8. Fetching lotteryResultsSnap ---");
-                const lotteryResultsSnap = await getDoc(doc(db, `lottery_results/${DRAFT_SEASON}_lottery_results`));
-                console.log("--- DEBUG: 9. Fetched lotteryResultsSnap successfully ---", lotteryResultsSnap.exists());
-
-                console.log("--- DEBUG: 10. All data fetched. Starting processing. ---");
-
+                const [teamsSnap, draftPicksSnap, postGamesSnap, lotteryResultsSnap] = await Promise.all([
+                    getDocs(collection(db, "v2_teams")),
+                    getDocs(collection(db, "draftPicks")),
+                    getDocs(query(collection(db, `seasons/${COMPLETED_SEASON}/post_games`), where("week", "==", "Play-In"))),
+                    getDoc(doc(db, `lottery_results/${DRAFT_SEASON}_lottery_results`))
+                ]);
 
                 const teamRecordsPromises = teamsSnap.docs
                     .filter(doc => doc.data() && doc.data().conference)
@@ -663,7 +649,6 @@
                     });
 
                 const allTeamsWithRecords = await Promise.all(teamRecordsPromises);
-                console.log(`--- DEBUG: Processed ${allTeamsWithRecords.length} teams with conferences and records ---`);
                 allTeamsWithRecords.forEach(t => teamDataMap.set(t.id, t));
 
                 draftPicksSnap.docs
@@ -677,21 +662,35 @@
                     }
                 });
 
+                // --- CORRECTED PLAY-IN LOGIC ---
                 const playInGames = postGamesSnap.docs.map(d => d.data());
                 for (const conf of ['E', 'W']) {
+                    // Find the 7v8 and 9v10 games
                     const game7v8 = playInGames.find(g => g.series_name && g.series_name.includes(`${conf}7v${conf}8`));
+                    const game9v10 = playInGames.find(g => g.series_name && g.series_name.includes(`${conf}9v${conf}10`));
+
                     if (game7v8 && game7v8.winner) {
+                        // Winner of 7v8 is the 7th seed
                         playoffTeams.add(game7v8.winner);
-                    }
-                    const game8thSeed = playInGames.find(g => g.series_name && g.series_name.includes(`${conf}8thSeedGame`));
-                    if (game8thSeed && game8thSeed.winner) {
-                        playoffTeams.add(game8thSeed.winner);
+                        const loserOf7v8 = game7v8.team1_id === game7v8.winner ? game7v8.team2_id : game7v8.team1_id;
+
+                        if (game9v10 && game9v10.winner) {
+                            // Find the final game between the loser of 7v8 and winner of 9v10
+                            const finalPlayInGame = playInGames.find(g =>
+                                g.series_name && g.series_name.includes(`${conf}8thSeedGame`) &&
+                                (g.team1_id === loserOf7v8 || g.team2_id === loserOf7v8) &&
+                                (g.team1_id === game9v10.winner || g.team2_id === game9v10.winner)
+                            );
+
+                            if (finalPlayInGame && finalPlayInGame.winner) {
+                                // Winner of this final game is the 8th seed
+                                playoffTeams.add(finalPlayInGame.winner);
+                            }
+                        }
                     }
                 }
-                console.log(`--- DEBUG: Determined ${playoffTeams.size} playoff teams ---`, playoffTeams);
 
                 const nonPlayoffTeams = allTeamsWithRecords.filter(t => !playoffTeams.has(t.id));
-                console.log(`--- DEBUG: Found ${nonPlayoffTeams.length} non-playoff teams ---`);
 
                 initialLotteryTeams = nonPlayoffTeams.sort((a, b) => {
                     const winPctA = a.wpct || 0;
@@ -703,22 +702,15 @@
                     ...(lotteryOdds[index] || {}),
                     seed: index + 1
                 }));
-                console.log(`--- DEBUG: Created initialLotteryTeams array with ${initialLotteryTeams.length} teams. ---`, initialLotteryTeams);
-
 
                 let showOfficialResults = false;
                 let finalOrder = [];
 
                 if (lotteryResultsSnap.exists()) {
                     const resultsData = lotteryResultsSnap.data();
-                    console.log("--- DEBUG: Lottery results doc exists. Data:", resultsData);
-
                     if (resultsData && Array.isArray(resultsData.final_order) && resultsData.final_order.length > 0) {
                         const finalOrderIds = resultsData.final_order;
-                        console.log("--- DEBUG: final_order array from doc:", finalOrderIds);
-
                         finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId)).filter(Boolean);
-                        console.log("--- DEBUG: finalOrder array after mapping:", finalOrder);
 
                         if (finalOrder.length === 14) {
                             showOfficialResults = true;
@@ -729,8 +721,6 @@
                         console.warn("Malformed lottery results found in Firestore (or final_order is empty). Displaying simulator.");
                     }
                 }
-
-                console.log(`--- DEBUG: Final decision: Show official results? ${showOfficialResults} ---`);
 
                 if (showOfficialResults) {
                     document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
