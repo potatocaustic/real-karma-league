@@ -29,6 +29,11 @@ service cloud.firestore {
     match /power_rankings/{doc=**} {
         allow read, write: if isAdmin();
     }
+    // NEW: Rule for draft lottery results
+    match /lottery_results/{doc=**} {
+        allow read: if true; // Public can read the results
+        allow write: if isAdmin(); // Admin can write the results
+    }
     // NEW: Rules for exhibition games
     match /seasons/{seasonId}/exhibition_games/{gameId} {
         allow read, write: if isAdmin();
