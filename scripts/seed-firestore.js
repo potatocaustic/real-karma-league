@@ -338,8 +338,13 @@ async function seedDatabase() {
     });
     console.log(`Prepared ${playersData.length} players and their seasonal stats for seeding.`);
 
-    // Seed Games, Lineups, and Draft Picks
+    // FIX: Explicitly create the parent season document
     const seasonRef = db.collection("seasons").doc(SEASON_ID);
+    batch.set(seasonRef, { season_name: `Season ${SEASON_NUM}`, status: "active" });
+    console.log(`Prepared parent document for season ${SEASON_ID}.`);
+
+
+    // Seed Games, Lineups, and Draft Picks
     [...scheduleData, ...postScheduleData].forEach(game => {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
         const collectionName = scheduleData.includes(game) ? "games" : "post_games";
@@ -363,13 +368,11 @@ async function seedDatabase() {
     // Seed Intermediate Collections
     const seedIntermediate = (map, collName) => {
         for (const [date, data] of map.entries()) {
-            // FIX: Add a guard clause to check for a valid date string before processing.
             if (!date || typeof date !== 'string' || !date.includes('/')) {
                 console.warn(`Skipping invalid or empty date key found in source data for collection: ${collName}`);
                 continue;
             }
             const [month, day, year] = date.split('/');
-            // Add a second check to ensure the split was successful
             if (!year || !month || !day) {
                 console.warn(`Skipping malformed date key: "${date}" in ${collName}.`);
                 continue;
