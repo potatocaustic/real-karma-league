@@ -19,10 +19,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Seasons data (games, lineups) should remain admin-only for now,
-    // unless you build public pages that need this raw data.
+    // UPDATED: Allow public read access for seasons data (games, lineups, etc.)
+    // as it's needed by pages like the lottery simulator. Write remains admin-only.
     match /seasons/{seasonId}/{documents=**} {
-      allow read, write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
     match /transactions/{transactionId} {
         allow read, write: if isAdmin();
