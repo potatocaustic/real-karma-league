@@ -662,19 +662,14 @@
                     }
                 });
 
-                // --- CORRECTED PLAY-IN LOGIC ---
                 const playInGames = postGamesSnap.docs.map(d => d.data());
                 for (const conf of ['E', 'W']) {
-                    // Find games using the correct series_id format from the screenshot
                     const game7v8 = playInGames.find(g => g.series_id === `${conf}-PI-7v8`);
                     const finalPlayInGame = playInGames.find(g => g.series_id === `${conf}-PI-L78vW910`);
 
-                    // Determine the 7th seed
                     if (game7v8 && game7v8.winner) {
                         playoffTeams.add(game7v8.winner);
                     }
-
-                    // Determine the 8th seed
                     if (finalPlayInGame && finalPlayInGame.winner) {
                         playoffTeams.add(finalPlayInGame.winner);
                     }
@@ -713,13 +708,15 @@
                 }
 
                 if (showOfficialResults) {
-                    document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
-                    document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
+                    // CORRECTED: Removed the extra "S" from the template string
+                    document.getElementById('table-title').textContent = `Official ${DRAFT_SEASON} Lottery Results`;
+                    document.getElementById('table-description').textContent = `The official results of the Season ${DRAFT_SEASON.replace('S', '')} Draft Lottery.`;
                     renderFinalResults(finalOrder);
                     buttonContainer.innerHTML = '';
                 } else {
-                    document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
-                    document.getElementById('table-description').textContent = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams.`;
+                    // CORRECTED: Removed the extra "S" from the template string
+                    document.getElementById('table-title').textContent = `${DRAFT_SEASON} Lottery Odds`;
+                    document.getElementById('table-description').textContent = `${DRAFT_SEASON} lottery odds for the 14 non-playoff teams.`;
                     renderLotteryOddsTable();
                     document.getElementById('simulateBtn').disabled = false;
                     setupButtonListeners();
