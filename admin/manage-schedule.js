@@ -21,7 +21,7 @@ const team2Select = document.getElementById('team2-select');
 
 let allTeams = [];
 let gamesByWeek = {};
-let currentSeasonId = 'S7'; // Default
+let currentSeasonId = ''; // Start with an empty string
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
@@ -48,6 +48,14 @@ async function initializePage() {
 
         allTeams = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+        // FIX: Check if seasons exist before trying to load schedule data
+        if (seasonsSnap.empty) {
+            adminContainer.innerHTML = `<div class="error">No seasons found in the database. Please run the seeder script.</div>`;
+            loadingContainer.style.display = 'none';
+            adminContainer.style.display = 'block';
+            return; // Stop execution
+        }
+
         // Populate season selector
         seasonSelect.innerHTML = seasonsSnap.docs.map(doc => `<option value="${doc.id}">${doc.data().season_name}</option>`).join('');
         currentSeasonId = seasonSelect.value;
@@ -70,6 +78,9 @@ async function initializePage() {
         adminContainer.style.display = 'block';
     } catch (error) {
         console.error("Error initializing schedule manager:", error);
+        adminContainer.innerHTML = `<div class="error">An error occurred during initialization. Check the console for details.</div>`;
+        loadingContainer.style.display = 'none';
+        adminContainer.style.display = 'block';
     }
 }
 
@@ -95,6 +106,11 @@ function populatePostseasonDates() {
 }
 
 async function loadSchedules() {
+    // Ensure we have a valid season ID before querying
+    if (!currentSeasonId) {
+        console.error("Cannot load schedules without a valid season ID.");
+        return;
+    }
     gamesByWeek = {};
     const gamesRef = collection(db, `seasons/${currentSeasonId}/games`);
     const gamesSnap = await getDocs(gamesRef);
