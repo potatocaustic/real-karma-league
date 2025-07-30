@@ -650,7 +650,7 @@
                 allTeamsWithRecords.forEach(t => teamDataMap.set(t.id, t));
 
                 draftPicksSnap.docs
-                    .filter(p => parseInt(p.data().season) === parseInt(DRAFT_SEASON.replace('S', '')) && parseInt(p.data().round) === 1)
+                    .filter(p => p.data().season && parseInt(p.data().season) === parseInt(DRAFT_SEASON.replace('S', '')) && parseInt(p.data().round) === 1)
                     .forEach(p => pickOwnership.set(p.data().original_team, p.data().current_owner));
 
                 // --- Full Play-In Logic ---
