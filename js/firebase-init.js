@@ -16,7 +16,7 @@ import {
     serverTimestamp,
     addDoc,
     updateDoc,
-    writeBatch, // <--- ADDED: Import writeBatch
+    writeBatch,
     connectFirestoreEmulator
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
@@ -65,5 +65,6 @@ export {
     serverTimestamp,
     addDoc,
     updateDoc,
-    writeBatch // <--- ADDED: Export writeBatch
+    writeBatch,
+    functions // <--- ADDED: Export functions
 };

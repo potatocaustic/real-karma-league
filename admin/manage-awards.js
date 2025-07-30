@@ -1,6 +1,6 @@
 // /admin/manage-awards.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, httpsCallable } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, httpsCallable } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -8,10 +8,12 @@ const adminContainer = document.getElementById('admin-container');
 const seasonSelect = document.getElementById('season-select');
 const awardsForm = document.getElementById('awards-form');
 const playerDatalist = document.getElementById('player-datalist');
+const gmDatalist = document.getElementById('gm-datalist');
 const calculateBtn = document.getElementById('calculate-awards-btn');
 
 // --- Global Data Cache ---
 let allPlayers = new Map();
+let allGms = new Map();
 let allTeams = [];
 let currentSeasonId = null;
 
@@ -49,6 +51,13 @@ async function initializePage() {
 
         allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.team_name.localeCompare(b.team_name));
 
+        // Populate the GM map from the teams data
+        allTeams.forEach(team => {
+            if (team.current_gm_handle) {
+                allGms.set(team.current_gm_handle, { team_id: team.id, team_name: team.team_name });
+            }
+        });
+
         populateDatalistAndSelects();
 
         seasonSelect.innerHTML = `<option value="S7">Season 7</option>`;
@@ -67,6 +76,9 @@ async function initializePage() {
 
 function populateDatalistAndSelects() {
     playerDatalist.innerHTML = Array.from(allPlayers.keys()).map(handle => `<option value="${handle}"></option>`).join('');
+
+    // Populate the GM datalist
+    gmDatalist.innerHTML = Array.from(allGms.keys()).map(handle => `<option value="${handle}"></option>`).join('');
 
     const teamOptions = `<option value="">-- Select Team --</option>` + allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
     document.querySelectorAll('.team-select').forEach(select => select.innerHTML = teamOptions);
@@ -94,11 +106,15 @@ async function loadExistingAwards() {
     awardsSnap.forEach(doc => awardsData.set(doc.id, doc.data()));
 
     // Populate single-winner awards
-    const singleAwards = ['finals-mvp', 'gm-of-the-year', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
+    const singleAwards = ['finals-mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
     singleAwards.forEach(id => {
         const award = awardsData.get(id);
         if (award) document.getElementById(`award-${id}`).value = award.player_handle || '';
     });
+
+    // Populate GM of the Year separately
+    const gmAward = awardsData.get('gm-of-the-year');
+    if (gmAward) document.getElementById('award-gm-of-the-year').value = gmAward.gm_handle || '';
 
     // Populate team awards
     const teamAwards = ['league-champion', 'regular-season-title'];
@@ -142,7 +158,7 @@ async function handleFormSubmit(e) {
         const awardsCollectionRef = collection(db, `awards/season_${seasonNumber}/S${seasonNumber}_awards`);
 
         // --- Process Single Player Awards ---
-        const singleAwards = ['finals-mvp', 'gm-of-the-year', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
+        const singleAwards = ['finals-mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
         for (const id of singleAwards) {
             const handle = document.getElementById(`award-${id}`).value;
             if (handle && allPlayers.has(handle)) {
@@ -150,6 +166,14 @@ async function handleFormSubmit(e) {
                 const docRef = doc(awardsCollectionRef, id);
                 batch.set(docRef, { award_name: id.replace(/-/g, ' '), player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id });
             }
+        }
+
+        // --- Process GM of the Year Award ---
+        const gmHandle = document.getElementById('award-gm-of-the-year').value;
+        if (gmHandle && allGms.has(gmHandle)) {
+            const gm = allGms.get(gmHandle);
+            const docRef = doc(awardsCollectionRef, 'gm-of-the-year');
+            batch.set(docRef, { award_name: 'GM of the Year', gm_handle: gmHandle, team_id: gm.team_id });
         }
 
         // --- Process Team Awards ---
