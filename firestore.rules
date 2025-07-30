@@ -7,13 +7,20 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // == Rules for NEW Multi-Season Admin Portal (Admin-Only) ==
+    // == Rules for NEW Multi-Season Data ==
+    // Public pages need to read player/team info and seasonal stats/records.
+    // Write access remains admin-only.
     match /v2_players/{playerId}/{documents=**} {
-      allow read, write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
     match /v2_teams/{teamId}/{documents=**} {
-      allow read, write: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
+
+    // Seasons data (games, lineups) should remain admin-only for now,
+    // unless you build public pages that need this raw data.
     match /seasons/{seasonId}/{documents=**} {
       allow read, write: if isAdmin();
     }
@@ -29,17 +36,9 @@ service cloud.firestore {
     match /power_rankings/{doc=**} {
         allow read, write: if isAdmin();
     }
-    // NEW: Rule for draft lottery results
     match /lottery_results/{doc=**} {
         allow read: if true; // Public can read the results
         allow write: if isAdmin(); // Admin can write the results
-    }
-    // NEW: Rules for exhibition games
-    match /seasons/{seasonId}/exhibition_games/{gameId} {
-        allow read, write: if isAdmin();
-    }
-    match /seasons/{seasonId}/exhibition_lineups/{lineupId} {
-        allow read, write: if isAdmin();
     }
 
 
