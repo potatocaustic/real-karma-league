@@ -462,14 +462,14 @@
         function renderTableHeader(isSimulatedView = false) {
             const pickOrSeed = isSimulatedView ? 'Pick' : 'Seed';
             document.getElementById('lottery-table-head').innerHTML = `
-                    <tr>
-                        <th scope="col">${pickOrSeed}</th>
-                        <th scope="col">Team</th>
-                        <th scope="col" class="text-center hidden-mobile">Record</th>
-                        <th scope="col" class="text-center">#1 Pick Odds</th>
-                        <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
-                    </tr>
-                `;
+                        <tr>
+                            <th scope="col">${pickOrSeed}</th>
+                            <th scope="col">Team</th>
+                            <th scope="col" class="text-center hidden-mobile">Record</th>
+                            <th scope="col" class="text-center">#1 Pick Odds</th>
+                            <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
+                        </tr>
+                    `;
         }
 
         function getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded) {
@@ -479,21 +479,21 @@
 
             if (isTraded) {
                 return `
-                        <a href="team.html?id=${ownerId}" class="team-cell">
-                            <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-cell-content">
-                                <span class="font-semibold">${teamName}</span>
-                                <span class="original-team-traded">${originalTeamName}</span>
-                            </div>
-                        </a>
-                    `;
+                            <a href="team.html?id=${ownerId}" class="team-cell">
+                                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-cell-content">
+                                    <span class="font-semibold">${teamName}</span>
+                                    <span class="original-team-traded">${originalTeamName}</span>
+                                </div>
+                            </a>
+                        `;
             } else {
                 return `
-                        <a href="team.html?id=${ownerId}" class="team-cell">
-                            <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
-                            <span class="font-semibold whitespace-nowrap">${teamName}</span>
-                        </a>
-                    `;
+                            <a href="team.html?id=${ownerId}" class="team-cell">
+                                <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                                <span class="font-semibold whitespace-nowrap">${teamName}</span>
+                            </a>
+                        `;
             }
         }
 
@@ -509,14 +509,14 @@
                 const teamCellHtml = getTeamCellHtml(ownerTeam, team, ownerId, isTraded);
 
                 html += `
-                        <tr>
-                            <td class="font-semibold">${team.seed}</td>
-                            <td>${teamCellHtml}</td>
-                            <td class="text-center hidden-mobile">${team.wins} - ${team.losses}</td>
-                            <td class="text-center">${team.pct1st.toFixed(2)}%</td>
-                            <td class="text-center hidden-mobile">${team.pctTop4.toFixed(2)}%</td>
-                        </tr>
-                    `;
+                            <tr>
+                                <td class="font-semibold">${team.seed}</td>
+                                <td>${teamCellHtml}</td>
+                                <td class="text-center hidden-mobile">${team.wins} - ${team.losses}</td>
+                                <td class="text-center">${team.pct1st.toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${team.pctTop4.toFixed(2)}%</td>
+                            </tr>
+                        `;
             });
             tableBody.innerHTML = html;
         }
@@ -539,19 +539,19 @@
                 const teamCellHtml = getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded);
 
                 html += `
-                        <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
-                            <td class="font-semibold">
-                                <div style="display: flex; align-items: center; white-space: nowrap;">
-                                    <span>${pickNumber}</span>
-                                    ${movementHtml}
-                                </div>
-                            </td>
-                            <td>${teamCellHtml}</td>
-                            <td class="text-center hidden-mobile">${originalTeam.wins} - ${originalTeam.losses}</td>
-                            <td class="text-center">${originalTeam.pct1st.toFixed(2)}%</td>
-                            <td class="text-center hidden-mobile">${originalTeam.pctTop4.toFixed(2)}%</td>
-                        </tr>
-                    `;
+                            <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
+                                <td class="font-semibold">
+                                    <div style="display: flex; align-items: center; white-space: nowrap;">
+                                        <span>${pickNumber}</span>
+                                        ${movementHtml}
+                                    </div>
+                                </td>
+                                <td>${teamCellHtml}</td>
+                                <td class="text-center hidden-mobile">${originalTeam.wins} - ${originalTeam.losses}</td>
+                                <td class="text-center">${originalTeam.pct1st.toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${originalTeam.pctTop4.toFixed(2)}%</td>
+                            </tr>
+                        `;
             });
             tableBody.innerHTML = html;
         }
@@ -592,9 +592,9 @@
 
         function renderSimulatedButtons() {
             buttonContainer.innerHTML = `
-                    <button id="simulateAgainBtn" class="action-button">Simulate Again</button>
-                    <button id="resetBtn" class="action-button">Reset</button>
-                `;
+                        <button id="simulateAgainBtn" class="action-button">Simulate Again</button>
+                        <button id="resetBtn" class="action-button">Reset</button>
+                    `;
         }
 
         function resetView() {
@@ -686,34 +686,40 @@
                     seed: index + 1
                 }));
 
-                // --- FINAL, ROBUST Display Logic ---
-                // Default to showing the simulator view.
-                document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
-                document.getElementById('table-description').textContent = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams.`;
-                renderLotteryOddsTable();
-                document.getElementById('simulateBtn').disabled = false;
-                setupButtonListeners();
-
-                // Now, check if valid official results exist and override the view if they do.
+                // --- CORRECTED DISPLAY LOGIC ---
+                let showOfficialResults = false;
                 if (lotteryResultsSnap.exists()) {
                     const resultsData = lotteryResultsSnap.data();
                     if (resultsData && Array.isArray(resultsData.final_order)) {
                         const finalOrderIds = resultsData.final_order;
                         const finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId));
 
-                        // Validate that the saved order is complete and matches the current lottery pool
+                        // Validate that the saved order is complete and contains valid teams
                         if (finalOrder.length === 14 && !finalOrder.some(t => t === undefined)) {
-                            // If valid, overwrite the display with official results
-                            document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
-                            document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
-                            renderFinalResults(finalOrder);
-                            buttonContainer.innerHTML = ''; // Disable simulation
+                            showOfficialResults = true;
                         } else {
                             console.warn("Data mismatch: Saved lottery results are incomplete or contain invalid teams. Displaying simulator.");
                         }
                     } else {
                         console.warn("Malformed lottery results found in Firestore. Displaying simulator.");
                     }
+                }
+
+                if (showOfficialResults) {
+                    // Render the official, final results
+                    const finalOrderIds = lotteryResultsSnap.data().final_order;
+                    const finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId));
+                    document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
+                    document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
+                    renderFinalResults(finalOrder);
+                    buttonContainer.innerHTML = ''; // Disable simulation buttons
+                } else {
+                    // Render the simulator view (because doc is missing or invalid)
+                    document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
+                    document.getElementById('table-description').textContent = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams.`;
+                    renderLotteryOddsTable();
+                    document.getElementById('simulateBtn').disabled = false;
+                    setupButtonListeners();
                 }
 
             } catch (error) {
