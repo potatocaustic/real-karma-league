@@ -512,9 +512,9 @@
                             <tr>
                                 <td class="font-semibold">${team.seed}</td>
                                 <td>${teamCellHtml}</td>
-                                <td class="text-center hidden-mobile">${team.wins} - ${team.losses}</td>
-                                <td class="text-center">${team.pct1st.toFixed(2)}%</td>
-                                <td class="text-center hidden-mobile">${team.pctTop4.toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${team.wins || 0} - ${team.losses || 0}</td>
+                                <td class="text-center">${(team.pct1st || 0).toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${(team.pctTop4 || 0).toFixed(2)}%</td>
                             </tr>
                         `;
             });
@@ -547,9 +547,9 @@
                                     </div>
                                 </td>
                                 <td>${teamCellHtml}</td>
-                                <td class="text-center hidden-mobile">${originalTeam.wins} - ${originalTeam.losses}</td>
-                                <td class="text-center">${originalTeam.pct1st.toFixed(2)}%</td>
-                                <td class="text-center hidden-mobile">${originalTeam.pctTop4.toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${originalTeam.wins || 0} - ${originalTeam.losses || 0}</td>
+                                <td class="text-center">${(originalTeam.pct1st || 0).toFixed(2)}%</td>
+                                <td class="text-center hidden-mobile">${(originalTeam.pctTop4 || 0).toFixed(2)}%</td>
                             </tr>
                         `;
             });
@@ -636,15 +636,18 @@
                     getDoc(doc(db, `lottery_results/${DRAFT_SEASON}_lottery_results`))
                 ]);
 
-                const teamRecordsPromises = teamsSnap.docs.map(async teamDoc => {
-                    const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${COMPLETED_SEASON}`);
-                    const recordSnap = await getDoc(recordRef);
-                    const teamData = { id: teamDoc.id, ...teamDoc.data() };
-                    if (recordSnap.exists()) {
-                        return { ...teamData, ...recordSnap.data() };
-                    }
-                    return teamData;
-                });
+                // UPDATED: Filter teams to only include those with a conference
+                const teamRecordsPromises = teamsSnap.docs
+                    .filter(doc => doc.data() && doc.data().conference)
+                    .map(async teamDoc => {
+                        const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${COMPLETED_SEASON}`);
+                        const recordSnap = await getDoc(recordRef);
+                        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+                        if (recordSnap.exists()) {
+                            return { ...teamData, ...recordSnap.data() };
+                        }
+                        return { ...teamData, wins: 0, losses: 0, postseed: 99, wpct: 0, pam: 0 };
+                    });
 
                 const allTeamsWithRecords = await Promise.all(teamRecordsPromises);
                 allTeamsWithRecords.forEach(t => teamDataMap.set(t.id, t));
@@ -653,7 +656,6 @@
                     .filter(p => p.data() && p.data().season && parseInt(p.data().season) === parseInt(DRAFT_SEASON.replace('S', '')) && parseInt(p.data().round) === 1)
                     .forEach(p => pickOwnership.set(p.data().original_team, p.data().current_owner));
 
-                // --- Full Play-In Logic ---
                 const playoffTeams = new Set();
                 allTeamsWithRecords.forEach(team => {
                     if (team.postseed && team.postseed <= 6) {
@@ -673,7 +675,7 @@
                     }
                 }
 
-                const nonPlayoffTeams = allTeamsWithRecords.filter(t => t.conference && !playoffTeams.has(t.id));
+                const nonPlayoffTeams = allTeamsWithRecords.filter(t => !playoffTeams.has(t.id));
 
                 initialLotteryTeams = nonPlayoffTeams.sort((a, b) => {
                     const winPctA = a.wpct || 0;
@@ -682,20 +684,20 @@
                     return (a.pam || 0) - (b.pam || 0);
                 }).slice(0, 14).map((team, index) => ({
                     ...team,
-                    ...lotteryOdds[index],
+                    ...(lotteryOdds[index] || {}),
                     seed: index + 1
                 }));
 
-                // --- CORRECTED DISPLAY LOGIC ---
                 let showOfficialResults = false;
+                let finalOrder = [];
+
                 if (lotteryResultsSnap.exists()) {
                     const resultsData = lotteryResultsSnap.data();
                     if (resultsData && Array.isArray(resultsData.final_order)) {
                         const finalOrderIds = resultsData.final_order;
-                        const finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId));
+                        finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId)).filter(Boolean);
 
-                        // Validate that the saved order is complete and contains valid teams
-                        if (finalOrder.length === 14 && !finalOrder.some(t => t === undefined)) {
+                        if (finalOrder.length === 14) {
                             showOfficialResults = true;
                         } else {
                             console.warn("Data mismatch: Saved lottery results are incomplete or contain invalid teams. Displaying simulator.");
@@ -706,15 +708,11 @@
                 }
 
                 if (showOfficialResults) {
-                    // Render the official, final results
-                    const finalOrderIds = lotteryResultsSnap.data().final_order;
-                    const finalOrder = finalOrderIds.map(teamId => initialLotteryTeams.find(t => t.id === teamId));
                     document.getElementById('table-title').textContent = `Official S${DRAFT_SEASON} Lottery Results`;
                     document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
                     renderFinalResults(finalOrder);
-                    buttonContainer.innerHTML = ''; // Disable simulation buttons
+                    buttonContainer.innerHTML = '';
                 } else {
-                    // Render the simulator view (because doc is missing or invalid)
                     document.getElementById('table-title').textContent = `S${DRAFT_SEASON} Lottery Odds`;
                     document.getElementById('table-description').textContent = `S${DRAFT_SEASON} lottery odds for the 14 non-playoff teams.`;
                     renderLotteryOddsTable();
