@@ -665,28 +665,19 @@
                 // --- CORRECTED PLAY-IN LOGIC ---
                 const playInGames = postGamesSnap.docs.map(d => d.data());
                 for (const conf of ['E', 'W']) {
-                    // Find the 7v8 and 9v10 games
-                    const game7v8 = playInGames.find(g => g.series_name && g.series_name.includes(`${conf}7v${conf}8`));
-                    const game9v10 = playInGames.find(g => g.series_name && g.series_name.includes(`${conf}9v${conf}10`));
+                    // Find games using the correct series_name format
+                    const game7v8 = playInGames.find(g => g.series_name === `${conf}-PI-7v8`);
+                    const game9v10 = playInGames.find(g => g.series_name === `${conf}-PI-9v10`);
+                    const finalPlayInGame = playInGames.find(g => g.series_name === `${conf}-PI-L78vW910`);
 
+                    // Determine the 7th seed
                     if (game7v8 && game7v8.winner) {
-                        // Winner of 7v8 is the 7th seed
                         playoffTeams.add(game7v8.winner);
-                        const loserOf7v8 = game7v8.team1_id === game7v8.winner ? game7v8.team2_id : game7v8.team1_id;
+                    }
 
-                        if (game9v10 && game9v10.winner) {
-                            // Find the final game between the loser of 7v8 and winner of 9v10
-                            const finalPlayInGame = playInGames.find(g =>
-                                g.series_name && g.series_name.includes(`${conf}8thSeedGame`) &&
-                                (g.team1_id === loserOf7v8 || g.team2_id === loserOf7v8) &&
-                                (g.team1_id === game9v10.winner || g.team2_id === game9v10.winner)
-                            );
-
-                            if (finalPlayInGame && finalPlayInGame.winner) {
-                                // Winner of this final game is the 8th seed
-                                playoffTeams.add(finalPlayInGame.winner);
-                            }
-                        }
+                    // Determine the 8th seed
+                    if (finalPlayInGame && finalPlayInGame.winner) {
+                        playoffTeams.add(finalPlayInGame.winner);
                     }
                 }
 
