@@ -65,6 +65,6 @@ export {
     serverTimestamp,
     addDoc,
     updateDoc,
-    writeBatch,
-    functions // <--- ADDED: Export functions
+    writeBatch
+    // REMOVED: Duplicate 'functions' export
 };
