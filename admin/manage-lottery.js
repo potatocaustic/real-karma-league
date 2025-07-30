@@ -1,6 +1,6 @@
 // /admin/manage-lottery.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, setDoc } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, setDoc, query, where } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -54,39 +54,47 @@ async function initializePage() {
 async function loadLotteryTeams() {
     const [teamsSnap, postGamesSnap] = await Promise.all([
         getDocs(collection(db, "v2_teams")),
-        getDocs(collection(db, `seasons/${currentSeasonId}/post_games`))
+        getDocs(query(collection(db, `seasons/${currentSeasonId}/post_games`), where("week", "==", "Play-In")))
     ]);
 
-    const teamRecordsPromises = teamsSnap.docs.map(async teamDoc => {
-        const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${currentSeasonId}`);
-        // CORRECTED: Used getDoc(recordRef) instead of recordRef.get()
-        const recordSnap = await getDoc(recordRef);
-        return { id: teamDoc.id, ...teamDoc.data(), ...(recordSnap.exists() ? recordSnap.data() : {}) };
-    });
+    const teamRecordsPromises = teamsSnap.docs
+        .filter(doc => doc.data() && doc.data().conference)
+        .map(async teamDoc => {
+            const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${currentSeasonId}`);
+            // CORRECTED: Used getDoc(recordRef) instead of recordRef.get()
+            const recordSnap = await getDoc(recordRef);
+            const teamData = { id: teamDoc.id, ...teamDoc.data() };
+            if (recordSnap.exists()) {
+                return { ...teamData, ...recordSnap.data() };
+            }
+            // Provide default values if no record exists
+            return { ...teamData, wins: 0, losses: 0, postseed: 99, wpct: 0, pam: 0 };
+        });
 
     allTeams = await Promise.all(teamRecordsPromises);
 
-    // Determine Playoff teams (top 6 + play-in winners)
+    // CORRECTED: Accurate Play-in Logic
     const playoffTeams = new Set();
-    const eastPlayoffTeams = allTeams.filter(t => t.conference === 'Eastern' && t.postseed <= 6).map(t => t.id);
-    const westPlayoffTeams = allTeams.filter(t => t.conference === 'Western' && t.postseed <= 6).map(t => t.id);
-    eastPlayoffTeams.forEach(id => playoffTeams.add(id));
-    westPlayoffTeams.forEach(id => playoffTeams.add(id));
+    allTeams.forEach(team => {
+        if (team.postseed && team.postseed <= 6) {
+            playoffTeams.add(team.id);
+        }
+    });
 
-    // Crude play-in winner logic for seeding, assuming 7/8 seeds win their first game and the final game.
-    // A more robust solution would parse all play-in games.
-    const east7th = allTeams.find(t => t.conference === 'Eastern' && t.postseed === 7);
-    const west7th = allTeams.find(t => t.conference === 'Western' && t.postseed === 7);
-    const east8th = allTeams.find(t => t.conference === 'Eastern' && t.postseed === 8);
-    const west8th = allTeams.find(t => t.conference === 'Western' && t.postseed === 8);
+    const playInGames = postGamesSnap.docs.map(d => d.data());
+    for (const conf of ['E', 'W']) {
+        const game7v8 = playInGames.find(g => g.series_id === `${conf}-PI-7v8`);
+        const finalPlayInGame = playInGames.find(g => g.series_id === `${conf}-PI-L78vW910`);
 
-    if (east7th) playoffTeams.add(east7th.id);
-    if (west7th) playoffTeams.add(west7th.id);
-    if (east8th) playoffTeams.add(east8th.id);
-    if (west8th) playoffTeams.add(west8th.id);
+        if (game7v8 && game7v8.winner) {
+            playoffTeams.add(game7v8.winner);
+        }
+        if (finalPlayInGame && finalPlayInGame.winner) {
+            playoffTeams.add(finalPlayInGame.winner);
+        }
+    }
 
-
-    const nonPlayoffTeams = allTeams.filter(t => t.conference && !playoffTeams.has(t.id));
+    const nonPlayoffTeams = allTeams.filter(t => !playoffTeams.has(t.id));
 
     lotteryTeams = nonPlayoffTeams.sort((a, b) => {
         const winPctA = a.wpct || 0;
@@ -117,8 +125,10 @@ async function loadExistingResults() {
 
     if (resultsSnap.exists()) {
         const { final_order } = resultsSnap.data();
-        const orderedTeams = final_order.map(teamId => lotteryTeams.find(t => t.id === teamId));
-        renderLists(orderedTeams); // Re-render lists in the saved order
+        const orderedTeams = final_order.map(teamId => lotteryTeams.find(t => t.id === teamId)).filter(Boolean);
+        if (orderedTeams.length === 14) {
+            renderLists(orderedTeams); // Re-render lists in the saved order
+        }
     }
 }
 
@@ -132,7 +142,9 @@ function setupDragAndDrop() {
 
     finalLotteryList.addEventListener('dragend', e => {
         setTimeout(() => {
-            draggedItem.classList.remove('dragging');
+            if (draggedItem) {
+                draggedItem.classList.remove('dragging');
+            }
             draggedItem = null;
             updateRanks();
         }, 0);
@@ -141,10 +153,12 @@ function setupDragAndDrop() {
     finalLotteryList.addEventListener('dragover', e => {
         e.preventDefault();
         const afterElement = getDragAfterElement(finalLotteryList, e.clientY);
-        if (afterElement == null) {
-            finalLotteryList.appendChild(draggedItem);
-        } else {
-            finalLotteryList.insertBefore(draggedItem, afterElement);
+        if (draggedItem) {
+            if (afterElement == null) {
+                finalLotteryList.appendChild(draggedItem);
+            } else {
+                finalLotteryList.insertBefore(draggedItem, afterElement);
+            }
         }
     });
 }
