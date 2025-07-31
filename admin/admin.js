@@ -1,6 +1,6 @@
 // /admin/admin.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, httpsCallable } from '/js/firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
@@ -9,27 +9,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // User is signed in, check if they are an admin
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
-                // User is an admin, show the portal
                 loadingContainer.style.display = 'none';
                 adminContainer.style.display = 'block';
                 authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
                 addLogoutListener();
+                addSeasonManagementListeners(); // ADDED: Attach listeners for new buttons
             } else {
-                // User is not an admin
                 loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
                 authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
                 addLogoutListener();
             }
         } else {
-            // No user is signed in, redirect to login
             window.location.href = '/login.html';
         }
     });
+
+    function addSeasonManagementListeners() {
+        const createSeasonBtn = document.getElementById('create-season-btn');
+        const createHistoricalBtn = document.getElementById('create-historical-season-btn');
+
+        if (createSeasonBtn) {
+            createSeasonBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (confirm("Are you sure you want to advance to the next season? This will create S8 structures and generate S13 draft picks. This is irreversible.")) {
+                    try {
+                        const createNewSeason = httpsCallable(functions, 'createNewSeason');
+                        const result = await createNewSeason();
+                        alert(result.data.message);
+                    } catch (error) {
+                        console.error("Error creating new season:", error);
+                        alert(`Error: ${error.message}`);
+                    }
+                }
+            });
+        }
+
+        if (createHistoricalBtn) {
+            createHistoricalBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const seasonNumberStr = prompt("Enter the historical season number to create (e.g., '6' for S6):");
+                if (seasonNumberStr) {
+                    const seasonNumber = parseInt(seasonNumberStr, 10);
+                    if (isNaN(seasonNumber) || seasonNumber <= 0) {
+                        alert("Please enter a valid, positive season number.");
+                        return;
+                    }
+                    if (confirm(`Are you sure you want to create the structure for historical season S${seasonNumber}? This is irreversible.`)) {
+                        try {
+                            const createHistoricalSeason = httpsCallable(functions, 'createHistoricalSeason');
+                            const result = await createHistoricalSeason({ seasonNumber });
+                            alert(result.data.message);
+                        } catch (error) {
+                            console.error("Error creating historical season:", error);
+                            alert(`Error: ${error.message}`);
+                        }
+                    }
+                }
+            });
+        }
+    }
 
     function addLogoutListener() {
         const logoutBtn = document.getElementById('logout-btn');

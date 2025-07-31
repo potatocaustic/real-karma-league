@@ -1,6 +1,6 @@
 // /admin/manage-players.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, arrayUnion } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -50,7 +50,6 @@ async function initializePage() {
 
         teamsSnap.docs.forEach(doc => allTeams.set(doc.id, doc.data()));
 
-        // Fetch seasonal stats for each player for the current season
         const playerPromises = playersSnap.docs.map(async (playerDoc) => {
             const playerData = { id: playerDoc.id, ...playerDoc.data() };
             const seasonStatsRef = doc(db, "v2_players", playerDoc.id, "seasonal_stats", currentSeasonId);
@@ -58,7 +57,7 @@ async function initializePage() {
             if (seasonStatsSnap.exists()) {
                 playerData.season_stats = seasonStatsSnap.data();
             } else {
-                playerData.season_stats = { games_played: 0, WAR: 0 }; // Default object
+                playerData.season_stats = { games_played: 0, WAR: 0 };
             }
             return playerData;
         });
@@ -114,7 +113,7 @@ playersListContainer.addEventListener('click', (e) => {
 });
 
 createPlayerBtn.addEventListener('click', () => {
-    openPlayerModal(); // Call with no player data for creation mode
+    openPlayerModal();
 });
 
 function openPlayerModal(player = null) {
@@ -131,12 +130,10 @@ function openPlayerModal(player = null) {
         document.getElementById('player-rookie-checkbox').checked = player.rookie === '1';
         document.getElementById('player-allstar-checkbox').checked = player.all_star === '1';
     } else {
-        // For new players, the admin must create a unique ID.
         document.getElementById('player-id-input').readOnly = false;
         document.getElementById('player-id-input').placeholder = "Enter a new unique ID (e.g. jdoe123)";
     }
 
-    // Populate team dropdown
     const teamSelect = document.getElementById('player-team-select');
     const freeAgentOption = `<option value="FREE_AGENT">Free Agent</option>`;
     teamSelect.innerHTML = freeAgentOption + Array.from(allTeams.entries())
@@ -164,9 +161,9 @@ playerForm.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Data for the top-level player document
+    const newHandle = document.getElementById('player-handle-input').value.trim();
     const staticDataToSave = {
-        player_handle: document.getElementById('player-handle-input').value.trim(),
+        player_handle: newHandle,
         current_team_id: document.getElementById('player-team-select').value,
         player_status: document.getElementById('player-status-select').value,
         rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
@@ -177,11 +174,16 @@ playerForm.addEventListener('submit', async (e) => {
 
     try {
         if (isEditMode) {
-            // Editing existing player - we use updateDoc
+            const originalPlayer = allPlayers.find(p => p.id === playerId);
+            const oldHandle = originalPlayer ? originalPlayer.player_handle : null;
+
+            if (oldHandle && oldHandle !== newHandle) {
+                staticDataToSave.aliases = arrayUnion(oldHandle);
+            }
+
             await updateDoc(playerRef, staticDataToSave);
             alert('Player updated successfully!');
         } else {
-            // Creating a new player - we use setDoc
             const docSnap = await getDoc(playerRef);
             if (docSnap.exists()) {
                 alert("A player with this ID already exists. Please choose a unique ID.");
@@ -189,7 +191,6 @@ playerForm.addEventListener('submit', async (e) => {
             }
             await setDoc(playerRef, staticDataToSave);
 
-            // Also create the initial seasonal stats subcollection document
             const seasonStatsRef = doc(db, "v2_players", playerId, "seasonal_stats", currentSeasonId);
             const initialStats = { games_played: 0, total_points: 0, WAR: 0, REL: 0, GEM: 0, aag_mean: 0, aag_median: 0 };
             await setDoc(seasonStatsRef, initialStats);
@@ -197,7 +198,7 @@ playerForm.addEventListener('submit', async (e) => {
             alert('New player created successfully!');
         }
 
-        await initializePage(); // Refresh list from DB
+        await initializePage();
         playerModal.style.display = 'none';
 
     } catch (error) {
@@ -205,7 +206,6 @@ playerForm.addEventListener('submit', async (e) => {
         alert('Failed to save player.');
     }
 });
-
 
 function addLogoutListener() {
     const logoutBtn = document.getElementById('logout-btn');
