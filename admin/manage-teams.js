@@ -134,7 +134,7 @@ async function loadAndDisplayTeams() {
 }
 
 function displayTeams(teams) {
-    // 1. Clear the container of its "Loading teams..." message
+    // Clear the container of its "Loading teams..." message
     teamsListContainer.innerHTML = '';
 
     if (teams.length === 0) {
@@ -142,10 +142,8 @@ function displayTeams(teams) {
         return;
     }
 
-    // 2. Create a document fragment to hold the new elements before adding them to the page
     const fragment = document.createDocumentFragment();
 
-    // 3. Loop through the teams and create an element for each one
     teams.forEach(team => {
         const wins = team.season_record?.wins ?? 'N/A';
         const losses = team.season_record?.losses ?? 'N/A';
@@ -162,10 +160,15 @@ function displayTeams(teams) {
         fragment.appendChild(teamEntryDiv);
     });
 
-    // 4. Append the entire fragment to the container in a single, efficient operation
     teamsListContainer.appendChild(fragment);
-}
 
+    // FINAL FIX: Forcefully apply styles to ensure the container is visible and rendered.
+    // This will override any obscure CSS rules that may be hiding the content.
+    teamsListContainer.style.display = 'block';
+    teamsListContainer.style.visibility = 'visible';
+    teamsListContainer.style.height = 'auto';
+    teamsListContainer.style.opacity = '1';
+}
 function openTeamModal(team) {
     document.getElementById('team-id-input').value = team.id;
     document.getElementById('team-id-display').textContent = team.id;
