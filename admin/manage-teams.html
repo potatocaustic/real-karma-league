@@ -19,7 +19,20 @@
     <main id="admin-container" style="display: none;">
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2>Manage Teams</h2>
+        <main id="admin-container" style="display: none;">
+            <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+            <h2>Manage Teams</h2>
 
+            <div class="filters-container">
+                <div class="filter-group">
+                    <label for="season-select-teams">Season:</label>
+                    <select id="season-select-teams"></select>
+                </div>
+            </div>
+            <div id="teams-list-container">
+                <div class="loading">Loading teams...</div>
+            </div>
+        </main>
         <div id="teams-list-container">
             <div class="loading">Loading teams...</div>
         </div>
