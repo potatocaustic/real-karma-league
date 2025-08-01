@@ -52,14 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const [playersSnap, awardsSnap] = await Promise.all([
-            getDocs(collection(db, "v2_players")),
-            getDocs(collection(db, `awards/season_7/S7_awards`))
-        ]);
-
+        // Only cache player data, which is not season-dependent
+        const playersSnap = await getDocs(collection(db, "v2_players"));
         playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
-        awardsSnap.forEach(doc => awardSelections.set(doc.id, doc.data()));
-
     } catch (error) {
         console.error("Failed to cache core data:", error);
     }
@@ -68,9 +63,10 @@ async function initializePage() {
 
     seasonSelect.addEventListener('change', async () => {
         currentSeasonId = seasonSelect.value;
-        // Update cache for the newly selected season
         if (currentSeasonId) {
+            // Update both caches for the newly selected season
             await updateTeamCache(currentSeasonId);
+            await updateAwardsCache(currentSeasonId);
         }
         await handleSeasonChange();
     });
@@ -87,6 +83,14 @@ async function initializePage() {
     lineupForm.addEventListener('input', calculateAllScores);
     document.getElementById('team1-starters').addEventListener('click', handleCaptainToggle);
     document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
+}
+
+async function updateAwardsCache(seasonId) {
+    awardSelections.clear();
+    const seasonNumber = seasonId.replace('S', '');
+    const awardsRef = collection(db, `awards/season_${seasonNumber}/S${seasonNumber}_awards`);
+    const awardsSnap = await getDocs(awardsRef);
+    awardsSnap.forEach(doc => awardSelections.set(doc.id, doc.data()));
 }
 
 async function updateTeamCache(seasonId) {
@@ -124,7 +128,7 @@ async function populateSeasons() {
 
         let activeSeasonId = null;
         const seasonOptions = seasonsSnap.docs
-            .sort((a, b) => b.id.localeCompare(a.id)) // Sort seasons descending
+            .sort((a, b) => b.id.localeCompare(a.id))
             .map(doc => {
                 const seasonData = doc.data();
                 if (seasonData.status === 'active') {
@@ -141,9 +145,10 @@ async function populateSeasons() {
 
         currentSeasonId = seasonSelect.value;
 
-        // Update cache for the initial season load
         if (currentSeasonId) {
+            // Update both caches for the initial season load
             await updateTeamCache(currentSeasonId);
+            await updateAwardsCache(currentSeasonId);
             await handleSeasonChange();
         }
 
@@ -272,10 +277,23 @@ async function openLineupModal(game) {
     const isExhibition = game.collectionName === 'exhibition_games';
     const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (game.collectionName === 'post_games' ? 'post_lineups' : 'lineups');
 
-    const lineupsQuery = query(collection(db, "seasons", currentSeasonId, lineupsCollectionName), where("game_id", "==", game.id));
+    // Fetch all lineups for the game's date
+    const lineupsQuery = query(collection(db, "seasons", currentSeasonId, lineupsCollectionName), where("date", "==", game.date));
     const lineupsSnap = await getDocs(lineupsQuery);
     const existingLineups = new Map();
-    lineupsSnap.forEach(d => existingLineups.set(d.data().player_id, d.data()));
+
+    // Get the full roster for each team in this specific game
+    const team1Roster = getRosterForTeam(game.team1_id, game.week);
+    const team2Roster = getRosterForTeam(game.team2_id, game.week);
+    const playerIdsInGame = new Set([...team1Roster, ...team2Roster].map(p => p.id));
+
+    // Filter the daily lineups to include only players involved in this game
+    lineupsSnap.forEach(d => {
+        const lineupData = d.data();
+        if (playerIdsInGame.has(lineupData.player_id)) {
+            existingLineups.set(lineupData.player_id, lineupData);
+        }
+    });
 
     const team1Roster = getRosterForTeam(game.team1_id, game.week);
     const team2Roster = getRosterForTeam(game.team2_id, game.week);
