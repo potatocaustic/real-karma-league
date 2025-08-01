@@ -134,33 +134,37 @@ async function loadAndDisplayTeams() {
 }
 
 function displayTeams(teams) {
+    // 1. Clear the container of its "Loading teams..." message
+    teamsListContainer.innerHTML = '';
+
     if (teams.length === 0) {
         teamsListContainer.innerHTML = '<p class="placeholder-text">No teams found for this season.</p>';
         return;
     }
 
-    const teamsHTML = teams.map(team => {
-        // Fallback for wins/losses in case they are missing from a seasonal record
+    // 2. Create a document fragment to hold the new elements before adding them to the page
+    const fragment = document.createDocumentFragment();
+
+    // 3. Loop through the teams and create an element for each one
+    teams.forEach(team => {
         const wins = team.season_record?.wins ?? 'N/A';
         const losses = team.season_record?.losses ?? 'N/A';
 
-        return `
-            <div class="team-entry">
-                <div class="team-details">
-                    <span class="team-name">${team.season_record.team_name || 'N/A'}</span>
-                    <span class="team-sub-details">${wins}-${losses} | GM: ${team.current_gm_handle || 'N/A'}</span>
-                </div>
-                <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
+        const teamEntryDiv = document.createElement('div');
+        teamEntryDiv.className = 'team-entry';
+        teamEntryDiv.innerHTML = `
+            <div class="team-details">
+                <span class="team-name">${team.season_record.team_name || 'N/A'}</span>
+                <span class="team-sub-details">${wins}-${losses} | GM: ${team.current_gm_handle || 'N/A'}</span>
             </div>
+            <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
         `;
-    }).join('');
+        fragment.appendChild(teamEntryDiv);
+    });
 
-    // ADDED: Log the generated HTML to the console for inspection.
-    console.log("Generated HTML to display:", teamsHTML);
-
-    teamsListContainer.innerHTML = teamsHTML;
+    // 4. Append the entire fragment to the container in a single, efficient operation
+    teamsListContainer.appendChild(fragment);
 }
-
 
 function openTeamModal(team) {
     document.getElementById('team-id-input').value = team.id;
