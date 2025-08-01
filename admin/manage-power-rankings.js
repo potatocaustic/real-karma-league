@@ -40,19 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const teamsSnap = await getDocs(collection(db, "v2_teams"));
-        allTeams = teamsSnap.docs
-            .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(team => team.conference);
-
-        if (allTeams.length !== TOTAL_TEAMS) {
-            console.warn(`Expected ${TOTAL_TEAMS} teams but found ${allTeams.length}.`);
-        }
-
         await populateSeasons();
         populateVersions();
 
-        seasonSelect.addEventListener('change', loadRankingsBoard);
+        seasonSelect.addEventListener('change', async () => {
+            currentSeasonId = seasonSelect.value;
+            await updateTeamCache(currentSeasonId);
+            await loadRankingsBoard();
+        });
+
         versionSelect.addEventListener('change', loadRankingsBoard);
         rankingsForm.addEventListener('submit', handleFormSubmit);
         rankingsBody.addEventListener('change', handleSelectionChange);
@@ -61,6 +57,23 @@ async function initializePage() {
         console.error("Error initializing page:", error);
         rankingsBody.innerHTML = `<tr><td colspan="4" class="error">Could not load team data.</td></tr>`;
     }
+}
+
+async function updateTeamCache(seasonId) {
+    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+        if (!teamDoc.data().conference) return null;
+
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordSnap = await getDoc(seasonRecordRef);
+
+        teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
+        return teamData;
+    });
+
+    const teamsWithData = (await Promise.all(teamPromises)).filter(Boolean);
+    allTeams = teamsWithData.filter(team => team.conference);
 }
 
 async function populateSeasons() {
@@ -81,6 +94,9 @@ async function populateSeasons() {
     }
 
     currentSeasonId = seasonSelect.value;
+
+    // Fetch team data for the initial season before loading the board
+    await updateTeamCache(currentSeasonId);
     await loadRankingsBoard();
 }
 

@@ -342,7 +342,7 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
             const awardData = {
                 award_name: "Best Performance (Team)",
                 team_id: bestTeamPerf.team_id,
-                team_name: teamRecordSnap.exists() ? teamRecordSnap.data().team_name : 'Unknown',
+                team_name: teamRecordSnap.exists ? teamRecordSnap.data().team_name : 'Unknown',
                 date: bestTeamPerf.date,
                 value: bestTeamPerf.pct_above_median
             };
