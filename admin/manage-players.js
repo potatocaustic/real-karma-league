@@ -41,14 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- Initialization and Data Fetching ---
 async function initializePage() {
     try {
         // Populate seasons and trigger initial data load
         await populateSeasons();
 
-        searchInput.addEventListener('input', () => {
-
+        // This listener handles season changes
         seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
             // Update the team cache for the new season before loading players
@@ -56,6 +54,7 @@ async function initializePage() {
             await loadAndDisplayPlayers();
         });
 
+        // This listener handles the search input
         searchInput.addEventListener('input', () => {
             const searchTerm = searchInput.value.toLowerCase();
             const filteredPlayers = allPlayers.filter(player => player.player_handle.toLowerCase().includes(searchTerm));
@@ -67,6 +66,7 @@ async function initializePage() {
         playersListContainer.innerHTML = '<div class="error">Could not load player data.</div>';
     }
 }
+
 async function updateTeamCache(seasonId) {
     allTeams.clear();
     const teamsSnap = await getDocs(collection(db, "v2_teams"));
