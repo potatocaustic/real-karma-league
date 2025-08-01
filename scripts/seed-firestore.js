@@ -95,6 +95,7 @@ async function seedDatabase() {
     [...lineupsData, ...postLineupsData].forEach(l => {
         l.points_adjusted = parseNumber(l.points_adjusted);
         l.global_rank = parseNumber(l.global_rank);
+        l.raw_score = parseNumber(l.raw_score); // Add this line
     });
 
     // --- 2. PRE-CALCULATIONS & DATA ENHANCEMENT ---
