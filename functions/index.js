@@ -69,7 +69,8 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         await createSeasonStructure(newSeasonNumber, batch);
 
         // 2. Delete old draft picks for the newly started season
-        const oldPicksQuery = db.collection("draftPicks").where("season", "==", newSeasonNumber);
+        // CORRECTED: Query for the season as a string to match the data type in Firestore.
+        const oldPicksQuery = db.collection("draftPicks").where("season", "==", String(newSeasonNumber));
         const oldPicksSnap = await oldPicksQuery.get();
         console.log(`Deleting ${oldPicksSnap.size} draft picks for season ${newSeasonNumber}.`);
         oldPicksSnap.forEach(doc => batch.delete(doc.ref));

@@ -140,7 +140,7 @@ function openPlayerModal(player = null) {
         .map(([id, team]) => `<option value="${id}" ${player && player.current_team_id === id ? 'selected' : ''}>${team.team_name}</option>`)
         .join('');
 
-    if (isEditMode && player.current_team_id) {
+    if (is_edit_mode && player.current_team_id) {
         teamSelect.value = player.current_team_id;
     } else {
         teamSelect.value = "FREE_AGENT";
@@ -162,14 +162,6 @@ playerForm.addEventListener('submit', async (e) => {
     }
 
     const newHandle = document.getElementById('player-handle-input').value.trim();
-    const staticDataToSave = {
-        player_handle: newHandle,
-        current_team_id: document.getElementById('player-team-select').value,
-        player_status: document.getElementById('player-status-select').value,
-        rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
-        all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
-    };
-
     const playerRef = doc(db, "v2_players", playerId);
 
     try {
@@ -177,13 +169,31 @@ playerForm.addEventListener('submit', async (e) => {
             const originalPlayer = allPlayers.find(p => p.id === playerId);
             const oldHandle = originalPlayer ? originalPlayer.player_handle : null;
 
+            // Prepare the data for the update operation.
+            const updateData = {
+                player_handle: newHandle,
+                current_team_id: document.getElementById('player-team-select').value,
+                player_status: document.getElementById('player-status-select').value,
+                rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
+                all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
+            };
+
+            // If the handle has changed, add the old handle to the aliases array.
             if (oldHandle && oldHandle !== newHandle) {
-                staticDataToSave.aliases = arrayUnion(oldHandle);
+                updateData.aliases = arrayUnion(oldHandle);
             }
 
-            await updateDoc(playerRef, staticDataToSave);
+            await updateDoc(playerRef, updateData);
             alert('Player updated successfully!');
         } else {
+            // Logic for creating a new player.
+            const staticDataToSave = {
+                player_handle: newHandle,
+                current_team_id: document.getElementById('player-team-select').value,
+                player_status: document.getElementById('player-status-select').value,
+                rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
+                all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
+            };
             const docSnap = await getDoc(playerRef);
             if (docSnap.exists()) {
                 alert("A player with this ID already exists. Please choose a unique ID.");
@@ -203,9 +213,10 @@ playerForm.addEventListener('submit', async (e) => {
 
     } catch (error) {
         console.error("Error saving player:", error);
-        alert('Failed to save player.');
+        alert('Failed to save player. Check the console for details.');
     }
 });
+
 
 function addLogoutListener() {
     const logoutBtn = document.getElementById('logout-btn');

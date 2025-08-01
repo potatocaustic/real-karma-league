@@ -17,7 +17,7 @@ import {
     addDoc,
     updateDoc,
     writeBatch,
-    arrayUnion, // ADDED: Export arrayUnion
+    arrayUnion, // IMPORTED
     connectFirestoreEmulator
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
@@ -41,7 +41,6 @@ export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 
 // --- NEW: Connect to Emulators when running locally ---
-// This checks if the hostname is localhost or 127.0.0.1
 if (window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1")) {
     console.log("Connecting to local Firebase emulators...");
     connectAuthEmulator(auth, "http://127.0.0.1:9099");
@@ -67,5 +66,5 @@ export {
     addDoc,
     updateDoc,
     writeBatch,
-    arrayUnion 
+    arrayUnion // EXPORTED
 };
