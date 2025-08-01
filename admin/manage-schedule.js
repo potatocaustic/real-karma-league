@@ -42,30 +42,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const [teamsSnap, seasonsSnap] = await Promise.all([
-            getDocs(collection(db, "v2_teams")),
-            getDocs(collection(db, "seasons"))
-        ]);
-
-        allTeams = teamsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
+        const seasonsSnap = await getDocs(collection(db, "seasons"));
         if (seasonsSnap.empty) {
-            adminContainer.innerHTML = `<div class="error">No seasons found in the database. Please run the seeder script.</div>`;
+            adminContainer.innerHTML = `<div class="error">No seasons found in the database.</div>`;
             loadingContainer.style.display = 'none';
             adminContainer.style.display = 'block';
             return;
         }
 
-        seasonSelect.innerHTML = seasonsSnap.docs.map(doc => `<option value="${doc.id}">${doc.data().season_name}</option>`).join('');
-        currentSeasonId = seasonSelect.value;
+        seasonSelect.innerHTML = seasonsSnap.docs
+            .sort((a, b) => b.id.localeCompare(a.id))
+            .map(doc => `<option value="${doc.id}">${doc.data().season_name}</option>`).join('');
 
+        // Set the default selected season
+        const activeSeason = seasonsSnap.docs.find(doc => doc.data().status === 'active');
+        currentSeasonId = activeSeason ? activeSeason.id : seasonsSnap.docs[0].id;
+        seasonSelect.value = currentSeasonId;
+
+        // Initial data load for the default season
+        await updateTeamCache(currentSeasonId);
         populatePostseasonDates();
         await loadSchedules();
 
-        seasonSelect.addEventListener('change', () => {
+        seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
-            loadSchedules();
+            await updateTeamCache(currentSeasonId);
+            await loadSchedules();
         });
+
         addGameBtn.addEventListener('click', openGameModal);
         closeModalBtn.addEventListener('click', () => gameModal.classList.remove('is-visible'));
         gameForm.addEventListener('submit', handleSaveGame);
@@ -75,6 +79,7 @@ async function initializePage() {
 
         loadingContainer.style.display = 'none';
         adminContainer.style.display = 'block';
+
     } catch (error) {
         console.error("Error initializing schedule manager:", error);
         adminContainer.innerHTML = `<div class="error">An error occurred during initialization. Check the console for details.</div>`;
@@ -83,6 +88,21 @@ async function initializePage() {
     }
 }
 
+async function updateTeamCache(seasonId) {
+    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+        if (!teamDoc.data().conference) return null;
+
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordSnap = await getDoc(seasonRecordRef);
+
+        teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
+        return teamData;
+    });
+
+    allTeams = (await Promise.all(teamPromises)).filter(Boolean);
+}
 function populatePostseasonDates() {
     const rounds = {
         'Play-In': 2, 'Round 1': 3, 'Round 2': 3, 'Conf Finals': 5, 'Finals': 7
