@@ -100,12 +100,12 @@ async function loadAndDisplayTeams() {
     try {
         const teamsSnap = await getDocs(collection(db, "v2_teams"));
 
-        // MODIFIED: Filter out any potential bad data from the seeder
-        const validTeamDocs = teamsSnap.docs.filter(doc => doc.id);
+        // MODIFIED: Filter for documents that have a 'conference' field, ensuring we only process actual teams.
+        const validTeamDocs = teamsSnap.docs.filter(doc => doc.data().conference);
 
         const teamPromises = validTeamDocs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
-            // Diagnostic Log: This will show each team being processed in your console.
+            // Diagnostic Log: This will now only show for actual teams.
             console.log(`Fetching record for team: ${teamId}, season: ${currentSeasonId}`);
 
             const teamData = { id: teamId, ...teamDoc.data() };
@@ -121,8 +121,7 @@ async function loadAndDisplayTeams() {
         });
 
         allTeams = await Promise.all(teamPromises);
-        // Diagnostic Log: This will confirm all fetches completed.
-        console.log("All seasonal records fetched.");
+        console.log("All seasonal records for valid teams fetched.");
 
         allTeams.sort((a, b) => (a.season_record.team_name || '').localeCompare(b.season_record.team_name || ''));
 
