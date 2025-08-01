@@ -281,27 +281,40 @@ async function openLineupModal(game) {
     const lineupsSnap = await getDocs(lineupsQuery);
 
     const existingLineups = new Map();
-    const team1PlayersForGame = [];
-    const team2PlayersForGame = [];
+    let team1Roster, team2Roster;
 
-    // Derive historical rosters directly from the fetched lineup data for that game date
-    lineupsSnap.forEach(d => {
-        const lineupData = d.data();
-        // Only process players for the two teams in this specific game
-        if (lineupData.team_id === game.team1_id) {
-            team1PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
-            existingLineups.set(lineupData.player_id, lineupData);
-        } else if (lineupData.team_id === game.team2_id) {
-            team2PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
-            existingLineups.set(lineupData.player_id, lineupData);
-        }
-    });
+    if (!lineupsSnap.empty) {
+        // CASE 1: Game has existing lineup data. Build roster from this historical data.
+        const team1PlayersForGame = [];
+        const team2PlayersForGame = [];
+
+        const playerIdsInGame = new Set(getRosterForTeam(game.team1_id, game.week).concat(getRosterForTeam(game.team2_id, game.week)).map(p => p.id));
+
+        lineupsSnap.forEach(d => {
+            const lineupData = d.data();
+            if (playerIdsInGame.has(lineupData.player_id)) {
+                if (lineupData.team_id === game.team1_id) {
+                    team1PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
+                } else if (lineupData.team_id === game.team2_id) {
+                    team2PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
+                }
+                existingLineups.set(lineupData.player_id, lineupData);
+            }
+        });
+        team1Roster = team1PlayersForGame;
+        team2Roster = team2PlayersForGame;
+
+    } else {
+        // CASE 2: No lineup data found. Build roster from current team assignments.
+        team1Roster = getRosterForTeam(game.team1_id, game.week);
+        team2Roster = getRosterForTeam(game.team2_id, game.week);
+    }
 
     const team1 = allTeams.get(game.team1_id) || { team_name: game.team1_id };
     const team2 = allTeams.get(game.team2_id) || { team_name: game.team2_id };
 
-    renderTeamUI('team1', team1, team1PlayersForGame, existingLineups);
-    renderTeamUI('team2', team2, team2PlayersForGame, existingLineups);
+    renderTeamUI('team1', team1, team1Roster, existingLineups);
+    renderTeamUI('team2', team2, team2Roster, existingLineups);
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} vs ${team2.team_name}`;
 
