@@ -39,11 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- Initialization and Data Fetching ---
 async function initializePage() {
-    // REMOVED: The block that created the select element in JS.
-    // It should now exist in the HTML file.
-
     await populateSeasons();
 
     seasonSelect.addEventListener('change', () => {
@@ -51,7 +47,6 @@ async function initializePage() {
         loadAndDisplayTeams();
     });
 
-    // Add other event listeners
     teamsListContainer.addEventListener('click', (e) => {
         if (e.target.matches('.btn-admin-edit')) {
             const teamId = e.target.dataset.teamId;
@@ -62,8 +57,9 @@ async function initializePage() {
         }
     });
 
+    // MODIFIED: Standardized modal closing logic
     closeModalBtn.addEventListener('click', () => {
-        teamModal.classList.remove('is-visible');
+        teamModal.style.display = 'none';
     });
 
     teamForm.addEventListener('submit', handleTeamFormSubmit);
@@ -104,21 +100,30 @@ async function loadAndDisplayTeams() {
     try {
         const teamsSnap = await getDocs(collection(db, "v2_teams"));
 
-        const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
-            const teamData = { id: teamDoc.id, ...teamDoc.data() };
-            const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", currentSeasonId);
+        // MODIFIED: Filter out any potential bad data from the seeder
+        const validTeamDocs = teamsSnap.docs.filter(doc => doc.id);
+
+        const teamPromises = validTeamDocs.map(async (teamDoc) => {
+            const teamId = teamDoc.id;
+            // Diagnostic Log: This will show each team being processed in your console.
+            console.log(`Fetching record for team: ${teamId}, season: ${currentSeasonId}`);
+
+            const teamData = { id: teamId, ...teamDoc.data() };
+            const seasonRecordRef = doc(db, "v2_teams", teamId, "seasonal_records", currentSeasonId);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
+
             if (seasonRecordSnap.exists()) {
                 teamData.season_record = seasonRecordSnap.data();
             } else {
-                // Provide a default name if a record doesn't exist for some reason
                 teamData.season_record = { wins: 0, losses: 0, team_name: "Name Not Found" };
             }
             return teamData;
         });
-        allTeams = await Promise.all(teamPromises);
 
-        // MODIFIED: Sort by the team_name inside the season_record object
+        allTeams = await Promise.all(teamPromises);
+        // Diagnostic Log: This will confirm all fetches completed.
+        console.log("All seasonal records fetched.");
+
         allTeams.sort((a, b) => (a.season_record.team_name || '').localeCompare(b.season_record.team_name || ''));
 
         displayTeams(allTeams);
@@ -152,14 +157,15 @@ function displayTeams(teams) {
 function openTeamModal(team) {
     document.getElementById('team-id-input').value = team.id;
     document.getElementById('team-id-display').textContent = team.id;
-    // MODIFIED: Get team_name from the season_record
     document.getElementById('team-name-input').value = team.season_record.team_name || '';
     document.getElementById('team-conference-select').value = team.conference || 'Eastern';
     document.getElementById('team-gm-handle-input').value = team.current_gm_handle || '';
     document.getElementById('team-gm-uid-input').value = team.gm_uid || '';
 
-    teamModal.classList.add('is-visible');
+    // MODIFIED: Standardized modal opening logic
+    teamModal.style.display = 'block';
 }
+
 
 async function handleTeamFormSubmit(e) {
     e.preventDefault();
