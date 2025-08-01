@@ -12,6 +12,7 @@ const playerModal = document.getElementById('player-modal');
 const closeModalBtn = playerModal.querySelector('.close-btn-admin');
 const playerForm = document.getElementById('player-form');
 const createPlayerBtn = document.getElementById('create-player-btn');
+const seasonSelect = document.getElementById('player-season-select');
 
 let allPlayers = [];
 let allTeams = new Map(); // Use a Map for efficient team lookups
@@ -43,29 +44,17 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Initialization and Data Fetching ---
 async function initializePage() {
     try {
-        const [playersSnap, teamsSnap] = await Promise.all([
-            getDocs(collection(db, "v2_players")),
-            getDocs(collection(db, "v2_teams"))
-        ]);
-
+        // Fetch teams once
+        const teamsSnap = await getDocs(collection(db, "v2_teams"));
         teamsSnap.docs.forEach(doc => allTeams.set(doc.id, doc.data()));
 
-        const playerPromises = playersSnap.docs.map(async (playerDoc) => {
-            const playerData = { id: playerDoc.id, ...playerDoc.data() };
-            const seasonStatsRef = doc(db, "v2_players", playerDoc.id, "seasonal_stats", currentSeasonId);
-            const seasonStatsSnap = await getDoc(seasonStatsRef);
-            if (seasonStatsSnap.exists()) {
-                playerData.season_stats = seasonStatsSnap.data();
-            } else {
-                playerData.season_stats = { games_played: 0, WAR: 0 };
-            }
-            return playerData;
+        // Populate seasons and trigger initial player load
+        await populateSeasons();
+
+        seasonSelect.addEventListener('change', () => {
+            currentSeasonId = seasonSelect.value;
+            loadAndDisplayPlayers();
         });
-
-        allPlayers = await Promise.all(playerPromises);
-        allPlayers.sort((a, b) => (a.player_handle || '').localeCompare(b.player_handle));
-
-        displayPlayers(allPlayers);
 
         searchInput.addEventListener('input', () => {
             const searchTerm = searchInput.value.toLowerCase();
@@ -75,6 +64,54 @@ async function initializePage() {
 
     } catch (error) {
         console.error("Error initializing page:", error);
+        playersListContainer.innerHTML = '<div class="error">Could not load player data.</div>';
+    }
+}
+
+async function populateSeasons() {
+    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    let activeSeasonId = null;
+    const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
+
+    seasonSelect.innerHTML = sortedDocs.map(doc => {
+        const seasonData = doc.data();
+        if (seasonData.status === 'active') {
+            activeSeasonId = doc.id;
+        }
+        return `<option value="${doc.id}">${seasonData.season_name}</option>`;
+    }).join('');
+
+    if (activeSeasonId) {
+        seasonSelect.value = activeSeasonId;
+    }
+    currentSeasonId = seasonSelect.value;
+    await loadAndDisplayPlayers();
+}
+
+async function loadAndDisplayPlayers() {
+    playersListContainer.innerHTML = '<div class="loading">Loading players...</div>';
+    try {
+        const playersSnap = await getDocs(collection(db, "v2_players"));
+
+        const playerPromises = playersSnap.docs.map(async (playerDoc) => {
+            const playerData = { id: playerDoc.id, ...playerDoc.data() };
+            // MODIFIED: Fetch stats for the currently selected season
+            const seasonStatsRef = doc(db, "v2_players", playerDoc.id, "seasonal_stats", currentSeasonId);
+            const seasonStatsSnap = await getDoc(seasonStatsRef);
+            if (seasonStatsSnap.exists()) {
+                playerData.season_stats = seasonStatsSnap.data();
+            } else {
+                playerData.season_stats = { games_played: 0, WAR: 0, rookie: '0', all_star: '0' };
+            }
+            return playerData;
+        });
+
+        allPlayers = await Promise.all(playerPromises);
+        allPlayers.sort((a, b) => (a.player_handle || '').localeCompare(b.player_handle));
+
+        displayPlayers(allPlayers);
+    } catch (error) {
+        console.error(`Error loading players for season ${currentSeasonId}:`, error);
         playersListContainer.innerHTML = '<div class="error">Could not load player data.</div>';
     }
 }
@@ -127,11 +164,15 @@ function openPlayerModal(player = null) {
         document.getElementById('player-id-input').value = player.id;
         document.getElementById('player-handle-input').value = player.player_handle || '';
         document.getElementById('player-status-select').value = player.player_status || 'ACTIVE';
-        document.getElementById('player-rookie-checkbox').checked = player.rookie === '1';
-        document.getElementById('player-allstar-checkbox').checked = player.all_star === '1';
+        // MODIFIED: Use seasonal stats for accolades
+        document.getElementById('player-rookie-checkbox').checked = player.season_stats?.rookie === '1';
+        document.getElementById('player-allstar-checkbox').checked = player.season_stats?.all_star === '1';
     } else {
         document.getElementById('player-id-input').readOnly = false;
         document.getElementById('player-id-input').placeholder = "Enter a new unique ID (e.g. jdoe123)";
+        // Defaults for a new player
+        document.getElementById('player-rookie-checkbox').checked = true;
+        document.getElementById('player-allstar-checkbox').checked = false;
     }
 
     const teamSelect = document.getElementById('player-team-select');
@@ -164,33 +205,37 @@ playerForm.addEventListener('submit', async (e) => {
 
     const newHandle = document.getElementById('player-handle-input').value.trim();
     const playerRef = doc(db, "v2_players", playerId);
+    const seasonStatsRef = doc(playerRef, "seasonal_stats", currentSeasonId);
 
     try {
         if (isEditMode) {
             const originalPlayer = allPlayers.find(p => p.id === playerId);
             const oldHandle = originalPlayer ? originalPlayer.player_handle : null;
 
+            // Update static data
             const updateData = {
                 player_handle: newHandle,
                 current_team_id: document.getElementById('player-team-select').value,
                 player_status: document.getElementById('player-status-select').value,
-                rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
-                all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
             };
-
             if (oldHandle && oldHandle !== newHandle) {
                 updateData.aliases = arrayUnion(oldHandle);
             }
-
             await updateDoc(playerRef, updateData);
+
+            // MODIFIED: Update seasonal data in its own document
+            const seasonalUpdateData = {
+                rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
+                all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
+            };
+            await setDoc(seasonStatsRef, seasonalUpdateData, { merge: true });
+
             alert('Player updated successfully!');
         } else {
             const staticDataToSave = {
                 player_handle: newHandle,
                 current_team_id: document.getElementById('player-team-select').value,
                 player_status: document.getElementById('player-status-select').value,
-                rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
-                all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
             };
             const docSnap = await getDoc(playerRef);
             if (docSnap.exists()) {
@@ -199,10 +244,15 @@ playerForm.addEventListener('submit', async (e) => {
             }
             await setDoc(playerRef, staticDataToSave);
 
-            const seasonStatsRef = doc(db, "v2_players", playerId, "seasonal_stats", currentSeasonId);
-            const initialStats = { games_played: 0, total_points: 0, WAR: 0, REL: 0, GEM: 0, aag_mean: 0, aag_median: 0 };
+            const initialStats = {
+                aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
+                post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
+                post_medrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
+                WAR: 0, total_points: 0,
+                rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
+                all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
+            };
             await setDoc(seasonStatsRef, initialStats);
-
             alert('New player created successfully!');
         }
 

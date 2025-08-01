@@ -48,15 +48,30 @@ async function createSeasonStructure(seasonNum, batch) {
     const playersSnap = await db.collection("v2_players").get();
     playersSnap.forEach(playerDoc => {
         const statsRef = playerDoc.ref.collection("seasonal_stats").doc(seasonId);
-        batch.set(statsRef, { games_played: 0, WAR: 0, total_points: 0 });
+        batch.set(statsRef, {
+            aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
+            post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
+            post_medrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
+            WAR: 0, total_points: 0, rookie: '0', all_star: '0'
+        });
     });
     console.log(`Prepared empty seasonal_stats for ${playersSnap.size} players.`);
 
     const teamsSnap = await db.collection("v2_teams").get();
-    teamsSnap.forEach(teamDoc => {
+    for (const teamDoc of teamsSnap.docs) {
         const recordRef = teamDoc.ref.collection("seasonal_records").doc(seasonId);
-        batch.set(recordRef, { wins: 0, losses: 0, pam: 0 });
-    });
+        // MODIFIED: Fetch previous season's name to copy it forward
+        const prevSeasonNum = seasonNum - 1;
+        const prevRecordRef = teamDoc.ref.collection("seasonal_records").doc(`S${prevSeasonNum}`);
+        const prevRecordSnap = await prevRecordRef.get();
+        const teamName = prevRecordSnap.exists() ? prevRecordSnap.data().team_name : "New Team"; // Fallback name
+
+        batch.set(recordRef, {
+            apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
+            playoffs: 0, post_losses: 0, post_med_starter_rank: 0, post_msr_rank: 0, post_pam: 0, post_pam_rank: 0, post_wins: 0, postseed: 0, sortscore: 0,
+            wins: 0, wpct: 0, team_name: teamName
+        });
+    }
     console.log(`Prepared empty seasonal_records for ${teamsSnap.size} teams.`);
 
     return seasonRef; // Return the reference for status updates
@@ -394,16 +409,16 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
             player_handle: player_handle,
             current_team_id: team_id,
             player_status: 'ACTIVE',
-            rookie: '1', // All drafted players are rookies
-            all_star: '0'
         };
         batch.set(playerRef, newPlayerData);
 
         // 2. Create the initial seasonal stats sub-document for that player
         const seasonStatsRef = playerRef.collection('seasonal_stats').doc(season);
         const initialStats = {
-            games_played: 0, total_points: 0, WAR: 0, REL: 0, GEM: 0, aag_mean: 0, aag_median: 0,
-            post_games_played: 0, post_total_points: 0, post_WAR: 0, post_REL: 0, post_GEM: 0, post_aag_mean: 0, post_aag_median: 0
+            aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
+            post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
+            post_medrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
+            WAR: 0, total_points: 0, rookie: '1', all_star: '0'
         };
         batch.set(seasonStatsRef, initialStats);
 
@@ -651,25 +666,28 @@ async function updateAllTeamStats(seasonId, isPostseason, batch) {
     // 6. Batch write final updates
     for (const team of calculatedStats) {
         const { teamId, ...stats } = team;
+        // This object holds stats common to both regular and postseason
         const finalUpdate = {
-            [`${prefix}wins`]: stats.wins,
-            [`${prefix}losses`]: stats.losses,
-            [`${prefix}pam`]: stats.pam,
-            [`${prefix}med_starter_rank`]: stats.med_starter_rank,
-            [`${prefix}msr_rank`]: stats[`${prefix}msr_rank`],
-            [`${prefix}pam_rank`]: stats[`${prefix}pam_rank`],
+            [`${prefix}wins`]: stats.wins || 0,
+            [`${prefix}losses`]: stats.losses || 0,
+            [`${prefix}pam`]: stats.pam || 0,
+            [`${prefix}med_starter_rank`]: stats.med_starter_rank || 0,
+            [`${prefix}msr_rank`]: stats[`${prefix}msr_rank`] || 0,
+            [`${prefix}pam_rank`]: stats[`${prefix}pam_rank`] || 0,
         };
 
+        // These stats are only calculated for the regular season
         if (!isPostseason) {
             Object.assign(finalUpdate, {
-                wpct: stats.wpct,
-                apPAM: stats.apPAM,
-                sortscore: stats.sortscore,
-                MaxPotWins: stats.MaxPotWins,
-                postseed: stats.postseed,
-                playin: stats.playin,
-                playoffs: stats.playoffs,
-                elim: stats.elim,
+                wpct: stats.wpct || 0,
+                apPAM: stats.apPAM || 0,
+                sortscore: stats.sortscore || 0,
+                MaxPotWins: stats.MaxPotWins || 0,
+                // MODIFIED: Provide null as a default for potentially undefined fields
+                postseed: stats.postseed || null,
+                playin: stats.playin || 0,
+                playoffs: stats.playoffs || 0,
+                elim: stats.elim || 0,
             });
         }
 

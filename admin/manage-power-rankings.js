@@ -178,8 +178,10 @@ function validateRankings() {
     let isValid = true;
     let errorMessage = '';
 
+    // Reset all rows
     rankingsBody.querySelectorAll('tr').forEach(row => row.classList.remove('has-duplicate'));
 
+    // 1. Check for duplicate teams
     rankingsBody.querySelectorAll('.team-select').forEach(select => {
         const teamId = select.value;
         if (!teamId) return;
@@ -191,31 +193,28 @@ function validateRankings() {
         }
     });
 
-    let emptyRanks = 0;
     assignedTeams.forEach((rows, teamId) => {
         if (rows.length > 1) {
-            isValid = false;
+            isValid = false; // Set main validation flag
             const teamName = allTeams.find(t => t.id === teamId)?.team_name || 'A team';
             errorMessage = `${teamName} has been assigned to multiple ranks.`;
             rows.forEach(row => row.classList.add('has-duplicate'));
         }
     });
 
-    for (let i = 1; i <= TOTAL_TEAMS; i++) {
-        const row = rankingsBody.querySelector(`tr[data-rank="${i}"]`);
-        if (row && !row.querySelector('.team-select').value) {
-            emptyRanks++;
+    // 2. MODIFIED: Check if all 30 ranks have a team assigned, only if no duplicates were found
+    if (isValid) {
+        const assignedCount = Array.from(rankingsBody.querySelectorAll('.team-select')).filter(s => s.value).length;
+        if (assignedCount < TOTAL_TEAMS) {
+            isValid = false; // Set main validation flag
+            errorMessage = `Not all teams have been assigned a rank. ${TOTAL_TEAMS - assignedCount} remaining.`;
         }
-    }
-
-    if (isValid && emptyRanks > 0) {
-        isValid = false;
-        errorMessage = `You still need to assign ${emptyRanks} team(s).`;
     }
 
     saveButton.disabled = !isValid;
     validationContainer.innerHTML = isValid ? '' : `<p class="validation-message">${errorMessage}</p>`;
 }
+
 
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -258,9 +257,10 @@ async function handleFormSubmit(e) {
             const change = previous_rank !== null ? previous_rank - item.rank : null;
 
             const docRef = doc(rankingsCollectionRef, item.teamId);
+            // MODIFIED: Added version and season to the data payload
             batch.set(docRef, {
                 team_id: item.teamId,
-                team_name: team.team_name,
+                team_name: team.team_name, // Assumes allTeams has been updated to fetch seasonal names
                 rank: item.rank,
                 previous_rank: previous_rank,
                 change: change,

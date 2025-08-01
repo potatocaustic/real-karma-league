@@ -311,14 +311,25 @@ async function seedDatabase() {
 
     // --- 4. SEED DATABASE ---
     const batch = db.batch();
-
     // Seed Teams and Seasonal Records
     teamsData.forEach(team => {
         const teamDocRef = db.collection("v2_teams").doc(team.team_id);
-        const staticData = { team_name: team.team_name, conference: team.conference, current_gm_handle: team.current_gm_handle, gm_uid: team.gm_uid };
+
+        // MODIFIED: Add team_id as a field to the static root document data.
+        const staticData = {
+            team_id: team.team_id,
+            conference: team.conference,
+            current_gm_handle: team.current_gm_handle,
+            gm_uid: team.gm_uid
+        };
         batch.set(teamDocRef, staticData);
 
         const seasonalData = teamSeasonalStats.get(team.team_id) || {};
+        seasonalData.team_name = team.team_name;
+
+        // Delete the redundant teamId property from the seasonal object.
+        delete seasonalData.teamId;
+
         const seasonRecordRef = teamDocRef.collection("seasonal_records").doc(SEASON_ID);
         batch.set(seasonRecordRef, seasonalData, { merge: true });
     });
@@ -327,11 +338,20 @@ async function seedDatabase() {
     // Seed Players and Seasonal Stats
     playersData.forEach(player => {
         const playerDocRef = db.collection("v2_players").doc(player.player_id);
-        const staticData = { player_handle: player.player_handle, player_status: player.player_status, rookie: player.rookie, all_star: player.all_star, current_team_id: player.current_team_id };
+        // MODIFIED: Only write static data to the root player document
+        const staticData = {
+            player_handle: player.player_handle,
+            player_status: player.player_status,
+            current_team_id: player.current_team_id
+        };
         batch.set(playerDocRef, staticData);
 
         if (playerSeasonalStats.has(player.player_id)) {
             const seasonalData = playerSeasonalStats.get(player.player_id);
+            // MODIFIED: Add rookie and all_star status from the source sheet to the seasonal data
+            seasonalData.rookie = player.rookie || '0';
+            seasonalData.all_star = player.all_star || '0';
+
             const seasonStatsRef = playerDocRef.collection("seasonal_stats").doc(SEASON_ID);
             batch.set(seasonStatsRef, seasonalData);
         }
