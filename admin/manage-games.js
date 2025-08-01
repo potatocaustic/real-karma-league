@@ -295,9 +295,6 @@ async function openLineupModal(game) {
         }
     });
 
-    const team1Roster = getRosterForTeam(game.team1_id, game.week);
-    const team2Roster = getRosterForTeam(game.team2_id, game.week);
-
     const team1 = allTeams.get(game.team1_id) || { team_name: game.team1_id };
     const team2 = allTeams.get(game.team2_id) || { team_name: game.team2_id };
 
