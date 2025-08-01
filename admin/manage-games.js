@@ -53,14 +53,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const seasonNumber = "7"; // This can be made dynamic later based on season selection
+        // This initial data fetch can be refined later if it becomes slow
         const [teamsSnap, playersSnap, awardsSnap] = await Promise.all([
             getDocs(collection(db, "v2_teams")),
             getDocs(collection(db, "v2_players")),
-            getDocs(collection(db, `awards/season_${seasonNumber}/S${seasonNumber}_awards`))
+            // Note: This awards fetch is hardcoded to S7, may need dynamic update later
+            getDocs(collection(db, `awards/season_7/S7_awards`))
         ]);
 
-        // Players must be processed first for the GM map to work correctly
         playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
 
         teamsSnap.docs.forEach(doc => {
@@ -82,12 +82,20 @@ async function initializePage() {
         return;
     }
 
+    // MODIFIED: This block now dynamically loads seasons
     await populateSeasons();
+
     seasonSelect.addEventListener('change', async () => {
         currentSeasonId = seasonSelect.value;
-        await populateWeeks(currentSeasonId);
-        gamesListContainer.innerHTML = '<p class="placeholder-text">Please select a week.</p>';
+        if (currentSeasonId) {
+            await populateWeeks(currentSeasonId);
+            gamesListContainer.innerHTML = '<p class="placeholder-text">Please select a week.</p>';
+        } else {
+            weekSelect.innerHTML = '<option>Select a season...</option>';
+            gamesListContainer.innerHTML = '';
+        }
     });
+
     weekSelect.addEventListener('change', () => {
         if (currentSeasonId && weekSelect.value) {
             fetchAndDisplayGames(currentSeasonId, weekSelect.value);
@@ -102,11 +110,38 @@ async function initializePage() {
     document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
 }
 
+// NEW DYNAMIC FUNCTION
 async function populateSeasons() {
-    seasonSelect.innerHTML = `<option value="S7">Season 7</option>`;
-    currentSeasonId = "S7";
-    await populateWeeks(currentSeasonId);
+    try {
+        const seasonsSnap = await getDocs(collection(db, "seasons"));
+        if (seasonsSnap.empty) {
+            seasonSelect.innerHTML = `<option value="">No Seasons Found</option>`;
+            return;
+        }
+
+        let activeSeasonId = null;
+        const seasonOptions = seasonsSnap.docs.map(doc => {
+            const seasonData = doc.data();
+            if (seasonData.status === 'active') {
+                activeSeasonId = doc.id;
+            }
+            return `<option value="${doc.id}">${seasonData.season_name}</option>`;
+        }).join('');
+
+        seasonSelect.innerHTML = `<option value="">Select a season...</option>${seasonOptions}`;
+
+        // Automatically select the active season
+        if (activeSeasonId) {
+            seasonSelect.value = activeSeasonId;
+            currentSeasonId = activeSeasonId;
+            await populateWeeks(currentSeasonId);
+        }
+    } catch (error) {
+        console.error("Error populating seasons:", error);
+        seasonSelect.innerHTML = `<option value="">Error loading</option>`;
+    }
 }
+
 
 async function populateWeeks(seasonId) {
     let weekOptions = '';

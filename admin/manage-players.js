@@ -140,7 +140,8 @@ function openPlayerModal(player = null) {
         .map(([id, team]) => `<option value="${id}" ${player && player.current_team_id === id ? 'selected' : ''}>${team.team_name}</option>`)
         .join('');
 
-    if (is_edit_mode && player.current_team_id) {
+    // CORRECTED: The variable is 'isEditMode', not 'is_edit_mode'.
+    if (isEditMode && player.current_team_id) {
         teamSelect.value = player.current_team_id;
     } else {
         teamSelect.value = "FREE_AGENT";
@@ -169,7 +170,6 @@ playerForm.addEventListener('submit', async (e) => {
             const originalPlayer = allPlayers.find(p => p.id === playerId);
             const oldHandle = originalPlayer ? originalPlayer.player_handle : null;
 
-            // Prepare the data for the update operation.
             const updateData = {
                 player_handle: newHandle,
                 current_team_id: document.getElementById('player-team-select').value,
@@ -178,7 +178,6 @@ playerForm.addEventListener('submit', async (e) => {
                 all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'
             };
 
-            // If the handle has changed, add the old handle to the aliases array.
             if (oldHandle && oldHandle !== newHandle) {
                 updateData.aliases = arrayUnion(oldHandle);
             }
@@ -186,7 +185,6 @@ playerForm.addEventListener('submit', async (e) => {
             await updateDoc(playerRef, updateData);
             alert('Player updated successfully!');
         } else {
-            // Logic for creating a new player.
             const staticDataToSave = {
                 player_handle: newHandle,
                 current_team_id: document.getElementById('player-team-select').value,

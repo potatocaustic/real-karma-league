@@ -21,14 +21,20 @@ async function createSeasonStructure(seasonNum, batch) {
     const seasonId = `S${seasonNum}`;
     console.log(`Creating structure for season ${seasonId}`);
 
-    // Create placeholder documents to establish collection paths
+    // Create placeholder documents for REGULAR season stats
     batch.set(db.doc(`daily_averages/season_${seasonNum}`), { description: `Daily averages for Season ${seasonNum}` });
     batch.set(db.doc(`daily_averages/season_${seasonNum}/S${seasonNum}_daily_averages/placeholder`), {});
-
     batch.set(db.doc(`daily_scores/season_${seasonNum}`), { description: `Daily scores for Season ${seasonNum}` });
     batch.set(db.doc(`daily_scores/season_${seasonNum}/S${seasonNum}_daily_scores/placeholder`), {});
 
-    batch.set(db.doc(`seasons/${seasonId}`), { season_name: `Season ${seasonNum}`, status: "pending" });
+    // CORRECTED: Create placeholder documents for POSTSEASON stats as well
+    batch.set(db.doc(`post_daily_averages/season_${seasonNum}`), { description: `Postseason daily averages for Season ${seasonNum}` });
+    batch.set(db.doc(`post_daily_averages/season_${seasonNum}/S${seasonNum}_post_daily_averages/placeholder`), {});
+    batch.set(db.doc(`post_daily_scores/season_${seasonNum}`), { description: `Postseason daily scores for Season ${seasonNum}` });
+    batch.set(db.doc(`post_daily_scores/season_${seasonNum}/S${seasonNum}_post_daily_scores/placeholder`), {});
+
+
+    // Create the main season document and its subcollections
     const seasonRef = db.collection("seasons").doc(seasonId);
     batch.set(seasonRef.collection("games").doc("placeholder"), {});
     batch.set(seasonRef.collection("lineups").doc("placeholder"), {});
@@ -51,25 +57,31 @@ async function createSeasonStructure(seasonNum, batch) {
         batch.set(recordRef, { wins: 0, losses: 0, pam: 0 });
     });
     console.log(`Prepared empty seasonal_records for ${teamsSnap.size} teams.`);
+
+    return seasonRef; // Return the reference for status updates
 }
 
 exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
-    // For now, we assume the completed season is S7, making the new season S8.
     const COMPLETED_SEASON_NUM = 7;
     const newSeasonNumber = COMPLETED_SEASON_NUM + 1;
-    const futureDraftSeasonNumber = newSeasonNumber + 5; // S8 becomes current, so we create S13 picks
+    const futureDraftSeasonNumber = newSeasonNumber + 5;
 
     try {
         const batch = db.batch();
 
         // 1. Create Firestore Structures for the new season
-        await createSeasonStructure(newSeasonNumber, batch);
+        const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch);
 
-        // 2. Delete old draft picks for the newly started season
-        // CORRECTED: Query for the season as a string to match the data type in Firestore.
+        // CORRECTED: Update status for new and old seasons
+        batch.update(newSeasonRef, { status: "active" });
+        const oldSeasonRef = db.doc(`seasons/S${COMPLETED_SEASON_NUM}`);
+        batch.update(oldSeasonRef, { status: "completed" });
+
+
+        // 2. Delete old draft picks
         const oldPicksQuery = db.collection("draftPicks").where("season", "==", String(newSeasonNumber));
         const oldPicksSnap = await oldPicksQuery.get();
         console.log(`Deleting ${oldPicksSnap.size} draft picks for season ${newSeasonNumber}.`);
@@ -117,9 +129,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         throw new functions.https.HttpsError('invalid-argument', 'A seasonNumber must be provided.');
     }
 
-    const COMPLETED_SEASON_NUM = 7; // Current completed season
-
-    // Validation
+    const COMPLETED_SEASON_NUM = 7;
     if (seasonNumber >= COMPLETED_SEASON_NUM) {
         throw new functions.https.HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current season (${COMPLETED_SEASON_NUM}).`);
     }
@@ -130,7 +140,11 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
 
     try {
         const batch = db.batch();
-        await createSeasonStructure(seasonNumber, batch);
+        const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch);
+
+        // CORRECTED: Set status of historical seasons to "completed".
+        batch.set(historicalSeasonRef, { season_name: `Season ${seasonNumber}`, status: "completed" });
+
         await batch.commit();
         return { success: true, message: `Successfully created historical data structure for Season ${seasonNumber}.` };
     } catch (error) {
