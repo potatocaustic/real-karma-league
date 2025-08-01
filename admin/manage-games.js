@@ -300,11 +300,13 @@ async function openLineupModal(game) {
     const team1 = allTeams.get(game.team1_id) || { team_name: game.team1_id };
     const team2 = allTeams.get(game.team2_id) || { team_name: game.team2_id };
 
-    // Pass the correct historical rosters to the rendering function
     renderTeamUI('team1', team1, team1PlayersForGame, existingLineups);
     renderTeamUI('team2', team2, team2PlayersForGame, existingLineups);
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} vs ${team2.team_name}`;
+
+    calculateAllScores();
+
     lineupModal.classList.add('is-visible');
 }
 
