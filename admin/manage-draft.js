@@ -38,8 +38,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
+        // First, find the active season to get the correct team names
+        const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"));
+        const activeSeasonsSnap = await getDocs(seasonsQuery);
+        const activeSeasonId = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
+
+        if (!activeSeasonId) {
+            throw new Error("Could not determine the active season to fetch team names.");
+        }
+
+        // Now fetch all teams and their seasonal names
         const teamsSnap = await getDocs(collection(db, "v2_teams"));
-        allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.team_name.localeCompare(b.team_name));
+        const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+            if (!teamDoc.data().conference) return null; // Filter out non-team documents
+            const teamData = { id: teamDoc.id, ...teamDoc.data() };
+            const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", activeSeasonId);
+            const seasonRecordSnap = await getDoc(seasonRecordRef);
+
+            teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
+            return teamData;
+        });
+
+        allTeams = (await Promise.all(teamPromises))
+            .filter(Boolean)
+            .sort((a, b) => (a.team_name || '').localeCompare(b.team_name || ''));
 
         await populateSeasons();
 
