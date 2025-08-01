@@ -1,6 +1,6 @@
 // /admin/manage-draft.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, setDoc } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -38,15 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        // Fetch all teams for the dropdowns
         const teamsSnap = await getDocs(collection(db, "v2_teams"));
         allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.team_name.localeCompare(b.team_name));
 
-        // Populate season selector (for now, hardcoded)
-        seasonSelect.innerHTML = `<option value="S7">Season 7</option>`; // Can be dynamic later
-        currentSeasonId = seasonSelect.value;
-
-        await loadDraftBoard();
+        await populateSeasons();
 
         seasonSelect.addEventListener('change', () => {
             currentSeasonId = seasonSelect.value;
@@ -61,10 +56,38 @@ async function initializePage() {
     }
 }
 
+async function populateSeasons() {
+    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    let activeSeasonId = null;
+    const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
+
+    seasonSelect.innerHTML = sortedDocs.map(doc => {
+        const seasonData = doc.data();
+        if (seasonData.status === 'active') {
+            activeSeasonId = doc.id;
+        }
+        // For draft, we often manage the *next* season's draft
+        const seasonNum = parseInt(doc.id.replace('S', ''), 10);
+        return `<option value="S${seasonNum + 1}">S${seasonNum + 1} Draft</option>`;
+    }).join('');
+
+    // Set a default selection
+    if (activeSeasonId) {
+        const activeNum = parseInt(activeSeasonId.replace('S', ''), 10);
+        seasonSelect.value = `S${activeNum + 1}`;
+    }
+
+    currentSeasonId = seasonSelect.value;
+    await loadDraftBoard();
+}
+
 async function loadDraftBoard() {
+    if (!currentSeasonId) {
+        draftTableBody.innerHTML = `<tr><td colspan="5" class="placeholder-text">Please select a draft season.</td></tr>`;
+        return;
+    }
     draftTableBody.innerHTML = `<tr><td colspan="5" class="loading">Loading draft board...</td></tr>`;
 
-    // Fetch existing draft picks for the selected season to pre-populate the form
     const seasonNumber = currentSeasonId.replace('S', '');
     const draftResultsCollectionRef = collection(db, `draft_results/season_${seasonNumber}/S${seasonNumber}_draft_results`);
     const existingPicksSnap = await getDocs(draftResultsCollectionRef);
@@ -73,7 +96,6 @@ async function loadDraftBoard() {
         existingPicksMap.set(doc.data().overall, doc.data());
     });
 
-    // Generate the table rows
     let tableHTML = '';
     const teamOptionsHTML = `<option value="">-- Select Team --</option>` + allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
@@ -106,7 +128,6 @@ async function loadDraftBoard() {
     }
     draftTableBody.innerHTML = tableHTML;
 
-    // Add event listeners to checkboxes to toggle row state
     draftTableBody.querySelectorAll('.forfeit-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
             const overall = e.target.dataset.overall;

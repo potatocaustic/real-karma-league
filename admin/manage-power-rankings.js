@@ -1,6 +1,6 @@
 // /admin/manage-power-rankings.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -14,8 +14,8 @@ const validationContainer = document.getElementById('validation-message-containe
 
 // --- Global Data Cache ---
 let allTeams = [];
-let prevRankingsMap = new Map(); // Stores { teamId: rank } for the previous version
-let currentSeasonId = 'S7';
+let prevRankingsMap = new Map();
+let currentSeasonId = null;
 let currentVersion = 0;
 const TOTAL_TEAMS = 30;
 
@@ -43,15 +43,16 @@ async function initializePage() {
         const teamsSnap = await getDocs(collection(db, "v2_teams"));
         allTeams = teamsSnap.docs
             .map(doc => ({ id: doc.id, ...doc.data() }))
-            .filter(team => team.conference); // Only include teams with a conference
+            .filter(team => team.conference);
 
         if (allTeams.length !== TOTAL_TEAMS) {
             console.warn(`Expected ${TOTAL_TEAMS} teams but found ${allTeams.length}.`);
         }
 
-        populateSelectors();
-        await loadRankingsBoard();
+        await populateSeasons();
+        populateVersions();
 
+        seasonSelect.addEventListener('change', loadRankingsBoard);
         versionSelect.addEventListener('change', loadRankingsBoard);
         rankingsForm.addEventListener('submit', handleFormSubmit);
         rankingsBody.addEventListener('change', handleSelectionChange);
@@ -62,11 +63,30 @@ async function initializePage() {
     }
 }
 
-function populateSelectors() {
-    seasonSelect.innerHTML = `<option value="S7">Season 7</option>`; // Static for now
+async function populateSeasons() {
+    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    let activeSeasonId = null;
+    const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
+    seasonSelect.innerHTML = sortedDocs.map(doc => {
+        const seasonData = doc.data();
+        if (seasonData.status === 'active') {
+            activeSeasonId = doc.id;
+        }
+        return `<option value="${doc.id}">${seasonData.season_name}</option>`;
+    }).join('');
+
+    if (activeSeasonId) {
+        seasonSelect.value = activeSeasonId;
+    }
+
+    currentSeasonId = seasonSelect.value;
+    await loadRankingsBoard();
+}
+
+function populateVersions() {
     let versionOptions = '';
-    for (let i = 0; i <= 10; i++) { // v0 to v10
+    for (let i = 0; i <= 10; i++) {
         const label = i === 0 ? 'v0 (Preseason)' : `v${i} (After Week ${i * 3})`;
         versionOptions += `<option value="${i}">${label}</option>`;
     }
@@ -74,38 +94,35 @@ function populateSelectors() {
 }
 
 async function loadRankingsBoard() {
+    currentSeasonId = seasonSelect.value;
     currentVersion = parseInt(versionSelect.value);
     rankingsBody.innerHTML = `<tr><td colspan="4" class="loading">Loading rankings...</td></tr>`;
+
+    if (!currentSeasonId) return;
 
     const seasonNumber = currentSeasonId.replace('S', '');
     const prevVersion = currentVersion - 1;
 
-    // Fetch previous and current rankings in parallel
     const [prevRankingsSnap, currentRankingsSnap] = await Promise.all([
         prevVersion >= 0 ? getDocs(collection(db, `power_rankings/season_${seasonNumber}/v${prevVersion}`)) : Promise.resolve(null),
         getDocs(collection(db, `power_rankings/season_${seasonNumber}/v${currentVersion}`))
     ]);
 
-    // Create a map of { teamId: rank } for the previous version
     prevRankingsMap.clear();
     if (prevRankingsSnap) {
         prevRankingsSnap.forEach(doc => prevRankingsMap.set(doc.id, doc.data().rank));
     }
 
-    // Create a map of { rank: teamId } for the current version to pre-populate selections
     const currentRankToTeamMap = new Map();
     currentRankingsSnap.forEach(doc => currentRankToTeamMap.set(doc.data().rank, doc.id));
 
-    // Generate team dropdown options
     const teamOptionsHTML = `<option value="">-- Select Team --</option>` + allTeams
         .sort((a, b) => a.team_name.localeCompare(b.team_name))
         .map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
-    // Build the table body with 30 rows for ranks 1-30
     let tableHTML = '';
     for (let rank = 1; rank <= TOTAL_TEAMS; rank++) {
         const selectedTeamId = currentRankToTeamMap.get(rank) || "";
-
         tableHTML += `
             <tr data-rank="${rank}">
                 <td style="text-align:center; font-weight:bold;">${rank}</td>
@@ -121,7 +138,6 @@ async function loadRankingsBoard() {
     }
     rankingsBody.innerHTML = tableHTML;
 
-    // Initial calculation and validation
     calculateAllChanges();
     validateRankings();
 }
@@ -142,11 +158,11 @@ function calculateAllChanges() {
         if (selectedTeamId && prevRankingsMap.has(selectedTeamId)) {
             const newRank = parseInt(row.dataset.rank);
             const prevRank = prevRankingsMap.get(selectedTeamId);
-            const change = prevRank - newRank; // Lower rank number is better
+            const change = prevRank - newRank;
 
             prevRankCell.textContent = prevRank;
             changeCell.textContent = change > 0 ? `+${change}` : change;
-            changeCell.className = 'rank-change'; // Reset
+            changeCell.className = 'rank-change';
             if (change > 0) changeCell.classList.add('positive');
             if (change < 0) changeCell.classList.add('negative');
         } else {
@@ -162,13 +178,11 @@ function validateRankings() {
     let isValid = true;
     let errorMessage = '';
 
-    // Reset all rows
     rankingsBody.querySelectorAll('tr').forEach(row => row.classList.remove('has-duplicate'));
 
-    // Check for duplicate teams
     rankingsBody.querySelectorAll('.team-select').forEach(select => {
         const teamId = select.value;
-        if (!teamId) return; // Ignore unassigned ranks
+        if (!teamId) return;
 
         if (assignedTeams.has(teamId)) {
             assignedTeams.get(teamId).push(select.closest('tr'));
@@ -177,6 +191,7 @@ function validateRankings() {
         }
     });
 
+    let emptyRanks = 0;
     assignedTeams.forEach((rows, teamId) => {
         if (rows.length > 1) {
             isValid = false;
@@ -186,10 +201,16 @@ function validateRankings() {
         }
     });
 
-    // Check if all teams are assigned
-    if (isValid && assignedTeams.size !== TOTAL_TEAMS) {
+    for (let i = 1; i <= TOTAL_TEAMS; i++) {
+        const row = rankingsBody.querySelector(`tr[data-rank="${i}"]`);
+        if (row && !row.querySelector('.team-select').value) {
+            emptyRanks++;
+        }
+    }
+
+    if (isValid && emptyRanks > 0) {
         isValid = false;
-        errorMessage = 'Not all teams have been assigned a rank.';
+        errorMessage = `You still need to assign ${emptyRanks} team(s).`;
     }
 
     saveButton.disabled = !isValid;
@@ -206,23 +227,47 @@ async function handleFormSubmit(e) {
         const seasonNumber = currentSeasonId.replace('S', '');
         const rankingsCollectionRef = collection(db, `power_rankings/season_${seasonNumber}/v${currentVersion}`);
 
+        const ranksToWrite = [];
+        let error = false;
         rankingsBody.querySelectorAll('tr').forEach(row => {
-            const rank = parseInt(row.dataset.rank);
             const teamId = row.querySelector('.team-select').value;
-            const team = allTeams.find(t => t.id === teamId);
-
-            const previous_rank = prevRankingsMap.get(teamId) || null;
-            const change = previous_rank !== null ? previous_rank - rank : null;
-
-            const docRef = doc(rankingsCollectionRef, teamId);
-            batch.set(docRef, {
-                team_id: teamId,
-                team_name: team.team_name,
-                rank: rank,
-                previous_rank: previous_rank,
-                change: change
+            if (!teamId) {
+                error = true;
+            }
+            ranksToWrite.push({
+                rank: parseInt(row.dataset.rank),
+                teamId: teamId
             });
         });
+
+        if (error) {
+            alert("All ranks must be filled before saving.");
+            saveButton.disabled = false;
+            saveButton.textContent = 'Save Rankings';
+            return;
+        }
+
+        // First, clear the existing version's documents to handle rank swaps
+        const existingDocsSnap = await getDocs(rankingsCollectionRef);
+        existingDocsSnap.forEach(doc => batch.delete(doc.ref));
+
+        // Now, set the new rankings
+        for (const item of ranksToWrite) {
+            const team = allTeams.find(t => t.id === item.teamId);
+            const previous_rank = prevRankingsMap.get(item.teamId) || null;
+            const change = previous_rank !== null ? previous_rank - item.rank : null;
+
+            const docRef = doc(rankingsCollectionRef, item.teamId);
+            batch.set(docRef, {
+                team_id: item.teamId,
+                team_name: team.team_name,
+                rank: item.rank,
+                previous_rank: previous_rank,
+                change: change,
+                version: currentVersion,
+                season: currentSeasonId
+            });
+        }
 
         await batch.commit();
         alert(`Power Rankings v${currentVersion} saved successfully!`);

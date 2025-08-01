@@ -1,6 +1,6 @@
 // /admin/manage-awards.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, httpsCallable } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -51,7 +51,6 @@ async function initializePage() {
 
         allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.team_name.localeCompare(b.team_name));
 
-        // Populate the GM map from the teams data
         allTeams.forEach(team => {
             if (team.current_gm_handle) {
                 allGms.set(team.current_gm_handle, { team_id: team.id, team_name: team.team_name });
@@ -59,11 +58,12 @@ async function initializePage() {
         });
 
         populateDatalistAndSelects();
+        await populateSeasons();
 
-        seasonSelect.innerHTML = `<option value="S7">Season 7</option>`;
-        currentSeasonId = seasonSelect.value;
-
-        await loadExistingAwards();
+        seasonSelect.addEventListener('change', () => {
+            currentSeasonId = seasonSelect.value;
+            loadExistingAwards();
+        });
 
         awardsForm.addEventListener('submit', handleFormSubmit);
         calculateBtn.addEventListener('click', handleCalculationTrigger);
@@ -74,16 +74,39 @@ async function initializePage() {
     }
 }
 
+async function populateSeasons() {
+    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    let activeSeasonId = null;
+    const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
+
+    seasonSelect.innerHTML = sortedDocs.map(doc => {
+        const seasonData = doc.data();
+        if (seasonData.status === 'active') {
+            activeSeasonId = doc.id;
+        }
+        return `<option value="${doc.id}">${seasonData.season_name}</option>`;
+    }).join('');
+
+    if (activeSeasonId) {
+        seasonSelect.value = activeSeasonId;
+    }
+
+    currentSeasonId = seasonSelect.value;
+    await loadExistingAwards();
+}
+
 function populateDatalistAndSelects() {
     playerDatalist.innerHTML = Array.from(allPlayers.keys()).map(handle => `<option value="${handle}"></option>`).join('');
-
-    // Populate the GM datalist
     gmDatalist.innerHTML = Array.from(allGms.keys()).map(handle => `<option value="${handle}"></option>`).join('');
 
     const teamOptions = `<option value="">-- Select Team --</option>` + allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
     document.querySelectorAll('.team-select').forEach(select => select.innerHTML = teamOptions);
 
-    // Populate All-Star and Rising Star inputs
+    document.getElementById('all-stars-eastern').innerHTML = '';
+    document.getElementById('all-stars-western').innerHTML = '';
+    document.getElementById('rising-stars-eastern').innerHTML = '';
+    document.getElementById('rising-stars-western').innerHTML = '';
+
     for (let i = 1; i <= 8; i++) {
         document.getElementById('all-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="East All-Star #${i}" autocomplete="off">`;
         document.getElementById('all-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="West All-Star #${i}" autocomplete="off">`;
@@ -93,37 +116,42 @@ function populateDatalistAndSelects() {
 }
 
 async function loadExistingAwards() {
+    awardsForm.reset(); // Clear previous selections
+
+    if (!currentSeasonId) return;
     const seasonNumber = currentSeasonId.replace('S', '');
     const awardsCollectionRef = collection(db, `awards/season_${seasonNumber}/S${seasonNumber}_awards`);
     const awardsSnap = await getDocs(awardsCollectionRef);
 
     if (awardsSnap.empty) {
         console.log("No existing awards found for this season.");
+        // Clear displays for auto-calculated awards
+        document.getElementById('best-player-performance-display').textContent = 'Not yet calculated.';
+        document.getElementById('best-team-performance-display').textContent = 'Not yet calculated.';
         return;
     }
 
     const awardsData = new Map();
     awardsSnap.forEach(doc => awardsData.set(doc.id, doc.data()));
 
-    // Populate single-winner awards
     const singleAwards = ['finals-mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
     singleAwards.forEach(id => {
         const award = awardsData.get(id);
-        if (award) document.getElementById(`award-${id}`).value = award.player_handle || '';
+        const element = document.getElementById(`award-${id}`);
+        if (element) element.value = award?.player_handle || '';
     });
 
-    // Populate GM of the Year separately
     const gmAward = awardsData.get('gm-of-the-year');
-    if (gmAward) document.getElementById('award-gm-of-the-year').value = gmAward.gm_handle || '';
+    const gmElement = document.getElementById('award-gm-of-the-year');
+    if (gmElement) gmElement.value = gmAward?.gm_handle || '';
 
-    // Populate team awards
     const teamAwards = ['league-champion', 'regular-season-title'];
     teamAwards.forEach(id => {
         const award = awardsData.get(id);
-        if (award) document.getElementById(`award-${id}`).value = award.team_id || '';
+        const element = document.getElementById(`award-${id}`);
+        if (element) element.value = award?.team_id || '';
     });
 
-    // Populate multi-player awards
     const listAwards = ['all-stars-eastern', 'all-stars-western', 'rising-stars-eastern', 'rising-stars-western'];
     listAwards.forEach(id => {
         const award = awardsData.get(id);
@@ -135,16 +163,23 @@ async function loadExistingAwards() {
         }
     });
 
-    // Display auto-calculated awards
     const bestPlayer = awardsData.get('best_performance_player');
-    if (bestPlayer) {
-        document.getElementById('best-player-performance-display').textContent = `${bestPlayer.player_handle} (${(bestPlayer.value * 100).toFixed(2)}% above median)`;
+    const bestPlayerDisplay = document.getElementById('best-player-performance-display');
+    if (bestPlayer && bestPlayerDisplay) {
+        bestPlayerDisplay.textContent = `${bestPlayer.player_handle} (${(bestPlayer.value * 100).toFixed(2)}% above median)`;
+    } else if (bestPlayerDisplay) {
+        bestPlayerDisplay.textContent = 'Not yet calculated.';
     }
+
     const bestTeam = awardsData.get('best_performance_team');
-    if (bestTeam) {
-        document.getElementById('best-team-performance-display').textContent = `${bestTeam.team_name} (${(bestTeam.value * 100).toFixed(2)}% above median)`;
+    const bestTeamDisplay = document.getElementById('best-team-performance-display');
+    if (bestTeam && bestTeamDisplay) {
+        bestTeamDisplay.textContent = `${bestTeam.team_name} (${(bestTeam.value * 100).toFixed(2)}% above median)`;
+    } else if (bestTeamDisplay) {
+        bestTeamDisplay.textContent = 'Not yet calculated.';
     }
 }
+
 
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -157,51 +192,55 @@ async function handleFormSubmit(e) {
         const seasonNumber = currentSeasonId.replace('S', '');
         const awardsCollectionRef = collection(db, `awards/season_${seasonNumber}/S${seasonNumber}_awards`);
 
-        // --- Process Single Player Awards ---
         const singleAwards = ['finals-mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
         for (const id of singleAwards) {
             const handle = document.getElementById(`award-${id}`).value;
+            const docRef = doc(awardsCollectionRef, id);
             if (handle && allPlayers.has(handle)) {
                 const player = allPlayers.get(handle);
-                const docRef = doc(awardsCollectionRef, id);
                 batch.set(docRef, { award_name: id.replace(/-/g, ' '), player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id });
+            } else {
+                batch.delete(docRef);
             }
         }
 
-        // --- Process GM of the Year Award ---
         const gmHandle = document.getElementById('award-gm-of-the-year').value;
+        const gmDocRef = doc(awardsCollectionRef, 'gm-of-the-year');
         if (gmHandle && allGms.has(gmHandle)) {
             const gm = allGms.get(gmHandle);
-            const docRef = doc(awardsCollectionRef, 'gm-of-the-year');
-            batch.set(docRef, { award_name: 'GM of the Year', gm_handle: gmHandle, team_id: gm.team_id });
+            batch.set(gmDocRef, { award_name: 'GM of the Year', gm_handle: gmHandle, team_id: gm.team_id });
+        } else {
+            batch.delete(gmDocRef);
         }
 
-        // --- Process Team Awards ---
         const teamAwards = ['league-champion', 'regular-season-title'];
         for (const id of teamAwards) {
             const teamId = document.getElementById(`award-${id}`).value;
+            const docRef = doc(awardsCollectionRef, id);
             if (teamId) {
                 const team = allTeams.find(t => t.id === teamId);
-                const docRef = doc(awardsCollectionRef, id);
                 batch.set(docRef, { award_name: id.replace(/-/g, ' '), team_id: team.id, team_name: team.team_name });
+            } else {
+                batch.delete(docRef);
             }
         }
 
-        // --- Process All-Star & Rising Star Lists ---
         const listAwards = ['all-stars-eastern', 'all-stars-western', 'rising-stars-eastern', 'rising-stars-western'];
         for (const id of listAwards) {
             const players = [];
             const inputs = document.getElementById(id).querySelectorAll('input');
             inputs.forEach(input => {
-                const handle = input.value;
+                const handle = input.value.trim();
                 if (handle && allPlayers.has(handle)) {
                     const player = allPlayers.get(handle);
                     players.push({ player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id });
                 }
             });
+            const docRef = doc(awardsCollectionRef, id);
             if (players.length > 0) {
-                const docRef = doc(awardsCollectionRef, id);
                 batch.set(docRef, { award_name: id.replace(/-/g, ' '), players: players });
+            } else {
+                batch.delete(docRef);
             }
         }
 

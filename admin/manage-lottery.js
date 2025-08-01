@@ -13,8 +13,8 @@ const saveBtn = document.getElementById('save-lottery-btn');
 // --- Global Data Cache ---
 let allTeams = [];
 let lotteryTeams = [];
-let currentSeasonId = 'S7'; // Represents the season that was just completed
-let draftSeason = 'S8'; // Represents the upcoming draft
+let completedSeasonId = null; // Represents the season that was just completed
+let draftSeasonId = null; // Represents the upcoming draft
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
@@ -34,13 +34,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        // For now, we'll hardcode the season selection
-        seasonSelect.innerHTML = `<option value="S8">Season 8 Draft</option>`;
+        await populateSeasons();
 
-        await loadLotteryTeams();
-        await loadExistingResults();
+        seasonSelect.addEventListener('change', handleSeasonChange);
+
         setupDragAndDrop();
-
         saveBtn.addEventListener('click', saveLotteryResults);
 
         loadingContainer.style.display = 'none';
@@ -51,29 +49,60 @@ async function initializePage() {
     }
 }
 
+async function populateSeasons() {
+    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    let completedSeason = null;
+    const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
+
+    seasonSelect.innerHTML = sortedDocs.map(doc => {
+        const seasonData = doc.data();
+        if (seasonData.status === 'completed' && !completedSeason) {
+            completedSeason = doc.id;
+        }
+        const seasonNum = parseInt(doc.id.replace('S', ''), 10);
+        return `<option value="S${seasonNum + 1}">S${seasonNum + 1} Draft Lottery</option>`;
+    }).join('');
+
+    if (completedSeason) {
+        const completedNum = parseInt(completedSeason.replace('S', ''), 10);
+        seasonSelect.value = `S${completedNum + 1}`;
+    }
+
+    await handleSeasonChange();
+}
+
+async function handleSeasonChange() {
+    draftSeasonId = seasonSelect.value;
+    const draftNum = parseInt(draftSeasonId.replace('S', ''), 10);
+    completedSeasonId = `S${draftNum - 1}`;
+
+    await loadLotteryTeams();
+    await loadExistingResults();
+}
+
 async function loadLotteryTeams() {
+    preLotteryList.innerHTML = `<li class="loading">Loading teams...</li>`;
+    finalLotteryList.innerHTML = '';
+
     const [teamsSnap, postGamesSnap] = await Promise.all([
         getDocs(collection(db, "v2_teams")),
-        getDocs(query(collection(db, `seasons/${currentSeasonId}/post_games`), where("week", "==", "Play-In")))
+        getDocs(query(collection(db, `seasons/${completedSeasonId}/post_games`), where("week", "==", "Play-In")))
     ]);
 
     const teamRecordsPromises = teamsSnap.docs
         .filter(doc => doc.data() && doc.data().conference)
         .map(async teamDoc => {
-            const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${currentSeasonId}`);
-            // CORRECTED: Used getDoc(recordRef) instead of recordRef.get()
+            const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${completedSeasonId}`);
             const recordSnap = await getDoc(recordRef);
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
             if (recordSnap.exists()) {
                 return { ...teamData, ...recordSnap.data() };
             }
-            // Provide default values if no record exists
             return { ...teamData, wins: 0, losses: 0, postseed: 99, wpct: 0, pam: 0 };
         });
 
     allTeams = await Promise.all(teamRecordsPromises);
 
-    // CORRECTED: Accurate Play-in Logic
     const playoffTeams = new Set();
     allTeams.forEach(team => {
         if (team.postseed && team.postseed <= 6) {
@@ -120,14 +149,21 @@ function renderLists(teams) {
 }
 
 async function loadExistingResults() {
-    const resultsRef = doc(db, `lottery_results/${draftSeason}_lottery_results`);
+    const resultsRef = doc(db, `lottery_results/${draftSeasonId}_lottery_results`);
     const resultsSnap = await getDoc(resultsRef);
 
     if (resultsSnap.exists()) {
         const { final_order } = resultsSnap.data();
-        const orderedTeams = final_order.map(teamId => lotteryTeams.find(t => t.id === teamId)).filter(Boolean);
+        const orderedTeams = final_order.map(teamId => allTeams.find(t => t.id === teamId)).filter(Boolean);
+
         if (orderedTeams.length === 14) {
-            renderLists(orderedTeams); // Re-render lists in the saved order
+            // Re-render the final list only, preserving the pre-lottery order
+            finalLotteryList.innerHTML = orderedTeams.map((team, index) =>
+                `<li class="team-item" draggable="true" data-team-id="${team.id}">
+                    <span class="rank-number">${index + 1}.</span>
+                    <span>${team.team_name}</span>
+                </li>`
+            ).join('');
         }
     }
 }
@@ -197,9 +233,9 @@ async function saveLotteryResults() {
     }
 
     try {
-        const resultsRef = doc(db, `lottery_results/${draftSeason}_lottery_results`);
+        const resultsRef = doc(db, `lottery_results/${draftSeasonId}_lottery_results`);
         await setDoc(resultsRef, {
-            season: draftSeason,
+            season: draftSeasonId,
             final_order: finalOrderIds,
             savedAt: new Date()
         });
