@@ -1,6 +1,6 @@
 // /admin/manage-draft.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, where } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
