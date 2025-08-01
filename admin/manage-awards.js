@@ -38,30 +38,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const [playersSnap, teamsSnap] = await Promise.all([
-            getDocs(collection(db, "v2_players")),
-            getDocs(collection(db, "v2_teams"))
-        ]);
-
+        // Fetch players (not dependent on season selection)
+        const playersSnap = await getDocs(collection(db, "v2_players"));
         playersSnap.docs.forEach(doc => {
             if (doc.data().player_status === 'ACTIVE') {
                 allPlayers.set(doc.data().player_handle, { id: doc.id, ...doc.data() });
             }
         });
 
-        allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.team_name.localeCompare(b.team_name));
-
-        allTeams.forEach(team => {
-            if (team.current_gm_handle) {
-                allGms.set(team.current_gm_handle, { team_id: team.id, team_name: team.team_name });
-            }
-        });
-
-        populateDatalistAndSelects();
+        // This will now handle fetching teams and populating dropdowns
         await populateSeasons();
 
-        seasonSelect.addEventListener('change', () => {
+        seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
+            // On season change, re-fetch team data for that season
+            await updateTeamCache(currentSeasonId);
+            // Then, re-populate dropdowns and load the awards for the new season
+            populateDatalistAndSelects();
             loadExistingAwards();
         });
 
@@ -72,6 +65,25 @@ async function initializePage() {
         console.error("Error initializing awards page:", error);
         adminContainer.innerHTML = `<div class="error">Could not load required league data.</div>`;
     }
+}
+
+async function updateTeamCache(seasonId) {
+    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+        if (!teamDoc.data().conference) return null;
+
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordSnap = await getDoc(seasonRecordRef);
+
+        teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
+        return teamData;
+    });
+
+    // Update the global allTeams array and sort it
+    allTeams = (await Promise.all(teamPromises))
+        .filter(Boolean)
+        .sort((a, b) => a.team_name.localeCompare(b.team_name));
 }
 
 async function populateSeasons() {
@@ -92,11 +104,24 @@ async function populateSeasons() {
     }
 
     currentSeasonId = seasonSelect.value;
+
+    // Fetch team data for the initial season before populating UI
+    await updateTeamCache(currentSeasonId);
+    populateDatalistAndSelects();
     await loadExistingAwards();
 }
 
 function populateDatalistAndSelects() {
     playerDatalist.innerHTML = Array.from(allPlayers.keys()).map(handle => `<option value="${handle}"></option>`).join('');
+
+    // Re-populate GMs and Team dropdowns using the newly cached `allTeams` array
+    allGms.clear();
+    allTeams.forEach(team => {
+        if (team.current_gm_handle) {
+            allGms.set(team.current_gm_handle, { team_id: team.id, team_name: team.team_name });
+        }
+    });
+
     gmDatalist.innerHTML = Array.from(allGms.keys()).map(handle => `<option value="${handle}"></option>`).join('');
 
     const teamOptions = `<option value="">-- Select Team --</option>` + allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
