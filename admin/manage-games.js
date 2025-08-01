@@ -277,20 +277,22 @@ async function openLineupModal(game) {
     const isExhibition = game.collectionName === 'exhibition_games';
     const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (game.collectionName === 'post_games' ? 'post_lineups' : 'lineups');
 
-    // Fetch all lineups for the game's date
     const lineupsQuery = query(collection(db, "seasons", currentSeasonId, lineupsCollectionName), where("date", "==", game.date));
     const lineupsSnap = await getDocs(lineupsQuery);
+
     const existingLineups = new Map();
+    const team1PlayersForGame = [];
+    const team2PlayersForGame = [];
 
-    // Get the full roster for each team in this specific game
-    const team1Roster = getRosterForTeam(game.team1_id, game.week);
-    const team2Roster = getRosterForTeam(game.team2_id, game.week);
-    const playerIdsInGame = new Set([...team1Roster, ...team2Roster].map(p => p.id));
-
-    // Filter the daily lineups to include only players involved in this game
+    // Derive historical rosters directly from the fetched lineup data for that game date
     lineupsSnap.forEach(d => {
         const lineupData = d.data();
-        if (playerIdsInGame.has(lineupData.player_id)) {
+        // Only process players for the two teams in this specific game
+        if (lineupData.team_id === game.team1_id) {
+            team1PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
+            existingLineups.set(lineupData.player_id, lineupData);
+        } else if (lineupData.team_id === game.team2_id) {
+            team2PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
             existingLineups.set(lineupData.player_id, lineupData);
         }
     });
@@ -298,8 +300,9 @@ async function openLineupModal(game) {
     const team1 = allTeams.get(game.team1_id) || { team_name: game.team1_id };
     const team2 = allTeams.get(game.team2_id) || { team_name: game.team2_id };
 
-    renderTeamUI('team1', team1, team1Roster, existingLineups);
-    renderTeamUI('team2', team2, team2Roster, existingLineups);
+    // Pass the correct historical rosters to the rendering function
+    renderTeamUI('team1', team1, team1PlayersForGame, existingLineups);
+    renderTeamUI('team2', team2, team2PlayersForGame, existingLineups);
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} vs ${team2.team_name}`;
     lineupModal.classList.add('is-visible');

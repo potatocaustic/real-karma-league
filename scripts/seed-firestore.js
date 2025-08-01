@@ -364,7 +364,7 @@ async function seedDatabase() {
     console.log(`Prepared parent document for season ${SEASON_ID}.`);
 
 
-    // Seed Games, Lineups, and Draft Picks
+    // Seed Games
     [...scheduleData, ...postScheduleData].forEach(game => {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
         const collectionName = scheduleData.includes(game) ? "games" : "post_games";
@@ -372,13 +372,38 @@ async function seedDatabase() {
     });
     console.log(`Prepared ${scheduleData.length + postScheduleData.length} games for seeding.`);
 
+    // --- NEW: Create a schedule map to find opponents ---
+    const scheduleMap = new Map();
+    [...scheduleData, ...postScheduleData].forEach(game => {
+        const date = game.date.replace(/\//g, "-");
+        // For a given date and team, store their opponent
+        scheduleMap.set(`${date}|${game.team1_id}`, game.team2_id);
+        scheduleMap.set(`${date}|${game.team2_id}`, game.team1_id);
+    });
+
+    // Seed Lineups with corrected IDs
     [...lineupsData, ...postLineupsData].forEach(lineup => {
-        const gameId = `${lineup.date}-${lineup.team_id}-${lineup.team2_id_placeholder}`.replace(/\//g, "-"); // Assuming a placeholder for lookup
+        const date = lineup.date.replace(/\//g, "-");
+        const opponentId = scheduleMap.get(`${date}|${lineup.team_id}`);
+
+        if (!opponentId) {
+            console.warn(`Could not find opponent for team ${lineup.team_id} on ${date}. Skipping lineup for ${lineup.player_handle}.`);
+            return; // Skip this lineup if no game matchup is found
+        }
+
+        // Sort team IDs alphabetically to create a consistent, canonical game ID
+        const teams = [lineup.team_id, opponentId].sort();
+        const gameId = `${date}-${teams[0]}-${teams[1]}`;
         const lineupId = `${gameId}-${lineup.player_id}`;
+
         const collectionName = lineupsData.includes(lineup) ? "lineups" : "post_lineups";
+
+        // Add the canonical gameId to the data being written
+        lineup.game_id = gameId;
+
         batch.set(seasonRef.collection(collectionName).doc(lineupId), lineup);
     });
-    console.log(`Prepared ${lineupsData.length + postLineupsData.length} enhanced lineups for seeding.`);
+    console.log(`Prepared ${lineupsData.length + postLineupsData.length} enhanced lineups with corrected IDs for seeding.`);
 
     draftPicksData.forEach(pick => {
         if (pick.pick_id) batch.set(db.collection("draftPicks").doc(pick.pick_id), pick);
