@@ -44,16 +44,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- Initialization and Data Fetching ---
 async function initializePage() {
     try {
-        // Fetch teams once
-        const teamsSnap = await getDocs(collection(db, "v2_teams"));
-        teamsSnap.docs.forEach(doc => allTeams.set(doc.id, doc.data()));
-
-        // Populate seasons and trigger initial player load
+        // Populate seasons and trigger initial data load
         await populateSeasons();
 
-        seasonSelect.addEventListener('change', () => {
+        searchInput.addEventListener('input', () => {
+
+        seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
-            loadAndDisplayPlayers();
+            // Update the team cache for the new season before loading players
+            await updateTeamCache(currentSeasonId);
+            await loadAndDisplayPlayers();
         });
 
         searchInput.addEventListener('input', () => {
@@ -67,7 +67,33 @@ async function initializePage() {
         playersListContainer.innerHTML = '<div class="error">Could not load player data.</div>';
     }
 }
+async function updateTeamCache(seasonId) {
+    allTeams.clear();
+    const teamsSnap = await getDocs(collection(db, "v2_teams"));
 
+    const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+        // Filter out any documents that aren't actual teams (e.g., placeholders)
+        if (!teamDoc.data().conference) {
+            return null;
+        }
+        
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordSnap = await getDoc(seasonRecordRef);
+
+        if (seasonRecordSnap.exists()) {
+            // Add the seasonal team_name to the team data object
+            teamData.team_name = seasonRecordSnap.data().team_name;
+        } else {
+            // Fallback if a seasonal record doesn't exist
+            teamData.team_name = "Name Not Found";
+        }
+        return teamData;
+    });
+
+    const teamsWithData = (await Promise.all(teamPromises)).filter(Boolean);
+    teamsWithData.forEach(team => allTeams.set(team.id, team));
+}
 async function populateSeasons() {
     const seasonsSnap = await getDocs(query(collection(db, "seasons")));
     let activeSeasonId = null;
@@ -85,6 +111,9 @@ async function populateSeasons() {
         seasonSelect.value = activeSeasonId;
     }
     currentSeasonId = seasonSelect.value;
+    
+    // Update the team cache for the initial season before loading players
+    await updateTeamCache(currentSeasonId);
     await loadAndDisplayPlayers();
 }
 
