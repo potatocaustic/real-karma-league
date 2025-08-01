@@ -52,17 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const [teamsSnap, playersSnap, awardsSnap] = await Promise.all([
-            getDocs(collection(db, "v2_teams")),
+        const [playersSnap, awardsSnap] = await Promise.all([
             getDocs(collection(db, "v2_players")),
             getDocs(collection(db, `awards/season_7/S7_awards`))
         ]);
 
         playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
-        teamsSnap.docs.forEach(doc => {
-            allTeams.set(doc.id, { id: doc.id, ...doc.data() });
-        });
         awardsSnap.forEach(doc => awardSelections.set(doc.id, doc.data()));
+
     } catch (error) {
         console.error("Failed to cache core data:", error);
     }
@@ -71,6 +68,10 @@ async function initializePage() {
 
     seasonSelect.addEventListener('change', async () => {
         currentSeasonId = seasonSelect.value;
+        // Update cache for the newly selected season
+        if (currentSeasonId) {
+            await updateTeamCache(currentSeasonId);
+        }
         await handleSeasonChange();
     });
 
@@ -86,6 +87,31 @@ async function initializePage() {
     lineupForm.addEventListener('input', calculateAllScores);
     document.getElementById('team1-starters').addEventListener('click', handleCaptainToggle);
     document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
+}
+
+async function updateTeamCache(seasonId) {
+    allTeams.clear();
+    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+
+    const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+        if (!teamDoc.data().conference) {
+            return null; // Filter out non-team documents
+        }
+
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordSnap = await getDoc(seasonRecordRef);
+
+        if (seasonRecordSnap.exists()) {
+            teamData.team_name = seasonRecordSnap.data().team_name;
+        } else {
+            teamData.team_name = "Name Not Found";
+        }
+        return teamData;
+    });
+
+    const teamsWithData = (await Promise.all(teamPromises)).filter(Boolean);
+    teamsWithData.forEach(team => allTeams.set(team.id, team));
 }
 
 async function populateSeasons() {
@@ -111,9 +137,16 @@ async function populateSeasons() {
 
         if (activeSeasonId) {
             seasonSelect.value = activeSeasonId;
-            currentSeasonId = activeSeasonId;
+        }
+
+        currentSeasonId = seasonSelect.value;
+
+        // Update cache for the initial season load
+        if (currentSeasonId) {
+            await updateTeamCache(currentSeasonId);
             await handleSeasonChange();
         }
+
     } catch (error) {
         console.error("Error populating seasons:", error);
     }
