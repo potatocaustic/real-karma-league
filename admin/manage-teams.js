@@ -111,12 +111,15 @@ async function loadAndDisplayTeams() {
             if (seasonRecordSnap.exists()) {
                 teamData.season_record = seasonRecordSnap.data();
             } else {
-                teamData.season_record = { wins: 0, losses: 0 };
+                // Provide a default name if a record doesn't exist for some reason
+                teamData.season_record = { wins: 0, losses: 0, team_name: "Name Not Found" };
             }
             return teamData;
         });
         allTeams = await Promise.all(teamPromises);
-        allTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
+
+        // MODIFIED: Sort by the team_name inside the season_record object
+        allTeams.sort((a, b) => (a.season_record.team_name || '').localeCompare(b.season_record.team_name || ''));
 
         displayTeams(allTeams);
 
@@ -135,7 +138,7 @@ function displayTeams(teams) {
     const teamsHTML = teams.map(team => `
         <div class="team-entry">
             <div class="team-details">
-                <span class="team-name">${team.team_name}</span>
+                <span class="team-name">${team.season_record.team_name || 'N/A'}</span>
                 <span class="team-sub-details">${team.season_record.wins}-${team.season_record.losses} | GM: ${team.current_gm_handle || 'N/A'}</span>
             </div>
             <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
@@ -145,10 +148,12 @@ function displayTeams(teams) {
     teamsListContainer.innerHTML = teamsHTML;
 }
 
+
 function openTeamModal(team) {
     document.getElementById('team-id-input').value = team.id;
     document.getElementById('team-id-display').textContent = team.id;
-    document.getElementById('team-name-input').value = team.team_name || '';
+    // MODIFIED: Get team_name from the season_record
+    document.getElementById('team-name-input').value = team.season_record.team_name || '';
     document.getElementById('team-conference-select').value = team.conference || 'Eastern';
     document.getElementById('team-gm-handle-input').value = team.current_gm_handle || '';
     document.getElementById('team-gm-uid-input').value = team.gm_uid || '';
