@@ -154,8 +154,14 @@ async function populateSeasons() {
 
 async function handleSeasonChange() {
     if (currentSeasonId) {
+        // This populates the week dropdown
         await populateWeeks(currentSeasonId);
-        gamesListContainer.innerHTML = '<p class="placeholder-text">Please select a week.</p>';
+
+        // Automatically select Week 1 and fetch its games
+        const defaultWeek = "1";
+        weekSelect.value = defaultWeek;
+        await fetchAndDisplayGames(currentSeasonId, defaultWeek);
+
     } else {
         weekSelect.innerHTML = '<option>Select a season...</option>';
         gamesListContainer.innerHTML = '<p class="placeholder-text">Please select a season to view games.</p>';
