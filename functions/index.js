@@ -1,7 +1,7 @@
 // index.js
 
 const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onRequest, onCall } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { FieldValue, arrayUnion } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
@@ -64,7 +64,7 @@ async function createSeasonStructure(seasonNum, batch) {
         const prevSeasonNum = seasonNum - 1;
         const prevRecordRef = teamDoc.ref.collection("seasonal_records").doc(`S${prevSeasonNum}`);
         const prevRecordSnap = await prevRecordRef.get();
-        const teamName = prevRecordSnap.exists() ? prevRecordSnap.data().team_name : "New Team"; // Fallback name
+        const teamName = prevRecordSnap.exists ? prevRecordSnap.data().team_name : "New Team"; 
 
         batch.set(recordRef, {
             apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
@@ -79,7 +79,7 @@ async function createSeasonStructure(seasonNum, batch) {
 
 exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     const COMPLETED_SEASON_NUM = 7;
     const newSeasonNumber = COMPLETED_SEASON_NUM + 1;
@@ -130,7 +130,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         return { success: true, message: `Successfully created Season ${newSeasonNumber} and generated draft picks for Season ${futureDraftSeasonNumber}.` };
     } catch (error) {
         console.error("Error creating new season:", error);
-        throw new functions.https.HttpsError('internal', `Failed to create new season: ${error.message}`);
+        throw new HttpsError('internal', `Failed to create new season: ${error.message}`);
     }
 });
 
