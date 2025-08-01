@@ -336,11 +336,13 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
 
         if (!bestTeamSnap.empty) {
             const bestTeamPerf = bestTeamSnap.docs[0].data();
-            const teamDoc = await db.collection('v2_teams').doc(bestTeamPerf.team_id).get();
+            // Fetch the seasonal record to get the correct team_name
+            const teamRecordRef = db.doc(`v2_teams/${bestTeamPerf.team_id}/seasonal_records/${seasonId}`);
+            const teamRecordSnap = await teamRecordRef.get();
             const awardData = {
                 award_name: "Best Performance (Team)",
                 team_id: bestTeamPerf.team_id,
-                team_name: teamDoc.exists ? teamDoc.data().team_name : 'Unknown',
+                team_name: teamRecordSnap.exists() ? teamRecordSnap.data().team_name : 'Unknown',
                 date: bestTeamPerf.date,
                 value: bestTeamPerf.pct_above_median
             };
@@ -353,7 +355,7 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
 
     } catch (error) {
         console.error("Error calculating performance awards:", error);
-        throw new functions.https.HttpsError('internal', 'Failed to calculate performance awards.');
+        throw new HttpsError('internal', 'Failed to calculate performance awards.');
     }
 });
 
