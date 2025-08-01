@@ -139,15 +139,24 @@ function displayTeams(teams) {
         return;
     }
 
-    const teamsHTML = teams.map(team => `
-        <div class="team-entry">
-            <div class="team-details">
-                <span class="team-name">${team.season_record.team_name || 'N/A'}</span>
-                <span class="team-sub-details">${team.season_record.wins}-${team.season_record.losses} | GM: ${team.current_gm_handle || 'N/A'}</span>
+    const teamsHTML = teams.map(team => {
+        // Fallback for wins/losses in case they are missing from a seasonal record
+        const wins = team.season_record?.wins ?? 'N/A';
+        const losses = team.season_record?.losses ?? 'N/A';
+
+        return `
+            <div class="team-entry">
+                <div class="team-details">
+                    <span class="team-name">${team.season_record.team_name || 'N/A'}</span>
+                    <span class="team-sub-details">${wins}-${losses} | GM: ${team.current_gm_handle || 'N/A'}</span>
+                </div>
+                <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
             </div>
-            <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
-        </div>
-    `).join('');
+        `;
+    }).join('');
+
+    // ADDED: Log the generated HTML to the console for inspection.
+    console.log("Generated HTML to display:", teamsHTML);
 
     teamsListContainer.innerHTML = teamsHTML;
 }
