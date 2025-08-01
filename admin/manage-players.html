@@ -1,14 +1,4 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Players - RKL Admin</title>
-    <link rel="stylesheet" href="/css/global-styles.css">
-    <link rel="stylesheet" href="/admin/admin-styles.css">
-    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
-</head>
-<body>
+﻿<body>
     <header>
         <h1>RKL Admin Portal</h1>
         <div id="auth-status"></div>
@@ -17,21 +7,13 @@
     <main id="admin-container" style="display: none;">
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2>Manage Players</h2>
-        <main id="admin-container" style="display: none;">
-            <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
-            <h2>Manage Players</h2>
 
-            <div class="filters-container">
-                <div class="filter-group">
-                    <label for="player-season-select">Season:</label>
-                    <select id="player-season-select"></select>
-                </div>
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="player-season-select">Season:</label>
+                <select id="player-season-select"></select>
             </div>
-            <div class="search-container">
-                <input type="text" id="player-search-input" placeholder="Search by player handle...">
-            </div>
-
-        </main>
+        </div>
         <div class="search-container">
             <input type="text" id="player-search-input" placeholder="Search by player handle...">
         </div>
@@ -39,7 +21,6 @@
         <div style="text-align: right; margin-bottom: 1rem;">
             <button id="create-player-btn" class="btn-admin-edit">Create New Player</button>
         </div>
-
 
         <div id="players-list-container">
             <div class="loading">Loading players...</div>
@@ -98,4 +79,3 @@
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/admin/manage-players.js"></script>
 </body>
-</html>

@@ -1,16 +1,4 @@
-﻿<!-- /admin/manage-teams.html -->
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Teams - RKL Admin</title>
-    <link rel="stylesheet" href="/css/global-styles.css">
-    <link rel="stylesheet" href="/admin/admin-styles.css">
-    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
-</head>
-<body>
+﻿<body>
     <header>
         <h1>RKL Admin Portal</h1>
         <div id="auth-status"></div>
@@ -19,20 +7,13 @@
     <main id="admin-container" style="display: none;">
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2>Manage Teams</h2>
-        <main id="admin-container" style="display: none;">
-            <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
-            <h2>Manage Teams</h2>
 
-            <div class="filters-container">
-                <div class="filter-group">
-                    <label for="season-select-teams">Season:</label>
-                    <select id="season-select-teams"></select>
-                </div>
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select-teams">Season:</label>
+                <select id="season-select-teams"></select>
             </div>
-            <div id="teams-list-container">
-                <div class="loading">Loading teams...</div>
-            </div>
-        </main>
+        </div>
         <div id="teams-list-container">
             <div class="loading">Loading teams...</div>
         </div>
@@ -40,7 +21,6 @@
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
-    <!-- Modal for editing a team -->
     <div id="team-modal" class="modal-admin">
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
@@ -75,8 +55,6 @@
         </div>
     </div>
 
-    <!-- Firebase -->
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/admin/manage-teams.js"></script>
 </body>
-</html>
