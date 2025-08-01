@@ -10,8 +10,9 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // ===================================================================
-// V2 FUNCTIONS - DO NOT MODIFY LEGACY FUNCTIONS BELOW
+// V2 FUNCTIONS
 // ===================================================================
+
 /**
  * Helper function to create the necessary Firestore structure for a given season number.
  * @param {number} seasonNum - The season number (e.g., 8).
@@ -72,22 +73,20 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
     try {
         const batch = db.batch();
 
-        // 1. Create Firestore Structures for the new season
         const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch);
 
-        // CORRECTED: Update status for new and old seasons
-        batch.update(newSeasonRef, { status: "active" });
+        // CORRECTED: Use .set() to create the new season document instead of .update().
+        batch.set(newSeasonRef, { season_name: `Season ${newSeasonNumber}`, status: "active" });
+
         const oldSeasonRef = db.doc(`seasons/S${COMPLETED_SEASON_NUM}`);
         batch.update(oldSeasonRef, { status: "completed" });
 
 
-        // 2. Delete old draft picks
         const oldPicksQuery = db.collection("draftPicks").where("season", "==", String(newSeasonNumber));
         const oldPicksSnap = await oldPicksQuery.get();
         console.log(`Deleting ${oldPicksSnap.size} draft picks for season ${newSeasonNumber}.`);
         oldPicksSnap.forEach(doc => batch.delete(doc.ref));
 
-        // 3. Create new future draft picks
         const teamsSnap = await db.collection("v2_teams").where("conference", "in", ["Eastern", "Western"]).get();
         const activeTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -142,7 +141,6 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         const batch = db.batch();
         const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch);
 
-        // CORRECTED: Set status of historical seasons to "completed".
         batch.set(historicalSeasonRef, { season_name: `Season ${seasonNumber}`, status: "completed" });
 
         await batch.commit();
