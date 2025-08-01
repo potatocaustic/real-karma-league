@@ -1,6 +1,6 @@
 // /admin/manage-players.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, arrayUnion } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, arrayUnion, query } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
