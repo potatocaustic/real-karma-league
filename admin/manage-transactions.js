@@ -1,6 +1,6 @@
 // /admin/manage-transactions.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, addDoc, serverTimestamp } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -37,6 +37,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
+        // First, find the active season to get the correct team names
+        const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"));
+        const activeSeasonsSnap = await getDocs(seasonsQuery);
+        const activeSeasonId = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
+
+        if (!activeSeasonId) {
+            throw new Error("Could not determine the active season to fetch team names.");
+        }
+
+        // Now fetch all data, including teams with their seasonal names
         const [playersSnap, teamsSnap, picksSnap] = await Promise.all([
             getDocs(collection(db, "v2_players")),
             getDocs(collection(db, "v2_teams")),
@@ -44,8 +54,21 @@ async function initializePage() {
         ]);
 
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })).sort((a, b) => a.team_name.localeCompare(b.team_name));
         allPicks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Fetch seasonal names for all teams
+        const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
+            if (!teamDoc.data().conference) return null; // Filter out non-team documents
+            const teamData = { id: teamDoc.id, ...teamDoc.data() };
+            const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", activeSeasonId);
+            const seasonRecordSnap = await getDoc(seasonRecordRef);
+            teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
+            return teamData;
+        });
+
+        allTeams = (await Promise.all(teamPromises))
+            .filter(Boolean)
+            .sort((a, b) => a.team_name.localeCompare(b.team_name));
 
         setupEventListeners();
         populateAllDropdowns();
@@ -55,7 +78,6 @@ async function initializePage() {
         adminContainer.innerHTML = '<div class="error">Could not load required league data.</div>';
     }
 }
-
 function populateAllDropdowns() {
     const teamOptions = allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
