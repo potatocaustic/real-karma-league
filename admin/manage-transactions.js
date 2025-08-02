@@ -227,7 +227,7 @@ function addAssetToTrade(event) {
 async function handleFormSubmit(e) {
     e.preventDefault();
     const type = typeSelect.value;
-    let transactionData = { type, notes: document.getElementById('transaction-notes').value.trim(), date: serverTimestamp(), status: 'PENDING' };
+    let transactionData = { type, schema: 'v2', notes: document.getElementById('transaction-notes').value.trim(), date: serverTimestamp(), status: 'PENDING' };
 
     try {
         if (type === 'TRADE') {
