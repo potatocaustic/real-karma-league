@@ -64,7 +64,7 @@ async function createSeasonStructure(seasonNum, batch) {
         const prevSeasonNum = seasonNum - 1;
         const prevRecordRef = teamDoc.ref.collection("seasonal_records").doc(`S${prevSeasonNum}`);
         const prevRecordSnap = await prevRecordRef.get();
-        const teamName = prevRecordSnap.exists ? prevRecordSnap.data().team_name : "New Team"; 
+        const teamName = prevRecordSnap.exists ? prevRecordSnap.data().team_name : "New Team";
 
         batch.set(recordRef, {
             apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
@@ -512,32 +512,56 @@ function calculateGeometricMean(numbers) {
     return Math.pow(product, 1 / nonZeroNumbers.length);
 }
 
-async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch, dailyAveragesMap) {
+// ===================================================================
+// STAT CALCULATION REFACTOR
+// ===================================================================
+
+/**
+ * REFACTORED: Aggregates all seasonal stats for a specific player.
+ * Instead of re-querying all lineups, it queries for previous lineups and combines them
+ * with the new, enhanced lineup data from the current day's game.
+ * @param {string} playerId - The ID of the player to update.
+ * @param {string} seasonId - The current season ID (e.g., "S8").
+ * @param {boolean} isPostseason - Whether the game is a postseason game.
+ * @param {admin.firestore.WriteBatch} batch - The Firestore batch to add operations to.
+ * @param {Map<string, object>} dailyAveragesMap - A map of date -> daily average data.
+ * @param {Array<object>} newPlayerLineups - An array of the player's lineup objects from the current day.
+ */
+async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch, dailyAveragesMap, newPlayerLineups) {
     const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
+    const gameDate = newPlayerLineups[0].date;
 
+    // 1. Fetch all previous lineups for the player this season, excluding the current game date.
     const playerLineupsQuery = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName)
-        .where('player_id', '==', playerId).where('started', '==', 'TRUE');
-    const playerLineupsSnap = await playerLineupsQuery.get();
-    const lineups = playerLineupsSnap.docs.map(doc => doc.data());
+        .where('player_id', '==', playerId)
+        .where('started', '==', 'TRUE')
+        .where('date', '!=', gameDate); // Exclude today's game to avoid reading stale data
 
-    if (lineups.length === 0) {
+    const previousLineupsSnap = await playerLineupsQuery.get();
+    const previousLineups = previousLineupsSnap.docs.map(doc => doc.data());
+
+    // 2. Combine historical lineups with the new, enhanced lineups from today.
+    const allLineups = [...previousLineups, ...newPlayerLineups];
+
+    if (allLineups.length === 0) {
         console.log(`No lineups found for player ${playerId} in ${seasonId} (${lineupsCollectionName}). Skipping stats update.`);
         return;
     }
 
-    const games_played = lineups.length;
-    const total_points = lineups.reduce((sum, l) => sum + (l.points_adjusted || 0), 0);
-    const WAR = lineups.reduce((sum, l) => sum + (l.SingleGameWar || 0), 0);
-    const aag_mean = lineups.reduce((sum, l) => sum + (l.AboveAvg || 0), 0);
-    const aag_median = lineups.reduce((sum, l) => sum + (l.AboveMed || 0), 0);
+    // 3. Perform calculations on the complete, in-memory list of lineups.
+    const games_played = allLineups.length;
+    const total_points = allLineups.reduce((sum, l) => sum + (l.points_adjusted || 0), 0);
+    const WAR = allLineups.reduce((sum, l) => sum + (l.SingleGameWar || 0), 0);
+    const aag_mean = allLineups.reduce((sum, l) => sum + (l.AboveAvg || 0), 0);
+    const aag_median = allLineups.reduce((sum, l) => sum + (l.AboveMed || 0), 0);
 
-    const globalRanks = lineups.map(l => l.global_rank || 0).filter(r => r > 0);
+    const globalRanks = allLineups.map(l => l.global_rank || 0).filter(r => r > 0);
     const medrank = calculateMedian(globalRanks);
     const GEM = calculateGeometricMean(globalRanks);
 
     let meansum = 0;
     let medsum = 0;
-    const uniqueDates = [...new Set(lineups.map(l => l.date))];
+    const uniqueDates = [...new Set(allLineups.map(l => l.date))];
 
     for (const date of uniqueDates) {
         const dailyAvgData = dailyAveragesMap.get(date);
@@ -547,6 +571,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
         }
     }
 
+    // 4. Construct the update object and add it to the batch.
     const statsUpdate = {};
     const prefix = isPostseason ? 'post_' : '';
     statsUpdate[`${prefix}games_played`] = games_played;
@@ -567,13 +592,22 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     batch.set(playerStatsRef, statsUpdate, { merge: true });
 }
 
-async function updateAllTeamStats(seasonId, isPostseason, batch) {
+/**
+ * REFACTORED: Aggregates all seasonal stats for all teams.
+ * It now accepts an array of the newly created daily score objects to include them
+ * in the calculation, avoiding the transactional data visibility issue.
+ * @param {string} seasonId - The current season ID (e.g., "S8").
+ * @param {boolean} isPostseason - Whether the game is a postseason game.
+ * @param {admin.firestore.WriteBatch} batch - The Firestore batch to add operations to.
+ * @param {Array<object>} newDailyScores - An array of the daily score objects from the current day.
+ */
+async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores) {
     const prefix = isPostseason ? 'post_' : '';
     const gamesCollection = isPostseason ? 'post_games' : 'games';
     const scoresCollection = isPostseason ? 'post_daily_scores' : 'daily_scores';
     const lineupsCollection = isPostseason ? 'post_lineups' : 'lineups';
 
-    // 1. Fetch all data upfront
+    // 1. Fetch all historical data upfront
     const [teamsSnap, gamesSnap, scoresSnap, lineupsSnap] = await Promise.all([
         db.collection('v2_teams').get(),
         db.collection('seasons').doc(seasonId).collection(gamesCollection).where('completed', '==', 'TRUE').get(),
@@ -581,7 +615,10 @@ async function updateAllTeamStats(seasonId, isPostseason, batch) {
         db.collection('seasons').doc(seasonId).collection(lineupsCollection).where('started', '==', 'TRUE').get()
     ]);
 
-    const allTeamData = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // FIX (ISSUE 3): Filter teams to only include those with a conference, ensuring ranks are correct.
+    const allTeamData = teamsSnap.docs
+        .filter(doc => doc.data().conference)
+        .map(doc => ({ id: doc.id, ...doc.data() }));
 
     // 2. Process data into maps for efficient lookup
     const teamStatsMap = new Map();
@@ -600,8 +637,11 @@ async function updateAllTeamStats(seasonId, isPostseason, batch) {
         }
     });
 
-    scoresSnap.docs.forEach(doc => {
-        const score = doc.data();
+    // FIX (ISSUE 1): Combine historical scores with new scores from the current day.
+    const historicalScores = scoresSnap.docs.map(doc => doc.data());
+    const allScores = [...historicalScores, ...newDailyScores];
+
+    allScores.forEach(score => {
         if (teamStatsMap.has(score.team_id)) {
             const teamData = teamStatsMap.get(score.team_id);
             teamData.pam += score.points_above_median || 0;
@@ -698,11 +738,15 @@ async function updateAllTeamStats(seasonId, isPostseason, batch) {
     }
 }
 
+
+/**
+ * REFACTORED: The main trigger function for completed games.
+ */
 async function processCompletedGame(event) {
     const before = event.data.before.data();
     const after = event.data.after.data();
     const seasonId = event.params.seasonId;
-    const gameId = event.params.gameId; // Get the gameId from the event parameters
+    const gameId = event.params.gameId;
 
     if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
         return null;
@@ -722,11 +766,12 @@ async function processCompletedGame(event) {
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 
     const batch = db.batch();
-    const isPostseason = !/^\d+$/.test(after.week);
+    const isPostseason = !/^\d+$/.test(after.week) && after.week !== "All-Star" && after.week !== "Relegation";
     const averagesColl = isPostseason ? 'post_daily_averages' : 'daily_averages';
     const scoresColl = isPostseason ? 'post_daily_scores' : 'daily_scores';
     const lineupsColl = isPostseason ? 'post_lineups' : 'lineups';
 
+    // --- Daily Calculations (Part 1) ---
     const lineupsSnap = await db.collection('seasons').doc(seasonId).collection(lineupsColl).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
     if (lineupsSnap.empty) return null;
 
@@ -743,53 +788,94 @@ async function processCompletedGame(event) {
     const dailyAvgDataForMap = { date: gameDate, week: after.week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win: win };
     batch.set(dailyAvgRef, dailyAvgDataForMap);
 
-    const playerIds = new Set();
+    // This map will hold historical daily averages plus the one from today
+    const fullDailyAveragesMap = new Map();
+    const averagesSnap = await db.collection(averagesColl).doc(`season_${seasonNum}`).collection(`S${seasonNum}_${averagesColl}`).get();
+    averagesSnap.docs.forEach(doc => fullDailyAveragesMap.set(doc.data().date, doc.data()));
+    fullDailyAveragesMap.set(gameDate, dailyAvgDataForMap);
+
+    // --- Enhance Lineups & Group by Player ---
+    const enhancedLineups = [];
+    const lineupsByPlayer = new Map();
+
     lineupsSnap.docs.forEach(doc => {
         const lineupData = doc.data();
-        playerIds.add(lineupData.player_id);
         const points = lineupData.points_adjusted || 0;
         const aboveMean = points - mean;
         const aboveMedian = points - median;
-        batch.update(doc.ref, {
-            above_mean: aboveMean, AboveAvg: aboveMean > 0 ? 1 : 0, pct_above_mean: mean ? aboveMean / mean : 0,
-            above_median: aboveMedian, AboveMed: aboveMedian > 0 ? 1 : 0, pct_above_median: median ? aboveMedian / median : 0,
+
+        const enhancedData = {
+            ...lineupData,
+            above_mean: aboveMean,
+            AboveAvg: aboveMean > 0 ? 1 : 0,
+            pct_above_mean: mean ? aboveMean / mean : 0,
+            above_median: aboveMedian,
+            AboveMed: aboveMedian > 0 ? 1 : 0,
+            pct_above_median: median ? aboveMedian / median : 0,
             SingleGameWar: win ? (points - replacement) / win : 0,
+        };
+
+        batch.update(doc.ref, {
+            above_mean: enhancedData.above_mean,
+            AboveAvg: enhancedData.AboveAvg,
+            pct_above_mean: enhancedData.pct_above_mean,
+            above_median: enhancedData.above_median,
+            AboveMed: enhancedData.AboveMed,
+            pct_above_median: enhancedData.pct_above_median,
+            SingleGameWar: enhancedData.SingleGameWar,
         });
+
+        // FIX (ISSUE 2): Store enhanced lineup data for in-memory aggregation
+        enhancedLineups.push(enhancedData);
+        if (!lineupsByPlayer.has(lineupData.player_id)) {
+            lineupsByPlayer.set(lineupData.player_id, []);
+        }
+        lineupsByPlayer.get(lineupData.player_id).push(enhancedData);
     });
 
+    // --- Calculate Daily Team Scores ---
     const regGamesSnap = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
     const postGamesSnap = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
     const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
     const teamScores = allGamesForDate.flatMap(d => [d.data().team1_score, d.data().team2_score]);
     const teamMedian = calculateMedian(teamScores);
 
+    // FIX (ISSUE 1): Collect new daily scores for in-memory aggregation
+    const newDailyScores = [];
     allGamesForDate.forEach(doc => {
         const game = doc.data();
-        const currentGameId = doc.id; // Get the game's document ID
+        const currentGameId = doc.id;
         [{ id: game.team1_id, score: game.team1_score }, { id: game.team2_id, score: game.team2_score }].forEach(team => {
-            // MODIFICATION: Use the unique game ID in the document path to prevent overwrites
             const scoreRef = db.doc(`${scoresColl}/season_${seasonNum}/S${seasonNum}_${scoresColl}/${team.id}-${currentGameId}`);
             const pam = team.score - teamMedian;
-            batch.set(scoreRef, { week: game.week, team_id: team.id, date: gameDate, score: team.score, daily_median: teamMedian, above_median: pam > 0 ? 1 : 0, points_above_median: pam, pct_above_median: teamMedian ? pam / teamMedian : 0 }, { merge: true });
+            const scoreData = {
+                week: game.week, team_id: team.id, date: gameDate, score: team.score,
+                daily_median: teamMedian, above_median: pam > 0 ? 1 : 0,
+                points_above_median: pam, pct_above_median: teamMedian ? pam / teamMedian : 0
+            };
+            batch.set(scoreRef, scoreData, { merge: true });
+            newDailyScores.push(scoreData);
         });
     });
 
-    // Create a map containing the daily averages for just this completed day
-    const dailyAveragesMap = new Map();
-    dailyAveragesMap.set(gameDate, dailyAvgDataForMap);
+    // --- Seasonal Aggregations (Part 2) ---
 
+    // Aggregate stats for all affected players
     const playerStatPromises = [];
-    for (const pid of playerIds) {
-        playerStatPromises.push(updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, dailyAveragesMap));
+    for (const [pid, newPlayerLineups] of lineupsByPlayer.entries()) {
+        playerStatPromises.push(updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, fullDailyAveragesMap, newPlayerLineups));
     }
     await Promise.all(playerStatPromises);
 
-    await updateAllTeamStats(seasonId, isPostseason, batch);
+    // Aggregate stats for all teams
+    await updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores);
 
+    // --- Commit All Writes ---
     await batch.commit();
     console.log(`Successfully saved all daily calculations and stats for ${gameDate}.`);
     return null;
 }
+
 
 exports.onRegularGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", processCompletedGame);
 exports.onPostGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/post_games/{gameId}", processCompletedGame);
