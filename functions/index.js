@@ -57,6 +57,19 @@ async function createSeasonStructure(seasonNum, batch) {
     });
     console.log(`Prepared empty seasonal_stats for ${playersSnap.size} players.`);
 
+    let nameSourceSeasonId = null;
+    if (isHistorical) {
+        const activeSeasonQuery = db.collection('seasons').where('status', '==', 'active').limit(1);
+        const activeSeasonSnap = await activeSeasonQuery.get();
+        if (!activeSeasonSnap.empty) {
+            nameSourceSeasonId = activeSeasonSnap.docs[0].id;
+            console.log(`Using active season ${nameSourceSeasonId} as name source for historical creation.`);
+        }
+    } else {
+        nameSourceSeasonId = `S${seasonNum - 1}`;
+        console.log(`Using previous season ${nameSourceSeasonId} as name source for new season creation.`);
+    }
+
     const teamsSnap = await db.collection("v2_teams").get();
     for (const teamDoc of teamsSnap.docs) {
         const recordRef = teamDoc.ref.collection("seasonal_records").doc(seasonId);
@@ -189,7 +202,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
 
     try {
         const batch = db.batch();
-        const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch);
+        const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch, true);
 
         // MODIFICATION: Initialize new aggregate fields for the historical season.
         batch.set(historicalSeasonRef, {
@@ -535,15 +548,15 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
             } else {
                 // Player DOES exist, update their info.
-                console.log(`Existing player found. Updating team and bio.`);
+                console.log(`Existing player found. Updating bio only.`);
                 const playerRef = existingPlayerSnap.docs[0].ref;
 
                 // Update the root document with the new team and bio.
-                batch.update(playerRef, { current_team_id: team_id, bio: bio });
+                batch.update(playerRef, { bio: bio });
 
-                // Create a seasonal stats document for the historical season, but do NOT mark as rookie.
+                // Create a seasonal stats document for the historical season
                 const seasonStatsRef = playerRef.collection('seasonal_stats').doc(draftSeason);
-                batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
+                batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
             }
         }
 
