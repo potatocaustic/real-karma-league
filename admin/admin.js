@@ -1,6 +1,6 @@
 // /admin/admin.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, httpsCallable } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 adminContainer.style.display = 'block';
                 authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
                 addLogoutListener();
-                addSeasonManagementListeners(); // ADDED: Attach listeners for new buttons
+                addSeasonManagementListeners();
             } else {
                 loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
                 authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
@@ -35,15 +35,34 @@ document.addEventListener('DOMContentLoaded', () => {
         if (createSeasonBtn) {
             createSeasonBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-                if (confirm("Are you sure you want to advance to the next season? This will create S8 structures and generate S13 draft picks. This is irreversible.")) {
-                    try {
+
+                // MODIFICATION: Fetch the active season to create a dynamic confirmation message.
+                try {
+                    const activeSeasonQuery = query(collection(db, "seasons"), where("status", "==", "active"));
+                    const activeSeasonSnap = await getDocs(activeSeasonQuery);
+
+                    if (activeSeasonSnap.empty) {
+                        alert("Error: Could not find an active season to advance from.");
+                        return;
+                    }
+
+                    const activeSeasonId = activeSeasonSnap.docs[0].id; // e.g., 'S8'
+                    const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10); // e.g., 8
+
+                    const newSeasonNum = activeSeasonNum + 1; // e.g., 9
+                    const futureDraftNum = newSeasonNum + 5; // e.g., 14
+
+                    const confirmationMessage = `Are you sure you want to advance from ${activeSeasonId} to S${newSeasonNum}? This will create S${newSeasonNum} structures and generate S${futureDraftNum} draft picks. This is irreversible.`;
+
+                    // MODIFICATION: Use the dynamic confirmation message.
+                    if (confirm(confirmationMessage)) {
                         const createNewSeason = httpsCallable(functions, 'createNewSeason');
                         const result = await createNewSeason();
                         alert(result.data.message);
-                    } catch (error) {
-                        console.error("Error creating new season:", error);
-                        alert(`Error: ${error.message}`);
                     }
+                } catch (error) {
+                    console.error("Error preparing for new season creation:", error);
+                    alert(`An error occurred: ${error.message}`);
                 }
             });
         }

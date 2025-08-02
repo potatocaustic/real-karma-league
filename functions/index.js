@@ -1,6 +1,6 @@
 // index.js
 
-const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { FieldValue, arrayUnion } = require("firebase-admin/firestore");
@@ -81,19 +81,42 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
-    const COMPLETED_SEASON_NUM = 7;
-    const newSeasonNumber = COMPLETED_SEASON_NUM + 1;
-    const futureDraftSeasonNumber = newSeasonNumber + 5;
 
     try {
+        // MODIFICATION: Dynamically find the current active season instead of using a hardcoded value.
+        const activeSeasonQuery = db.collection('seasons').where('status', '==', 'active').limit(1);
+        const activeSeasonSnap = await activeSeasonQuery.get();
+
+        if (activeSeasonSnap.empty) {
+            throw new HttpsError('failed-precondition', 'No active season found. Cannot advance to the next season.');
+        }
+
+        // MODIFICATION: Calculate all season numbers based on the active season found in the database.
+        const activeSeasonDoc = activeSeasonSnap.docs[0];
+        const activeSeasonId = activeSeasonDoc.id; // e.g., "S8"
+        const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10); // e.g., 8
+
+        const newSeasonNumber = activeSeasonNum + 1; // e.g., 9
+        const futureDraftSeasonNumber = newSeasonNumber + 5; // e.g., 14
+
+        console.log(`Advancing from active season ${activeSeasonId} to new season S${newSeasonNumber}.`);
+
         const batch = db.batch();
 
         const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch);
 
-        // CORRECTED: Use .set() to create the new season document instead of .update().
-        batch.set(newSeasonRef, { season_name: `Season ${newSeasonNumber}`, status: "active" });
+        // MODIFICATION: Initialize new aggregate fields for the season.
+        batch.set(newSeasonRef, {
+            season_name: `Season ${newSeasonNumber}`,
+            status: "active",
+            gp: 0,
+            gs: 0,
+            season_trans: 0,
+            season_karma: 0
+        });
 
-        const oldSeasonRef = db.doc(`seasons/S${COMPLETED_SEASON_NUM}`);
+        // MODIFICATION: Use the dynamically found activeSeasonId to set the old season to "completed".
+        const oldSeasonRef = db.doc(`seasons/${activeSeasonId}`);
         batch.update(oldSeasonRef, { status: "completed" });
 
 
@@ -127,12 +150,13 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         }
 
         await batch.commit();
-        return { success: true, message: `Successfully created Season ${newSeasonNumber} and generated draft picks for Season ${futureDraftSeasonNumber}.` };
+        return { success: true, message: `Successfully advanced from ${activeSeasonId} to Season ${newSeasonNumber} and generated draft picks for Season ${futureDraftSeasonNumber}.` };
     } catch (error) {
         console.error("Error creating new season:", error);
         throw new HttpsError('internal', `Failed to create new season: ${error.message}`);
     }
 });
+
 
 exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
@@ -143,10 +167,21 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         throw new functions.https.HttpsError('invalid-argument', 'A seasonNumber must be provided.');
     }
 
-    const COMPLETED_SEASON_NUM = 7;
-    if (seasonNumber >= COMPLETED_SEASON_NUM) {
-        throw new functions.https.HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current season (${COMPLETED_SEASON_NUM}).`);
+    // MODIFICATION: To make this function robust, it should also dynamically find the current active season
+    // to prevent creating a historical season that is newer than or equal to the active one.
+    const activeSeasonQuery = db.collection('seasons').where('status', '==', 'active').limit(1);
+    const activeSeasonSnap = await activeSeasonQuery.get();
+
+    if (activeSeasonSnap.empty) {
+        throw new HttpsError('failed-precondition', 'Could not determine the current active season. Aborting.');
     }
+
+    const activeSeasonNum = parseInt(activeSeasonSnap.docs[0].id.replace('S', ''), 10);
+
+    if (seasonNumber >= activeSeasonNum) {
+        throw new functions.https.HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current active season (S${activeSeasonNum}).`);
+    }
+
     const seasonDoc = await db.doc(`seasons/S${seasonNumber}`).get();
     if (seasonDoc.exists) {
         throw new functions.https.HttpsError('already-exists', `Season S${seasonNumber} already exists in the database.`);
@@ -156,7 +191,15 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         const batch = db.batch();
         const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch);
 
-        batch.set(historicalSeasonRef, { season_name: `Season ${seasonNumber}`, status: "completed" });
+        // MODIFICATION: Initialize new aggregate fields for the historical season.
+        batch.set(historicalSeasonRef, {
+            season_name: `Season ${seasonNumber}`,
+            status: "completed",
+            gp: 0,
+            gs: 0,
+            season_trans: 0,
+            season_karma: 0
+        });
 
         await batch.commit();
         return { success: true, message: `Successfully created historical data structure for Season ${seasonNumber}.` };
@@ -165,6 +208,69 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         throw new functions.https.HttpsError('internal', `Failed to create historical season: ${error.message}`);
     }
 });
+
+/**
+ * NEW: Cloud Function to calculate and update aggregate statistics for a season.
+ * This function is triggered whenever a game is updated or a team's seasonal record changes.
+ */
+async function updateSeasonAggregates(event) {
+    const { seasonId } = event.params;
+    console.log(`Aggregating stats for season: ${seasonId}`);
+
+    try {
+        // 1. Calculate Games Played (gp) and Games Scheduled (gs)
+        const gamesRef = db.collection('seasons').doc(seasonId).collection('games');
+        const gamesSnap = await gamesRef.get();
+
+        // Filter out the placeholder document before counting
+        const actualGames = gamesSnap.docs.filter(doc => doc.id !== 'placeholder');
+        const gs = actualGames.length;
+        const gp = actualGames.filter(doc => doc.data().completed === 'TRUE').length;
+
+        // 2. Calculate Season Transactions (season_trans)
+        const teamsSnap = await db.collection('v2_teams').where('conference', 'in', ['Eastern', 'Western']).get();
+        let season_trans = 0;
+        for (const teamDoc of teamsSnap.docs) {
+            const recordRef = teamDoc.ref.collection('seasonal_records').doc(seasonId);
+            const recordSnap = await recordRef.get();
+            if (recordSnap.exists) {
+                season_trans += recordSnap.data().total_transactions || 0;
+            }
+        }
+
+        // 3. Calculate Season Karma (season_karma)
+        const playersSnap = await db.collection('v2_players').get();
+        let season_karma = 0;
+        for (const playerDoc of playersSnap.docs) {
+            const statsRef = playerDoc.ref.collection('seasonal_stats').doc(seasonId);
+            const statsSnap = await statsRef.get();
+            if (statsSnap.exists) {
+                const stats = statsSnap.data();
+                season_karma += (stats.total_points || 0) + (stats.post_total_points || 0);
+            }
+        }
+
+        // 4. Update the main season document
+        const seasonRef = db.collection('seasons').doc(seasonId);
+        await seasonRef.set({
+            gs,
+            gp,
+            season_trans,
+            season_karma
+        }, { merge: true });
+
+        console.log(`Successfully updated aggregates for ${seasonId}: gs=${gs}, gp=${gp}, trans=${season_trans}, karma=${season_karma.toFixed(2)}`);
+
+    } catch (error) {
+        console.error(`Error updating season aggregates for ${seasonId}:`, error);
+    }
+    return null;
+}
+
+// NEW: Create two triggers that both point to the same handler function.
+exports.onGameChangeUpdateSeasonStats = onDocumentWritten("seasons/{seasonId}/games/{gameId}", updateSeasonAggregates);
+exports.onTeamRecordChangeUpdateSeasonStats = onDocumentWritten("v2_teams/{teamId}/seasonal_records/{seasonId}", updateSeasonAggregates);
+
 
 exports.processCompletedExhibitionGame = onDocumentUpdated("seasons/{seasonId}/exhibition_games/{gameId}", async (event) => {
     const before = event.data.before.data();
@@ -487,14 +593,25 @@ exports.onTransactionUpdate_V2 = onDocumentCreated("transactions/{transactionId}
         console.log(`V2: Ignoring transaction count update for ${event.params.transactionId} without v2 schema.`);
         return null;
     }
-    const seasonId = "S8"; // Hardcoded for now
-    console.log(`V2: Updating transaction counts for transaction ${event.params.transactionId}`);
+
+    // MODIFICATION: Dynamically find the active season instead of hardcoding "S8".
+    const activeSeasonQuery = db.collection("seasons").where("status", "==", "active").limit(1);
+    const activeSeasonSnap = await activeSeasonQuery.get();
+
+    if (activeSeasonSnap.empty) {
+        console.error("Could not find an active season. Cannot update transaction counts.");
+        return null; // Exit gracefully if no active season is found.
+    }
+    const seasonId = activeSeasonSnap.docs[0].id;
+
+    console.log(`V2: Updating transaction counts for transaction ${event.params.transactionId} in season ${seasonId}`);
 
     const involvedTeams = new Set(transaction.involved_teams || []);
     if (involvedTeams.size === 0) return null;
 
     const batch = db.batch();
     for (const teamId of involvedTeams) {
+        // MODIFICATION: Use the dynamically found seasonId.
         const teamStatsRef = db.collection('v2_teams').doc(teamId).collection('seasonal_records').doc(seasonId);
         batch.update(teamStatsRef, { total_transactions: FieldValue.increment(1) });
     }
