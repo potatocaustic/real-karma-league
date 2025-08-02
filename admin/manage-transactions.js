@@ -122,18 +122,20 @@ function setupEventListeners() {
         }
     });
 
-    // ADDED: Listener for the new form reset button
     transactionForm.addEventListener('reset', () => {
-        // Hide all the specific transaction sections when the form is reset
         document.querySelectorAll('.transaction-section').forEach(sec => {
             sec.style.display = 'none';
         });
-        // Clear the trade parties container
         document.querySelector('.trade-parties-container').innerHTML = '';
     });
 
     document.getElementById('add-team-btn').addEventListener('click', addTradePartyBlock);
     transactionForm.addEventListener('submit', handleFormSubmit);
+
+    // Add this event listener
+    cutTeamFilter.addEventListener('change', (e) => {
+        populateCutPlayerDropdown(e.target.value);
+    });
 }
 
 // --- Trade Block Logic ---

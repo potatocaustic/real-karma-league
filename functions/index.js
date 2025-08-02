@@ -69,7 +69,7 @@ async function createSeasonStructure(seasonNum, batch) {
         batch.set(recordRef, {
             apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
             playoffs: 0, post_losses: 0, post_med_starter_rank: 0, post_msr_rank: 0, post_pam: 0, post_pam_rank: 0, post_wins: 0, postseed: 0, sortscore: 0,
-            wins: 0, wpct: 0, team_name: teamName
+            wins: 0, wpct: 0, total_transactions: 0, team_name: teamName
         });
     }
     console.log(`Prepared empty seasonal_records for ${teamsSnap.size} teams.`);
@@ -479,7 +479,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}
  */
 exports.onTransactionUpdate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
     const transaction = event.data.data();
-    const seasonId = "S7"; // Hardcoded for now
+    const seasonId = "S8"; // Hardcoded for now
     console.log(`V2: Updating transaction counts for transaction ${event.params.transactionId}`);
 
     const involvedTeams = new Set(transaction.involved_teams || []);
