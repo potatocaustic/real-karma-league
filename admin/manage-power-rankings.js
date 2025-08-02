@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        await populateSeasons();
         populateVersions();
+        await populateSeasons();
 
         seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
@@ -95,7 +95,6 @@ async function populateSeasons() {
 
     currentSeasonId = seasonSelect.value;
 
-    // Fetch team data for the initial season before loading the board
     await updateTeamCache(currentSeasonId);
     await loadRankingsBoard();
 }
@@ -156,14 +155,47 @@ async function loadRankingsBoard() {
 
     calculateAllChanges();
     validateRankings();
+    // MODIFICATION: Call the new function to set the initial state of the dynamic dropdowns.
+    updateTeamSelectOptions();
 }
 
 function handleSelectionChange(e) {
     if (e.target.classList.contains('team-select')) {
         calculateAllChanges();
         validateRankings();
+        // MODIFICATION: Call the new function every time a selection changes.
+        updateTeamSelectOptions();
     }
 }
+
+/**
+ * NEW: Dynamically updates all team dropdowns to prevent duplicate selections.
+ */
+function updateTeamSelectOptions() {
+    // First, get a set of all team IDs that are currently selected.
+    const selectedTeamIds = new Set();
+    document.querySelectorAll('#power-rankings-body .team-select').forEach(select => {
+        if (select.value) {
+            selectedTeamIds.add(select.value);
+        }
+    });
+
+    // Now, loop through each dropdown again.
+    document.querySelectorAll('#power-rankings-body .team-select').forEach(select => {
+        const currentSelection = select.value;
+        // Loop through all the <option> elements within this dropdown.
+        select.querySelectorAll('option').forEach(option => {
+            // An option should be hidden if its value is in the selected list,
+            // but NOT if it's the value for the current dropdown we are looking at.
+            if (option.value && selectedTeamIds.has(option.value) && option.value !== currentSelection) {
+                option.hidden = true;
+            } else {
+                option.hidden = false;
+            }
+        });
+    });
+}
+
 
 function calculateAllChanges() {
     rankingsBody.querySelectorAll('tr').forEach(row => {
@@ -194,10 +226,8 @@ function validateRankings() {
     let isValid = true;
     let errorMessage = '';
 
-    // Reset all rows
     rankingsBody.querySelectorAll('tr').forEach(row => row.classList.remove('has-duplicate'));
 
-    // 1. Check for duplicate teams
     rankingsBody.querySelectorAll('.team-select').forEach(select => {
         const teamId = select.value;
         if (!teamId) return;
@@ -211,18 +241,17 @@ function validateRankings() {
 
     assignedTeams.forEach((rows, teamId) => {
         if (rows.length > 1) {
-            isValid = false; // Set main validation flag
+            isValid = false;
             const teamName = allTeams.find(t => t.id === teamId)?.team_name || 'A team';
             errorMessage = `${teamName} has been assigned to multiple ranks.`;
             rows.forEach(row => row.classList.add('has-duplicate'));
         }
     });
 
-    // 2. MODIFIED: Check if all 30 ranks have a team assigned, only if no duplicates were found
     if (isValid) {
         const assignedCount = Array.from(rankingsBody.querySelectorAll('.team-select')).filter(s => s.value).length;
         if (assignedCount < TOTAL_TEAMS) {
-            isValid = false; // Set main validation flag
+            isValid = false;
             errorMessage = `Not all teams have been assigned a rank. ${TOTAL_TEAMS - assignedCount} remaining.`;
         }
     }
@@ -262,21 +291,18 @@ async function handleFormSubmit(e) {
             return;
         }
 
-        // First, clear the existing version's documents to handle rank swaps
         const existingDocsSnap = await getDocs(rankingsCollectionRef);
         existingDocsSnap.forEach(doc => batch.delete(doc.ref));
 
-        // Now, set the new rankings
         for (const item of ranksToWrite) {
             const team = allTeams.find(t => t.id === item.teamId);
             const previous_rank = prevRankingsMap.get(item.teamId) || null;
             const change = previous_rank !== null ? previous_rank - item.rank : null;
 
             const docRef = doc(rankingsCollectionRef, item.teamId);
-            // MODIFIED: Added version and season to the data payload
             batch.set(docRef, {
                 team_id: item.teamId,
-                team_name: team.team_name, // Assumes allTeams has been updated to fetch seasonal names
+                team_name: team.team_name,
                 rank: item.rank,
                 previous_rank: previous_rank,
                 change: change,
