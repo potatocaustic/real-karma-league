@@ -440,6 +440,10 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
  */
 exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
     const transaction = event.data.data();
+    if (transaction.schema !== 'v2') {
+        console.log(`V2: Ignoring transaction ${event.params.transactionId} without v2 schema.`);
+        return null;
+    }
     const transactionId = event.params.transactionId;
     console.log(`V2: Processing transaction ${transactionId} for player/pick moves.`);
 
@@ -479,6 +483,10 @@ exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}
  */
 exports.onTransactionUpdate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
     const transaction = event.data.data();
+    if (transaction.schema !== 'v2') {
+        console.log(`V2: Ignoring transaction count update for ${event.params.transactionId} without v2 schema.`);
+        return null;
+    }
     const seasonId = "S8"; // Hardcoded for now
     console.log(`V2: Updating transaction counts for transaction ${event.params.transactionId}`);
 
@@ -891,6 +899,10 @@ exports.onPostGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/post_games/{
  */
 exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", async (event) => {
     const transaction = event.data.data();
+    if (transaction.schema === 'v2') {
+        console.log(`LEGACY: Ignoring transaction ${event.params.transactionId} with v2 schema.`);
+        return null;
+    }
     const transactionId = event.params.transactionId;
     console.log(`NEW: Processing transaction ${transactionId} of type: ${transaction.type}`);
 
