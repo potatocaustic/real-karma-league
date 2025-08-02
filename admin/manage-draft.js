@@ -174,6 +174,10 @@ async function handleDraftSubmit(e) {
         const seasonNumber = currentSeasonId.replace('S', '');
         const draftResultsCollectionRef = collection(db, `draft_results/season_${seasonNumber}/S${seasonNumber}_draft_results`);
 
+        // **BUG 2 FIX**: Create the parent document to prevent the italicized "ghost document".
+        const parentDocRef = doc(db, "draft_results", `season_${seasonNumber}`);
+        batch.set(parentDocRef, { description: `Container for ${currentSeasonId} draft results.` });
+
         for (let i = 1; i <= TOTAL_PICKS; i++) {
             const row = document.getElementById(`pick-row-${i}`);
             const round = Math.ceil(i / 30);

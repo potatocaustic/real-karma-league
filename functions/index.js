@@ -465,12 +465,19 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
         ]);
 
         const activeSeasonId = activeSeasonSnap.empty ? null : activeSeasonSnap.docs[0].id;
-        const teamName = teamRecordSnap.exists() ? teamRecordSnap.data().team_name : team_id;
+
+        // **BUG 1 FIX**: Use `.exists` property for Node.js Admin SDK instead of `.exists()` function.
+        const teamName = teamRecordSnap.exists ? teamRecordSnap.data().team_name : team_id;
 
         // --- 3. Create the Player Bio String ---
         const getOrdinal = (n) => {
-            const s = ["th", "st", "nd", "rd"], v = n % 100;
-            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+            if (n > 3 && n < 21) return n + 'th';
+            switch (n % 10) {
+                case 1: return n + "st";
+                case 2: return n + "nd";
+                case 3: return n + "rd";
+                default: return n + "th";
+            }
         };
         const bio = `R${round} (${getOrdinal(overall)} overall) selection by ${teamName} in ${draftSeason} draft.`;
 
