@@ -114,13 +114,18 @@ main {
     background-color: #fff;
 }
 
+/* FIX: ADDED this rule */
+.game-details {
+    flex-grow: 1; /* Make the details container expand, pushing other elements to the right */
+}
+
 .game-teams {
     font-size: 1.1rem;
-    flex-grow: 1;
+    /* FIX: REMOVED flex-grow from here */
 }
 
 .game-score {
-    min-width: 100px;
+    width: 150px; /* FIX: Use a fixed width instead of min-width for perfect alignment */
     text-align: center;
     font-weight: bold;
     color: #555;
@@ -652,4 +657,3 @@ main {
 .round-date-inputs {
     padding: 1rem;
 }
-
