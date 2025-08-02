@@ -17,8 +17,9 @@ const db = admin.firestore();
  * Helper function to create the necessary Firestore structure for a given season number.
  * @param {number} seasonNum - The season number (e.g., 8).
  * @param {admin.firestore.WriteBatch} batch - The Firestore batch to add operations to.
+ * @param {string} activeSeasonId - The ID of the current active season (e.g., "S8").
  */
-async function createSeasonStructure(seasonNum, batch) {
+async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     const seasonId = `S${seasonNum}`;
     console.log(`Creating structure for season ${seasonId}`);
 
@@ -57,27 +58,14 @@ async function createSeasonStructure(seasonNum, batch) {
     });
     console.log(`Prepared empty seasonal_stats for ${playersSnap.size} players.`);
 
-    let nameSourceSeasonId = null;
-    if (isHistorical) {
-        const activeSeasonQuery = db.collection('seasons').where('status', '==', 'active').limit(1);
-        const activeSeasonSnap = await activeSeasonQuery.get();
-        if (!activeSeasonSnap.empty) {
-            nameSourceSeasonId = activeSeasonSnap.docs[0].id;
-            console.log(`Using active season ${nameSourceSeasonId} as name source for historical creation.`);
-        }
-    } else {
-        nameSourceSeasonId = `S${seasonNum - 1}`;
-        console.log(`Using previous season ${nameSourceSeasonId} as name source for new season creation.`);
-    }
-
     const teamsSnap = await db.collection("v2_teams").get();
     for (const teamDoc of teamsSnap.docs) {
         const recordRef = teamDoc.ref.collection("seasonal_records").doc(seasonId);
-        // MODIFIED: Fetch previous season's name to copy it forward
-        const prevSeasonNum = seasonNum - 1;
-        const prevRecordRef = teamDoc.ref.collection("seasonal_records").doc(`S${prevSeasonNum}`);
-        const prevRecordSnap = await prevRecordRef.get();
-        const teamName = prevRecordSnap.exists ? prevRecordSnap.data().team_name : "New Team";
+        
+        // BUG #2 FIX: Use the passed activeSeasonId to fetch the team's most recent name, not a relative name.
+        const activeRecordRef = teamDoc.ref.collection("seasonal_records").doc(activeSeasonId);
+        const activeRecordSnap = await activeRecordRef.get();
+        const teamName = activeRecordSnap.exists ? activeRecordSnap.data().team_name : "Name Not Found";
 
         batch.set(recordRef, {
             apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
@@ -115,8 +103,9 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         console.log(`Advancing from active season ${activeSeasonId} to new season S${newSeasonNumber}.`);
 
         const batch = db.batch();
-
-        const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch);
+        
+        // BUG #2 FIX: Pass the activeSeasonId to the helper function.
+        const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch, activeSeasonId);
 
         // MODIFICATION: Initialize new aggregate fields for the season.
         batch.set(newSeasonRef, {
@@ -126,7 +115,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
             gs: 0,
             season_trans: 0,
             season_karma: 0
-        });
+        }, { merge: true });
 
         // MODIFICATION: Use the dynamically found activeSeasonId to set the old season to "completed".
         const oldSeasonRef = db.doc(`seasons/${activeSeasonId}`);
@@ -188,8 +177,9 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
     if (activeSeasonSnap.empty) {
         throw new HttpsError('failed-precondition', 'Could not determine the current active season. Aborting.');
     }
-
-    const activeSeasonNum = parseInt(activeSeasonSnap.docs[0].id.replace('S', ''), 10);
+    
+    const activeSeasonId = activeSeasonSnap.docs[0].id;
+    const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10);
 
     if (seasonNumber >= activeSeasonNum) {
         throw new functions.https.HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current active season (S${activeSeasonNum}).`);
@@ -202,7 +192,9 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
 
     try {
         const batch = db.batch();
-        const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch, true);
+        
+        // BUG #2 FIX: Pass the activeSeasonId to the helper function.
+        const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch, activeSeasonId);
 
         // MODIFICATION: Initialize new aggregate fields for the historical season.
         batch.set(historicalSeasonRef, {
@@ -212,7 +204,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
             gs: 0,
             season_trans: 0,
             season_karma: 0
-        });
+        }, { merge: true });
 
         await batch.commit();
         return { success: true, message: `Successfully created historical data structure for Season ${seasonNumber}.` };
@@ -479,7 +471,6 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
 
         const activeSeasonId = activeSeasonSnap.empty ? null : activeSeasonSnap.docs[0].id;
 
-        // **BUG 1 FIX**: Use `.exists` property for Node.js Admin SDK instead of `.exists()` function.
         const teamName = teamRecordSnap.exists ? teamRecordSnap.data().team_name : team_id;
 
         // --- 3. Create the Player Bio String ---
@@ -550,13 +541,13 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
                 // Player DOES exist, update their info.
                 console.log(`Existing player found. Updating bio only.`);
                 const playerRef = existingPlayerSnap.docs[0].ref;
-
-                // Update the root document with the new team and bio.
+                
+                // BUG #1 FIX: Only update the bio. Do NOT change the current_team_id.
                 batch.update(playerRef, { bio: bio });
 
-                // Create a seasonal stats document for the historical season
+                // Create a seasonal stats document for the historical season, but do NOT mark as rookie.
                 const seasonStatsRef = playerRef.collection('seasonal_stats').doc(draftSeason);
-                batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
+                batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
             }
         }
 
