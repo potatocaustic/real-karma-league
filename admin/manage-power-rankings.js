@@ -106,19 +106,21 @@ function populateVersions() {
         versionOptions += `<option value="${i}">${label}</option>`;
     }
     versionSelect.innerHTML = versionOptions;
-    // **BUG 1 FIX**: Explicitly set the dropdown's value after populating it.
-    // This prevents a race condition where its value might be read as empty,
-    // causing `parseInt` to return `NaN`.
     versionSelect.value = "0";
 }
 
 async function loadRankingsBoard() {
     currentSeasonId = seasonSelect.value;
-    // **BUG 1 FIX**: Added a radix of 10 to parseInt, which is a best practice.
     currentVersion = parseInt(versionSelect.value, 10);
     rankingsBody.innerHTML = `<tr><td colspan="4" class="loading">Loading rankings...</td></tr>`;
 
     if (!currentSeasonId) return;
+
+    // Add a sanity check for the version number right away.
+    if (isNaN(currentVersion)) {
+        rankingsBody.innerHTML = `<tr><td colspan="4" class="error">Invalid version selected. Please refresh.</td></tr>`;
+        return;
+    }
 
     const seasonNumber = currentSeasonId.replace('S', '');
     const prevVersion = currentVersion - 1;
@@ -160,7 +162,7 @@ async function loadRankingsBoard() {
 
     calculateAllChanges();
     validateRankings();
-    // **BUG 2 FIX**: Call the new function to set the initial state of the dynamic dropdowns.
+    // **BUG 2 FIX**: This call correctly updates the dropdowns on initial load.
     updateTeamSelectOptions();
 }
 
@@ -168,17 +170,16 @@ function handleSelectionChange(e) {
     if (e.target.classList.contains('team-select')) {
         calculateAllChanges();
         validateRankings();
-        // **BUG 2 FIX**: Call the function every time a selection changes.
+        // **BUG 2 FIX**: This call correctly updates the dropdowns after every user change.
         updateTeamSelectOptions();
     }
 }
 
 /**
- * **BUG 2 FIX**: This new function dynamically updates all team dropdowns to
- * prevent duplicate selections by hiding teams that are already chosen.
+ * **BUG 2 FIX**: This function dynamically updates the team selection dropdowns.
+ * It hides any team that has already been selected in another dropdown, making data entry easier.
  */
 function updateTeamSelectOptions() {
-    // First, get a set of all team IDs that are currently selected.
     const selectedTeamIds = new Set();
     document.querySelectorAll('#power-rankings-body .team-select').forEach(select => {
         if (select.value) {
@@ -186,14 +187,12 @@ function updateTeamSelectOptions() {
         }
     });
 
-    // Now, loop through each dropdown again.
     document.querySelectorAll('#power-rankings-body .team-select').forEach(select => {
-        const currentSelection = select.value;
-        // Loop through all the <option> elements within this dropdown.
+        const currentSelectionInThisDropdown = select.value;
         select.querySelectorAll('option').forEach(option => {
             // An option should be hidden if its value is in the selected list,
-            // but NOT if it's the value for the current dropdown we are looking at.
-            if (option.value && selectedTeamIds.has(option.value) && option.value !== currentSelection) {
+            // UNLESS it's the value for the dropdown we are currently iterating on.
+            if (option.value && selectedTeamIds.has(option.value) && option.value !== currentSelectionInThisDropdown) {
                 option.hidden = true;
             } else {
                 option.hidden = false;
@@ -273,9 +272,22 @@ async function handleFormSubmit(e) {
     saveButton.textContent = 'Saving...';
 
     try {
+        // **BUG 1 FIX**: Read the version directly from the DOM at the time of submission
+        // into a local constant. This avoids any issues with stale global variables.
+        const versionToSave = parseInt(versionSelect.value, 10);
+
+        // Add a validation check to ensure the version is a valid number before proceeding.
+        if (isNaN(versionToSave)) {
+            alert("Error: A valid version is not selected. Cannot save.");
+            saveButton.disabled = false;
+            saveButton.textContent = 'Save Rankings';
+            return;
+        }
+
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
-        const rankingsCollectionRef = collection(db, `power_rankings/season_${seasonNumber}/v${currentVersion}`);
+        // Use the validated local constant to build the collection path.
+        const rankingsCollectionRef = collection(db, `power_rankings/season_${seasonNumber}/v${versionToSave}`);
 
         const ranksToWrite = [];
         let error = false;
@@ -312,13 +324,14 @@ async function handleFormSubmit(e) {
                 rank: item.rank,
                 previous_rank: previous_rank,
                 change: change,
-                version: currentVersion,
+                // Use the validated local constant for the data field.
+                version: versionToSave,
                 season: currentSeasonId
             });
         }
 
         await batch.commit();
-        alert(`Power Rankings v${currentVersion} saved successfully!`);
+        alert(`Power Rankings v${versionToSave} saved successfully!`);
 
     } catch (error) {
         console.error("Error saving power rankings:", error);
