@@ -106,11 +106,16 @@ function populateVersions() {
         versionOptions += `<option value="${i}">${label}</option>`;
     }
     versionSelect.innerHTML = versionOptions;
+    // **BUG 1 FIX**: Explicitly set the dropdown's value after populating it.
+    // This prevents a race condition where its value might be read as empty,
+    // causing `parseInt` to return `NaN`.
+    versionSelect.value = "0";
 }
 
 async function loadRankingsBoard() {
     currentSeasonId = seasonSelect.value;
-    currentVersion = parseInt(versionSelect.value);
+    // **BUG 1 FIX**: Added a radix of 10 to parseInt, which is a best practice.
+    currentVersion = parseInt(versionSelect.value, 10);
     rankingsBody.innerHTML = `<tr><td colspan="4" class="loading">Loading rankings...</td></tr>`;
 
     if (!currentSeasonId) return;
@@ -155,7 +160,7 @@ async function loadRankingsBoard() {
 
     calculateAllChanges();
     validateRankings();
-    // MODIFICATION: Call the new function to set the initial state of the dynamic dropdowns.
+    // **BUG 2 FIX**: Call the new function to set the initial state of the dynamic dropdowns.
     updateTeamSelectOptions();
 }
 
@@ -163,13 +168,14 @@ function handleSelectionChange(e) {
     if (e.target.classList.contains('team-select')) {
         calculateAllChanges();
         validateRankings();
-        // MODIFICATION: Call the new function every time a selection changes.
+        // **BUG 2 FIX**: Call the function every time a selection changes.
         updateTeamSelectOptions();
     }
 }
 
 /**
- * NEW: Dynamically updates all team dropdowns to prevent duplicate selections.
+ * **BUG 2 FIX**: This new function dynamically updates all team dropdowns to
+ * prevent duplicate selections by hiding teams that are already chosen.
  */
 function updateTeamSelectOptions() {
     // First, get a set of all team IDs that are currently selected.
