@@ -135,12 +135,16 @@ async function loadSchedules() {
     ]);
 
     gamesSnap.forEach(doc => {
+        // FIX: Ignore the placeholder document
+        if (doc.id === 'placeholder') return;
         const game = { id: doc.id, ...doc.data() };
         if (!gamesByWeek[game.week]) gamesByWeek[game.week] = [];
         gamesByWeek[game.week].push(game);
     });
 
     exhibitionGamesSnap.forEach(doc => {
+        // FIX: Ignore the placeholder document
+        if (doc.id === 'placeholder') return;
         const game = { id: doc.id, ...doc.data() };
         if (!exhibitionGamesByWeek[game.week]) exhibitionGamesByWeek[game.week] = [];
         exhibitionGamesByWeek[game.week].push(game);
@@ -152,6 +156,8 @@ async function loadSchedules() {
 
     const postGamesByWeek = {};
     postGamesSnap.forEach(doc => {
+        // FIX: Ignore the placeholder document
+        if (doc.id === 'placeholder') return;
         const game = { id: doc.id, ...doc.data() };
         if (!postGamesByWeek[game.week]) postGamesByWeek[game.week] = [];
         postGamesByWeek[game.week].push(game);
