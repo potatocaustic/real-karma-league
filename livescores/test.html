@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RKL Live Stats</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #111;
+      color: #fff;
+      padding: 20px;
+    }
+    h2 {
+      margin-top: 30px;
+    }
+    .player {
+      margin-bottom: 5px;
+    }
+    .stat {
+      font-weight: bold;
+      color: #4CAF50;
+    }
+  </style>
+</head>
+<body>
+  <h1>RKL Live Stats</h1>
+
+  <div id="total-bases"></div>
+  <div id="rbis"></div>
+  <div id="strikeouts"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDk4byxu6YVQWg-uwcM3LnFEZ7e08MytAI",
+      authDomain: "rklive-bb.firebaseapp.com",
+      projectId: "rklive-bb",
+      storageBucket: "rklive-bb.appspot.com",
+      messagingSenderId: "181606054529",
+      appId: "1:181606054529:web:53f5012f57fcbe69ea5343"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function fetchData() {
+      const querySnapshot = await getDocs(collection(db, "polls"));
+      const rawData = [];
+
+      querySnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.options && data.options.length > 0) {
+          rawData.push(...data.options.map(option => ({
+            pollId: doc.id,
+            pollType: data.type || "unknown",
+            label: option.label,
+            subLabel: parseInt(option.subLabel || 0),
+            rank: option.rank,
+          })));
+        }
+      });
+
+      return rawData;
+    }
+
+    function groupByPollType(data) {
+      const grouped = {
+        TB: [],
+        RBI: [],
+        K: []
+      };
+      data.forEach(entry => {
+        const type = entry.pollType.toUpperCase();
+        if (type.includes("TB")) grouped.TB.push(entry);
+        else if (type.includes("RBI")) grouped.RBI.push(entry);
+        else if (type.includes("K")) grouped.K.push(entry);
+      });
+      return grouped;
+    }
+
+    function calculateMedian(arr) {
+      if (arr.length === 0) return null;
+      const sorted = arr.slice().sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    }
+
+    function processData(entries) {
+      const players = {};
+      const totalVotesByPoll = {};
+
+      entries.forEach(entry => {
+        const key = `${entry.label}-${entry.pollId}`;
+        totalVotesByPoll[entry.pollId] = (totalVotesByPoll[entry.pollId] || 0) + entry.subLabel;
+      });
+
+      entries.forEach(entry => {
+        const key = entry.label;
+        const pickPct = entry.subLabel / totalVotesByPoll[entry.pollId];
+
+        if (!players[key]) players[key] = [];
+        players[key].push({ pickPct, rank: entry.rank });
+      });
+
+      const results = [];
+      for (const player in players) {
+        const data = players[player];
+        const pickPcts = data.map(d => d.pickPct);
+        const medianPickPct = calculateMedian(pickPcts);
+        const threshold = medianPickPct * 0.9;
+        const ranksAboveThreshold = data.filter(d => d.pickPct > threshold).map(d => d.rank);
+        const medianRank = calculateMedian(ranksAboveThreshold);
+        if (medianRank !== null) {
+          results.push({ player, medianRank });
+        }
+      }
+
+      return results.sort((a, b) => a.medianRank - b.medianRank);
+    }
+
+    function displayResults(id, results, title) {
+      const container = document.getElementById(id);
+      const section = document.createElement("div");
+      section.innerHTML = `<h2>${title}</h2>`;
+      results.forEach(result => {
+        section.innerHTML += `<div class="player">${result.player}: <span class="stat">${result.medianRank.toFixed(2)}</span></div>`;
+      });
+      container.appendChild(section);
+    }
+
+    fetchData().then(data => {
+      const grouped = groupByPollType(data);
+      displayResults("total-bases", processData(grouped.TB), "Total Bases Polls");
+      displayResults("rbis", processData(grouped.RBI), "RBIs Polls");
+      displayResults("strikeouts", processData(grouped.K), "Strikeouts Polls");
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RKL Live Home</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 16px;
+      color: #ffffff;
+    }
+
+    p {
+      font-size: 16px;
+      color: #aaa;
+      text-align: center;
+      max-width: 600px;
+    }
+
+    #thanks {
+      margin-bottom: 40px;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .nav-buttons a {
+      background-color: #2a2a2a;
+      color: #fff;
+      text-decoration: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #444;
+      transition: background-color 0.2s, transform 0.2s;
+    }
+
+    .nav-buttons a:hover {
+      background-color: #444;
+      transform: translateY(-2px);
+    }
+
+    footer {
+      margin-top: 60px;
+      font-size: 12px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome to RKL Live Central</h1>
+  <p>Your hub for live scores, team stats, and player performance in the RKL League.</p>
+  <p id="thanks">Special thanks to @barry for running the spreadsheet everyday</p>
+
+  <div class="nav-buttons">
+    <a href="scores.html">Live Scores</a>
+    <a href="stats.html">Daily Stats</a>
+  </div>
+
+  <footer>
+    &copy; @tomfc
+  </footer>
+</body>
+</html>
