@@ -1,35 +1,34 @@
-// live-scores.js
+// /js/live-scores.js
 
-import { db, functions, auth, onAuthStateChanged, collection, onSnapshot, httpsCallable, doc, getDoc } from '/js/firebase-init.js';
+import { db, auth, onAuthStateChanged, collection, onSnapshot, doc, getDoc } from '/js/firebase-init.js';
 
 const liveGamesContainer = document.getElementById('live-games-container');
 const loadingIndicator = document.getElementById('loading-indicator');
 const noGamesIndicator = document.getElementById('no-games-indicator');
 
-let getLiveKarma;
-
-// We need to ensure the user is authenticated (even anonymously) to call the function
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // Initialize the callable function once we have an authenticated user
-        getLiveKarma = httpsCallable(functions, 'getLiveKarma');
-        listenForLiveGames();
-    } else {
-        // Handle case where user is not signed in, if you have anonymous auth disabled.
-        loadingIndicator.textContent = "Authentication required to view scores.";
-    }
-});
+// IMPORTANT: Replace this with the actual URL of your Cloudflare worker
+const WORKER_URL = 'https://rkl-karma-proxy.caustic.workers.dev/';
 
 let activeGames = new Map(); // Store game data and intervals
 const REFRESH_INTERVAL = 30000; // 30 seconds
+
+// We still need auth to ensure Firebase read permissions are met,
+// but the callable function is no longer needed here.
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        listenForLiveGames();
+    } else {
+        loadingIndicator.textContent = "Authentication required to view scores.";
+    }
+});
 
 function listenForLiveGames() {
     const liveGamesQuery = collection(db, "live_games");
 
     onSnapshot(liveGamesQuery, (snapshot) => {
         loadingIndicator.style.display = 'none';
-
         const currentGames = new Set();
+
         if (snapshot.empty) {
             noGamesIndicator.style.display = 'block';
         } else {
@@ -42,13 +41,11 @@ function listenForLiveGames() {
             currentGames.add(gameId);
 
             if (!activeGames.has(gameId)) {
-                // New game appeared, create its HTML and start its update loop
                 createGameCard(gameId, gameData);
                 const intervalId = setInterval(() => updateScores(gameId), REFRESH_INTERVAL);
                 activeGames.set(gameId, { ...gameData, intervalId });
                 updateScores(gameId); // Initial score fetch
             } else {
-                // Game already exists, update data in case deductions changed
                 activeGames.get(gameId).team1_lineup = gameData.team1_lineup;
                 activeGames.get(gameId).team2_lineup = gameData.team2_lineup;
             }
@@ -66,7 +63,6 @@ function listenForLiveGames() {
 }
 
 function createGameCard(gameId, gameData) {
-    // Basic card structure. The updateScores function will populate the details.
     const card = document.createElement('div');
     card.className = 'live-game-card';
     card.id = gameId;
@@ -92,8 +88,22 @@ async function updateScores(gameId) {
     if (!game) return;
 
     const allPlayers = [...game.team1_lineup, ...game.team2_lineup];
-    // FIX: Pass the player_handle to the backend function
-    const scorePromises = allPlayers.map(player => getLiveKarma({ playerHandle: player.player_handle }));
+
+    // Create an array of fetch promises, one for each player
+    const scorePromises = allPlayers.map(player =>
+        fetch(`${WORKER_URL}?userId=${encodeURIComponent(player.player_handle)}`)
+            .then(res => {
+                if (!res.ok) {
+                    console.error(`Worker failed for ${player.player_handle}, status: ${res.status}`);
+                    return { stats: { karmaDelta: 0 } }; // Return a default object on failure
+                }
+                return res.json();
+            })
+            .catch(err => {
+                console.error(`Fetch failed for ${player.player_handle}:`, err);
+                return { stats: { karmaDelta: 0 } }; // Return a default object on network error
+            })
+    );
 
     try {
         const scoreResults = await Promise.all(scorePromises);
@@ -105,7 +115,7 @@ async function updateScores(gameId) {
         const team2RosterHtml = [`<div class="roster-title" id="${gameId}-team2-name-roster">Team 2 Roster</div>`];
 
         allPlayers.forEach((player, index) => {
-            const liveScore = scoreResults[index].data.karmaDelta;
+            const liveScore = parseFloat(scoreResults[index]?.stats?.karmaDelta || 0);
             const deductions = player.deductions || 0;
             let finalScore = liveScore - deductions;
 
@@ -146,8 +156,8 @@ async function updateScores(gameId) {
 
         const [team1Doc, team2Doc] = await Promise.all([getDoc(team1DocRef), getDoc(team2DocRef)]);
 
-        const team1Name = team1Doc.data()?.team_name || "Team 1";
-        const team2Name = team2Doc.data()?.team_name || "Team 2";
+        const team1Name = team1Doc.exists() ? team1Doc.data().team_name : "Team 1";
+        const team2Name = team2Doc.exists() ? team2Doc.data().team_name : "Team 2";
 
         document.getElementById(`${gameId}-team1-name`).textContent = team1Name;
         document.getElementById(`${gameId}-team2-name`).textContent = team2Name;
@@ -155,6 +165,6 @@ async function updateScores(gameId) {
         document.getElementById(`${gameId}-team2-name-roster`).textContent = team2Name;
 
     } catch (error) {
-        console.error(`Failed to update scores for game ${gameId}:`, error);
+        console.error(`Failed to process scores for game ${gameId}:`, error);
     }
 }
