@@ -20,8 +20,8 @@ allow write: if isAdmin();
     }
 
     // UPDATED: Allow public read access for seasons data (games, lineups, etc.)
-    // as it's needed by pages like the lottery simulator.
-Write remains admin-only.
+    // as it's needed by pages like the lottery simulator. Write remains admin-only.
+
     match /seasons/{seasonId}/{documents=**} {
       allow read: if true;
       allow write: if isAdmin();
