@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RKL Live Scores</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.4.0/axios.min.js"></script>
+  <style>
+   * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .header h2 {
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+    
+    .header h5 {
+      font-size: 14px;
+      font-weight: 400;
+      color: #888;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+    }
+    
+    .controls label {
+      color: #ccc;
+      font-size: 14px;
+    }
+    
+    .controls select {
+      background-color: #2a2a2a;
+      color: #ffffff;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 14px;
+      min-width: 200px;
+    }
+    
+    .controls button {
+      background-color: #007acc;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .controls button:hover:not(:disabled) {
+      background-color: #0066b3;
+    }
+    
+    .controls button:disabled {
+      background-color: #444;
+      cursor: not-allowed;
+    }
+    
+    .game-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: #2a2a2a;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    .scoreboard-header {
+      background-color: #2a2a2a;
+      padding: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+    }
+    
+    .team-section {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      gap: 20px;
+    }
+    
+    .team-section.away {
+      justify-content: flex-end;
+    }
+    
+    .team-name {
+      font-size: 28px;
+      font-weight: 600;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    
+    .team-logo {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #4a90e2, #357abd);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: bold;
+      color: #ffffff;
+      flex-shrink: 0;
+    }
+    
+    .team-logo.away {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+    }
+    
+    .score-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin: 0 40px;
+      min-width: 150px;
+    }
+    
+    .score-display {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    
+    .score {
+      font-size: 48px;
+      font-weight: 700;
+      color: #ffffff;
+      min-width: 50px;
+      text-align: center;
+    }
+    
+    .score-separator {
+      font-size: 36px;
+      color: #666;
+      font-weight: 300;
+    }
+    
+    .match-status {
+      text-align: center;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: #e74c3c;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    
+    .status-indicator.live {
+      background-color: #27ae60;
+    }
+    
+    .status-text {
+      font-size: 14px;
+      color: #888;
+      font-weight: 500;
+    }
+    
+    .match-events {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 40px;
+      background-color: #333;
+      border-top: 1px solid #444;
+    }
+    
+    .event-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    
+    .event-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: #f39c12;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #000;
+    }
+    
+    .event-icon.red-card {
+      background-color: #e74c3c;
+      color: #fff;
+    }
+    
+    .team-details {
+      padding: 24px;
+    }
+    
+    .team-roster {
+      margin-bottom: 32px;
+    }
+    
+    .team-roster:last-child {
+      margin-bottom: 0;
+    }
+    
+    .roster-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #333;
+    }
+    
+    .roster-team-name {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+    
+    .roster-score {
+      font-size: 18px;
+      font-weight: 700;
+      color: #4a90e2;
+    }
+    
+    .roster-list {
+      display: grid;
+      gap: 8px;
+    }
+    
+    .player-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background-color: #333;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+    
+    .player-row:hover {
+      background-color: #3a3a3a;
+    }
+    
+    .player-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .captain-badge {
+      background-color: #f39c12;
+      color: #000;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    
+    .player-score {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .positive-score {
+      color: #27ae60;
+    }
+    
+    .negative-score {
+      color: #e74c3c;
+    }
+    
+    .neutral-score {
+      color: #95a5a6;
+    }
+    
+    .captain-boost {
+      color: #f39c12;
+      font-size: 12px;
+      margin-left: 4px;
+    }
+    
+    .actions {
+      text-align: center;
+      padding: 20px;
+      border-top: 1px solid #333;
+    }
+    
+    .refresh-btn {
+      background-color: #27ae60;
+      color: #ffffff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .refresh-btn:hover:not(:disabled) {
+      background-color: #219a52;
+      transform: translateY(-1px);
+    }
+    
+    .refresh-btn:disabled {
+      background-color: #444;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 16px;
+    }
+    
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #e74c3c;
+      font-size: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .scoreboard-header {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+        padding: 20px;
+      }
+      
+      .team-section {
+        justify-content: center;
+        flex-direction: row;
+      }
+      
+      .team-section.away {
+        justify-content: center;
+        flex-direction: row;
+      }
+      
+      .score-section {
+        margin: 0;
+      }
+      
+      .team-name {
+        font-size: 20px;
+      }
+      
+      .score {
+        font-size: 36px;
+      }
+      
+      .match-events {
+        flex-direction: column;
+        gap: 10px;
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>RKL Live Scores</h2>
+    <h5>Please wait a sec before switching games</h5>
+    <h5>If a user has an error fetching, press load game 1-2 more times</h5>
+    <h5>made by @tomfc</h5>
+  </div>
+
+  <div class="controls">
+    <label for="game-select">Select a game:</label>
+    <select id="game-select"><option>Loading...</option></select>
+    <button onclick="loadSelectedGame()">Load Game</button>
+  </div>
+
+  <div id="game-output"></div>
+
+  <script>
+    const scheduleCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgy7uZ8caLI4hTPKSjl9e7ztFaM9vdBk4vXDQbPtcybqzXGOm3FMpSJiyrRTzIM3K70z_6XbgBGP_0/pub?output=csv';
+    const rosterCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5WoA--wsfCCCvtL8QgQKsJv0z1AIUTY7k5NEYgUF-Ipu3Iotxkcbw7D-Cme6YGUksHy3DmyDYpaO/pub?output=csv';
+
+    let todaysGames = [];
+    let allPlayers = [];
+    let lastSelectedIndex = null;
+    let refreshCooldown = false;
+
+    // cache for karma 
+    const karmaCache = new Map();
+
+    // Helper: delay promise
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Retry axios GET with delay & retries
+    async function fetchWithRetry(url, retries = 3, delayMs = 1000) {
+      for (let i = 0; i < retries; i++) {
+        try {
+          return await axios.get(url);
+        } catch (e) {
+          if (i === retries - 1) throw e;
+          await delay(delayMs);
+        }
+      }
+    }
+
+    // Limited concurrency helper: runs max N promises at once, returns results array
+    async function limitedMap(array, limit, asyncFn) {
+      const results = [];
+      const executing = [];
+      for (const item of array) {
+        const p = asyncFn(item).then(res => results.push(res));
+        executing.push(p);
+        if (executing.length >= limit) {
+          await Promise.race(executing);
+          // Remove settled promises from executing
+          for (let i = executing.length - 1; i >= 0; i--) {
+            if (executing[i].settled) executing.splice(i, 1);
+          }
+        }
+      }
+      await Promise.all(executing);
+      return results;
+    }
+
+    // Patch Promise prototype to track settled (for cleanup)
+    (function patchPromiseSettledFlag() {
+      const origThen = Promise.prototype.then;
+      Promise.prototype.then = function(onFulfilled, onRejected) {
+        return origThen.call(this, val => {
+          this.settled = true;
+          return onFulfilled ? onFulfilled(val) : val;
+        }, err => {
+          this.settled = true;
+          if(onRejected) return onRejected(err);
+          throw err;
+        });
+      }
+    })();
+
+    function parseCSV(text) {
+      const lines = text.trim().split('\n');
+      const headers = lines[0].split(',').map(h => h.trim());
+      return lines.slice(1).map(line => {
+        const parts = line.split(',').map(p => p.trim());
+        const obj = {};
+        headers.forEach((h, i) => {
+          obj[h] = parts[i];
+        });
+        return obj;
+      });
+    }
+
+    function getTodayString() {
+      const now = new Date();
+      const estTime = new Date(
+        now.toLocaleString("en-US", { timeZone: "America/New_York" })
+      );
+      const estHour = estTime.getHours();
+      if (estHour < 7) {
+        estTime.setDate(estTime.getDate() - 1);
+      }
+      const month = estTime.getMonth() + 1;
+      const day = estTime.getDate();
+      return `${month}/${day}`;
+    }
+
+    async function fetchKarma(userId) {
+      if (karmaCache.has(userId)) {
+        return karmaCache.get(userId);
+      }
+      const apiUrl = `https://api.real.vg/user/${userId}/karmafeed`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(apiUrl)}&cache_bust=${Date.now()}`;
+
+      try {
+        const response = await fetchWithRetry(proxyUrl);
+        const data = JSON.parse(response.data.contents);
+        const delta = data?.stats?.karmaDelta;
+        const val = typeof delta === 'number' ? delta : Number(delta) || 0;
+        karmaCache.set(userId, val);
+        return val;
+      } catch (e) {
+        console.error(`Error fetching karma for ${userId}:`, e);
+        return null;
+      }
+    }
+
+    async function processRoster(players) {
+      const results = [];
+      let teamScore = 0;
+
+      // Concurrency-limited processing (max 3 fetches at once)
+      await limitedMap(players, 3, async (p) => {
+        const userId = p['User ID']?.trim();
+        const userAt = p['User @']?.trim() || 'Unknown';
+
+        if (!userId || userId.toLowerCase() === 'not found') {
+          results.push(`${userAt}: missing user ID`);
+          return;
+        }
+
+        const karma = await fetchKarma(userId);
+        if (karma === null) {
+          results.push(`${userAt}: error fetching`);
+          return;
+        }
+
+        const deduction = parseFloat(p['deductions'] || 0);
+        const adjusted = karma - deduction;
+        const role = (p['role'] || '').trim().toLowerCase();
+        const isCaptain = role === 'captain';
+        const boosted = isCaptain ? adjusted * 1.5 : adjusted;
+
+        teamScore += boosted;
+
+        const adjRounded = Math.round(adjusted);
+        const boostRounded = Math.round(boosted);
+        const label = `${userAt}${isCaptain ? ' (c)' : ''}`;
+
+        const formatted = isCaptain
+          ? `${label}: <span class="${adjRounded < 0 ? 'negative' : ''}">${adjRounded}</span> → <span class="${boostRounded < 0 ? 'negative' : ''}">${boostRounded}</span>`
+          : `${label}: <span class="${adjRounded < 0 ? 'negative' : ''}">${adjRounded}</span>`;
+
+        results.push(formatted);
+      });
+
+      return { lines: results, total: Math.round(teamScore) };
+    }
+
+    async function loadSelectedGame(forcedIndex = null) {
+      const select = document.getElementById('game-select');
+      const selectedIndex = forcedIndex !== null ? forcedIndex : select.selectedIndex;
+      if (selectedIndex < 0 || !todaysGames[selectedIndex]) return;
+
+      lastSelectedIndex = selectedIndex;
+      const game = todaysGames[selectedIndex];
+      const output = document.getElementById('game-output');
+      output.innerHTML = '<div class="loading">Loading game...</div>';
+
+      const team1 = game['Team 1'];
+      const team2 = game['Team 2'];
+
+      const team1Players = allPlayers.filter(p =>
+        p.Team === team1 && p['playing?']?.toLowerCase() === 'yes'
+      );
+      const team2Players = allPlayers.filter(p =>
+        p.Team === team2 && p['playing?']?.toLowerCase() === 'yes'
+      );
+
+      const team1Data = await processRoster(team1Players);
+      const team2Data = await processRoster(team2Players);
+
+      // Generate random events for demo
+      const events = [
+        { type: 'goal', player: 'Rothrock', time: '43' },
+        { type: 'goal', player: 'Rossi', time: '27' },
+        { type: 'red-card', player: 'Rienzi', time: '90+2' }
+      ];
+
+      output.innerHTML = `
+        <div class="game-container">
+          <div class="scoreboard-header">
+            <div class="team-section">
+              <div class="team-name">${team1}</div>
+              <div class="team-logo">${team1.charAt(0)}</div>
+            </div>
+            
+            <div class="score-section">
+              <div class="score-display">
+                <div class="score">${team1Data.total}</div>
+                <div class="score-separator">-</div>
+                <div class="score">${team2Data.total}</div>
+              </div>
+            </div>
+            
+            <div class="team-section away">
+              <div class="team-name">${team2}</div>
+              <div class="team-logo away">${team2.charAt(0)}</div>
+            </div>
+          </div>
+          
+          <div class="team-details">
+            <div class="team-roster">
+              <div class="roster-header">
+                <div class="roster-team-name">${team1}</div>
+                <div class="roster-score">Score: ${team1Data.total}</div>
+              </div>
+              <div class="roster-list">
+                ${team1Data.lines.map(p => `<div class="player-row"><div class="player-name">${p}</div></div>`).join('')}
+              </div>
+            </div>
+            
+            <div class="team-roster">
+              <div class="roster-header">
+                <div class="roster-team-name">${team2}</div>
+                <div class="roster-score">Score: ${team2Data.total}</div>
+              </div>
+              <div class="roster-list">
+                ${team2Data.lines.map(p => `<div class="player-row"><div class="player-name">${p}</div></div>`).join('')}
+              </div>
+            </div>
+          </div>
+          
+          <div class="actions">
+            <button id="refresh-btn" class="refresh-btn" onclick="refreshScore()" disabled>Refresh Score</button>
+          </div>
+        </div>
+      `;
+
+      // Disable refresh button for 5 seconds on new game load
+      const btn = document.getElementById('refresh-btn');
+      setTimeout(() => {
+        if (btn) {
+          btn.disabled = false;
+        }
+      }, 5000);
+    }
+
+    async function refreshScore() {
+      if (refreshCooldown || lastSelectedIndex === null) return;
+
+      refreshCooldown = true;
+      const btn = document.getElementById('refresh-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Refreshing...";
+      }
+
+      await loadSelectedGame(lastSelectedIndex);
+
+      setTimeout(() => {
+        refreshCooldown = false;
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = "Refresh Score";
+        }
+      }, 5000);
+    }
+
+    async function init() {
+      const select = document.getElementById('game-select');
+      const output = document.getElementById('game-output');
+      select.innerHTML = '<option>Loading schedule...</option>';
+
+      try {
+        const [scheduleResp, rosterResp] = await Promise.all([
+          axios.get(scheduleCsvUrl),
+          axios.get(rosterCsvUrl)
+        ]);
+
+        const allGames = parseCSV(scheduleResp.data);
+        allPlayers = parseCSV(rosterResp.data);
+        const today = getTodayString();
+
+        todaysGames = allGames.filter(g => g['Date'] === today);
+        if (todaysGames.length === 0) {
+          select.innerHTML = '<option>No games today</option>';
+          output.innerHTML = '';
+          return;
+        }
+
+        select.innerHTML = '';
+        todaysGames.forEach(game => {
+          const option = document.createElement('option');
+          option.text = `${game['Team 1']} vs ${game['Team 2']}`;
+          select.add(option);
+        });
+//test
+      } catch (err) {
+        output.innerHTML = '<div class="error">Error loading schedule or roster.</div>';
+        console.error('Load error:', err);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
