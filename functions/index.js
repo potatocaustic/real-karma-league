@@ -23,18 +23,13 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
         throw new HttpsError('invalid-argument', 'The function must be called with a "playerHandle" argument.');
     }
 
-    const apiUrl = `https://api.real.vg/user/${playerHandle}/karmafeed`;
+    const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(playerHandle)}`;
 
     try {
-        // FIX: Added a User-Agent header to the fetch request.
-        const response = await fetch(apiUrl, {
-            headers: {
-                'User-Agent': 'RKL/1.0 (Firebase Function; +https://realkarmaleague.com)'
-            }
-        });
+        const response = await fetch(workerUrl);
 
         if (!response.ok) {
-            console.error(`Failed to fetch karma for ${playerHandle}. Status: ${response.status}`);
+            console.error(`Failed to fetch karma for ${playerHandle} via worker. Status: ${response.status}`);
             return { karmaDelta: 0, karmaDayRank: -1 };
         }
         const data = await response.json();
@@ -125,14 +120,9 @@ async function processAndFinalizeGame(liveGameSnap) {
 
     const finalScoresMap = new Map();
     for (const player of allPlayersInGame) {
-        const apiUrl = `https://api.real.vg/user/${player.player_handle}/karmafeed`;
+        const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_handle)}`;
         try {
-            // FIX: Added a User-Agent header to the fetch request.
-            const response = await fetch(apiUrl, {
-                headers: {
-                    'User-Agent': 'RKL/1.0 (Firebase Function; +https://realkarmaleague.com)'
-                }
-            });
+            const response = await fetch(workerUrl);
             const data = await response.json();
             finalScoresMap.set(player.player_id, {
                 raw_score: parseFloat(data?.stats?.karmaDelta || 0),
