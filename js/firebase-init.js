@@ -1,7 +1,7 @@
 // In /js/firebase-init.js
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, signInAnonymously, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 import {
     getFirestore,
     collection,
@@ -18,6 +18,7 @@ import {
     updateDoc,
     writeBatch,
     arrayUnion, // IMPORTED
+    onSnapshot, // NEW: Import onSnapshot for live-scores.js
     connectFirestoreEmulator
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
@@ -39,6 +40,16 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
+
+// --- NEW: Sign in users anonymously if they aren't logged in ---
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        signInAnonymously(auth).catch((error) => {
+            console.error("Anonymous sign-in failed:", error);
+        });
+    }
+});
+
 
 // --- NEW: Connect to Emulators when running locally ---
 if (window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1")) {
@@ -66,5 +77,6 @@ export {
     addDoc,
     updateDoc,
     writeBatch,
-    arrayUnion // EXPORTED
+    arrayUnion, // EXPORTED
+    onSnapshot // NEW: Export onSnapshot
 };

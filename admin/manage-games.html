@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
-    <!-- Page-specific styles for the new lineup modal -->
     <style>
         /* --- MODAL CENTERING & SCROLLING FIX --- */
         /* Base state of the modal is hidden. We use flexbox for centering. */
@@ -164,7 +163,6 @@
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
-    <!-- NEW Lineup & Score Entry Modal -->
     <div id="lineup-modal" class="modal-admin lineup-modal">
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
@@ -175,7 +173,6 @@
                 <input type="hidden" id="lineup-is-postseason">
 
                 <div class="lineup-entry-container">
-                    <!-- Team 1 Section -->
                     <div id="team1-section" class="team-lineup-section">
                         <h4 id="team1-name-header">Team 1</h4>
                         <div class="roster-selection">
@@ -191,7 +188,6 @@
                         </div>
                     </div>
 
-                    <!-- Team 2 Section -->
                     <div id="team2-section" class="team-lineup-section">
                         <h4 id="team2-name-header">Team 2</h4>
                         <div class="roster-selection">
@@ -214,6 +210,15 @@
                 </div>
 
                 <button type="submit" class="btn-admin-save">Save Lineups & Final Score</button>
+
+                <div id="live-scoring-controls" style="display: none; margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem;">
+                    <p style="text-align: center; margin-bottom: 1rem; color: #0056b3; font-weight: bold;">Live Scoring Actions</p>
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit" style="background-color: #17a2b8; flex-grow: 1;">Submit Lineups for Live Scoring</button>
+                        <button type="button" id="finalize-live-game-btn" class="btn-admin-delete" style="flex-grow: 1;">Finalize Live Game Now</button>
+                    </div>
+                </div>
+
             </form>
         </div>
     </div>

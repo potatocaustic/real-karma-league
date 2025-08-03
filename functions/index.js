@@ -14,6 +14,220 @@ const db = admin.firestore();
 // ===================================================================
 
 /**
+ * NEW: Securely fetches live karma data for a given user ID.
+ * This acts as a proxy to avoid exposing the real.vg API directly to the public.
+ */
+exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
+    // While the firestore.rules allow public read, this function still requires
+    // some form of authentication (e.g., anonymous) to be called, adding a layer of security.
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const userId = request.data.userId;
+    if (!userId) {
+        throw new HttpsError('invalid-argument', 'The function must be called with a "userId" argument.');
+    }
+
+    const apiUrl = `https://api.real.vg/user/${userId}/karmafeed`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            console.error(`Failed to fetch karma for ${userId}. Status: ${response.status}`);
+            // Return a default object on failure so the frontend doesn't break.
+            return { karmaDelta: 0, karmaDayRank: -1 };
+        }
+        const data = await response.json();
+
+        // Safely parse the values, providing defaults if they are missing.
+        const karmaDelta = parseFloat(data?.stats?.karmaDelta || 0);
+        const karmaDayRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
+
+        return {
+            karmaDelta: isNaN(karmaDelta) ? 0 : karmaDelta,
+            karmaDayRank: isNaN(karmaDayRank) ? -1 : karmaDayRank,
+        };
+
+    } catch (error) {
+        console.error(`Exception while fetching karma for ${userId}:`, error);
+        throw new HttpsError('internal', 'Failed to fetch live score data.');
+    }
+});
+
+
+/**
+ * NEW: Callable function for an admin to activate a game for live scoring.
+ */
+exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth || !request.auth.uid) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    // You could add an extra check here to ensure the caller is an admin
+
+    const { gameId, seasonId, collectionName, team1_lineup, team2_lineup } = request.data;
+    if (!gameId || !seasonId || !collectionName || !team1_lineup || !team2_lineup) {
+        throw new HttpsError('invalid-argument', 'Missing required parameters for activating a live game.');
+    }
+
+    try {
+        const liveGameRef = db.collection('live_games').doc(gameId);
+        await liveGameRef.set({
+            seasonId,
+            collectionName,
+            team1_lineup,
+            team2_lineup,
+            activatedAt: FieldValue.serverTimestamp()
+        });
+        return { success: true, message: "Game activated for live scoring." };
+    } catch (error) {
+        console.error(`Error activating live game ${gameId}:`, error);
+        throw new HttpsError('internal', 'Could not activate live game.');
+    }
+});
+
+/**
+ * NEW: Callable function for an admin to manually finalize a live game.
+ * This contains the core logic that will also be used by the nightly scheduled function.
+ */
+exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth || !request.auth.uid) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+
+    const { gameId } = request.data;
+    if (!gameId) {
+        throw new HttpsError('invalid-argument', 'A gameId must be provided.');
+    }
+
+    try {
+        const liveGameRef = db.collection('live_games').doc(gameId);
+        const liveGameSnap = await liveGameRef.get();
+
+        if (!liveGameSnap.exists) {
+            throw new HttpsError('not-found', 'The specified game is not currently live.');
+        }
+
+        await processAndFinalizeGame(liveGameSnap);
+
+        return { success: true, message: `Game ${gameId} has been successfully finalized and scores have been written.` };
+
+    } catch (error) {
+        console.error(`Error finalizing game ${gameId}:`, error);
+        // Ensure HttpsError is thrown so client gets a meaningful message
+        if (error instanceof HttpsError) {
+            throw error;
+        }
+        throw new HttpsError('internal', `An unexpected error occurred while finalizing the game: ${error.message}`);
+    }
+});
+
+
+/**
+ * NEW: Helper containing the core logic to finalize a game. Reusable for manual and scheduled triggers.
+ * @param {FirebaseFirestore.DocumentSnapshot} liveGameSnap - The snapshot of the document from the live_games collection.
+ */
+async function processAndFinalizeGame(liveGameSnap) {
+    const gameId = liveGameSnap.id;
+    const liveGameData = liveGameSnap.data();
+    const { seasonId, collectionName, team1_lineup, team2_lineup } = liveGameData;
+
+    const allPlayersInGame = [...team1_lineup, ...team2_lineup];
+    const playerDocs = await db.collection('v2_players').get();
+    const allPlayersMap = new Map(playerDocs.docs.map(doc => [doc.id, doc.data()]));
+
+    const batch = db.batch();
+
+    // 1. Fetch final karma for all players in the game
+    const finalScoresMap = new Map();
+    for (const player of allPlayersInGame) {
+        const apiUrl = `https://api.real.vg/user/${player.user_id}/karmafeed`;
+        try {
+            const response = await fetch(apiUrl);
+            const data = await response.json();
+            finalScoresMap.set(player.player_id, {
+                raw_score: parseFloat(data?.stats?.karmaDelta || 0),
+                global_rank: parseInt(data?.stats?.karmaDayRank || -1, 10)
+            });
+        } catch (e) {
+            console.error(`Failed to fetch final karma for ${player.user_id}, using 0.`);
+            finalScoresMap.set(player.player_id, { raw_score: 0, global_rank: 0 });
+        }
+    }
+
+    // 2. Prepare lineup documents and calculate team totals
+    const gameRef = db.doc(`seasons/${seasonId}/${collectionName}/${gameId}`);
+    const gameSnap = await gameRef.get();
+    const gameData = gameSnap.data();
+    let team1FinalScore = 0;
+    let team2FinalScore = 0;
+
+    const lineupsCollectionName = collectionName.replace('_games', '_lineups');
+    const lineupsCollectionRef = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName);
+
+    for (const player of allPlayersInGame) {
+        const finalScores = finalScoresMap.get(player.player_id);
+        const raw_score = finalScores.raw_score;
+        const adjustments = player.deductions || 0;
+        const points_adjusted = raw_score - adjustments;
+        let final_score = points_adjusted;
+        if (player.is_captain) {
+            final_score *= 1.5;
+        }
+
+        // Add to team total
+        if (team1_lineup.some(p => p.player_id === player.player_id)) {
+            team1FinalScore += final_score;
+        } else {
+            team2FinalScore += final_score;
+        }
+
+        // Create lineup document data
+        const playerInfo = allPlayersMap.get(player.player_id);
+        const lineupId = `${gameId}-${player.player_id}`;
+        const lineupDocRef = lineupsCollectionRef.doc(lineupId);
+
+        const lineupData = {
+            player_id: player.player_id,
+            player_handle: playerInfo?.player_handle || 'Unknown',
+            team_id: gameData.team1_id, // This will be corrected in the loop
+            game_id: gameId,
+            date: gameData.date,
+            game_type: collectionName === 'post_games' ? 'postseason' : 'regular',
+            started: 'TRUE',
+            is_captain: player.is_captain ? 'TRUE' : 'FALSE',
+            raw_score,
+            adjustments,
+            points_adjusted,
+            final_score,
+            global_rank: finalScores.global_rank
+        };
+
+        if (team1_lineup.some(p => p.player_id === player.player_id)) {
+            lineupData.team_id = gameData.team1_id;
+        } else {
+            lineupData.team_id = gameData.team2_id;
+        }
+
+        batch.set(lineupDocRef, lineupData, { merge: true });
+    }
+
+    // 3. Update the main game document
+    batch.update(gameRef, {
+        team1_score: team1FinalScore,
+        team2_score: team2FinalScore,
+        completed: 'TRUE',
+        winner: team1FinalScore > team2FinalScore ? gameData.team1_id : (team2FinalScore > team1FinalScore ? gameData.team2_id : '')
+    });
+
+    // 4. Delete the document from live_games
+    batch.delete(liveGameSnap.ref);
+
+    // 5. Commit all changes
+    await batch.commit();
+}
+
+/**
  * Helper function to create the necessary Firestore structure for a given season number.
  * @param {number} seasonNum - The season number (e.g., 8).
  * @param {admin.firestore.WriteBatch} batch - The Firestore batch to add operations to.
@@ -1123,7 +1337,7 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
         // --- Step 1: Update Team Win/Loss Records (Existing Logic) ---
         await db.runTransaction(async (transaction) => {
             transaction.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
-            transaction.update(loserRef, { losses: admin.firestore.FieldValue.increment(1) });
+            transaction.update(loserRef, { losses: admin.firestore.FieldValue.increment(-1) });
         });
         console.log(`Successfully updated team records for game ${event.params.gameId}.`);
 

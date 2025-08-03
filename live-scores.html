@@ -1,0 +1,114 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RKL Live Scores</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <style>
+        body {
+            background-color: #f0f2f5;
+        }
+
+        main {
+            max-width: 900px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .live-game-card {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .live-game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            background-color: #343a40;
+            color: #fff;
+        }
+
+        .team-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .team-score {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+
+        .live-game-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            padding: 1.5rem;
+        }
+
+        .roster-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 0.5rem;
+        }
+
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .player-name {
+            font-weight: 500;
+        }
+
+        .captain-badge {
+            font-size: 0.75rem;
+            background-color: #ffc107;
+            color: #212529;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 0.5rem;
+        }
+
+        .player-score {
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .deductions {
+            color: #dc3545;
+            font-size: 0.8rem;
+        }
+
+        #loading-indicator, #no-games-indicator {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #6c757d;
+            padding: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>RKL Live Scores</h1>
+        <div id="live-games-container">
+            <div id="loading-indicator">Loading live games...</div>
+            <div id="no-games-indicator" style="display: none;">There are no games being scored live at the moment.</div>
+        </div>
+    </main>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="live-scores.js"></script>
+</body>
+</html>

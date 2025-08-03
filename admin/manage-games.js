@@ -1,10 +1,10 @@
 // /admin/manage-games.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc, httpsCallable, setDoc, deleteDoc } from '/js/firebase-init.js';
 import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 // --- Page Elements ---
-let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn;
+let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
 
 // --- Global Data Cache ---
 let currentSeasonId = null;
@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
     lineupModal = document.getElementById('lineup-modal');
     lineupForm = document.getElementById('lineup-form');
     closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
+    liveScoringControls = document.getElementById('live-scoring-controls');
+
 
     onAuthStateChanged(auth, async (user) => {
         try {
@@ -52,9 +54,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        // Only cache player data, which is not season-dependent
+        // Cache player data, which is not season-dependent
         const playersSnap = await getDocs(collection(db, "v2_players"));
-        playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
+        // NEW: Fetch user data to map player_handle to userId for live scoring
+        const usersSnap = await getDocs(collection(db, "users"));
+        const userMap = new Map(usersSnap.docs.map(d => [d.data().player_handle, d.id]));
+
+        playersSnap.docs.forEach(doc => {
+            const playerData = { id: doc.id, ...doc.data() };
+            playerData.userId = userMap.get(playerData.player_handle) || null; // Add userId to player object
+            allPlayers.set(doc.id, playerData);
+        });
+
     } catch (error) {
         console.error("Failed to cache core data:", error);
     }
@@ -64,7 +75,6 @@ async function initializePage() {
     seasonSelect.addEventListener('change', async () => {
         currentSeasonId = seasonSelect.value;
         if (currentSeasonId) {
-            // Update both caches for the newly selected season
             await updateTeamCache(currentSeasonId);
             await updateAwardsCache(currentSeasonId);
         }
@@ -83,6 +93,10 @@ async function initializePage() {
     lineupForm.addEventListener('input', calculateAllScores);
     document.getElementById('team1-starters').addEventListener('click', handleCaptainToggle);
     document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
+
+    // NEW: Add event listeners for live scoring buttons
+    document.getElementById('submit-live-lineups-btn').addEventListener('click', handleSubmitForLiveScoring);
+    document.getElementById('finalize-live-game-btn').addEventListener('click', handleFinalizeLiveGame);
 }
 
 async function updateAwardsCache(seasonId) {
@@ -99,7 +113,7 @@ async function updateTeamCache(seasonId) {
 
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) {
-            return null; // Filter out non-team documents
+            return null;
         }
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
@@ -146,7 +160,6 @@ async function populateSeasons() {
         currentSeasonId = seasonSelect.value;
 
         if (currentSeasonId) {
-            // Update both caches for the initial season load
             await updateTeamCache(currentSeasonId);
             await updateAwardsCache(currentSeasonId);
             await handleSeasonChange();
@@ -159,14 +172,10 @@ async function populateSeasons() {
 
 async function handleSeasonChange() {
     if (currentSeasonId) {
-        // This populates the week dropdown
         await populateWeeks(currentSeasonId);
-
-        // Automatically select Week 1 and fetch its games
         const defaultWeek = "1";
         weekSelect.value = defaultWeek;
         await fetchAndDisplayGames(currentSeasonId, defaultWeek);
-
     } else {
         weekSelect.innerHTML = '<option>Select a season...</option>';
         gamesListContainer.innerHTML = '<p class="placeholder-text">Please select a season to view games.</p>';
@@ -244,7 +253,6 @@ async function handleOpenModalClick(e) {
 }
 
 function getRosterForTeam(teamId, week) {
-    // Exhibition games have special rosters
     if (week === 'All-Star') {
         const eastPlayers = awardSelections.get('all-stars-eastern')?.players || [];
         const westPlayers = awardSelections.get('all-stars-western')?.players || [];
@@ -259,7 +267,6 @@ function getRosterForTeam(teamId, week) {
         return Array.from(allGms.values());
     }
 
-    // Default: Regular team roster for regular season, postseason, and Relegation
     return Array.from(allPlayers.values()).filter(p => p.current_team_id === teamId);
 }
 
@@ -269,6 +276,15 @@ async function openLineupModal(game) {
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
     document.querySelectorAll('.team-lineup-section').forEach(el => el.classList.remove('validation-error'));
 
+    // NEW: Show/hide live scoring controls based on game date
+    const today = new Date();
+    const gameDate = new Date(game.date);
+    const isToday = gameDate.getFullYear() === today.getFullYear() &&
+        gameDate.getMonth() === today.getMonth() &&
+        gameDate.getDate() === today.getDate();
+
+    liveScoringControls.style.display = isToday ? 'block' : 'none';
+
     document.getElementById('lineup-game-id').value = game.id;
     document.getElementById('lineup-game-date').value = game.date;
     document.getElementById('lineup-is-postseason').value = game.collectionName === 'post_games';
@@ -277,35 +293,30 @@ async function openLineupModal(game) {
     const isExhibition = game.collectionName === 'exhibition_games';
     const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (game.collectionName === 'post_games' ? 'post_lineups' : 'lineups');
 
-    const lineupsQuery = query(collection(db, "seasons", currentSeasonId, lineupsCollectionName), where("date", "==", game.date));
+    const lineupsQuery = query(collection(db, "seasons", currentSeasonId, lineupsCollectionName), where("game_id", "==", game.id));
     const lineupsSnap = await getDocs(lineupsQuery);
 
     const existingLineups = new Map();
     let team1Roster, team2Roster;
 
     if (!lineupsSnap.empty) {
-        // CASE 1: Game has existing lineup data. Build roster from this historical data.
         const team1PlayersForGame = [];
         const team2PlayersForGame = [];
-
         const playerIdsInGame = new Set(getRosterForTeam(game.team1_id, game.week).concat(getRosterForTeam(game.team2_id, game.week)).map(p => p.id));
-
         lineupsSnap.forEach(d => {
             const lineupData = d.data();
             if (playerIdsInGame.has(lineupData.player_id)) {
                 if (lineupData.team_id === game.team1_id) {
-                    team1PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
+                    team1PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle, userId: allPlayers.get(lineupData.player_id)?.userId });
                 } else if (lineupData.team_id === game.team2_id) {
-                    team2PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle });
+                    team2PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle, userId: allPlayers.get(lineupData.player_id)?.userId });
                 }
                 existingLineups.set(lineupData.player_id, lineupData);
             }
         });
         team1Roster = team1PlayersForGame;
         team2Roster = team2PlayersForGame;
-
     } else {
-        // CASE 2: No lineup data found. Build roster from current team assignments.
         team1Roster = getRosterForTeam(game.team1_id, game.week);
         team2Roster = getRosterForTeam(game.team2_id, game.week);
     }
@@ -317,9 +328,7 @@ async function openLineupModal(game) {
     renderTeamUI('team2', team2, team2Roster, existingLineups);
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} vs ${team2.team_name}`;
-
     calculateAllScores();
-
     lineupModal.classList.add('is-visible');
 }
 
@@ -331,9 +340,10 @@ function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
     roster.forEach(player => {
         const lineupData = existingLineups.get(player.id);
         const isStarter = lineupData?.started === 'TRUE';
+        // NEW: Include userId in the data attribute
         const playerHtml = `
             <label class="player-checkbox-item">
-                <input type="checkbox" class="starter-checkbox" data-team-prefix="${teamPrefix}" data-player-id="${player.id}" data-player-handle="${player.player_handle}" ${isStarter ? 'checked' : ''}>
+                <input type="checkbox" class="starter-checkbox" data-team-prefix="${teamPrefix}" data-player-id="${player.id}" data-player-handle="${player.player_handle}" data-user-id="${player.userId || ''}" ${isStarter ? 'checked' : ''}>
                 ${player.player_handle}
             </label>
         `;
@@ -367,7 +377,7 @@ function handleStarterChange(event) {
 }
 
 function addStarterCard(checkbox, lineupData = null) {
-    const { teamPrefix, playerId, playerHandle } = checkbox.dataset;
+    const { teamPrefix, playerId, playerHandle, userId } = checkbox.dataset; // NEW: get userId
     const startersContainer = document.getElementById(`${teamPrefix}-starters`);
     const rawScore = lineupData?.raw_score ?? 0;
     const isCaptain = lineupData?.is_captain === 'TRUE';
@@ -375,6 +385,8 @@ function addStarterCard(checkbox, lineupData = null) {
     const card = document.createElement('div');
     card.className = 'starter-card';
     card.id = `starter-card-${playerId}`;
+    // NEW: Add userId as a data attribute to the card
+    card.dataset.userId = userId;
     card.innerHTML = `
         <div class="starter-card-header">
             <strong>${playerHandle}</strong>
@@ -460,11 +472,33 @@ async function handleLineupFormSubmit(e) {
     try {
         const batch = writeBatch(db);
         const { id: gameId, date: gameDate, collectionName, week, team1_id, team2_id } = currentGameData;
-
         const isExhibition = collectionName === 'exhibition_games';
         const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (collectionName === 'post_games' ? 'post_lineups' : 'lineups');
         const lineupsCollectionRef = collection(db, "seasons", currentSeasonId, lineupsCollectionName);
 
+        // NEW LOGIC: If a game is live, this button should only update deductions.
+        const liveGameRef = doc(db, 'live_games', gameId);
+        const liveGameSnap = await getDoc(liveGameRef);
+        if (liveGameSnap.exists()) {
+            const liveGameData = liveGameSnap.data();
+            ['team1', 'team2'].forEach(prefix => {
+                document.querySelectorAll(`#${prefix}-starters .starter-card`).forEach(card => {
+                    const playerId = card.id.replace('starter-card-', '');
+                    const reductions = parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0;
+                    const teamArray = (prefix === 'team1') ? liveGameData.team1_lineup : liveGameData.team2_lineup;
+                    const playerInLineup = teamArray.find(p => p.player_id === playerId);
+                    if (playerInLineup) {
+                        playerInLineup.deductions = reductions;
+                    }
+                });
+            });
+            await setDoc(liveGameRef, liveGameData);
+            alert('Deductions for live game updated successfully!');
+            lineupModal.classList.remove('is-visible');
+            return; // End execution here
+        }
+
+        // --- Existing logic for manual score entry ---
         const team1Roster = getRosterForTeam(team1_id, week);
         const team2Roster = getRosterForTeam(team2_id, week);
         const playersInGame = [...team1Roster, ...team2Roster];
@@ -474,12 +508,12 @@ async function handleLineupFormSubmit(e) {
             const lineupId = `${gameId}-${player.id}`;
             const docRef = doc(lineupsCollectionRef, lineupId);
 
-            const teamPrefix = team1Roster.includes(player) ? 'team1' : 'team2';
+            const teamPrefix = team1Roster.find(p => p.id === player.id) ? 'team1' : 'team2';
             const captainId = lineupForm.querySelector(`input[name="${teamPrefix}-captain"]:checked`)?.value;
 
             let lineupData = {
                 player_id: player.id, player_handle: player.player_handle,
-                team_id: team1Roster.includes(player) ? team1_id : team2_id,
+                team_id: team1Roster.find(p => p.id === player.id) ? team1_id : team2_id,
                 game_id: gameId, date: gameDate,
                 game_type: isExhibition ? 'exhibition' : (collectionName === 'post_games' ? 'postseason' : 'regular'),
                 started: 'FALSE', is_captain: 'FALSE', raw_score: 0, adjustments: 0,
@@ -511,7 +545,7 @@ async function handleLineupFormSubmit(e) {
             team1_score: team1FinalScore,
             team2_score: team2FinalScore,
             completed: document.getElementById('lineup-game-completed-checkbox').checked ? 'TRUE' : 'FALSE',
-            winner: team1FinalScore > team2FinalScore ? team1_id : team2_id
+            winner: team1FinalScore > team2FinalScore ? team1_id : (team2FinalScore > team1FinalScore ? team2_id : '')
         });
 
         await batch.commit();
@@ -527,6 +561,96 @@ async function handleLineupFormSubmit(e) {
         submitButton.textContent = 'Save Lineups & Final Score';
     }
 }
+
+// --- NEW: Live Scoring Functions ---
+async function handleSubmitForLiveScoring(e) {
+    e.preventDefault();
+    const button = e.target;
+    button.disabled = true;
+    button.textContent = 'Submitting...';
+
+    // Validation
+    let isValid = true;
+    ['team1', 'team2'].forEach(prefix => {
+        const starterCount = document.querySelectorAll(`#${prefix}-starters .starter-card`).length;
+        if (starterCount !== 6) isValid = false;
+    });
+
+    if (!isValid) {
+        alert("Validation failed. Each team must have exactly 6 starters selected to begin live scoring.");
+        button.disabled = false;
+        button.textContent = 'Submit Lineups for Live Scoring';
+        return;
+    }
+
+    const { id: gameId, collectionName } = currentGameData;
+    const team1_lineup = [];
+    const team2_lineup = [];
+
+    ['team1', 'team2'].forEach(prefix => {
+        const captainId = lineupForm.querySelector(`input[name="${prefix}-captain"]:checked`)?.value;
+        document.querySelectorAll(`#${prefix}-starters .starter-card`).forEach(card => {
+            const playerId = card.id.replace('starter-card-', '');
+            const player = allPlayers.get(playerId);
+            if (!player.userId) {
+                console.warn(`Player ${player.player_handle} is missing a Firebase Auth UID and cannot be scored live.`);
+                return; // Skip players without a userId
+            }
+            const lineupPlayer = {
+                player_id: playerId,
+                user_id: player.userId,
+                is_captain: playerId === captainId,
+                deductions: parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0
+            };
+            if (prefix === 'team1') team1_lineup.push(lineupPlayer);
+            else team2_lineup.push(lineupPlayer);
+        });
+    });
+
+    try {
+        const activateLiveGame = httpsCallable(functions, 'activateLiveGame');
+        await activateLiveGame({
+            gameId,
+            seasonId: currentSeasonId,
+            collectionName,
+            team1_lineup,
+            team2_lineup
+        });
+        alert('Live scoring activated successfully!');
+        lineupModal.classList.remove('is-visible');
+    } catch (error) {
+        console.error("Error activating live scoring:", error);
+        alert(`Failed to activate live scoring: ${error.message}`);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Submit Lineups for Live Scoring';
+    }
+}
+
+async function handleFinalizeLiveGame(e) {
+    e.preventDefault();
+    if (!confirm("Are you sure you want to finalize this game? This will write the current live scores to the database and cannot be undone.")) {
+        return;
+    }
+    const button = e.target;
+    button.disabled = true;
+    button.textContent = 'Finalizing...';
+
+    try {
+        const finalizeLiveGame = httpsCallable(functions, 'finalizeLiveGame');
+        const result = await finalizeLiveGame({ gameId: currentGameData.id });
+        alert(result.data.message);
+        lineupModal.classList.remove('is-visible');
+        fetchAndDisplayGames(currentSeasonId, weekSelect.value); // Refresh the game list
+    } catch (error) {
+        console.error("Error finalizing live game:", error);
+        alert(`Failed to finalize game: ${error.message}`);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Finalize Live Game Now';
+    }
+}
+
 
 function addLogoutListener() {
     const logoutBtn = document.getElementById('logout-btn');
