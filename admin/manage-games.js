@@ -1,6 +1,6 @@
 // /admin/manage-games.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, query, where, getDocs, updateDoc, httpsCallable, setDoc, deleteDoc } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, deleteDoc, httpsCallable, query, where } from '/js/firebase-init.js';
 import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 // --- Page Elements ---
@@ -58,7 +58,14 @@ async function initializePage() {
         const playersSnap = await getDocs(collection(db, "v2_players"));
         // NEW: Fetch user data to map player_handle to userId for live scoring
         const usersSnap = await getDocs(collection(db, "users"));
-        const userMap = new Map(usersSnap.docs.map(d => [d.data().player_handle, d.id]));
+        const userMap = new Map();
+        usersSnap.forEach(d => {
+            const data = d.data();
+            if (data.player_handle) { // Ensure player_handle exists before setting
+                userMap.set(data.player_handle, d.id);
+            }
+        });
+
 
         playersSnap.docs.forEach(doc => {
             const playerData = { id: doc.id, ...doc.data() };
@@ -94,9 +101,16 @@ async function initializePage() {
     document.getElementById('team1-starters').addEventListener('click', handleCaptainToggle);
     document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
 
-    // NEW: Add event listeners for live scoring buttons
-    document.getElementById('submit-live-lineups-btn').addEventListener('click', handleSubmitForLiveScoring);
-    document.getElementById('finalize-live-game-btn').addEventListener('click', handleFinalizeLiveGame);
+    // FIX: Use event delegation for the live scoring buttons. This is more robust.
+    if (liveScoringControls) {
+        liveScoringControls.addEventListener('click', (e) => {
+            if (e.target.id === 'submit-live-lineups-btn') {
+                handleSubmitForLiveScoring(e);
+            } else if (e.target.id === 'finalize-live-game-btn') {
+                handleFinalizeLiveGame(e);
+            }
+        });
+    }
 }
 
 async function updateAwardsCache(seasonId) {
@@ -276,14 +290,19 @@ async function openLineupModal(game) {
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
     document.querySelectorAll('.team-lineup-section').forEach(el => el.classList.remove('validation-error'));
 
-    // NEW: Show/hide live scoring controls based on game date
-    const today = new Date();
-    const gameDate = new Date(game.date);
-    const isToday = gameDate.getFullYear() === today.getFullYear() &&
-        gameDate.getMonth() === today.getMonth() &&
-        gameDate.getDate() === today.getDate();
+    // FIX: Add null check for liveScoringControls to prevent crash if HTML is missing
+    if (liveScoringControls) {
+        const today = new Date();
+        const gameDateParts = game.date.split('/');
+        const gameDate = new Date(+gameDateParts[2], gameDateParts[0] - 1, +gameDateParts[1]);
 
-    liveScoringControls.style.display = isToday ? 'block' : 'none';
+        const isToday = gameDate.getFullYear() === today.getFullYear() &&
+            gameDate.getMonth() === today.getMonth() &&
+            gameDate.getDate() === today.getDate();
+
+        liveScoringControls.style.display = isToday ? 'block' : 'none';
+    }
+
 
     document.getElementById('lineup-game-id').value = game.id;
     document.getElementById('lineup-game-date').value = game.date;
@@ -485,8 +504,8 @@ async function handleLineupFormSubmit(e) {
                 document.querySelectorAll(`#${prefix}-starters .starter-card`).forEach(card => {
                     const playerId = card.id.replace('starter-card-', '');
                     const reductions = parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0;
-                    const teamArray = (prefix === 'team1') ? liveGameData.team1_lineup : liveGameData.team2_lineup;
-                    const playerInLineup = teamArray.find(p => p.player_id === playerId);
+                    const teamArrayName = (prefix === 'team1') ? 'team1_lineup' : 'team2_lineup';
+                    const playerInLineup = liveGameData[teamArrayName].find(p => p.player_id === playerId);
                     if (playerInLineup) {
                         playerInLineup.deductions = reductions;
                     }
@@ -583,7 +602,7 @@ async function handleSubmitForLiveScoring(e) {
         return;
     }
 
-    const { id: gameId, collectionName } = currentGameData;
+    const { id: gameId, collectionName, team1_id, team2_id } = currentGameData;
     const team1_lineup = [];
     const team2_lineup = [];
 
@@ -598,6 +617,8 @@ async function handleSubmitForLiveScoring(e) {
             }
             const lineupPlayer = {
                 player_id: playerId,
+                player_handle: player.player_handle, // Send handle for display
+                team_id: (prefix === 'team1') ? team1_id : team2_id,
                 user_id: player.userId,
                 is_captain: playerId === captainId,
                 deductions: parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0
