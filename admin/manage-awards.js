@@ -1,6 +1,6 @@
 // /admin/manage-awards.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -21,6 +21,12 @@ let currentSeasonId = null;
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
+            if (user.isAnonymous) {
+                await signOut(auth);
+                window.location.href = '/login.html';
+                return;
+            }
+
             const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {

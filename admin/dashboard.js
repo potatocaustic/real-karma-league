@@ -1,4 +1,4 @@
-// /admin/admin.js
+// /admin/dashboard.js
 
 import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
 
@@ -42,8 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (createSeasonBtn) {
             createSeasonBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
-
-                // MODIFICATION: Fetch the active season to create a dynamic confirmation message.
                 try {
                     const activeSeasonQuery = query(collection(db, "seasons"), where("status", "==", "active"));
                     const activeSeasonSnap = await getDocs(activeSeasonQuery);
@@ -53,15 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    const activeSeasonId = activeSeasonSnap.docs[0].id; // e.g., 'S8'
-                    const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10); // e.g., 8
-
-                    const newSeasonNum = activeSeasonNum + 1; // e.g., 9
-                    const futureDraftNum = newSeasonNum + 5; // e.g., 14
-
+                    const activeSeasonId = activeSeasonSnap.docs[0].id;
+                    const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10);
+                    const newSeasonNum = activeSeasonNum + 1;
+                    const futureDraftNum = newSeasonNum + 5;
                     const confirmationMessage = `Are you sure you want to advance from ${activeSeasonId} to S${newSeasonNum}? This will create S${newSeasonNum} structures and generate S${futureDraftNum} draft picks. This is irreversible.`;
 
-                    // MODIFICATION: Use the dynamic confirmation message.
                     if (confirm(confirmationMessage)) {
                         const createNewSeason = httpsCallable(functions, 'createNewSeason');
                         const result = await createNewSeason();
