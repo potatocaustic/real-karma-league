@@ -2,6 +2,10 @@
 
 import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+
 document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
     const adminContainer = document.getElementById('admin-container');
@@ -9,14 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // If the user is anonymous, sign them out and redirect to login.
             if (user.isAnonymous) {
                 await signOut(auth);
                 window.location.href = '/login.html';
                 return;
             }
 
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -43,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createSeasonBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 try {
-                    const activeSeasonQuery = query(collection(db, "seasons"), where("status", "==", "active"));
+                    const activeSeasonQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"));
                     const activeSeasonSnap = await getDocs(activeSeasonQuery);
 
                     if (activeSeasonSnap.empty) {

@@ -1,6 +1,10 @@
 // /admin/manage-teams.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, setDoc } from '/js/firebase-init.js';
+
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -10,7 +14,6 @@ const teamsListContainer = document.getElementById('teams-list-container');
 const teamModal = document.getElementById('team-modal');
 const closeModalBtn = teamModal.querySelector('.close-btn-admin');
 const teamForm = document.getElementById('team-form');
-// MODIFIED: Get the season select element directly from the DOM
 const seasonSelect = document.getElementById('season-select-teams');
 
 
@@ -21,7 +24,7 @@ let currentSeasonId = "";
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -57,7 +60,6 @@ async function initializePage() {
         }
     });
 
-    // MODIFIED: Standardized modal closing logic
     closeModalBtn.addEventListener('click', () => {
         teamModal.style.display = 'none';
     });
@@ -66,10 +68,9 @@ async function initializePage() {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
     let activeSeasonId = null;
 
-    // Sort seasons descending by ID (e.g., S8, S7, S6)
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
     seasonSelect.innerHTML = sortedDocs.map(doc => {
@@ -84,7 +85,6 @@ async function populateSeasons() {
         seasonSelect.value = activeSeasonId;
     }
 
-    // Set current season and load initial data
     currentSeasonId = seasonSelect.value;
     await loadAndDisplayTeams();
 }
@@ -98,18 +98,13 @@ async function loadAndDisplayTeams() {
     }
 
     try {
-        const teamsSnap = await getDocs(collection(db, "v2_teams"));
-
-        // MODIFIED: Filter for documents that have a 'conference' field, ensuring we only process actual teams.
+        const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
         const validTeamDocs = teamsSnap.docs.filter(doc => doc.data().conference);
 
         const teamPromises = validTeamDocs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
-            // Diagnostic Log: This will now only show for actual teams.
-            console.log(`Fetching record for team: ${teamId}, season: ${currentSeasonId}`);
-
             const teamData = { id: teamId, ...teamDoc.data() };
-            const seasonRecordRef = doc(db, "v2_teams", teamId, "seasonal_records", currentSeasonId);
+            const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamId, getCollectionName("seasonal_records"), currentSeasonId);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
 
             if (seasonRecordSnap.exists()) {
@@ -121,8 +116,6 @@ async function loadAndDisplayTeams() {
         });
 
         allTeams = await Promise.all(teamPromises);
-        console.log("All seasonal records for valid teams fetched.");
-
         allTeams.sort((a, b) => (a.season_record.team_name || '').localeCompare(b.season_record.team_name || ''));
 
         displayTeams(allTeams);
@@ -134,7 +127,6 @@ async function loadAndDisplayTeams() {
 }
 
 function displayTeams(teams) {
-    // Clear the container of its "Loading teams..." message
     teamsListContainer.innerHTML = '';
 
     if (teams.length === 0) {
@@ -161,14 +153,12 @@ function displayTeams(teams) {
     });
 
     teamsListContainer.appendChild(fragment);
-
-    // FINAL FIX: Forcefully apply styles to ensure the container is visible and rendered.
-    // This will override any obscure CSS rules that may be hiding the content.
     teamsListContainer.style.display = 'block';
     teamsListContainer.style.visibility = 'visible';
     teamsListContainer.style.height = 'auto';
     teamsListContainer.style.opacity = '1';
 }
+
 function openTeamModal(team) {
     document.getElementById('team-id-input').value = team.id;
     document.getElementById('team-id-display').textContent = team.id;
@@ -176,8 +166,6 @@ function openTeamModal(team) {
     document.getElementById('team-conference-select').value = team.conference || 'Eastern';
     document.getElementById('team-gm-handle-input').value = team.current_gm_handle || '';
     document.getElementById('team-gm-uid-input').value = team.gm_uid || '';
-
-    // MODIFIED: Standardized modal opening logic
     teamModal.style.display = 'block';
 }
 
@@ -186,29 +174,24 @@ async function handleTeamFormSubmit(e) {
     e.preventDefault();
     const teamId = document.getElementById('team-id-input').value;
 
-    // Data for the root v2_teams document
     const rootData = {
         conference: document.getElementById('team-conference-select').value,
         current_gm_handle: document.getElementById('team-gm-handle-input').value,
         gm_uid: document.getElementById('team-gm-uid-input').value
     };
-    // Data for the seasonal_records sub-document
     const seasonalData = {
         team_name: document.getElementById('team-name-input').value
     };
 
-    const teamRef = doc(db, "v2_teams", teamId);
-    // MODIFIED: Get a ref to the seasonal record for the *currently selected season*
-    const seasonRecordRef = doc(teamRef, "seasonal_records", currentSeasonId);
+    const teamRef = doc(db, getCollectionName("v2_teams"), teamId);
+    const seasonRecordRef = doc(teamRef, getCollectionName("seasonal_records"), currentSeasonId);
 
     try {
-        // Update the root document with static data
         await updateDoc(teamRef, rootData);
-        // Update the seasonal document with the team name
         await setDoc(seasonRecordRef, seasonalData, { merge: true });
 
         alert('Team updated successfully!');
-        teamModal.classList.remove('is-visible');
+        teamModal.style.display = 'none'; // Use style.display to hide
         await loadAndDisplayTeams();
     } catch (error) {
         console.error("Error updating team:", error);

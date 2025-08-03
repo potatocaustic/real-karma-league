@@ -2,6 +2,15 @@
 
 import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, where } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => {
+    if (baseName.includes('_draft_results')) {
+        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+    }
+    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+};
+
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -19,7 +28,7 @@ const TOTAL_PICKS = 90;
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 loadingContainer.style.display = 'none';
@@ -38,8 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        // First, find the active season to get the correct team names
-        const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"));
+        const seasonsQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"));
         const activeSeasonsSnap = await getDocs(seasonsQuery);
         const activeSeasonId = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
 
@@ -47,12 +55,11 @@ async function initializePage() {
             throw new Error("Could not determine the active season to fetch team names.");
         }
 
-        // Now fetch all teams and their seasonal names
-        const teamsSnap = await getDocs(collection(db, "v2_teams"));
+        const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
         const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
-            if (!teamDoc.data().conference) return null; // Filter out non-team documents
+            if (!teamDoc.data().conference) return null;
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
-            const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", activeSeasonId);
+            const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), activeSeasonId);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
 
             teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
@@ -79,7 +86,7 @@ async function initializePage() {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -88,12 +95,10 @@ async function populateSeasons() {
         if (seasonData.status === 'active') {
             activeSeasonId = doc.id;
         }
-        // For draft, we often manage the *next* season's draft
         const seasonNum = parseInt(doc.id.replace('S', ''), 10);
         return `<option value="S${seasonNum + 1}">S${seasonNum + 1} Draft</option>`;
     }).join('');
 
-    // Set a default selection
     if (activeSeasonId) {
         const activeNum = parseInt(activeSeasonId.replace('S', ''), 10);
         seasonSelect.value = `S${activeNum + 1}`;
@@ -111,7 +116,7 @@ async function loadDraftBoard() {
     draftTableBody.innerHTML = `<tr><td colspan="5" class="loading">Loading draft board...</td></tr>`;
 
     const seasonNumber = currentSeasonId.replace('S', '');
-    const draftResultsCollectionRef = collection(db, `draft_results/season_${seasonNumber}/S${seasonNumber}_draft_results`);
+    const draftResultsCollectionRef = collection(db, `${getCollectionName('draft_results')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_draft_results`)}`);
     const existingPicksSnap = await getDocs(draftResultsCollectionRef);
     const existingPicksMap = new Map();
     existingPicksSnap.forEach(doc => {
@@ -172,10 +177,9 @@ async function handleDraftSubmit(e) {
     try {
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
-        const draftResultsCollectionRef = collection(db, `draft_results/season_${seasonNumber}/S${seasonNumber}_draft_results`);
+        const draftResultsCollectionRef = collection(db, `${getCollectionName('draft_results')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_draft_results`)}`);
 
-        // **BUG 2 FIX**: Create the parent document to prevent the italicized "ghost document".
-        const parentDocRef = doc(db, "draft_results", `season_${seasonNumber}`);
+        const parentDocRef = doc(db, getCollectionName("draft_results"), `season_${seasonNumber}`);
         batch.set(parentDocRef, { description: `Container for ${currentSeasonId} draft results.` });
 
         for (let i = 1; i <= TOTAL_PICKS; i++) {

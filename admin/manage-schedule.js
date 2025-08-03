@@ -2,6 +2,10 @@
 
 import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, writeBatch, deleteDoc, setDoc, httpsCallable } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
 const seasonSelect = document.getElementById('season-select');
@@ -22,12 +26,12 @@ const team2Select = document.getElementById('team2-select');
 let allTeams = [];
 let gamesByWeek = {};
 let exhibitionGamesByWeek = {};
-let currentSeasonId = ''; // Start with an empty string
+let currentSeasonId = '';
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 await initializePage();
@@ -42,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const seasonsSnap = await getDocs(collection(db, "seasons"));
+        const seasonsSnap = await getDocs(collection(db, getCollectionName("seasons")));
         if (seasonsSnap.empty) {
             adminContainer.innerHTML = `<div class="error">No seasons found in the database.</div>`;
             loadingContainer.style.display = 'none';
@@ -54,12 +58,10 @@ async function initializePage() {
             .sort((a, b) => b.id.localeCompare(a.id))
             .map(doc => `<option value="${doc.id}">${doc.data().season_name}</option>`).join('');
 
-        // Set the default selected season
         const activeSeason = seasonsSnap.docs.find(doc => doc.data().status === 'active');
         currentSeasonId = activeSeason ? activeSeason.id : seasonsSnap.docs[0].id;
         seasonSelect.value = currentSeasonId;
 
-        // Initial data load for the default season
         await updateTeamCache(currentSeasonId);
         populatePostseasonDates();
         await loadSchedules();
@@ -89,12 +91,12 @@ async function initializePage() {
 }
 
 async function updateTeamCache(seasonId) {
-    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) return null;
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
@@ -129,13 +131,12 @@ async function loadSchedules() {
     exhibitionGamesByWeek = {};
 
     const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
-        getDocs(collection(db, `seasons/${currentSeasonId}/games`)),
-        getDocs(collection(db, `seasons/${currentSeasonId}/post_games`)),
-        getDocs(collection(db, `seasons/${currentSeasonId}/exhibition_games`))
+        getDocs(collection(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName('games')}`)),
+        getDocs(collection(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName('post_games')}`)),
+        getDocs(collection(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName('exhibition_games')}`))
     ]);
 
     gamesSnap.forEach(doc => {
-        // FIX: Ignore the placeholder document
         if (doc.id === 'placeholder') return;
         const game = { id: doc.id, ...doc.data() };
         if (!gamesByWeek[game.week]) gamesByWeek[game.week] = [];
@@ -143,20 +144,17 @@ async function loadSchedules() {
     });
 
     exhibitionGamesSnap.forEach(doc => {
-        // FIX: Ignore the placeholder document
         if (doc.id === 'placeholder') return;
         const game = { id: doc.id, ...doc.data() };
         if (!exhibitionGamesByWeek[game.week]) exhibitionGamesByWeek[game.week] = [];
         exhibitionGamesByWeek[game.week].push(game);
     });
 
-    // Combine regular and exhibition for the main display
     const combinedGames = { ...gamesByWeek, ...exhibitionGamesByWeek };
     renderSchedule(regularSeasonContainer, true, combinedGames);
 
     const postGamesByWeek = {};
     postGamesSnap.forEach(doc => {
-        // FIX: Ignore the placeholder document
         if (doc.id === 'placeholder') return;
         const game = { id: doc.id, ...doc.data() };
         if (!postGamesByWeek[game.week]) postGamesByWeek[game.week] = [];
@@ -221,7 +219,7 @@ function populateAvailableTeams() {
     }
 
     let availableTeams = allTeams;
-    if (!isNaN(week)) { // Only filter for regular season weeks
+    if (!isNaN(week)) {
         const scheduledTeams = new Set();
         if (gamesByWeek[week]) {
             gamesByWeek[week].forEach(game => {
@@ -266,7 +264,7 @@ async function handleSaveGame(e) {
     const gameId = `${formattedDateForId}-${team1Id}-${team2Id}`;
 
     try {
-        await setDoc(doc(db, `seasons/${currentSeasonId}/${collectionName}`, gameId), gameData);
+        await setDoc(doc(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName(collectionName)}`, gameId), gameData);
         gameModal.classList.remove('is-visible');
         await loadSchedules();
     } catch (error) {
@@ -283,7 +281,7 @@ async function handleDeleteGame(e) {
 
     if (confirm("Are you sure you want to delete this game?")) {
         try {
-            await deleteDoc(doc(db, `seasons/${currentSeasonId}/${collectionName}`, gameId));
+            await deleteDoc(doc(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName(collectionName)}`, gameId));
             await loadSchedules();
         } catch (error) {
             console.error("Error deleting game:", error);

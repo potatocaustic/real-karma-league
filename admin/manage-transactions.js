@@ -2,6 +2,10 @@
 
 import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -18,7 +22,7 @@ let allPicks = [];
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 loadingContainer.style.display = 'none';
@@ -37,8 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        // First, find the active season to get the correct team names
-        const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"));
+        const seasonsQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"));
         const activeSeasonsSnap = await getDocs(seasonsQuery);
         const activeSeasonId = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
 
@@ -46,21 +49,19 @@ async function initializePage() {
             throw new Error("Could not determine the active season to fetch team names.");
         }
 
-        // Now fetch all data, including teams with their seasonal names
         const [playersSnap, teamsSnap, picksSnap] = await Promise.all([
-            getDocs(collection(db, "v2_players")),
-            getDocs(collection(db, "v2_teams")),
-            getDocs(collection(db, "draftPicks"))
+            getDocs(collection(db, getCollectionName("v2_players"))),
+            getDocs(collection(db, getCollectionName("v2_teams"))),
+            getDocs(collection(db, getCollectionName("draftPicks")))
         ]);
 
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         allPicks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Fetch seasonal names for all teams
         const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
-            if (!teamDoc.data().conference) return null; // Filter out non-team documents
+            if (!teamDoc.data().conference) return null;
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
-            const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", activeSeasonId);
+            const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), activeSeasonId);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
             teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
             return teamData;
@@ -81,15 +82,12 @@ async function initializePage() {
 function populateAllDropdowns() {
     const teamOptions = allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
-    // Sign section
     document.getElementById('sign-team-select').innerHTML = `<option value="">Select team...</option>${teamOptions}`;
 
-    // MODIFIED: Populate datalist instead of select for free agents
     const freeAgentDataList = document.getElementById('free-agent-list');
     const freeAgents = allPlayers.filter(p => p.current_team_id === 'FREE_AGENT' && p.player_status !== 'RETIRED');
     freeAgentDataList.innerHTML = freeAgents.map(p => `<option value="${p.player_handle}"></option>`).join('');
 
-    // Cut section
     cutTeamFilter.innerHTML = `<option value="">All Teams</option>${teamOptions}`;
     populateCutPlayerDropdown();
 }
@@ -106,8 +104,6 @@ function populateCutPlayerDropdown(teamId = '') {
         playersToDisplay.map(p => `<option value="${p.id}">${p.player_handle} (${p.current_team_id})</option>`).join('');
 }
 
-
-// --- Event Listeners ---
 function setupEventListeners() {
     typeSelect.addEventListener('change', () => {
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
@@ -132,13 +128,11 @@ function setupEventListeners() {
     document.getElementById('add-team-btn').addEventListener('click', addTradePartyBlock);
     transactionForm.addEventListener('submit', handleFormSubmit);
 
-    // Add this event listener
     cutTeamFilter.addEventListener('change', (e) => {
         populateCutPlayerDropdown(e.target.value);
     });
 }
 
-// --- Trade Block Logic ---
 function addTradePartyBlock() {
     const container = document.querySelector('.trade-parties-container');
     const partyId = `party-${Date.now()}`;
@@ -146,7 +140,6 @@ function addTradePartyBlock() {
     block.className = 'trade-party-block';
     block.id = partyId;
 
-    // ADDED: Remove button for blocks beyond the second one
     const removeButtonHTML = container.children.length >= 2
         ? `<button type="button" class="btn-admin-remove-asset" onclick="this.closest('.trade-party-block').remove()" style="color: white;">&times;</button>`
         : '';
@@ -187,7 +180,6 @@ function addAssetToTrade(event) {
         return;
     }
 
-    // ADDED: Dropdown to select destination for the asset
     const otherTeams = Array.from(document.querySelectorAll('.trade-team-select'))
         .map(select => select.value)
         .filter(id => id && id !== teamId);
@@ -223,7 +215,6 @@ function addAssetToTrade(event) {
 }
 
 
-// --- Form Submission ---
 async function handleFormSubmit(e) {
     e.preventDefault();
     const type = typeSelect.value;
@@ -252,10 +243,7 @@ async function handleFormSubmit(e) {
             });
         } else if (type === 'SIGN') {
             const teamId = document.getElementById('sign-team-select').value;
-            // MODIFIED: Get player handle from the new input field
             const playerHandle = document.getElementById('sign-player-input').value;
-
-            // Find the player's ID based on their handle.
             const playerToSign = allPlayers.find(p => p.player_handle === playerHandle);
 
             if (!teamId || !playerToSign) {
@@ -277,12 +265,12 @@ async function handleFormSubmit(e) {
             throw new Error("Invalid transaction type selected.");
         }
 
-        await addDoc(collection(db, "transactions"), transactionData);
+        await addDoc(collection(db, getCollectionName("transactions")), transactionData);
         alert('Transaction logged successfully! Player data will update automatically.');
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
-        populateAllDropdowns(); // Refresh dropdowns
+        populateAllDropdowns();
 
     } catch (error) {
         console.error("Error logging transaction:", error);

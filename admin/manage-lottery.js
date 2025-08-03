@@ -2,6 +2,10 @@
 
 import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, setDoc, query, where } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -13,13 +17,13 @@ const saveBtn = document.getElementById('save-lottery-btn');
 // --- Global Data Cache ---
 let allTeams = [];
 let lotteryTeams = [];
-let completedSeasonId = null; // Represents the season that was just completed
-let draftSeasonId = null; // Represents the upcoming draft
+let completedSeasonId = null;
+let draftSeasonId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 await initializePage();
@@ -35,9 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         await populateSeasons();
-
         seasonSelect.addEventListener('change', handleSeasonChange);
-
         setupDragAndDrop();
         saveBtn.addEventListener('click', saveLotteryResults);
 
@@ -50,7 +52,7 @@ async function initializePage() {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
     let completedSeason = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -84,15 +86,17 @@ async function loadLotteryTeams() {
     preLotteryList.innerHTML = `<li class="loading">Loading teams...</li>`;
     finalLotteryList.innerHTML = '';
 
+    const postGamesCollectionRef = collection(db, `${getCollectionName('seasons')}/${completedSeasonId}/${getCollectionName('post_games')}`);
+
     const [teamsSnap, postGamesSnap] = await Promise.all([
-        getDocs(collection(db, "v2_teams")),
-        getDocs(query(collection(db, `seasons/${completedSeasonId}/post_games`), where("week", "==", "Play-In")))
+        getDocs(collection(db, getCollectionName("v2_teams"))),
+        getDocs(query(postGamesCollectionRef, where("week", "==", "Play-In")))
     ]);
 
     const teamRecordsPromises = teamsSnap.docs
         .filter(doc => doc.data() && doc.data().conference)
         .map(async teamDoc => {
-            const recordRef = doc(db, `v2_teams/${teamDoc.id}/seasonal_records/${completedSeasonId}`);
+            const recordRef = doc(db, `${getCollectionName('v2_teams')}/${teamDoc.id}/${getCollectionName('seasonal_records')}/${completedSeasonId}`);
             const recordSnap = await getDoc(recordRef);
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
             if (recordSnap.exists()) {
@@ -149,7 +153,7 @@ function renderLists(teams) {
 }
 
 async function loadExistingResults() {
-    const resultsRef = doc(db, `lottery_results/${draftSeasonId}_lottery_results`);
+    const resultsRef = doc(db, getCollectionName('lottery_results'), `${draftSeasonId}_lottery_results`);
     const resultsSnap = await getDoc(resultsRef);
 
     if (resultsSnap.exists()) {
@@ -157,7 +161,6 @@ async function loadExistingResults() {
         const orderedTeams = final_order.map(teamId => allTeams.find(t => t.id === teamId)).filter(Boolean);
 
         if (orderedTeams.length === 14) {
-            // Re-render the final list only, preserving the pre-lottery order
             finalLotteryList.innerHTML = orderedTeams.map((team, index) =>
                 `<li class="team-item" draggable="true" data-team-id="${team.id}">
                     <span class="rank-number">${index + 1}.</span>
@@ -233,7 +236,7 @@ async function saveLotteryResults() {
     }
 
     try {
-        const resultsRef = doc(db, `lottery_results/${draftSeasonId}_lottery_results`);
+        const resultsRef = doc(db, getCollectionName('lottery_results'), `${draftSeasonId}_lottery_results`);
         await setDoc(resultsRef, {
             season: draftSeasonId,
             final_order: finalOrderIds,

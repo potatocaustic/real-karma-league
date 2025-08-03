@@ -2,6 +2,10 @@
 
 import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, arrayUnion, query } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -15,15 +19,15 @@ const createPlayerBtn = document.getElementById('create-player-btn');
 const seasonSelect = document.getElementById('player-season-select');
 
 let allPlayers = [];
-let allTeams = new Map(); // Use a Map for efficient team lookups
-let currentSeasonId = "S7"; // Hardcode for now
+let allTeams = new Map();
+let currentSeasonId = "";
 let isEditMode = false;
 
 // --- Primary Auth Check ---
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -43,18 +47,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        // Populate seasons and trigger initial data load
         await populateSeasons();
 
-        // This listener handles season changes
         seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
-            // Update the team cache for the new season before loading players
             await updateTeamCache(currentSeasonId);
             await loadAndDisplayPlayers();
         });
 
-        // This listener handles the search input
         searchInput.addEventListener('input', () => {
             const searchTerm = searchInput.value.toLowerCase();
             const filteredPlayers = allPlayers.filter(player => player.player_handle.toLowerCase().includes(searchTerm));
@@ -69,23 +69,20 @@ async function initializePage() {
 
 async function updateTeamCache(seasonId) {
     allTeams.clear();
-    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
 
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
-        // Filter out any documents that aren't actual teams (e.g., placeholders)
         if (!teamDoc.data().conference) {
             return null;
         }
-        
+
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         if (seasonRecordSnap.exists()) {
-            // Add the seasonal team_name to the team data object
             teamData.team_name = seasonRecordSnap.data().team_name;
         } else {
-            // Fallback if a seasonal record doesn't exist
             teamData.team_name = "Name Not Found";
         }
         return teamData;
@@ -95,7 +92,7 @@ async function updateTeamCache(seasonId) {
     teamsWithData.forEach(team => allTeams.set(team.id, team));
 }
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -111,8 +108,7 @@ async function populateSeasons() {
         seasonSelect.value = activeSeasonId;
     }
     currentSeasonId = seasonSelect.value;
-    
-    // Update the team cache for the initial season before loading players
+
     await updateTeamCache(currentSeasonId);
     await loadAndDisplayPlayers();
 }
@@ -120,12 +116,11 @@ async function populateSeasons() {
 async function loadAndDisplayPlayers() {
     playersListContainer.innerHTML = '<div class="loading">Loading players...</div>';
     try {
-        const playersSnap = await getDocs(collection(db, "v2_players"));
+        const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
 
         const playerPromises = playersSnap.docs.map(async (playerDoc) => {
             const playerData = { id: playerDoc.id, ...playerDoc.data() };
-            // MODIFIED: Fetch stats for the currently selected season
-            const seasonStatsRef = doc(db, "v2_players", playerDoc.id, "seasonal_stats", currentSeasonId);
+            const seasonStatsRef = doc(db, getCollectionName("v2_players"), playerDoc.id, getCollectionName("seasonal_stats"), currentSeasonId);
             const seasonStatsSnap = await getDoc(seasonStatsRef);
             if (seasonStatsSnap.exists()) {
                 playerData.season_stats = seasonStatsSnap.data();
@@ -193,13 +188,11 @@ function openPlayerModal(player = null) {
         document.getElementById('player-id-input').value = player.id;
         document.getElementById('player-handle-input').value = player.player_handle || '';
         document.getElementById('player-status-select').value = player.player_status || 'ACTIVE';
-        // MODIFIED: Use seasonal stats for accolades
         document.getElementById('player-rookie-checkbox').checked = player.season_stats?.rookie === '1';
         document.getElementById('player-allstar-checkbox').checked = player.season_stats?.all_star === '1';
     } else {
         document.getElementById('player-id-input').readOnly = false;
         document.getElementById('player-id-input').placeholder = "Enter a new unique ID (e.g. jdoe123)";
-        // Defaults for a new player
         document.getElementById('player-rookie-checkbox').checked = true;
         document.getElementById('player-allstar-checkbox').checked = false;
     }
@@ -210,7 +203,6 @@ function openPlayerModal(player = null) {
         .map(([id, team]) => `<option value="${id}" ${player && player.current_team_id === id ? 'selected' : ''}>${team.team_name}</option>`)
         .join('');
 
-    // CORRECTED: The variable is 'isEditMode', not 'is_edit_mode'.
     if (isEditMode && player.current_team_id) {
         teamSelect.value = player.current_team_id;
     } else {
@@ -233,15 +225,14 @@ playerForm.addEventListener('submit', async (e) => {
     }
 
     const newHandle = document.getElementById('player-handle-input').value.trim();
-    const playerRef = doc(db, "v2_players", playerId);
-    const seasonStatsRef = doc(playerRef, "seasonal_stats", currentSeasonId);
+    const playerRef = doc(db, getCollectionName("v2_players"), playerId);
+    const seasonStatsRef = doc(playerRef, getCollectionName("seasonal_stats"), currentSeasonId);
 
     try {
         if (isEditMode) {
             const originalPlayer = allPlayers.find(p => p.id === playerId);
             const oldHandle = originalPlayer ? originalPlayer.player_handle : null;
 
-            // Update static data
             const updateData = {
                 player_handle: newHandle,
                 current_team_id: document.getElementById('player-team-select').value,
@@ -252,7 +243,6 @@ playerForm.addEventListener('submit', async (e) => {
             }
             await updateDoc(playerRef, updateData);
 
-            // MODIFIED: Update seasonal data in its own document
             const seasonalUpdateData = {
                 rookie: document.getElementById('player-rookie-checkbox').checked ? '1' : '0',
                 all_star: document.getElementById('player-allstar-checkbox').checked ? '1' : '0'

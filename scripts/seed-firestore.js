@@ -314,7 +314,7 @@ async function seedDatabase() {
     const batch = db.batch();
     // Seed Teams and Seasonal Records
     teamsData.forEach(team => {
-        const teamDocRef = db.collection("v2_teams").doc(team.team_id);
+        const teamDocRef = db.collection("v2_teams_dev").doc(team.team_id);
 
         // MODIFIED: Add team_id as a field to the static root document data.
         const staticData = {
@@ -331,14 +331,14 @@ async function seedDatabase() {
         // Delete the redundant teamId property from the seasonal object.
         delete seasonalData.teamId;
 
-        const seasonRecordRef = teamDocRef.collection("seasonal_records").doc(SEASON_ID);
+        const seasonRecordRef = teamDocRef.collection("seasonal_records_dev").doc(SEASON_ID);
         batch.set(seasonRecordRef, seasonalData, { merge: true });
     });
     console.log(`Prepared ${teamsData.length} teams and their seasonal stats for seeding.`);
 
     // Seed Players and Seasonal Stats
     playersData.forEach(player => {
-        const playerDocRef = db.collection("v2_players").doc(player.player_id);
+        const playerDocRef = db.collection("v2_players_dev").doc(player.player_id);
         // MODIFIED: Only write static data to the root player document
         const staticData = {
             player_handle: player.player_handle,
@@ -353,14 +353,14 @@ async function seedDatabase() {
             seasonalData.rookie = player.rookie || '0';
             seasonalData.all_star = player.all_star || '0';
 
-            const seasonStatsRef = playerDocRef.collection("seasonal_stats").doc(SEASON_ID);
+            const seasonStatsRef = playerDocRef.collection("seasonal_stats_dev").doc(SEASON_ID);
             batch.set(seasonStatsRef, seasonalData);
         }
     });
     console.log(`Prepared ${playersData.length} players and their seasonal stats for seeding.`);
 
     // FIX: Explicitly create the parent season document
-    const seasonRef = db.collection("seasons").doc(SEASON_ID);
+    const seasonRef = db.collection("seasons_dev").doc(SEASON_ID);
     batch.set(seasonRef, { season_name: `Season ${SEASON_NUM}`, status: "active" });
     console.log(`Prepared parent document for season ${SEASON_ID}.`);
 
@@ -368,7 +368,7 @@ async function seedDatabase() {
     // Seed Games
     [...scheduleData, ...postScheduleData].forEach(game => {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
-        const collectionName = scheduleData.includes(game) ? "games" : "post_games";
+        const collectionName = scheduleData.includes(game) ? "games_dev" : "post_games_dev";
         batch.set(seasonRef.collection(collectionName).doc(gameId), game);
     });
     console.log(`Prepared ${scheduleData.length + postScheduleData.length} games for seeding.`);
@@ -397,7 +397,7 @@ async function seedDatabase() {
         const gameId = `${date}-${teams[0]}-${teams[1]}`;
         const lineupId = `${gameId}-${lineup.player_id}`;
 
-        const collectionName = lineupsData.includes(lineup) ? "lineups" : "post_lineups";
+        const collectionName = lineupsData.includes(lineup) ? "lineups_dev" : "post_lineups_dev";
 
         // Add the canonical gameId to the data being written
         lineup.game_id = gameId;
@@ -407,7 +407,7 @@ async function seedDatabase() {
     console.log(`Prepared ${lineupsData.length + postLineupsData.length} enhanced lineups with corrected IDs for seeding.`);
 
     draftPicksData.forEach(pick => {
-        if (pick.pick_id) batch.set(db.collection("draftPicks").doc(pick.pick_id), pick);
+        if (pick.pick_id) batch.set(db.collection("draftPicks_dev").doc(pick.pick_id), pick);
     });
     console.log(`Prepared ${draftPicksData.length} draft picks for seeding.`);
 
@@ -424,7 +424,7 @@ async function seedDatabase() {
                 continue;
             }
             const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            const docRef = db.doc(`${collName}/season_${SEASON_NUM}/S${SEASON_NUM}_${collName}/${yyyymmdd}`);
+            const docRef = db.doc(`${collName}_dev/season_${SEASON_NUM}/S${SEASON_NUM}_${collName}_dev/${yyyymmdd}`);
             batch.set(docRef, data);
         }
     };
@@ -432,8 +432,8 @@ async function seedDatabase() {
     seedIntermediate(postDailyAveragesMap, 'post_daily_averages');
     console.log(`Prepared ${dailyAveragesMap.size + postDailyAveragesMap.size} daily average documents.`);
 
-    dailyScores.forEach(s => batch.set(db.doc(`daily_scores/season_${SEASON_NUM}/S${SEASON_NUM}_daily_scores/${s.docId}`), s.data));
-    postDailyScores.forEach(s => batch.set(db.doc(`post_daily_scores/season_${SEASON_NUM}/S${SEASON_NUM}_post_daily_scores/${s.docId}`), s.data));
+    dailyScores.forEach(s => batch.set(db.doc(`daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_daily_scores_dev/${s.docId}`), s.data));
+    postDailyScores.forEach(s => batch.set(db.doc(`post_daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_post_daily_scores_dev/${s.docId}`), s.data));
     console.log(`Prepared ${dailyScores.length + postDailyScores.length} daily team score documents.`);
 
     console.log("Committing all data to Firestore...");

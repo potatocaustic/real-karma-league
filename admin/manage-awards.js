@@ -2,6 +2,15 @@
 
 import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => {
+    if (baseName.includes('_awards')) {
+        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+    }
+    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+};
+
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -27,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 await initializePage();
@@ -44,22 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        // Fetch players (not dependent on season selection)
-        const playersSnap = await getDocs(collection(db, "v2_players"));
+        const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
         playersSnap.docs.forEach(doc => {
             if (doc.data().player_status === 'ACTIVE') {
                 allPlayers.set(doc.data().player_handle, { id: doc.id, ...doc.data() });
             }
         });
 
-        // This will now handle fetching teams and populating dropdowns
         await populateSeasons();
 
         seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
-            // On season change, re-fetch team data for that season
             await updateTeamCache(currentSeasonId);
-            // Then, re-populate dropdowns and load the awards for the new season
             populateDatalistAndSelects();
             loadExistingAwards();
         });
@@ -74,26 +79,25 @@ async function initializePage() {
 }
 
 async function updateTeamCache(seasonId) {
-    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) return null;
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
         return teamData;
     });
 
-    // Update the global allTeams array and sort it
     allTeams = (await Promise.all(teamPromises))
         .filter(Boolean)
         .sort((a, b) => a.team_name.localeCompare(b.team_name));
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -111,7 +115,6 @@ async function populateSeasons() {
 
     currentSeasonId = seasonSelect.value;
 
-    // Fetch team data for the initial season before populating UI
     await updateTeamCache(currentSeasonId);
     populateDatalistAndSelects();
     await loadExistingAwards();
@@ -120,7 +123,6 @@ async function populateSeasons() {
 function populateDatalistAndSelects() {
     playerDatalist.innerHTML = Array.from(allPlayers.keys()).map(handle => `<option value="${handle}"></option>`).join('');
 
-    // Re-populate GMs and Team dropdowns using the newly cached `allTeams` array
     allGms.clear();
     allTeams.forEach(team => {
         if (team.current_gm_handle) {
@@ -147,16 +149,15 @@ function populateDatalistAndSelects() {
 }
 
 async function loadExistingAwards() {
-    awardsForm.reset(); // Clear previous selections
+    awardsForm.reset();
 
     if (!currentSeasonId) return;
     const seasonNumber = currentSeasonId.replace('S', '');
-    const awardsCollectionRef = collection(db, `awards/season_${seasonNumber}/S${seasonNumber}_awards`);
+    const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
     const awardsSnap = await getDocs(awardsCollectionRef);
 
     if (awardsSnap.empty) {
         console.log("No existing awards found for this season.");
-        // Clear displays for auto-calculated awards
         document.getElementById('best-player-performance-display').textContent = 'Not yet calculated.';
         document.getElementById('best-team-performance-display').textContent = 'Not yet calculated.';
         return;
@@ -221,7 +222,7 @@ async function handleFormSubmit(e) {
     try {
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
-        const awardsCollectionRef = collection(db, `awards/season_${seasonNumber}/S${seasonNumber}_awards`);
+        const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
 
         const singleAwards = ['finals-mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
         for (const id of singleAwards) {
@@ -294,7 +295,7 @@ async function handleCalculationTrigger() {
         const calculatePerformanceAwards = httpsCallable(functions, 'calculatePerformanceAwards');
         const result = await calculatePerformanceAwards({ seasonId: currentSeasonId });
         alert(result.data.message);
-        await loadExistingAwards(); // Refresh display
+        await loadExistingAwards();
     } catch (error) {
         console.error("Error triggering award calculation:", error);
         alert(`Error: ${error.message}`);

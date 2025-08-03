@@ -2,6 +2,10 @@
 
 import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query } from '/js/firebase-init.js';
 
+// --- DEV ENVIRONMENT CONFIG ---
+const USE_DEV_COLLECTIONS = true;
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -23,7 +27,7 @@ const TOTAL_TEAMS = 30;
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, "users", user.uid);
+            const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 await initializePage();
@@ -60,12 +64,12 @@ async function initializePage() {
 }
 
 async function updateTeamCache(seasonId) {
-    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) return null;
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId);
+        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
@@ -77,7 +81,7 @@ async function updateTeamCache(seasonId) {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -114,20 +118,17 @@ async function loadRankingsBoard() {
     currentVersion = parseInt(versionSelect.value, 10);
     rankingsBody.innerHTML = `<tr><td colspan="4" class="loading">Loading rankings...</td></tr>`;
 
-    if (!currentSeasonId) return;
-
-    // Add a sanity check for the version number right away.
-    if (isNaN(currentVersion)) {
-        rankingsBody.innerHTML = `<tr><td colspan="4" class="error">Invalid version selected. Please refresh.</td></tr>`;
-        return;
-    }
+    if (!currentSeasonId || isNaN(currentVersion)) return;
 
     const seasonNumber = currentSeasonId.replace('S', '');
     const prevVersion = currentVersion - 1;
 
+    const prevRankingsPath = prevVersion >= 0 ? `${getCollectionName('power_rankings')}/season_${seasonNumber}/v${prevVersion}` : null;
+    const currentRankingsPath = `${getCollectionName('power_rankings')}/season_${seasonNumber}/v${currentVersion}`;
+
     const [prevRankingsSnap, currentRankingsSnap] = await Promise.all([
-        prevVersion >= 0 ? getDocs(collection(db, `power_rankings/season_${seasonNumber}/v${prevVersion}`)) : Promise.resolve(null),
-        getDocs(collection(db, `power_rankings/season_${seasonNumber}/v${currentVersion}`))
+        prevRankingsPath ? getDocs(collection(db, prevRankingsPath)) : Promise.resolve(null),
+        getDocs(collection(db, currentRankingsPath))
     ]);
 
     prevRankingsMap.clear();
@@ -162,7 +163,6 @@ async function loadRankingsBoard() {
 
     calculateAllChanges();
     validateRankings();
-    // **BUG 2 FIX**: This call correctly updates the dropdowns on initial load.
     updateTeamSelectOptions();
 }
 
@@ -170,15 +170,10 @@ function handleSelectionChange(e) {
     if (e.target.classList.contains('team-select')) {
         calculateAllChanges();
         validateRankings();
-        // **BUG 2 FIX**: This call correctly updates the dropdowns after every user change.
         updateTeamSelectOptions();
     }
 }
 
-/**
- * **BUG 2 FIX**: This function dynamically updates the team selection dropdowns.
- * It hides any team that has already been selected in another dropdown, making data entry easier.
- */
 function updateTeamSelectOptions() {
     const selectedTeamIds = new Set();
     document.querySelectorAll('#power-rankings-body .team-select').forEach(select => {
@@ -190,8 +185,6 @@ function updateTeamSelectOptions() {
     document.querySelectorAll('#power-rankings-body .team-select').forEach(select => {
         const currentSelectionInThisDropdown = select.value;
         select.querySelectorAll('option').forEach(option => {
-            // An option should be hidden if its value is in the selected list,
-            // UNLESS it's the value for the dropdown we are currently iterating on.
             if (option.value && selectedTeamIds.has(option.value) && option.value !== currentSelectionInThisDropdown) {
                 option.hidden = true;
             } else {
@@ -272,11 +265,7 @@ async function handleFormSubmit(e) {
     saveButton.textContent = 'Saving...';
 
     try {
-        // **BUG 1 FIX**: Read the version directly from the DOM at the time of submission
-        // into a local constant. This avoids any issues with stale global variables.
         const versionToSave = parseInt(versionSelect.value, 10);
-
-        // Add a validation check to ensure the version is a valid number before proceeding.
         if (isNaN(versionToSave)) {
             alert("Error: A valid version is not selected. Cannot save.");
             saveButton.disabled = false;
@@ -286,8 +275,7 @@ async function handleFormSubmit(e) {
 
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
-        // Use the validated local constant to build the collection path.
-        const rankingsCollectionRef = collection(db, `power_rankings/season_${seasonNumber}/v${versionToSave}`);
+        const rankingsCollectionRef = collection(db, `${getCollectionName('power_rankings')}/season_${seasonNumber}/v${versionToSave}`);
 
         const ranksToWrite = [];
         let error = false;
@@ -324,7 +312,6 @@ async function handleFormSubmit(e) {
                 rank: item.rank,
                 previous_rank: previous_rank,
                 change: change,
-                // Use the validated local constant for the data field.
                 version: versionToSave,
                 season: currentSeasonId
             });

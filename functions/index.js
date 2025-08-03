@@ -10,6 +10,32 @@ admin.initializeApp();
 const db = admin.firestore();
 
 // ===================================================================
+// DEVELOPMENT ENVIRONMENT CONFIGURATION
+// ===================================================================
+
+/**
+ * Global flag to switch between development and production collections.
+ * true: All Firestore operations will use collections with a "_dev" suffix (e.g., "seasons_dev").
+ * false: All Firestore operations will use the standard production collections.
+ */
+const USE_DEV_COLLECTIONS = true;
+
+/**
+ * Helper function to get the correct collection name based on the environment.
+ * @param {string} baseName The base name of the collection (e.g., "seasons").
+ * @returns {string} The final collection name (e.g., "seasons_dev" or "seasons").
+ */
+const getCollectionName = (baseName) => {
+    // For sub-collection names that are dynamically generated (e.g., S8_daily_scores)
+    // we should not append another _dev suffix.
+    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results')) {
+        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+    }
+    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+};
+
+
+// ===================================================================
 // V2 FUNCTIONS
 // ===================================================================
 
@@ -60,7 +86,7 @@ exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => 
     }
 
     try {
-        const liveGameRef = db.collection('live_games').doc(gameId);
+        const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
         await liveGameRef.set({
             seasonId,
             collectionName,
@@ -86,7 +112,7 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
     }
 
     try {
-        const liveGameRef = db.collection('live_games').doc(gameId);
+        const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
         const liveGameSnap = await liveGameRef.get();
 
         if (!liveGameSnap.exists) {
@@ -113,7 +139,7 @@ async function processAndFinalizeGame(liveGameSnap) {
     const { seasonId, collectionName, team1_lineup, team2_lineup } = liveGameData;
 
     const allPlayersInGame = [...team1_lineup, ...team2_lineup];
-    const playerDocs = await db.collection('v2_players').get();
+    const playerDocs = await db.collection(getCollectionName('v2_players')).get();
     const allPlayersMap = new Map(playerDocs.docs.map(doc => [doc.id, doc.data()]));
 
     const batch = db.batch();
@@ -134,14 +160,14 @@ async function processAndFinalizeGame(liveGameSnap) {
         }
     }
 
-    const gameRef = db.doc(`seasons/${seasonId}/${collectionName}/${gameId}`);
+    const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
     const gameSnap = await gameRef.get();
     const gameData = gameSnap.data();
     let team1FinalScore = 0;
     let team2FinalScore = 0;
 
     const lineupsCollectionName = collectionName.replace('_games', '_lineups');
-    const lineupsCollectionRef = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName);
+    const lineupsCollectionRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollectionName));
 
     for (const player of allPlayersInGame) {
         const finalScores = finalScoresMap.get(player.player_id);
@@ -211,31 +237,31 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     console.log(`Creating structure for season ${seasonId}`);
 
     // Create placeholder documents for REGULAR season stats
-    batch.set(db.doc(`daily_averages/season_${seasonNum}`), { description: `Daily averages for Season ${seasonNum}` });
-    batch.set(db.doc(`daily_averages/season_${seasonNum}/S${seasonNum}_daily_averages/placeholder`), {});
-    batch.set(db.doc(`daily_scores/season_${seasonNum}`), { description: `Daily scores for Season ${seasonNum}` });
-    batch.set(db.doc(`daily_scores/season_${seasonNum}/S${seasonNum}_daily_scores/placeholder`), {});
+    batch.set(db.doc(`${getCollectionName('daily_averages')}/season_${seasonNum}`), { description: `Daily averages for Season ${seasonNum}` });
+    batch.set(db.doc(`${getCollectionName('daily_averages')}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_daily_averages`)}/placeholder`), {});
+    batch.set(db.doc(`${getCollectionName('daily_scores')}/season_${seasonNum}`), { description: `Daily scores for Season ${seasonNum}` });
+    batch.set(db.doc(`${getCollectionName('daily_scores')}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_daily_scores`)}/placeholder`), {});
 
     // CORRECTED: Create placeholder documents for POSTSEASON stats as well
-    batch.set(db.doc(`post_daily_averages/season_${seasonNum}`), { description: `Postseason daily averages for Season ${seasonNum}` });
-    batch.set(db.doc(`post_daily_averages/season_${seasonNum}/S${seasonNum}_post_daily_averages/placeholder`), {});
-    batch.set(db.doc(`post_daily_scores/season_${seasonNum}`), { description: `Postseason daily scores for Season ${seasonNum}` });
-    batch.set(db.doc(`post_daily_scores/season_${seasonNum}/S${seasonNum}_post_daily_scores/placeholder`), {});
+    batch.set(db.doc(`${getCollectionName('post_daily_averages')}/season_${seasonNum}`), { description: `Postseason daily averages for Season ${seasonNum}` });
+    batch.set(db.doc(`${getCollectionName('post_daily_averages')}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_post_daily_averages`)}/placeholder`), {});
+    batch.set(db.doc(`${getCollectionName('post_daily_scores')}/season_${seasonNum}`), { description: `Postseason daily scores for Season ${seasonNum}` });
+    batch.set(db.doc(`${getCollectionName('post_daily_scores')}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_post_daily_scores`)}/placeholder`), {});
 
 
     // Create the main season document and its subcollections
-    const seasonRef = db.collection("seasons").doc(seasonId);
-    batch.set(seasonRef.collection("games").doc("placeholder"), {});
-    batch.set(seasonRef.collection("lineups").doc("placeholder"), {});
-    batch.set(seasonRef.collection("post_games").doc("placeholder"), {});
-    batch.set(seasonRef.collection("post_lineups").doc("placeholder"), {});
-    batch.set(seasonRef.collection("exhibition_games").doc("placeholder"), {});
-    batch.set(seasonRef.collection("exhibition_lineups").doc("placeholder"), {});
+    const seasonRef = db.collection(getCollectionName("seasons")).doc(seasonId);
+    batch.set(seasonRef.collection(getCollectionName("games")).doc("placeholder"), {});
+    batch.set(seasonRef.collection(getCollectionName("lineups")).doc("placeholder"), {});
+    batch.set(seasonRef.collection(getCollectionName("post_games")).doc("placeholder"), {});
+    batch.set(seasonRef.collection(getCollectionName("post_lineups")).doc("placeholder"), {});
+    batch.set(seasonRef.collection(getCollectionName("exhibition_games")).doc("placeholder"), {});
+    batch.set(seasonRef.collection(getCollectionName("exhibition_lineups")).doc("placeholder"), {});
 
     // Create empty seasonal stats/records for all players and teams
-    const playersSnap = await db.collection("v2_players").get();
+    const playersSnap = await db.collection(getCollectionName("v2_players")).get();
     playersSnap.forEach(playerDoc => {
-        const statsRef = playerDoc.ref.collection("seasonal_stats").doc(seasonId);
+        const statsRef = playerDoc.ref.collection(getCollectionName("seasonal_stats")).doc(seasonId);
         batch.set(statsRef, {
             aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
             post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
@@ -245,12 +271,12 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     });
     console.log(`Prepared empty seasonal_stats for ${playersSnap.size} players.`);
 
-    const teamsSnap = await db.collection("v2_teams").get();
+    const teamsSnap = await db.collection(getCollectionName("v2_teams")).get();
     for (const teamDoc of teamsSnap.docs) {
-        const recordRef = teamDoc.ref.collection("seasonal_records").doc(seasonId);
-        
+        const recordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(seasonId);
+
         // BUG #2 FIX: Use the passed activeSeasonId to fetch the team's most recent name, not a relative name.
-        const activeRecordRef = teamDoc.ref.collection("seasonal_records").doc(activeSeasonId);
+        const activeRecordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(activeSeasonId);
         const activeRecordSnap = await activeRecordRef.get();
         const teamName = activeRecordSnap.exists ? activeRecordSnap.data().team_name : "Name Not Found";
 
@@ -272,7 +298,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
 
     try {
         // MODIFICATION: Dynamically find the current active season instead of using a hardcoded value.
-        const activeSeasonQuery = db.collection('seasons').where('status', '==', 'active').limit(1);
+        const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
         const activeSeasonSnap = await activeSeasonQuery.get();
 
         if (activeSeasonSnap.empty) {
@@ -290,7 +316,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         console.log(`Advancing from active season ${activeSeasonId} to new season S${newSeasonNumber}.`);
 
         const batch = db.batch();
-        
+
         // BUG #2 FIX: Pass the activeSeasonId to the helper function.
         const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch, activeSeasonId);
 
@@ -305,23 +331,23 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         }, { merge: true });
 
         // MODIFICATION: Use the dynamically found activeSeasonId to set the old season to "completed".
-        const oldSeasonRef = db.doc(`seasons/${activeSeasonId}`);
+        const oldSeasonRef = db.doc(`${getCollectionName('seasons')}/${activeSeasonId}`);
         batch.update(oldSeasonRef, { status: "completed" });
 
 
-        const oldPicksQuery = db.collection("draftPicks").where("season", "==", String(newSeasonNumber));
+        const oldPicksQuery = db.collection(getCollectionName("draftPicks")).where("season", "==", String(newSeasonNumber));
         const oldPicksSnap = await oldPicksQuery.get();
         console.log(`Deleting ${oldPicksSnap.size} draft picks for season ${newSeasonNumber}.`);
         oldPicksSnap.forEach(doc => batch.delete(doc.ref));
 
-        const teamsSnap = await db.collection("v2_teams").where("conference", "in", ["Eastern", "Western"]).get();
+        const teamsSnap = await db.collection(getCollectionName("v2_teams")).where("conference", "in", ["Eastern", "Western"]).get();
         const activeTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         console.log(`Creating future draft picks for S${futureDraftSeasonNumber} for ${activeTeams.length} teams.`);
         for (const team of activeTeams) {
             for (let round = 1; round <= 3; round++) {
                 const pickId = `S${futureDraftSeasonNumber}_${team.id}_${round}`;
-                const pickRef = db.collection("draftPicks").doc(pickId);
+                const pickRef = db.collection(getCollectionName("draftPicks")).doc(pickId);
                 const pickData = {
                     pick_id: pickId,
                     pick_description: `S${futureDraftSeasonNumber} ${team.id} ${round}${round === 1 ? 'st' : round === 2 ? 'nd' : 'rd'}`,
@@ -358,13 +384,13 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
 
     // MODIFICATION: To make this function robust, it should also dynamically find the current active season
     // to prevent creating a historical season that is newer than or equal to the active one.
-    const activeSeasonQuery = db.collection('seasons').where('status', '==', 'active').limit(1);
+    const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
     const activeSeasonSnap = await activeSeasonQuery.get();
 
     if (activeSeasonSnap.empty) {
         throw new HttpsError('failed-precondition', 'Could not determine the current active season. Aborting.');
     }
-    
+
     const activeSeasonId = activeSeasonSnap.docs[0].id;
     const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10);
 
@@ -372,14 +398,14 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         throw new functions.https.HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current active season (S${activeSeasonNum}).`);
     }
 
-    const seasonDoc = await db.doc(`seasons/S${seasonNumber}`).get();
+    const seasonDoc = await db.doc(`${getCollectionName('seasons')}/S${seasonNumber}`).get();
     if (seasonDoc.exists) {
         throw new functions.https.HttpsError('already-exists', `Season S${seasonNumber} already exists in the database.`);
     }
 
     try {
         const batch = db.batch();
-        
+
         // BUG #2 FIX: Pass the activeSeasonId to the helper function.
         const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch, activeSeasonId);
 
@@ -404,14 +430,14 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
 /**
  * NEW: Efficiently increments/decrements the games scheduled (gs) count for a season.
  */
-exports.updateGamesScheduledCount = onDocumentWritten("seasons/{seasonId}/games/{gameId}", (event) => {
+exports.updateGamesScheduledCount = onDocumentWritten(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('games')}/{gameId}`, (event) => {
     const { seasonId, gameId } = event.params;
     // Ignore the placeholder document that is used to create the subcollection
     if (gameId === 'placeholder') {
         return null;
     }
 
-    const seasonRef = db.collection('seasons').doc(seasonId);
+    const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
     const beforeExists = event.data.before.exists;
     const afterExists = event.data.after.exists;
 
@@ -428,7 +454,7 @@ exports.updateGamesScheduledCount = onDocumentWritten("seasons/{seasonId}/games/
 });
 
 
-exports.processCompletedExhibitionGame = onDocumentUpdated("seasons/{seasonId}/exhibition_games/{gameId}", async (event) => {
+exports.processCompletedExhibitionGame = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('exhibition_games')}/{gameId}`, async (event) => {
     const before = event.data.before.data();
     const after = event.data.after.data();
     const { seasonId, gameId } = event.params;
@@ -457,12 +483,12 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
 
     try {
         // --- 1. Fetch and Prepare Data ---
-        const teamsRef = db.collection('v2_teams');
+        const teamsRef = db.collection(getCollectionName('v2_teams'));
         const teamsSnap = await teamsRef.get();
         const allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         const teamRecords = await Promise.all(allTeams.map(async (team) => {
-            const recordRef = db.doc(`v2_teams/${team.id}/seasonal_records/${seasonId}`);
+            const recordRef = db.doc(`${getCollectionName('v2_teams')}/${team.id}/${getCollectionName('seasonal_records')}/${seasonId}`);
             const recordSnap = await recordRef.get();
             return { ...team, ...recordSnap.data() };
         }));
@@ -475,7 +501,7 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         }
 
         const batch = db.batch();
-        const postGamesRef = db.collection(`seasons/${seasonId}/post_games`);
+        const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
 
         // --- 2. Clear Existing Postseason Schedule ---
         const existingGamesSnap = await postGamesRef.get();
@@ -571,10 +597,10 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
 
     try {
         const batch = db.batch();
-        const awardsCollectionRef = db.collection(`awards/season_${seasonNumber}/S${seasonNumber}_awards`);
+        const awardsCollectionRef = db.collection(`${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
 
         // 1. Find Best Player Performance
-        const lineupsRef = db.collection(`seasons/${seasonId}/lineups`);
+        const lineupsRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('lineups')}`);
         const bestPlayerQuery = lineupsRef.orderBy('pct_above_median', 'desc').limit(1);
         const bestPlayerSnap = await bestPlayerQuery.get();
 
@@ -592,14 +618,14 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
         }
 
         // 2. Find Best Team Performance
-        const dailyScoresRef = db.collection(`daily_scores/season_${seasonNumber}/S${seasonNumber}_daily_scores`);
+        const dailyScoresRef = db.collection(`${getCollectionName('daily_scores')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_daily_scores`)}`);
         const bestTeamQuery = dailyScoresRef.orderBy('pct_above_median', 'desc').limit(1);
         const bestTeamSnap = await bestTeamQuery.get();
 
         if (!bestTeamSnap.empty) {
             const bestTeamPerf = bestTeamSnap.docs[0].data();
             // Fetch the seasonal record to get the correct team_name
-            const teamRecordRef = db.doc(`v2_teams/${bestTeamPerf.team_id}/seasonal_records/${seasonId}`);
+            const teamRecordRef = db.doc(`${getCollectionName('v2_teams')}/${bestTeamPerf.team_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
             const teamRecordSnap = await teamRecordRef.get();
             const awardData = {
                 award_name: "Best Performance (Team)",
@@ -624,7 +650,7 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
 /**
  * REVISED: V2 Function to process a new draft pick with historical vs. current logic.
  */
-exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{resultsCollectionId}/{draftPickId}", async (event) => {
+exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_results')}/{seasonDocId}/{resultsCollectionId}/{draftPickId}`, async (event) => {
     // --- 1. Initial Setup and Validation ---
     const { seasonDocId, resultsCollectionId } = event.params;
     const pickData = event.data.data();
@@ -632,7 +658,7 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
 
     // Validate the path to ensure this function only runs on the correct documents.
     const seasonMatch = seasonDocId.match(/^season_(\d+)$/);
-    const collectionMatch = resultsCollectionId.match(/^S(\d+)_draft_results$/);
+    const collectionMatch = resultsCollectionId.match(/^S(\d+)_draft_results_dev$/) || resultsCollectionId.match(/^S(\d+)_draft_results$/);
     if (!seasonMatch || !collectionMatch || seasonMatch[1] !== collectionMatch[1]) {
         console.log(`Function triggered on a non-draft path, exiting. Path: ${seasonDocId}/${resultsCollectionId}`);
         return null;
@@ -650,10 +676,10 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
         const batch = db.batch();
 
         // --- 2. Fetch Active Season and Team Name for Bio ---
-        const activeSeasonQuery = db.collection("seasons").where("status", "==", "active").limit(1);
+        const activeSeasonQuery = db.collection(getCollectionName("seasons")).where("status", "==", "active").limit(1);
         const [activeSeasonSnap, teamRecordSnap] = await Promise.all([
             activeSeasonQuery.get(),
-            db.doc(`v2_teams/${team_id}/seasonal_records/${draftSeason}`).get()
+            db.doc(`${getCollectionName('v2_teams')}/${team_id}/${getCollectionName('seasonal_records')}/${draftSeason}`).get()
         ]);
 
         const activeSeasonId = activeSeasonSnap.empty ? null : activeSeasonSnap.docs[0].id;
@@ -688,7 +714,7 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
             console.log(`Current draft (${draftSeason}). Creating new player: ${player_handle}.`);
             const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
             const newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
-            const playerRef = db.collection('v2_players').doc(newPlayerId);
+            const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
 
             // Create the new player document with the bio
             batch.set(playerRef, {
@@ -699,13 +725,13 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
             });
 
             // Create the initial seasonal stats, marking them as a rookie
-            const seasonStatsRef = playerRef.collection('seasonal_stats').doc(draftSeason);
+            const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
             batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
 
         } else {
             // HISTORICAL DRAFT: Check if the player already exists.
             console.log(`Historical draft (${draftSeason}). Checking for existing player: ${player_handle}.`);
-            const existingPlayerQuery = db.collection('v2_players').where('player_handle', '==', player_handle).limit(1);
+            const existingPlayerQuery = db.collection(getCollectionName('v2_players')).where('player_handle', '==', player_handle).limit(1);
             const existingPlayerSnap = await existingPlayerQuery.get();
 
             if (existingPlayerSnap.empty) {
@@ -713,7 +739,7 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
                 console.log(`Player not found. Creating new player for historical draft.`);
                 const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
-                const playerRef = db.collection('v2_players').doc(newPlayerId);
+                const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
 
                 batch.set(playerRef, {
                     player_handle: player_handle,
@@ -722,18 +748,18 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
                     bio: bio
                 });
 
-                const seasonStatsRef = playerRef.collection('seasonal_stats').doc(draftSeason);
+                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
             } else {
                 // Player DOES exist, update their info.
                 console.log(`Existing player found. Updating bio only.`);
                 const playerRef = existingPlayerSnap.docs[0].ref;
-                
+
                 // BUG #1 FIX: Only update the bio. Do NOT change the current_team_id.
                 batch.update(playerRef, { bio: bio });
 
                 // Create a seasonal stats document for the historical season, but do NOT mark as rookie.
-                const seasonStatsRef = playerRef.collection('seasonal_stats').doc(draftSeason);
+                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
             }
         }
@@ -752,7 +778,7 @@ exports.onDraftResultCreate = onDocumentCreated("draft_results/{seasonDocId}/{re
  * V2 Function: Triggered when a transaction is created for the new data structure.
  * Updates player team assignments.
  */
-exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
+exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
     const transaction = event.data.data();
     if (transaction.schema !== 'v2') {
         console.log(`V2: Ignoring transaction ${event.params.transactionId} without v2 schema.`);
@@ -765,19 +791,19 @@ exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}
     try {
         if (transaction.type === 'SIGN' || transaction.type === 'CUT') {
             const playerMove = transaction.involved_players[0];
-            const playerRef = db.collection('v2_players').doc(playerMove.id);
+            const playerRef = db.collection(getCollectionName('v2_players')).doc(playerMove.id);
             const newTeamId = (transaction.type === 'SIGN') ? playerMove.to : 'FREE_AGENT';
             batch.update(playerRef, { current_team_id: newTeamId });
         } else if (transaction.type === 'TRADE') {
             if (transaction.involved_players) {
                 for (const playerMove of transaction.involved_players) {
-                    const playerRef = db.collection('v2_players').doc(playerMove.id);
+                    const playerRef = db.collection(getCollectionName('v2_players')).doc(playerMove.id);
                     batch.update(playerRef, { current_team_id: playerMove.to });
                 }
             }
             if (transaction.involved_picks) {
                 for (const pickMove of transaction.involved_picks) {
-                    const pickRef = db.collection('draftPicks').doc(pickMove.id);
+                    const pickRef = db.collection(getCollectionName('draftPicks')).doc(pickMove.id);
                     batch.update(pickRef, { current_owner: pickMove.to });
                 }
             }
@@ -795,7 +821,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated("transactions/{transactionId}
 /**
  * V2 Function: Triggered when a transaction is created to update team stats.
  */
-exports.onTransactionUpdate_V2 = onDocumentCreated("transactions/{transactionId}", async (event) => {
+exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
     const transaction = event.data.data();
     if (transaction.schema !== 'v2') {
         console.log(`V2: Ignoring transaction count update for ${event.params.transactionId} without v2 schema.`);
@@ -803,7 +829,7 @@ exports.onTransactionUpdate_V2 = onDocumentCreated("transactions/{transactionId}
     }
 
     // MODIFICATION: Dynamically find the active season instead of hardcoding "S8".
-    const activeSeasonQuery = db.collection("seasons").where("status", "==", "active").limit(1);
+    const activeSeasonQuery = db.collection(getCollectionName("seasons")).where("status", "==", "active").limit(1);
     const activeSeasonSnap = await activeSeasonQuery.get();
 
     if (activeSeasonSnap.empty) {
@@ -818,11 +844,11 @@ exports.onTransactionUpdate_V2 = onDocumentCreated("transactions/{transactionId}
     if (involvedTeams.size === 0) return null;
 
     const batch = db.batch();
-    const seasonRef = db.collection('seasons').doc(seasonId);
+    const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
 
     for (const teamId of involvedTeams) {
         // MODIFICATION: Use the dynamically found seasonId.
-        const teamStatsRef = db.collection('v2_teams').doc(teamId).collection('seasonal_records').doc(seasonId);
+        const teamStatsRef = db.collection(getCollectionName('v2_teams')).doc(teamId).collection(getCollectionName('seasonal_records')).doc(seasonId);
         batch.update(teamStatsRef, { total_transactions: FieldValue.increment(1) });
     }
 
@@ -869,7 +895,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
     const gameDate = newPlayerLineups[0].date;
 
-    const playerLineupsQuery = db.collection('seasons').doc(seasonId).collection(lineupsCollectionName)
+    const playerLineupsQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollectionName))
         .where('player_id', '==', playerId)
         .where('started', '==', 'TRUE')
         .where('date', '!=', gameDate);
@@ -880,7 +906,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     const allLineups = [...previousLineups, ...newPlayerLineups];
 
     if (allLineups.length === 0) {
-        console.log(`No lineups found for player ${playerId} in ${seasonId} (${lineupsCollectionName}). Skipping stats update.`);
+        console.log(`No lineups found for player ${playerId} in ${seasonId} (${getCollectionName(lineupsCollectionName)}). Skipping stats update.`);
         return null; // MODIFICATION: Return null if no lineups.
     }
 
@@ -922,7 +948,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     statsUpdate[`${prefix}GEM`] = GEM;
     statsUpdate[`${prefix}WAR`] = WAR;
 
-    const playerStatsRef = db.collection('v2_players').doc(playerId).collection('seasonal_stats').doc(seasonId);
+    const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(playerId).collection(getCollectionName('seasonal_stats')).doc(seasonId);
     batch.set(playerStatsRef, statsUpdate, { merge: true });
 
     return statsUpdate; // MODIFICATION: Return the new stats for karma calculation.
@@ -942,10 +968,10 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
     const lineupsCollection = isPostseason ? 'post_lineups' : 'lineups';
 
     const [teamsSnap, gamesSnap, scoresSnap, lineupsSnap] = await Promise.all([
-        db.collection('v2_teams').get(),
-        db.collection('seasons').doc(seasonId).collection(gamesCollection).where('completed', '==', 'TRUE').get(),
-        db.collection(scoresCollection).doc(`season_${seasonId.replace('S', '')}`).collection(`S${seasonId.replace('S', '')}_${scoresCollection}`).get(),
-        db.collection('seasons').doc(seasonId).collection(lineupsCollection).where('started', '==', 'TRUE').get()
+        db.collection(getCollectionName('v2_teams')).get(),
+        db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(gamesCollection)).where('completed', '==', 'TRUE').get(),
+        db.collection(getCollectionName(scoresCollection)).doc(`season_${seasonId.replace('S', '')}`).collection(getCollectionName(`S${seasonId.replace('S', '')}_${scoresCollection}`)).get(),
+        db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollection)).where('started', '==', 'TRUE').get()
     ]);
 
     const allTeamData = teamsSnap.docs
@@ -1054,7 +1080,7 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
             });
         }
 
-        const teamStatsRef = db.collection('v2_teams').doc(teamId).collection('seasonal_records').doc(seasonId);
+        const teamStatsRef = db.collection(getCollectionName('v2_teams')).doc(teamId).collection(getCollectionName('seasonal_records')).doc(seasonId);
         batch.set(teamStatsRef, finalUpdate, { merge: true });
     }
 }
@@ -1075,8 +1101,8 @@ async function processCompletedGame(event) {
     console.log(`V2: Processing completed game ${gameId} in season ${seasonId}`);
 
     const gameDate = after.date;
-    const regIncompleteQuery = db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
-    const postIncompleteQuery = db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+    const regIncompleteQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
+    const postIncompleteQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
 
     const [regIncomplete, postIncomplete] = await Promise.all([regIncompleteQuery, postIncompleteQuery]);
 
@@ -1087,7 +1113,7 @@ async function processCompletedGame(event) {
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 
     const batch = db.batch();
-    const seasonRef = db.collection('seasons').doc(seasonId);
+    const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
     const isPostseason = !/^\d+$/.test(after.week) && after.week !== "All-Star" && after.week !== "Relegation";
     const averagesColl = isPostseason ? 'post_daily_averages' : 'daily_averages';
     const scoresColl = isPostseason ? 'post_daily_scores' : 'daily_scores';
@@ -1098,7 +1124,7 @@ async function processCompletedGame(event) {
         batch.update(seasonRef, { gp: FieldValue.increment(1) });
     }
 
-    const lineupsSnap = await db.collection('seasons').doc(seasonId).collection(lineupsColl).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
+    const lineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsColl)).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
     if (lineupsSnap.empty) return null;
 
     const scores = lineupsSnap.docs.map(d => d.data().points_adjusted || 0);
@@ -1110,12 +1136,12 @@ async function processCompletedGame(event) {
     const seasonNum = seasonId.replace('S', '');
     const [month, day, year] = gameDate.split('/');
     const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    const dailyAvgRef = db.doc(`${averagesColl}/season_${seasonNum}/S${seasonNum}_${averagesColl}/${yyyymmdd}`);
+    const dailyAvgRef = db.doc(`${getCollectionName(averagesColl)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${averagesColl}`)}/${yyyymmdd}`);
     const dailyAvgDataForMap = { date: gameDate, week: after.week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win: win };
     batch.set(dailyAvgRef, dailyAvgDataForMap);
 
     const fullDailyAveragesMap = new Map();
-    const averagesSnap = await db.collection(averagesColl).doc(`season_${seasonNum}`).collection(`S${seasonNum}_${averagesColl}`).get();
+    const averagesSnap = await db.collection(getCollectionName(averagesColl)).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_${averagesColl}`)).get();
     averagesSnap.docs.forEach(doc => fullDailyAveragesMap.set(doc.data().date, doc.data()));
     fullDailyAveragesMap.set(gameDate, dailyAvgDataForMap);
 
@@ -1156,8 +1182,8 @@ async function processCompletedGame(event) {
         lineupsByPlayer.get(lineupData.player_id).push(enhancedData);
     });
 
-    const regGamesSnap = await db.collection('seasons').doc(seasonId).collection('games').where('date', '==', gameDate).get();
-    const postGamesSnap = await db.collection('seasons').doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
+    const regGamesSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).get();
+    const postGamesSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).get();
     const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
     const teamScores = allGamesForDate.flatMap(d => [d.data().team1_score, d.data().team2_score]);
     const teamMedian = calculateMedian(teamScores);
@@ -1167,7 +1193,7 @@ async function processCompletedGame(event) {
         const game = doc.data();
         const currentGameId = doc.id;
         [{ id: game.team1_id, score: game.team1_score }, { id: game.team2_id, score: game.team2_score }].forEach(team => {
-            const scoreRef = db.doc(`${scoresColl}/season_${seasonNum}/S${seasonNum}_${scoresColl}/${team.id}-${currentGameId}`);
+            const scoreRef = db.doc(`${getCollectionName(scoresColl)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${scoresColl}`)}/${team.id}-${currentGameId}`);
             const pam = team.score - teamMedian;
             const scoreData = {
                 week: game.week, team_id: team.id, date: gameDate, score: team.score,
@@ -1184,7 +1210,7 @@ async function processCompletedGame(event) {
     let totalKarmaChangeForGame = 0;
 
     for (const [pid, newPlayerLineups] of lineupsByPlayer.entries()) {
-        const playerStatsRef = db.collection('v2_players').doc(pid).collection('seasonal_stats').doc(seasonId);
+        const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(pid).collection(getCollectionName('seasonal_stats')).doc(seasonId);
 
         // MODIFICATION: Read the player's old stats BEFORE calculating the new ones.
         const oldStatsSnap = await playerStatsRef.get();
@@ -1216,8 +1242,8 @@ async function processCompletedGame(event) {
 }
 
 
-exports.onRegularGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/games/{gameId}", processCompletedGame);
-exports.onPostGameUpdate_V2 = onDocumentUpdated("seasons/{seasonId}/post_games/{gameId}", processCompletedGame);
+exports.onRegularGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('games')}/{gameId}`, processCompletedGame);
+exports.onPostGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('post_games')}/{gameId}`, processCompletedGame);
 
 
 // ===================================================================
