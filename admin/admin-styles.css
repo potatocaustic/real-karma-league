@@ -1,0 +1,659 @@
+﻿/* /admin/admin-styles.css */
+
+main {
+    max-width: 1000px;
+}
+
+#admin-container h2 {
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+#admin-container p {
+    text-align: center;
+    margin-bottom: 2rem;
+    color: #666;
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.nav-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid #ddd;
+}
+
+    .nav-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-color: #007bff;
+    }
+
+.nav-card-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #007bff;
+}
+
+.nav-card-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.nav-card-description {
+    color: #666;
+    font-size: 0.95rem;
+}
+
+/* /admin/admin-styles.css - ADDITIONS */
+
+/* Back link */
+.back-link {
+    display: block;
+    margin-bottom: 1.5rem;
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Filters */
+.filters-container {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+}
+
+    .filter-group label {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .filter-group select {
+        padding: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        min-width: 200px;
+    }
+
+/* Game List */
+#games-list-container .placeholder-text {
+    color: #888;
+    text-align: center;
+    padding: 2rem;
+}
+
+.game-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    background-color: #fff;
+}
+
+/* FIX: ADDED this rule */
+.game-details {
+    flex-grow: 1; /* Make the details container expand, pushing other elements to the right */
+}
+
+.game-teams {
+    font-size: 1.1rem;
+    /* FIX: REMOVED flex-grow from here */
+}
+
+.game-score {
+    width: 150px; /* FIX: Use a fixed width instead of min-width for perfect alignment */
+    text-align: center;
+    font-weight: bold;
+    color: #555;
+}
+
+/* Admin Buttons */
+.btn-admin-edit, .btn-admin-save, .btn-admin-delete {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-admin-edit {
+    background-color: #007bff;
+    color: white;
+}
+
+    .btn-admin-edit:hover {
+        background-color: #0056b3;
+    }
+
+.btn-admin-save {
+    background-color: #28a745;
+    color: white;
+    width: 100%;
+    margin-top: 1rem;
+}
+
+    .btn-admin-save:hover {
+        background-color: #218838;
+    }
+
+.btn-admin-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+    .btn-admin-delete:hover {
+        background-color: #c82333;
+    }
+
+
+/* MODAL STYLING FIX */
+.modal-admin {
+    display: none; /* Hidden by default */
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    /* Use flexbox for centering */
+    align-items: center;
+    justify-content: center;
+    padding: 1rem; /* Provides spacing on smaller viewports */
+}
+
+    .modal-admin.is-visible {
+        display: flex;
+    }
+
+.modal-content-admin {
+    background-color: #fefefe;
+    margin: 0; /* Let flexbox handle positioning */
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    /* Handle content overflow */
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.close-btn-admin {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.modal-content-admin h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.form-group-admin {
+    margin-bottom: 1rem;
+}
+
+    .form-group-admin label {
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-group-admin input[type="number"],
+    .form-group-admin input[type="text"],
+    .form-group-admin input[type="date"],
+    .form-group-admin select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* /admin/admin-styles.css - ADDITIONS */
+
+/* Search Container */
+.search-container {
+    margin-bottom: 2rem;
+}
+
+#player-search-input {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+/* Player List */
+.player-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    background-color: #fff;
+}
+
+.player-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.player-handle {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.player-sub-details {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* Player Modal Form */
+.read-only-field {
+    padding: 0.75rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+    .checkbox-group input {
+        margin-right: 0.5rem;
+    }
+
+/* /admin/admin-styles.css - ADDITIONS */
+
+/* Transaction Form */
+.form-container-admin {
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.transaction-section {
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+    .transaction-section h4 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.5rem;
+    }
+
+.trade-party-block {
+    padding: 1rem;
+    border: 1px dashed #ccc;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.assets-container {
+    margin-top: 1rem;
+    padding-left: 1rem;
+    border-left: 3px solid #f0f0f0;
+}
+
+.asset-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.asset-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+    .asset-item span {
+        font-weight: 500;
+    }
+
+.btn-admin-secondary {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-admin-add-asset {
+    background-color: #17a2b8;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-admin-remove-asset {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    cursor: pointer;
+}
+
+/* /admin/admin-styles.css - ADDITIONS */
+
+/* Team List */
+.team-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    background-color: #fff;
+}
+
+.team-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.team-name {
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.team-sub-details {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* --- NEW: Draft Management Styles --- */
+.draft-table-container {
+    overflow-x: auto; /* Allows horizontal scrolling on small screens */
+}
+
+.draft-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+
+    .draft-table th, .draft-table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .draft-table th {
+        background-color: #f2f2f2;
+    }
+
+    .draft-table tr:nth-child(even) {
+        background-color: #f9f9f9;
+    }
+
+    /* Make inputs and selects in the table take up full cell width */
+    .draft-table input[type="text"],
+    .draft-table select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .draft-table input[type="checkbox"] {
+        width: 20px;
+        height: 20px;
+    }
+
+    /* Read-only cells for overall and round numbers */
+    .draft-table td.read-only {
+        font-weight: bold;
+        background-color: #e9ecef;
+        text-align: center;
+    }
+
+    /* Style for forfeited rows */
+    .draft-table tr.is-forfeited {
+        background-color: #f8d7da; /* Light red */
+        text-decoration: line-through;
+        color: #721c24; /* Dark red text */
+    }
+
+        /* FIX: Use a more specific selector to avoid disabling the checkbox itself */
+        .draft-table tr.is-forfeited input:not([type="checkbox"]),
+        .draft-table tr.is-forfeited select {
+            background-color: #f1b0b7;
+            pointer-events: none; /* Disable inputs on forfeited rows */
+        }
+
+/* --- NEW: Awards Management Styles --- */
+.awards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.awards-section {
+    background-color: #fff;
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+    .awards-section h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+.team-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.player-list-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.auto-award-display {
+    background-color: #f0f2f5;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+    .auto-award-display p {
+        margin: 0.5rem 0;
+        font-size: 1rem;
+    }
+
+    .auto-award-display strong {
+        color: #0056b3;
+    }
+
+
+/* --- NEW: Power Rankings Styles --- */
+.power-rankings-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1.5rem;
+}
+
+    .power-rankings-table th, .power-rankings-table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .power-rankings-table th {
+        background-color: #f2f2f2;
+    }
+
+    .power-rankings-table td:first-child {
+        text-align: left;
+        font-weight: bold;
+    }
+
+    .power-rankings-table .rank-select {
+        width: 80px;
+        padding: 0.5rem;
+    }
+
+    .power-rankings-table .rank-change.positive {
+        color: #28a745;
+        font-weight: bold;
+    }
+
+    .power-rankings-table .rank-change.negative {
+        color: #dc3545;
+        font-weight: bold;
+    }
+
+    .power-rankings-table tr.has-duplicate .rank-select {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+    }
+
+.validation-message {
+    margin-top: 1rem;
+    color: #dc3545;
+    font-weight: bold;
+    text-align: right;
+}
+
+/* --- Schedule Manager Styles --- */
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+
+.schedule-section {
+    background-color: #fff;
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+}
+
+    .schedule-section h3 {
+        margin-top: 0;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .schedule-table th, .schedule-table td {
+        border: 1px solid #ddd;
+        padding: 0.75rem;
+        text-align: left;
+    }
+
+.postseason-dates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+/* Collapsible week styles */
+.week-details, .round-details {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.week-summary, .round-summary {
+    font-weight: bold;
+    padding: 0.75rem;
+    cursor: pointer;
+    background-color: #f8f9fa;
+    list-style: none; /* Hide the default marker */
+}
+
+    .week-summary::-webkit-details-marker, .round-summary::-webkit-details-marker {
+        display: none; /* Hide the default marker for Chrome/Safari */
+    }
+
+
+    .week-summary:hover, .round-summary:hover {
+        background-color: #e9ecef;
+    }
+
+.week-details[open] .week-summary,
+.round-details[open] .round-summary {
+    border-bottom: 1px solid #ddd;
+}
+
+.round-date-inputs {
+    padding: 1rem;
+}

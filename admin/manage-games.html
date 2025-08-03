@@ -1,0 +1,229 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Games & Scores - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        /* --- MODAL CENTERING & SCROLLING FIX --- */
+        /* Base state of the modal is hidden. We use flexbox for centering. */
+        .modal-admin {
+            display: none; /* Hidden by default */
+            align-items: center; /* Vertical center */
+            justify-content: center; /* Horizontal center */
+            padding: 1rem; /* Give space on smaller screens */
+        }
+            /* When modal is active, we change its display property to flex */
+            .modal-admin.is-visible {
+                display: flex;
+            }
+
+        .lineup-modal .modal-content-admin {
+            max-width: 1200px; /* Wider modal for lineup details */
+            width: 95%;
+            margin: 0; /* Reset margin, flexbox now handles centering */
+            max-height: 90vh; /* Limit height to 90% of the viewport height */
+            overflow-y: auto; /* Add a scrollbar if the content overflows this height */
+        }
+        /* --- END FIX --- */
+
+        .lineup-entry-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        .team-lineup-section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1rem;
+            background-color: #fdfdfd;
+        }
+
+            .team-lineup-section h4 {
+                text-align: center;
+                background-color: #f0f2f5;
+                padding: 0.5rem;
+                margin: -1rem -1rem 1rem -1rem;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                border-bottom: 1px solid #ddd;
+            }
+
+        .roster-selection h5, .starters-entry h5 {
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .roster-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .player-checkbox-item {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .starters-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .starter-card {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 0.75rem;
+        }
+
+        .starter-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+            .starter-card-header strong {
+                font-size: 1.05rem;
+            }
+
+        .starter-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.5rem;
+        }
+
+            .starter-inputs .form-group-admin {
+                margin-bottom: 0;
+            }
+
+            .starter-inputs label {
+                font-size: 0.8rem;
+                margin-bottom: 0.2rem;
+            }
+
+            .starter-inputs input[type="number"] {
+                padding: 0.5rem;
+                width: 100%;
+            }
+
+        .team-score-summary {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background-color: #e9f5ff;
+            color: #0056b3;
+            border: 1px solid #b3d7ff;
+            border-radius: 6px;
+        }
+
+        .validation-error {
+            border-color: #dc3545 !important;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Manage Games & Scores</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select">Season:</label>
+                <select id="season-select"><option>Loading...</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="week-select">Week:</label>
+                <select id="week-select"><option>Select a season...</option></select>
+            </div>
+        </div>
+
+        <div id="games-list-container">
+            <p class="placeholder-text">Please select a season and week to view games.</p>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <div id="lineup-modal" class="modal-admin lineup-modal">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="lineup-modal-title">Enter Lineups & Scores</h3>
+            <form id="lineup-form">
+                <input type="hidden" id="lineup-game-id">
+                <input type="hidden" id="lineup-game-date">
+                <input type="hidden" id="lineup-is-postseason">
+
+                <div class="lineup-entry-container">
+                    <div id="team1-section" class="team-lineup-section">
+                        <h4 id="team1-name-header">Team 1</h4>
+                        <div class="roster-selection">
+                            <h5>Select 6 Starters</h5>
+                            <div id="team1-roster" class="roster-list"></div>
+                        </div>
+                        <div class="starters-entry">
+                            <h5>Enter Starter Scores (<span id="team1-starter-count">0</span>/6)</h5>
+                            <div id="team1-starters" class="starters-list"></div>
+                        </div>
+                        <div class="team-score-summary">
+                            Final Score: <span id="team1-final-score">0</span>
+                        </div>
+                    </div>
+
+                    <div id="team2-section" class="team-lineup-section">
+                        <h4 id="team2-name-header">Team 2</h4>
+                        <div class="roster-selection">
+                            <h5>Select 6 Starters</h5>
+                            <div id="team2-roster" class="roster-list"></div>
+                        </div>
+                        <div class="starters-entry">
+                            <h5>Enter Starter Scores (<span id="team2-starter-count">0</span>/6)</h5>
+                            <div id="team2-starters" class="starters-list"></div>
+                        </div>
+                        <div class="team-score-summary">
+                            Final Score: <span id="team2-final-score">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group-admin" style="margin-top: 1.5rem;">
+                    <input type="checkbox" id="lineup-game-completed-checkbox">
+                    <label for="lineup-game-completed-checkbox">Mark Game as Completed</label>
+                </div>
+
+                <button type="submit" class="btn-admin-save">Save Lineups & Final Score</button>
+
+                <div id="live-scoring-controls" style="display: none; margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem;">
+                    <p style="text-align: center; margin-bottom: 1rem; color: #0056b3; font-weight: bold;">Live Scoring Actions</p>
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit" style="background-color: #17a2b8; flex-grow: 1;">Submit Lineups for Live Scoring</button>
+                        <button type="button" id="finalize-live-game-btn" class="btn-admin-delete" style="flex-grow: 1;">Finalize Live Game Now</button>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-games.js"></script>
+</body>
+</html>

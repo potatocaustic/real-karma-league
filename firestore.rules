@@ -3,97 +3,159 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
-    // These functions make the rules easier to read and maintain.
-
-    // Checks if the currently signed-in user is an admin.
+    // --- PRODUCTION HELPER FUNCTION ---
     function isAdmin() {
-      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
-    }
-
-    // Checks if the signed-in user is the GM of a specific team.
-    function isTeamGM(teamId) {
-      // Gets the team document and compares its gm_uid field to the user's ID.
-      return request.auth.uid == get(/databases/$(database)/documents/teams/$(teamId)).data.gm_uid;
-    }
-
-    // --- Collection Rules ---
-
-    // TRADEBLOCKS: This is the most important collection for user edits.
-    match /tradeblocks/{teamId} {
-      // Anyone can read any trade block.
-      allow read: if true;
-      // A user can write (create, update, delete) to a trade block
-      // if they are an admin OR they are the GM of that specific team.
-      allow write: if isAdmin() || isTeamGM(teamId);
-    }
-
-    // SETTINGS: Controls the trade deadline status.
-    match /settings/{settingId} {
-      // Anyone can read the settings (to see if the deadline has passed).
-      allow read: if true;
-      // Only admins can change the settings.
-      allow write: if isAdmin();
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    // ADMINS: Stores who is an admin.
-    match /admins/{userId} {
-      // CORRECTED (Alternative): Allow any authenticated user to 'get' a 
-      // document from the admins collection. This is needed for the login flow 
-      // to check a user's admin status without causing a permission error.
-      allow get: if request.auth != null;
-
-      // We explicitly deny 'list' to prevent non-admins from seeing the 
-      // full list of admins.
-      allow list: if false;
-      
-      // No one can write to the admin list from the website.
-      allow write: if false;
+    // --- DEVELOPMENT HELPER FUNCTION ---
+    function isAdminDev() {
+      return get(/databases/$(database)/documents/users_dev/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // PUBLIC READ-ONLY DATA
-    // The following collections contain data that is displayed publicly on the site.
-    // We allow anyone to read this data, but no one can write to it from the client.
-    // All writes are handled by your secure sync function.
-    match /players/{doc=**} {
+    // =======================================================
+    // V2 PRODUCTION RULES
+    // =======================================================
+
+    match /v2_players/{playerId}/{documents=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /v2_teams/{teamId}/{documents=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /seasons/{seasonId}/{documents=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /live_games/{gameId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    match /transactions/{transactionId} {
+        allow read, write: if isAdmin();
+    }
+    match /draft_results/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    match /awards/{doc=**} {
+        allow read, write: if isAdmin();
+    }
+    match /power_rankings/{doc=**} {
+        allow read, write: if isAdmin();
+    }
+    match /lottery_results/{doc=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    match /users/{userId} {
+        allow read: if request.auth.uid == userId || isAdmin();
+        allow write: if isAdmin();
+    }
+
+    // =======================================================
+    // V2 DEVELOPMENT RULES (_dev)
+    // =======================================================
+
+    match /v2_players_dev/{playerId}/{documents=**} {
+      allow read: if true;
+      allow write: if isAdminDev();
+    }
+    match /v2_teams_dev/{teamId}/{documents=**} {
+      allow read: if true;
+      allow write: if isAdminDev();
+    }
+    match /seasons_dev/{seasonId}/{documents=**} {
+      allow read: if true;
+      allow write: if isAdminDev();
+    }
+    match /live_games_dev/{gameId} {
+        allow read: if true;
+        allow write: if isAdminDev();
+    }
+    match /transactions_dev/{transactionId} {
+        allow read, write: if isAdminDev();
+    }
+    match /draft_results_dev/{doc=**} {
+      allow read, write: if isAdminDev();
+    }
+    match /awards_dev/{doc=**} {
+        allow read, write: if isAdminDev();
+    }
+    match /power_rankings_dev/{doc=**} {
+        allow read, write: if isAdminDev();
+    }
+    match /lottery_results_dev/{doc=**} {
+        allow read: if true;
+        allow write: if isAdminDev();
+    }
+    match /users_dev/{userId} {
+        allow read: if request.auth.uid == userId || isAdminDev();
+        allow write: if isAdminDev();
+    }
+    
+    // =======================================================
+    // ADMIN-ONLY & LEGACY RULES (Unchanged)
+    // =======================================================
+
+    // == Rules for NEW Statistics Collections (Admin-Only) ==
+    match /daily_averages/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    match /post_daily_averages/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    match /daily_scores/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+    match /post_daily_scores/{doc=**} {
+      allow read, write: if isAdmin();
+    }
+
+    // == Rules for Live S7 Site (Public Read, Admin Write) ==
+    match /admins/{doc} {
+      allow read, write: if false;
+    }
+    match /players/{doc} { allow read: if true;
+      allow write: if false; }
+    match /teams/{doc} { allow read: if true; allow write: if false;
+    }
+    match /schedule/{doc} {
       allow read: if true;
       allow write: if false;
     }
-    match /teams/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /post_schedule/{doc} { allow read: if true; allow write: if false;
     }
-    match /draftPicks/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /weekly_averages/{doc} { allow read: if true; allow write: if false;
     }
-    match /schedule/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /transaction_log/{doc} { allow read: if true; allow write: if false;
     }
-    match /post_schedule/{doc=**} {
+
+    // Legacy Lineups (to be replaced by seasons/{seasonId}/lineups)
+    match /lineups/{doc} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin();
     }
-    match /lineups/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /post_lineups/{doc} {
+        allow read: if true;
+        allow write: if isAdmin();
     }
-    match /post_lineups/{doc=**} {
+     match /draftPicks/{doc} {
       allow read: if true;
-      allow write: if false;
+      allow write: if isAdmin(); // Admins can now edit picks
     }
-    match /weekly_averages/{doc=**} {
+    match /tradeblocks/{doc} {
       allow read: if true;
-      allow write: if false;
+      allow write: if request.auth.uid == resource.data.gm_uid || isAdmin();
     }
-    match /post_weekly_averages/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+
+    // These 'new_' collections will eventually be deprecated.
+    match /new_players/{doc=**} {
+      allow read, write: if isAdmin();
     }
-    match /transaction_log/{doc=**} {
-      allow read: if true;
-      allow write: if false;
+    match /new_teams/{doc=**} {
+      allow read, write: if isAdmin();
     }
   }
 }

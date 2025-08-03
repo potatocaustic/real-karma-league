@@ -1,0 +1,134 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Awards - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Manage Seasonal Awards</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select">Select Season:</label>
+                <select id="season-select">
+                    <!-- Seasons will be populated by JS -->
+                </select>
+            </div>
+        </div>
+
+        <form id="awards-form">
+            <!-- Datalist for player suggestions -->
+            <datalist id="player-datalist"></datalist>
+            <!-- NEW: Datalist for GM suggestions -->
+            <datalist id="gm-datalist"></datalist>
+
+            <div class="awards-grid">
+                <!-- Manual Awards Section -->
+                <div class="awards-section">
+                    <h3>Individual & Team Awards</h3>
+                    <div class="form-group-admin">
+                        <label for="award-league-champion">League Champion (Team)</label>
+                        <select id="award-league-champion" class="team-select"></select>
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="award-finals-mvp">Finals MVP</label>
+                        <input type="text" id="award-finals-mvp" list="player-datalist" autocomplete="off">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="award-regular-season-title">Regular Season Title (Team)</label>
+                        <select id="award-regular-season-title" class="team-select"></select>
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="award-gm-of-the-year">GM of the Year</label>
+                        <input type="text" id="award-gm-of-the-year" list="gm-datalist" autocomplete="off">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="award-rookie-of-the-year">Rookie of the Year</label>
+                        <input type="text" id="award-rookie-of-the-year" list="player-datalist" autocomplete="off">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="award-sixth-man">Sixth Man of the Year</label>
+                        <input type="text" id="award-sixth-man" list="player-datalist" autocomplete="off">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="award-most-improved">Most Improved Player</label>
+                        <input type="text" id="award-most-improved" list="player-datalist" autocomplete="off">
+                    </div>
+                    <div class="form-group-admin">
+                        <label for="award-lvp">League LVP</label>
+                        <input type="text" id="award-lvp" list="player-datalist" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Auto-Calculated Awards -->
+                <div class="awards-section">
+                    <h3>Calculated Awards</h3>
+                    <p>These awards are calculated automatically by a server process.</p>
+                    <div id="auto-awards-display">
+                        <div class="auto-award-display">
+                            <h4>Best Performance (Player)</h4>
+                            <p id="best-player-performance-display">Not yet calculated.</p>
+                        </div>
+                        <div class="auto-award-display">
+                            <h4>Best Performance (Team)</h4>
+                            <p id="best-team-performance-display">Not yet calculated.</p>
+                        </div>
+                    </div>
+                    <button type="button" id="calculate-awards-btn" class="btn-admin-secondary" style="width: 100%; margin-top: 1rem;">Run Performance Calculation</button>
+                </div>
+
+                <!-- All-Stars Section -->
+                <div class="awards-section">
+                    <h3>All-Star Selections</h3>
+                    <div class="team-selection-grid">
+                        <div>
+                            <h4>Eastern Conference</h4>
+                            <div id="all-stars-eastern" class="player-list-input-group"></div>
+                        </div>
+                        <div>
+                            <h4>Western Conference</h4>
+                            <div id="all-stars-western" class="player-list-input-group"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rising Stars Section -->
+                <div class="awards-section">
+                    <h3>Rising Stars Selections</h3>
+                    <div class="team-selection-grid">
+                        <div>
+                            <h4>Eastern Conference</h4>
+                            <div id="rising-stars-eastern" class="player-list-input-group"></div>
+                        </div>
+                        <div>
+                            <h4>Western Conference</h4>
+                            <div id="rising-stars-western" class="player-list-input-group"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 2rem;">
+                <button type="submit" class="btn-admin-save">Save All Manual Awards</button>
+            </div>
+        </form>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Firebase -->
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-awards.js"></script>
+</body>
+</html>
