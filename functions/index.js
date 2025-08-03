@@ -13,34 +13,28 @@ const db = admin.firestore();
 // V2 FUNCTIONS
 // ===================================================================
 
-/**
- * NEW: Securely fetches live karma data for a given user ID.
- * This acts as a proxy to avoid exposing the real.vg API directly to the public.
- */
 exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
-    // While the firestore.rules allow public read, this function still requires
-    // some form of authentication (e.g., anonymous) to be called, adding a layer of security.
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
-    const userId = request.data.userId;
-    if (!userId) {
-        throw new HttpsError('invalid-argument', 'The function must be called with a "userId" argument.');
+    // FIX: Expect playerHandle instead of userId
+    const playerHandle = request.data.playerHandle;
+    if (!playerHandle) {
+        throw new HttpsError('invalid-argument', 'The function must be called with a "playerHandle" argument.');
     }
 
-    const apiUrl = `https://api.real.vg/user/${userId}/karmafeed`;
+    // FIX: Use the playerHandle to construct the API URL
+    const apiUrl = `https://api.real.vg/user/${playerHandle}/karmafeed`;
 
     try {
         const response = await fetch(apiUrl);
         if (!response.ok) {
-            console.error(`Failed to fetch karma for ${userId}. Status: ${response.status}`);
-            // Return a default object on failure so the frontend doesn't break.
+            console.error(`Failed to fetch karma for ${playerHandle}. Status: ${response.status}`);
             return { karmaDelta: 0, karmaDayRank: -1 };
         }
         const data = await response.json();
 
-        // Safely parse the values, providing defaults if they are missing.
         const karmaDelta = parseFloat(data?.stats?.karmaDelta || 0);
         const karmaDayRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
 
@@ -50,20 +44,16 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
         };
 
     } catch (error) {
-        console.error(`Exception while fetching karma for ${userId}:`, error);
+        console.error(`Exception while fetching karma for ${playerHandle}:`, error);
         throw new HttpsError('internal', 'Failed to fetch live score data.');
     }
 });
 
 
-/**
- * NEW: Callable function for an admin to activate a game for live scoring.
- */
 exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
-    // You could add an extra check here to ensure the caller is an admin
 
     const { gameId, seasonId, collectionName, team1_lineup, team2_lineup } = request.data;
     if (!gameId || !seasonId || !collectionName || !team1_lineup || !team2_lineup) {
@@ -86,10 +76,6 @@ exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => 
     }
 });
 
-/**
- * NEW: Callable function for an admin to manually finalize a live game.
- * This contains the core logic that will also be used by the nightly scheduled function.
- */
 exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -114,7 +100,6 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
 
     } catch (error) {
         console.error(`Error finalizing game ${gameId}:`, error);
-        // Ensure HttpsError is thrown so client gets a meaningful message
         if (error instanceof HttpsError) {
             throw error;
         }
@@ -123,10 +108,6 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
 });
 
 
-/**
- * NEW: Helper containing the core logic to finalize a game. Reusable for manual and scheduled triggers.
- * @param {FirebaseFirestore.DocumentSnapshot} liveGameSnap - The snapshot of the document from the live_games collection.
- */
 async function processAndFinalizeGame(liveGameSnap) {
     const gameId = liveGameSnap.id;
     const liveGameData = liveGameSnap.data();
@@ -138,10 +119,10 @@ async function processAndFinalizeGame(liveGameSnap) {
 
     const batch = db.batch();
 
-    // 1. Fetch final karma for all players in the game
     const finalScoresMap = new Map();
     for (const player of allPlayersInGame) {
-        const apiUrl = `https://api.real.vg/user/${player.user_id}/karmafeed`;
+        // FIX: Use player_handle for the API call
+        const apiUrl = `https://api.real.vg/user/${player.player_handle}/karmafeed`;
         try {
             const response = await fetch(apiUrl);
             const data = await response.json();
@@ -150,12 +131,11 @@ async function processAndFinalizeGame(liveGameSnap) {
                 global_rank: parseInt(data?.stats?.karmaDayRank || -1, 10)
             });
         } catch (e) {
-            console.error(`Failed to fetch final karma for ${player.user_id}, using 0.`);
+            console.error(`Failed to fetch final karma for ${player.player_handle}, using 0.`);
             finalScoresMap.set(player.player_id, { raw_score: 0, global_rank: 0 });
         }
     }
 
-    // 2. Prepare lineup documents and calculate team totals
     const gameRef = db.doc(`seasons/${seasonId}/${collectionName}/${gameId}`);
     const gameSnap = await gameRef.get();
     const gameData = gameSnap.data();
@@ -175,14 +155,12 @@ async function processAndFinalizeGame(liveGameSnap) {
             final_score *= 1.5;
         }
 
-        // Add to team total
         if (team1_lineup.some(p => p.player_id === player.player_id)) {
             team1FinalScore += final_score;
         } else {
             team2FinalScore += final_score;
         }
 
-        // Create lineup document data
         const playerInfo = allPlayersMap.get(player.player_id);
         const lineupId = `${gameId}-${player.player_id}`;
         const lineupDocRef = lineupsCollectionRef.doc(lineupId);
@@ -190,7 +168,7 @@ async function processAndFinalizeGame(liveGameSnap) {
         const lineupData = {
             player_id: player.player_id,
             player_handle: playerInfo?.player_handle || 'Unknown',
-            team_id: gameData.team1_id, // This will be corrected in the loop
+            team_id: gameData.team1_id,
             game_id: gameId,
             date: gameData.date,
             game_type: collectionName === 'post_games' ? 'postseason' : 'regular',
@@ -212,7 +190,6 @@ async function processAndFinalizeGame(liveGameSnap) {
         batch.set(lineupDocRef, lineupData, { merge: true });
     }
 
-    // 3. Update the main game document
     batch.update(gameRef, {
         team1_score: team1FinalScore,
         team2_score: team2FinalScore,
@@ -220,10 +197,8 @@ async function processAndFinalizeGame(liveGameSnap) {
         winner: team1FinalScore > team2FinalScore ? gameData.team1_id : (team2FinalScore > team1FinalScore ? gameData.team2_id : '')
     });
 
-    // 4. Delete the document from live_games
     batch.delete(liveGameSnap.ref);
 
-    // 5. Commit all changes
     await batch.commit();
 }
 

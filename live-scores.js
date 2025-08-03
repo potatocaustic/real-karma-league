@@ -1,6 +1,6 @@
 // live-scores.js
 
-import { db, functions, onAuthStateChanged, collection, onSnapshot, httpsCallable } from '/js/firebase-init.js';
+import { db, functions, auth, onAuthStateChanged, collection, onSnapshot, httpsCallable, doc, getDoc } from '/js/firebase-init.js';
 
 const liveGamesContainer = document.getElementById('live-games-container');
 const loadingIndicator = document.getElementById('loading-indicator');
@@ -92,7 +92,8 @@ async function updateScores(gameId) {
     if (!game) return;
 
     const allPlayers = [...game.team1_lineup, ...game.team2_lineup];
-    const scorePromises = allPlayers.map(player => getLiveKarma({ userId: player.user_id }));
+    // FIX: Pass the player_handle to the backend function
+    const scorePromises = allPlayers.map(player => getLiveKarma({ playerHandle: player.player_handle }));
 
     try {
         const scoreResults = await Promise.all(scorePromises);
@@ -140,10 +141,11 @@ async function updateScores(gameId) {
         document.getElementById(`${gameId}-team1-roster`).innerHTML = team1RosterHtml.join('');
         document.getElementById(`${gameId}-team2-roster`).innerHTML = team2RosterHtml.join('');
 
-        // Fetch and display team names (can be optimized by caching)
-        // This is a simplified fetch for demonstration.
-        const team1Doc = await db.collection('v2_teams').doc(game.team1_lineup[0].team_id).collection('seasonal_records').doc(game.seasonId).get();
-        const team2Doc = await db.collection('v2_teams').doc(game.team2_lineup[0].team_id).collection('seasonal_records').doc(game.seasonId).get();
+        const team1DocRef = doc(db, `v2_teams/${game.team1_lineup[0].team_id}/seasonal_records/${game.seasonId}`);
+        const team2DocRef = doc(db, `v2_teams/${game.team2_lineup[0].team_id}/seasonal_records/${game.seasonId}`);
+
+        const [team1Doc, team2Doc] = await Promise.all([getDoc(team1DocRef), getDoc(team2DocRef)]);
+
         const team1Name = team1Doc.data()?.team_name || "Team 1";
         const team2Name = team2Doc.data()?.team_name || "Team 2";
 

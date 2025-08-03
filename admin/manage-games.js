@@ -56,21 +56,8 @@ async function initializePage() {
     try {
         // Cache player data, which is not season-dependent
         const playersSnap = await getDocs(collection(db, "v2_players"));
-        // NEW: Fetch user data to map player_handle to userId for live scoring
-        const usersSnap = await getDocs(collection(db, "users"));
-        const userMap = new Map();
-        usersSnap.forEach(d => {
-            const data = d.data();
-            if (data.player_handle) { // Ensure player_handle exists before setting
-                userMap.set(data.player_handle, d.id);
-            }
-        });
-
-
         playersSnap.docs.forEach(doc => {
-            const playerData = { id: doc.id, ...doc.data() };
-            playerData.userId = userMap.get(playerData.player_handle) || null; // Add userId to player object
-            allPlayers.set(doc.id, playerData);
+            allPlayers.set(doc.id, { id: doc.id, ...doc.data() });
         });
 
     } catch (error) {
@@ -101,7 +88,6 @@ async function initializePage() {
     document.getElementById('team1-starters').addEventListener('click', handleCaptainToggle);
     document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
 
-    // FIX: Use event delegation for the live scoring buttons. This is more robust.
     if (liveScoringControls) {
         liveScoringControls.addEventListener('click', (e) => {
             if (e.target.id === 'submit-live-lineups-btn') {
@@ -290,7 +276,6 @@ async function openLineupModal(game) {
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
     document.querySelectorAll('.team-lineup-section').forEach(el => el.classList.remove('validation-error'));
 
-    // FIX: Add null check for liveScoringControls to prevent crash if HTML is missing
     if (liveScoringControls) {
         const today = new Date();
         const gameDateParts = game.date.split('/');
@@ -326,9 +311,9 @@ async function openLineupModal(game) {
             const lineupData = d.data();
             if (playerIdsInGame.has(lineupData.player_id)) {
                 if (lineupData.team_id === game.team1_id) {
-                    team1PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle, userId: allPlayers.get(lineupData.player_id)?.userId });
+                    team1PlayersForGame.push(allPlayers.get(lineupData.player_id));
                 } else if (lineupData.team_id === game.team2_id) {
-                    team2PlayersForGame.push({ id: lineupData.player_id, player_handle: lineupData.player_handle, userId: allPlayers.get(lineupData.player_id)?.userId });
+                    team2PlayersForGame.push(allPlayers.get(lineupData.player_id));
                 }
                 existingLineups.set(lineupData.player_id, lineupData);
             }
@@ -359,10 +344,9 @@ function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
     roster.forEach(player => {
         const lineupData = existingLineups.get(player.id);
         const isStarter = lineupData?.started === 'TRUE';
-        // NEW: Include userId in the data attribute
         const playerHtml = `
             <label class="player-checkbox-item">
-                <input type="checkbox" class="starter-checkbox" data-team-prefix="${teamPrefix}" data-player-id="${player.id}" data-player-handle="${player.player_handle}" data-user-id="${player.userId || ''}" ${isStarter ? 'checked' : ''}>
+                <input type="checkbox" class="starter-checkbox" data-team-prefix="${teamPrefix}" data-player-id="${player.id}" data-player-handle="${player.player_handle}" ${isStarter ? 'checked' : ''}>
                 ${player.player_handle}
             </label>
         `;
@@ -396,7 +380,7 @@ function handleStarterChange(event) {
 }
 
 function addStarterCard(checkbox, lineupData = null) {
-    const { teamPrefix, playerId, playerHandle, userId } = checkbox.dataset; // NEW: get userId
+    const { teamPrefix, playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`${teamPrefix}-starters`);
     const rawScore = lineupData?.raw_score ?? 0;
     const isCaptain = lineupData?.is_captain === 'TRUE';
@@ -404,8 +388,6 @@ function addStarterCard(checkbox, lineupData = null) {
     const card = document.createElement('div');
     card.className = 'starter-card';
     card.id = `starter-card-${playerId}`;
-    // NEW: Add userId as a data attribute to the card
-    card.dataset.userId = userId;
     card.innerHTML = `
         <div class="starter-card-header">
             <strong>${playerHandle}</strong>
@@ -495,7 +477,6 @@ async function handleLineupFormSubmit(e) {
         const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (collectionName === 'post_games' ? 'post_lineups' : 'lineups');
         const lineupsCollectionRef = collection(db, "seasons", currentSeasonId, lineupsCollectionName);
 
-        // NEW LOGIC: If a game is live, this button should only update deductions.
         const liveGameRef = doc(db, 'live_games', gameId);
         const liveGameSnap = await getDoc(liveGameRef);
         if (liveGameSnap.exists()) {
@@ -514,10 +495,9 @@ async function handleLineupFormSubmit(e) {
             await setDoc(liveGameRef, liveGameData);
             alert('Deductions for live game updated successfully!');
             lineupModal.classList.remove('is-visible');
-            return; // End execution here
+            return;
         }
 
-        // --- Existing logic for manual score entry ---
         const team1Roster = getRosterForTeam(team1_id, week);
         const team2Roster = getRosterForTeam(team2_id, week);
         const playersInGame = [...team1Roster, ...team2Roster];
@@ -588,15 +568,16 @@ async function handleSubmitForLiveScoring(e) {
     button.disabled = true;
     button.textContent = 'Submitting...';
 
-    // Validation
-    let isValid = true;
+    // Validation: Check for 6 starters
+    let isLineupValid = true;
     ['team1', 'team2'].forEach(prefix => {
-        const starterCount = document.querySelectorAll(`#${prefix}-starters .starter-card`).length;
-        if (starterCount !== 6) isValid = false;
+        if (document.querySelectorAll(`#${prefix}-starters .starter-card`).length !== 6) {
+            isLineupValid = false;
+        }
     });
 
-    if (!isValid) {
-        alert("Validation failed. Each team must have exactly 6 starters selected to begin live scoring.");
+    if (!isLineupValid) {
+        alert("Validation failed. Each team must have exactly 6 starters selected.");
         button.disabled = false;
         button.textContent = 'Submit Lineups for Live Scoring';
         return;
@@ -611,20 +592,18 @@ async function handleSubmitForLiveScoring(e) {
         document.querySelectorAll(`#${prefix}-starters .starter-card`).forEach(card => {
             const playerId = card.id.replace('starter-card-', '');
             const player = allPlayers.get(playerId);
-            if (!player.userId) {
-                console.warn(`Player ${player.player_handle} is missing a Firebase Auth UID and cannot be scored live.`);
-                return; // Skip players without a userId
-            }
             const lineupPlayer = {
                 player_id: playerId,
-                player_handle: player.player_handle, // Send handle for display
+                player_handle: player.player_handle,
                 team_id: (prefix === 'team1') ? team1_id : team2_id,
-                user_id: player.userId,
                 is_captain: playerId === captainId,
                 deductions: parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0
             };
-            if (prefix === 'team1') team1_lineup.push(lineupPlayer);
-            else team2_lineup.push(lineupPlayer);
+            if (prefix === 'team1') {
+                team1_lineup.push(lineupPlayer);
+            } else {
+                team2_lineup.push(lineupPlayer);
+            }
         });
     });
 
