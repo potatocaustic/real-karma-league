@@ -2,6 +2,7 @@
 
 const { onDocumentUpdated, onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { FieldValue, arrayUnion } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
@@ -119,7 +120,7 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
             throw new HttpsError('not-found', 'The specified game is not currently live.');
         }
 
-        await processAndFinalizeGame(liveGameSnap);
+        await processAndFinalizeGame(liveGameSnap, false); // Manual finalization has no player delays
 
         return { success: true, message: `Game ${gameId} has been successfully finalized and scores have been written.` };
 
@@ -132,8 +133,46 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
     }
 });
 
+/**
+ * NEW: Scheduled function to automatically finalize any games that were not manually finalized.
+ */
+exports.autoFinalizeGames = onSchedule({
+    schedule: "every day 03:00",
+    timeZone: "America/Chicago", // Central Time
+}, async (event) => {
+    console.log("Running scheduled job to auto-finalize games.");
+    const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
 
-async function processAndFinalizeGame(liveGameSnap) {
+    if (liveGamesSnap.empty) {
+        console.log("No live games found to auto-finalize.");
+        return null;
+    }
+
+    console.log(`Found ${liveGamesSnap.size} games to auto-finalize.`);
+
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    for (const gameDoc of liveGamesSnap.docs) {
+        try {
+            const randomGameDelay = Math.floor(Math.random() * (30000 - 5000 + 1)) + 5000;
+            await delay(randomGameDelay);
+
+            console.log(`Auto-finalizing game ${gameDoc.id} after a ${randomGameDelay}ms delay.`);
+            await processAndFinalizeGame(gameDoc, true); // Auto-finalization uses player delays
+            console.log(`Successfully auto-finalized game ${gameDoc.id}.`);
+
+        } catch (error) {
+            console.error(`Failed to auto-finalize game ${gameDoc.id}:`, error);
+            await gameDoc.ref.update({ status: 'AUTO_FINALIZE_FAILED', error: error.message });
+        }
+    }
+
+    console.log("Auto-finalization job completed.");
+    return null;
+});
+
+
+async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
     const gameId = liveGameSnap.id;
     const liveGameData = liveGameSnap.data();
     const { seasonId, collectionName, team1_lineup, team2_lineup } = liveGameData;
@@ -143,10 +182,17 @@ async function processAndFinalizeGame(liveGameSnap) {
     const allPlayersMap = new Map(playerDocs.docs.map(doc => [doc.id, doc.data()]));
 
     const batch = db.batch();
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     const finalScoresMap = new Map();
     for (const player of allPlayersInGame) {
-        const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_handle)}`;
+        if (isAutoFinalize) {
+            // Add a random delay between 0.5 and 1.5 seconds between each player fetch
+            const randomPlayerDelay = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+            await delay(randomPlayerDelay);
+        }
+
+        const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
         try {
             const response = await fetch(workerUrl);
             const data = await response.json();
@@ -155,7 +201,7 @@ async function processAndFinalizeGame(liveGameSnap) {
                 global_rank: parseInt(data?.stats?.karmaDayRank || -1, 10)
             });
         } catch (e) {
-            console.error(`Failed to fetch final karma for ${player.player_handle}, using 0.`);
+            console.error(`Failed to fetch final karma for ${player.player_id}, using 0.`);
             finalScoresMap.set(player.player_id, { raw_score: 0, global_rank: 0 });
         }
     }
@@ -195,7 +241,7 @@ async function processAndFinalizeGame(liveGameSnap) {
             team_id: gameData.team1_id,
             game_id: gameId,
             date: gameData.date,
-            game_type: collectionName === 'post_games' ? 'postseason' : 'regular',
+            game_type: collectionName === 'post_games' ? 'postseason' : (collectionName === 'exhibition_games' ? 'exhibition' : 'regular'),
             started: 'TRUE',
             is_captain: player.is_captain ? 'TRUE' : 'FALSE',
             raw_score,
@@ -554,7 +600,7 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         createSeries('Round 1', 'W1vW8', 3, westConf[0], TBD_TEAM, dates['Round 1']);
         createSeries('Round 1', 'W4vW5', 3, westConf[3], westConf[4], dates['Round 1']);
         createSeries('Round 1', 'W3vW6', 3, westConf[2], westConf[5], dates['Round 1']);
-        createSeries('Round 1', 'W2vW7', 3, westConf[1], TBD_TEAM, dates['Round 1']);
+        createSeries('Round 1', 'W2vE7', 3, westConf[1], TBD_TEAM, dates['Round 1']);
 
         // --- 6. Generate Round 2 (Best-of-3) ---
         console.log("Generating Round 2 schedule...");
