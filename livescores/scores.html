@@ -128,14 +128,15 @@
 
     function getTodayString() {
         const now = new Date();
-        // Use New York time zone to determine the "RKL day"
         const est = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-        // If it's before 7 AM ET, the "day" is still the previous day
         if (est.getHours() < 7) {
             est.setDate(est.getDate() - 1);
         }
-        // Format to M/D/YYYY for matching Firestore 'date' field
-        return `${est.getMonth() + 1}/${est.getDate()}/${est.getFullYear()}`;
+        // Format to YYYY-MM-DD to match the start of the live_games document ID
+        const year = est.getFullYear();
+        const month = String(est.getMonth() + 1).padStart(2, '0');
+        const day = String(est.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
     }
 
     async function fetchKarma(userId) {
@@ -148,7 +149,7 @@
             return val;
         } catch (error) {
             console.error(`Failed to fetch karma for ${userId}:`, error);
-            return 0; // Return 0 on failure
+            return 0;
         }
     }
 
@@ -232,48 +233,38 @@
             if (activeSeasonsSnap.empty) throw new Error("No active season found.");
             const activeSeasonId = activeSeasonsSnap.docs[0].id;
             
-            // 2. Fetch today's games from all relevant subcollections
-            loading.textContent = "Fetching today's schedule...";
+            // 2. Fetch all live games and filter for today
+            loading.textContent = "Fetching today's live games...";
             const todayStr = getTodayString();
-            const gameCollectionNames = ['games', 'exhibition_games', 'post_games'];
-            const gamePromises = gameCollectionNames.map(name =>
-                getDocs(query(collection(db, `${getCollectionName('seasons')}/${activeSeasonId}/${getCollectionName(name)}`), where("date", "==", todayStr)))
-            );
-            
-            const gameSnapshots = await Promise.all(gamePromises);
-            const todaysGames = gameSnapshots.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
+            const liveGamesSnap = await getDocs(liveGamesQuery);
+
+            const todaysGames = liveGamesSnap.docs.filter(doc => doc.id.startsWith(todayStr));
 
             if (todaysGames.length === 0) {
-                loading.textContent = `No games scheduled for today (${todayStr}).`;
+                loading.textContent = `No live games found for today (${todayStr}).`;
                 return;
             }
 
-            // 3. Fetch live game data (lineups) and process each game
+            // 3. Process each live game
             let loadedPlayers = 0;
-            const totalPlayers = todaysGames.length * 12; // Estimate for progress bar
+            const totalPlayers = todaysGames.length * 12;
 
             const updateProgress = () => {
                 loading.textContent = `Loaded ${++loadedPlayers} of ${totalPlayers} players...`;
             };
             
             for (let i = 0; i < todaysGames.length; i++) {
-                const game = todaysGames[i];
+                const liveGameDoc = todaysGames[i];
+                const liveGameData = liveGameDoc.data();
                 
-                // Construct the canonical game ID for the live_games collection
-                const [year, month, day] = game.date.split('/').reverse();
-                const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-                const sortedTeams = [game.team1_id, game.team2_id].sort();
-                const liveGameId = `${formattedDate}-${sortedTeams[0]}-${sortedTeams[1]}`;
-                
-                const liveGameRef = doc(db, getCollectionName('live_games'), liveGameId);
-                const liveGameSnap = await getDoc(liveGameRef);
-                
-                if (!liveGameSnap.exists()) continue; // Skip if no live data
-                
-                const liveGameData = liveGameSnap.data();
+                // Extract team IDs from the document ID
+                const idParts = liveGameDoc.id.split('-');
+                const team1Id = idParts[3];
+                const team2Id = idParts[4];
                 
                 // Fetch team names
-                const teamNamePromises = [game.team1_id, game.team2_id].map(async (teamId) => {
+                const teamNamePromises = [team1Id, team2Id].map(async (teamId) => {
                     if (teamNameCache.has(teamId)) return teamNameCache.get(teamId);
                     const teamRecordRef = doc(db, `${getCollectionName('v2_teams')}/${teamId}/${getCollectionName('seasonal_records')}/${activeSeasonId}`);
                     const teamSnap = await getDoc(teamRecordRef);
@@ -294,7 +285,7 @@
                 container.innerHTML += createGameHTML(team1Name, team2Name, t1Data.total, t2Data.total, t1Data.rows, t2Data.rows, i);
             }
 
-            loading.textContent = todaysGames.length > 0 ? 'Done.' : `No live games found for today.`;
+            loading.textContent = 'Done.';
 
         } catch (e) {
             loading.textContent = 'Failed to load game data.';
