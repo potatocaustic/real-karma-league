@@ -187,7 +187,6 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
     const finalScoresMap = new Map();
     for (const player of allPlayersInGame) {
         if (isAutoFinalize) {
-            // Add a random delay between 0.5 and 1.5 seconds between each player fetch
             const randomPlayerDelay = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
             await delay(randomPlayerDelay);
         }
@@ -702,6 +701,18 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
     const pickData = event.data.data();
     const { team_id, player_handle, forfeit, season: draftSeason, round, overall } = pickData;
 
+    // MODIFIED: Get API endpoint from environment variables WITHOUT a fallback
+    const API_ENDPOINT_TEMPLATE = process.env.REAL_API_ENDPOINT;
+
+    // MODIFIED: Add a check to ensure the variable is set.
+    if (!API_ENDPOINT_TEMPLATE) {
+        console.error("FATAL ERROR: REAL_API_ENDPOINT environment variable not set. Aborting function.");
+        return null; // Stop execution if the secret is not configured.
+    }
+
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // ... (The rest of the function remains exactly the same as the previous version)
     // Validate the path to ensure this function only runs on the correct documents.
     const seasonMatch = seasonDocId.match(/^season_(\d+)$/);
     const collectionMatch = resultsCollectionId.match(/^S(\d+)_draft_results_dev$/) || resultsCollectionId.match(/^S(\d+)_draft_results$/);
@@ -710,7 +721,6 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
         return null;
     }
 
-    // Exit if the pick was forfeited or if no player handle was entered.
     if (forfeit || !player_handle) {
         console.log(`Pick ${overall} was forfeited or had no player. No action taken.`);
         return null;
@@ -720,19 +730,14 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
 
     try {
         const batch = db.batch();
-
-        // --- 2. Fetch Active Season and Team Name for Bio ---
         const activeSeasonQuery = db.collection(getCollectionName("seasons")).where("status", "==", "active").limit(1);
         const [activeSeasonSnap, teamRecordSnap] = await Promise.all([
             activeSeasonQuery.get(),
             db.doc(`${getCollectionName('v2_teams')}/${team_id}/${getCollectionName('seasonal_records')}/${draftSeason}`).get()
         ]);
-
         const activeSeasonId = activeSeasonSnap.empty ? null : activeSeasonSnap.docs[0].id;
-
         const teamName = teamRecordSnap.exists ? teamRecordSnap.data().team_name : team_id;
 
-        // --- 3. Create the Player Bio String ---
         const getOrdinal = (n) => {
             if (n > 3 && n < 21) return n + 'th';
             switch (n % 10) {
@@ -743,11 +748,8 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
             }
         };
         const bio = `R${round} (${getOrdinal(overall)} overall) selection by ${teamName} in ${draftSeason} draft.`;
-
-        // --- 4. Determine Draft Type (Current vs. Historical) and Execute Logic ---
         const isCurrentDraft = draftSeason === activeSeasonId;
 
-        // Shared data for a newly created player's seasonal stats
         const initialStats = {
             aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
             post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
@@ -756,13 +758,49 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
         };
 
         if (isCurrentDraft) {
-            // CURRENT DRAFT: Always create a new player.
-            console.log(`Current draft (${draftSeason}). Creating new player: ${player_handle}.`);
-            const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
-            const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
+            const randomDelay = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+            await delay(randomDelay);
 
-            // Create the new player document with the bio
+            console.log(`Current draft (${draftSeason}). Fetching player ID for: ${player_handle}.`);
+            let newPlayerId;
+
+            try {
+                const apiUrl = API_ENDPOINT_TEMPLATE.replace('{}', encodeURIComponent(player_handle));
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                        'Accept': 'application/json, text/plain, */*'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const userId = data?.user?.id;
+                    if (userId) {
+                        newPlayerId = userId;
+                        console.log(`Successfully fetched ID for ${player_handle}: ${newPlayerId}`);
+                    }
+                } else {
+                    console.warn(`API request failed for ${player_handle} with status: ${response.status}.`);
+                }
+            } catch (error) {
+                console.error(`Error fetching user ID for ${player_handle}:`, error);
+            }
+
+            if (!newPlayerId) {
+                const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
+                newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
+                console.warn(`Using fallback generated ID for ${player_handle}: ${newPlayerId}`);
+            }
+
+            const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
+            const existingPlayerSnap = await playerRef.get();
+
+            if (existingPlayerSnap.exists) {
+                console.error(`Error: A player with the fetched/generated ID '${newPlayerId}' already exists. Aborting creation for this pick.`);
+                return null;
+            }
+
             batch.set(playerRef, {
                 player_handle: player_handle,
                 current_team_id: team_id,
@@ -770,18 +808,16 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
                 bio: bio
             });
 
-            // Create the initial seasonal stats, marking them as a rookie
             const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
             batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
 
         } else {
-            // HISTORICAL DRAFT: Check if the player already exists.
+            // Historical draft logic remains unchanged
             console.log(`Historical draft (${draftSeason}). Checking for existing player: ${player_handle}.`);
             const existingPlayerQuery = db.collection(getCollectionName('v2_players')).where('player_handle', '==', player_handle).limit(1);
             const existingPlayerSnap = await existingPlayerQuery.get();
 
             if (existingPlayerSnap.empty) {
-                // Player does NOT exist, create them as a new rookie for that historical season.
                 console.log(`Player not found. Creating new player for historical draft.`);
                 const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
@@ -797,14 +833,9 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
                 const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
             } else {
-                // Player DOES exist, update their info.
                 console.log(`Existing player found. Updating bio only.`);
                 const playerRef = existingPlayerSnap.docs[0].ref;
-
-                // BUG #1 FIX: Only update the bio. Do NOT change the current_team_id.
                 batch.update(playerRef, { bio: bio });
-
-                // Create a seasonal stats document for the historical season, but do NOT mark as rookie.
                 const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
             }

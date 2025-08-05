@@ -7,6 +7,21 @@
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        #progress-bar-container {
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+        #progress-bar {
+            width: 0%;
+            height: 20px;
+            background-color: #28a745;
+            transition: width 0.2s ease-in-out;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -22,8 +37,7 @@
             <div class="filter-group">
                 <label for="season-select">Select Draft Season:</label>
                 <select id="season-select">
-                    <!-- Seasons will be populated by JS -->
-                </select>
+                    </select>
             </div>
         </div>
 
@@ -40,7 +54,6 @@
                         </tr>
                     </thead>
                     <tbody id="draft-table-body">
-                        <!-- Draft picks will be populated by JS -->
                         <tr><td colspan="5" class="loading">Loading draft board...</td></tr>
                     </tbody>
                 </table>
@@ -49,11 +62,23 @@
                 <button type="submit" class="btn-admin-save">Save Draft Results</button>
             </div>
         </form>
+
+        <div id="progress-modal" class="modal-admin" style="display: none;">
+            <div class="modal-content-admin" style="max-width: 500px;">
+                <h3 id="progress-title">Processing Draft Picks...</h3>
+                <p id="progress-status">This may take a few minutes. Please do not close or navigate away from this page.</p>
+                <div id="progress-bar-container">
+                    <div id="progress-bar"></div>
+                </div>
+                <p id="progress-counter" style="text-align: center; margin-top: 1rem; font-weight: bold;"></p>
+                <button type="button" id="progress-close-btn" class="btn-admin-secondary" style="margin-top: 1.5rem; display: none;">Close</button>
+            </div>
+        </div>
+
     </main>
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
-    <!-- Firebase -->
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/admin/manage-draft.js"></script>
 </body>

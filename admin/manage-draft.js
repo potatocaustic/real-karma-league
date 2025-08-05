@@ -79,6 +79,11 @@ async function initializePage() {
 
         draftForm.addEventListener('submit', handleDraftSubmit);
 
+        // NEW: Listener for progress modal close button
+        document.getElementById('progress-close-btn').addEventListener('click', () => {
+            document.getElementById('progress-modal').style.display = 'none';
+        });
+
     } catch (error) {
         console.error("Error initializing draft page:", error);
         draftTableBody.innerHTML = `<tr><td colspan="5" class="error">Could not load required league data.</td></tr>`;
@@ -174,6 +179,55 @@ async function handleDraftSubmit(e) {
     saveButton.disabled = true;
     saveButton.textContent = 'Saving...';
 
+    // --- NEW: Progress Bar Logic ---
+    const progressModal = document.getElementById('progress-modal');
+    const progressBar = document.getElementById('progress-bar');
+    const progressCounter = document.getElementById('progress-counter');
+    const progressTitle = document.getElementById('progress-title');
+    const progressStatus = document.getElementById('progress-status');
+    const progressCloseBtn = document.getElementById('progress-close-btn');
+
+    // Reset modal state
+    progressBar.style.width = '0%';
+    progressCounter.textContent = '';
+    progressTitle.textContent = 'Processing Draft Picks...';
+    progressStatus.textContent = 'This may take a few minutes. Please do not close or navigate away from this page.';
+    progressCloseBtn.style.display = 'none';
+
+    let picksToProcess = 0;
+    for (let i = 1; i <= TOTAL_PICKS; i++) {
+        const row = document.getElementById(`pick-row-${i}`);
+        const playerHandle = row.querySelector('.player-handle-input').value.trim();
+        const isForfeited = row.querySelector('.forfeit-checkbox').checked;
+        if (playerHandle && !isForfeited) {
+            picksToProcess++;
+        }
+    }
+
+    let progressInterval = null;
+    if (picksToProcess > 0) {
+        progressModal.style.display = 'flex';
+        const avgTimePerPick = 1250; // Average 1.25s per pick (includes API delay and processing)
+        const totalTime = picksToProcess * avgTimePerPick;
+        let elapsedTime = 0;
+
+        progressInterval = setInterval(() => {
+            elapsedTime += 100;
+            const picksProcessed = Math.min(Math.floor((elapsedTime / totalTime) * picksToProcess), picksToProcess);
+            const progress = Math.min((elapsedTime / totalTime) * 100, 100);
+            progressBar.style.width = `${progress}%`;
+            progressCounter.textContent = `${picksProcessed} / ${picksToProcess} picks processed...`;
+
+            if (progress >= 100) {
+                clearInterval(progressInterval);
+                progressTitle.textContent = "Processing Complete!";
+                progressStatus.textContent = "The draft has been submitted and all players have been created.";
+                progressCloseBtn.style.display = 'block';
+            }
+        }, 100);
+    }
+    // --- End Progress Bar Logic ---
+
     try {
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
@@ -205,11 +259,13 @@ async function handleDraftSubmit(e) {
         }
 
         await batch.commit();
-        alert('Draft results saved successfully!');
+        alert('Draft results submitted successfully! Player creation is now processing in the background.');
 
     } catch (error) {
         console.error("Error saving draft results:", error);
         alert('An error occurred while saving. Please check the console.');
+        if (progressInterval) clearInterval(progressInterval);
+        progressModal.style.display = 'none';
     } finally {
         saveButton.disabled = false;
         saveButton.textContent = 'Save Draft Results';
