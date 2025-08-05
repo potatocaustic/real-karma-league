@@ -227,7 +227,7 @@
         try {
             // 1. Find the active season
             loading.textContent = "Finding active season...";
-            const seasonsQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"), where("season_name", "!=", null));
+            const seasonsQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"), limit(1));
             const activeSeasonsSnap = await getDocs(seasonsQuery);
             if (activeSeasonsSnap.empty) throw new Error("No active season found.");
             const activeSeasonId = activeSeasonsSnap.docs[0].id;
