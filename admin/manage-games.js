@@ -306,32 +306,59 @@ async function openLineupModal(game) {
     const isExhibition = game.collectionName === 'exhibition_games';
     const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (game.collectionName === 'post_games' ? 'post_lineups' : 'lineups');
 
-    const lineupsQuery = query(collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(lineupsCollectionName)), where("game_id", "==", game.id));
-    const lineupsSnap = await getDocs(lineupsQuery);
-
     const existingLineups = new Map();
     let team1Roster, team2Roster;
 
-    if (!lineupsSnap.empty) {
-        const team1PlayersForGame = [];
-        const team2PlayersForGame = [];
-        const playerIdsInGame = new Set(getRosterForTeam(game.team1_id, game.week).concat(getRosterForTeam(game.team2_id, game.week)).map(p => p.id));
-        lineupsSnap.forEach(d => {
-            const lineupData = d.data();
-            if (playerIdsInGame.has(lineupData.player_id)) {
-                if (lineupData.team_id === game.team1_id) {
-                    team1PlayersForGame.push(allPlayers.get(lineupData.player_id));
-                } else if (lineupData.team_id === game.team2_id) {
-                    team2PlayersForGame.push(allPlayers.get(lineupData.player_id));
-                }
-                existingLineups.set(lineupData.player_id, lineupData);
-            }
+    // FIX: Check for a live game first, as it takes precedence
+    const liveGameRef = doc(db, getCollectionName('live_games'), game.id);
+    const liveGameSnap = await getDoc(liveGameRef);
+
+    if (liveGameSnap.exists()) {
+        const liveData = liveGameSnap.data();
+
+        // The roster for a live game is explicitly defined by the live game document itself
+        team1Roster = liveData.team1_lineup.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        team2Roster = liveData.team2_lineup.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+
+        // Populate the `existingLineups` map with data from the live game document
+        // This map is used by renderTeamUI to populate starter cards and checkboxes
+        const allLivePlayers = [...liveData.team1_lineup, ...liveData.team2_lineup];
+        allLivePlayers.forEach(player => {
+            existingLineups.set(player.player_id, {
+                started: 'TRUE',
+                is_captain: player.is_captain ? 'TRUE' : 'FALSE',
+                adjustments: player.deductions || 0, // Map live game 'deductions' to the 'adjustments' field used by the starter card
+                raw_score: 0, // Not available for live games
+                global_rank: 0, // Not available for live games
+            });
         });
-        team1Roster = team1PlayersForGame;
-        team2Roster = team2PlayersForGame;
     } else {
-        team1Roster = getRosterForTeam(game.team1_id, game.week);
-        team2Roster = getRosterForTeam(game.team2_id, game.week);
+        // Original logic: If no live game is active, check for finalized lineups
+        const lineupsQuery = query(collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(lineupsCollectionName)), where("game_id", "==", game.id));
+        const lineupsSnap = await getDocs(lineupsQuery);
+
+        if (!lineupsSnap.empty) {
+            const team1PlayersForGame = [];
+            const team2PlayersForGame = [];
+            const playerIdsInGame = new Set(getRosterForTeam(game.team1_id, game.week).concat(getRosterForTeam(game.team2_id, game.week)).map(p => p.id));
+            lineupsSnap.forEach(d => {
+                const lineupData = d.data();
+                if (playerIdsInGame.has(lineupData.player_id)) {
+                    if (lineupData.team_id === game.team1_id) {
+                        team1PlayersForGame.push(allPlayers.get(lineupData.player_id));
+                    } else if (lineupData.team_id === game.team2_id) {
+                        team2PlayersForGame.push(allPlayers.get(lineupData.player_id));
+                    }
+                    existingLineups.set(lineupData.player_id, lineupData);
+                }
+            });
+            team1Roster = team1PlayersForGame.filter(Boolean);
+            team2Roster = team2PlayersForGame.filter(Boolean);
+        } else {
+            // No live game and no finalized lineups, get the default rosters for the teams
+            team1Roster = getRosterForTeam(game.team1_id, game.week);
+            team2Roster = getRosterForTeam(game.team2_id, game.week);
+        }
     }
 
     const team1 = allTeams.get(game.team1_id) || { team_name: game.team1_id };
@@ -344,6 +371,7 @@ async function openLineupModal(game) {
     calculateAllScores();
     lineupModal.classList.add('is-visible');
 }
+
 
 function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
