@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>RKL Live Scores</title>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <style>
     :root {
       --bg-color: #121212;
@@ -111,150 +110,196 @@
   <div class="loading" id="loading-indicator">Loading...</div>
   <div id="games-container"></div>
   <a href="index.html" class="home-link">← Home</a>
-  <script>
-    const scheduleCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRgy7uZ8caLI4hTPKSjl9e7ztFaM9vdBk4vXDQbPtcybqzXGOm3FMpSJiyrRTzIM3K70z_6XbgBGP_0/pub?output=csv';
-    const rosterCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRe5WoA--wsfCCCvtL8QgQKsJv0z1AIUTY7k5NEYgUF-Ipu3Iotxkcbw7D-Cme6YGUksHy3DmyDYpaO/pub?output=csv';
+
+  <script type="module">
+    import { db, collection, query, where, getDocs, doc, getDoc } from '/js/firebase-init.js';
+    import '/js/firebase-public-auth.js';
+
+    // --- DEV ENVIRONMENT CONFIG ---
+    const USE_DEV_COLLECTIONS = true;
+    const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+    
+    // --- SCRIPT CONSTANTS ---
     const WORKER_URL = 'https://rkl-karma-proxy.caustic.workers.dev/';
     const karmaCache = new Map();
+    const teamNameCache = new Map();
+
+    // --- HELPER FUNCTIONS ---
 
     function getTodayString() {
-      const now = new Date();
-      const est = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-      if (est.getHours() < 7) est.setDate(est.getDate() - 1);
-      return `${est.getMonth() + 1}/${est.getDate()}`;
-    }
-
-    function parseCSV(text) {
-      const lines = text.trim().split('\n');
-      const headers = lines[0].split(',').map(h => h.trim());
-      return lines.slice(1).map(line => {
-        const values = line.split(',').map(p => p.trim());
-        const obj = {};
-        headers.forEach((h, i) => obj[h] = values[i]);
-        return obj;
-      });
+        const now = new Date();
+        // Use New York time zone to determine the "RKL day"
+        const est = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+        // If it's before 7 AM ET, the "day" is still the previous day
+        if (est.getHours() < 7) {
+            est.setDate(est.getDate() - 1);
+        }
+        // Format to M/D/YYYY for matching Firestore 'date' field
+        return `${est.getMonth() + 1}/${est.getDate()}/${est.getFullYear()}`;
     }
 
     async function fetchKarma(userId) {
-      if (karmaCache.has(userId)) return karmaCache.get(userId);
-      try {
-        const res = await fetch(`${WORKER_URL}?userId=${encodeURIComponent(userId)}`);
-        const data = await res.json();
-        const val = parseFloat(data?.stats?.karmaDelta || 0);
-        karmaCache.set(userId, val);
-        return val;
-      } catch {
-        return 0;
-      }
+        if (karmaCache.has(userId)) return karmaCache.get(userId);
+        try {
+            const res = await fetch(`${WORKER_URL}?userId=${encodeURIComponent(userId)}`);
+            const data = await res.json();
+            const val = parseFloat(data?.stats?.karmaDelta || 0);
+            karmaCache.set(userId, val);
+            return val;
+        } catch (error) {
+            console.error(`Failed to fetch karma for ${userId}:`, error);
+            return 0; // Return 0 on failure
+        }
     }
 
     async function limitedMap(array, limit, asyncFn, onProgress) {
-      const results = [];
-      let index = 0;
-      const executing = new Set();
-
-      for (const item of array) {
-        const p = asyncFn(item).then(res => {
-          results.push(res);
-          if (onProgress) onProgress(++index, array.length);
-        });
-        executing.add(p);
-        p.finally(() => executing.delete(p));
-        if (executing.size >= limit) await Promise.race(executing);
-      }
-      await Promise.all(executing);
-      return results;
+        const results = [];
+        let index = 0;
+        const executing = new Set();
+        for (const item of array) {
+            const p = asyncFn(item).then(res => {
+                results.push(res);
+                if (onProgress) onProgress(++index, array.length);
+            });
+            executing.add(p);
+            p.finally(() => executing.delete(p));
+            if (executing.size >= limit) await Promise.race(executing);
+        }
+        await Promise.all(executing);
+        return results;
     }
 
     async function processTeam(players, updateProgress) {
-      let teamTotal = 0;
-      const rows = await limitedMap(players, 10, async p => {
-        const userId = p['User ID']?.trim();
-        const userAt = p['User @']?.trim() || 'Unknown';
-        const role = (p['role'] || '').toLowerCase();
-        const deduction = parseFloat(p['deductions'] || 0);
+        let teamTotal = 0;
+        const rows = await limitedMap(players, 10, async p => {
+            const userId = p.player_id?.trim();
+            const userHandle = p.player_handle?.trim() || 'Unknown';
+            const isCaptain = p.is_captain === true || p.is_captain === 'TRUE';
+            const deduction = parseFloat(p.deductions || 0);
 
-        if (!userId || userId.toLowerCase() === 'not found') return `${userAt}: missing`;
-
-        const base = await fetchKarma(userId);
-        const adjusted = base - deduction;
-        const boosted = role === 'captain' ? adjusted * 1.5 : adjusted;
-
-        teamTotal += boosted;
-
-        const rounded = Math.round(adjusted);
-        const label = role === 'captain'
-          ? `${userAt} (c): ${rounded} → ${Math.round(boosted)}`
-          : `${userAt}: ${rounded}`;
-
-        return `<div class="player-row">${label}</div>`;
-      }, updateProgress);
-      return { rows, total: Math.round(teamTotal) };
+            if (!userId) return `<div class="player-row">${userHandle}: Missing ID</div>`;
+            
+            const base = await fetchKarma(userId);
+            const adjusted = base - deduction;
+            const boosted = isCaptain ? adjusted * 1.5 : adjusted;
+            
+            teamTotal += boosted;
+            
+            const rounded = Math.round(adjusted);
+            const label = isCaptain
+                ? `${userHandle} (C): ${rounded} → ${Math.round(boosted)}`
+                : `${userHandle}: ${rounded}`;
+            
+            return `<div class="player-row">${label}</div>`;
+        }, updateProgress);
+        return { rows, total: Math.round(teamTotal) };
     }
 
-    function createGameHTML(team1, team2, t1Total, t2Total, t1Rows, t2Rows, index) {
-      const id = `game-${index}`;
-      return `
-        <div class="game-container">
-          <div class="game-header" onclick="
-            const body = document.getElementById('${id}');
-            body.style.display = body.style.display === 'block' ? 'none' : 'block';
-          ">
-            ${team1} (${t1Total}) vs ${team2} (${t2Total})
-          </div>
-          <div class="game-body" id="${id}">
-            <div class="team-roster">
-              <div class="roster-title">${team1}</div>
-              ${t1Rows.join('')}
-            </div>
-            <div class="team-roster">
-              <div class="roster-title">${team2}</div>
-              ${t2Rows.join('')}
-            </div>
-          </div>
-        </div>`;
+    function createGameHTML(team1Name, team2Name, t1Total, t2Total, t1Rows, t2Rows, index) {
+        const id = `game-${index}`;
+        return `
+            <div class="game-container">
+                <div class="game-header" onclick="
+                    const body = document.getElementById('${id}');
+                    body.style.display = body.style.display === 'block' ? 'none' : 'block';
+                ">
+                    ${team1Name} (${t1Total}) vs ${team2Name} (${t2Total})
+                </div>
+                <div class="game-body" id="${id}">
+                    <div class="team-roster">
+                        <div class="roster-title">${team1Name}</div>
+                        ${t1Rows.join('')}
+                    </div>
+                    <div class="team-roster">
+                        <div class="roster-title">${team2Name}</div>
+                        ${t2Rows.join('')}
+                    </div>
+                </div>
+            </div>`;
     }
+
+    // --- MAIN LOGIC ---
 
     async function loadGames() {
-      const loading = document.getElementById('loading-indicator');
-      const container = document.getElementById('games-container');
+        const loading = document.getElementById('loading-indicator');
+        const container = document.getElementById('games-container');
+        
+        try {
+            // 1. Find the active season
+            loading.textContent = "Finding active season...";
+            const seasonsQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"), where("season_name", "!=", null));
+            const activeSeasonsSnap = await getDocs(seasonsQuery);
+            if (activeSeasonsSnap.empty) throw new Error("No active season found.");
+            const activeSeasonId = activeSeasonsSnap.docs[0].id;
+            
+            // 2. Fetch today's games from all relevant subcollections
+            loading.textContent = "Fetching today's schedule...";
+            const todayStr = getTodayString();
+            const gameCollectionNames = ['games', 'exhibition_games', 'post_games'];
+            const gamePromises = gameCollectionNames.map(name =>
+                getDocs(query(collection(db, `${getCollectionName('seasons')}/${activeSeasonId}/${getCollectionName(name)}`), where("date", "==", todayStr)))
+            );
+            
+            const gameSnapshots = await Promise.all(gamePromises);
+            const todaysGames = gameSnapshots.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-      try {
-        const [scheduleRes, rosterRes] = await Promise.all([
-          axios.get(scheduleCsvUrl),
-          axios.get(rosterCsvUrl)
-        ]);
+            if (todaysGames.length === 0) {
+                loading.textContent = `No games scheduled for today (${todayStr}).`;
+                return;
+            }
 
-        const today = getTodayString();
-        const games = parseCSV(scheduleRes.data).filter(g => g.Date?.trim() === today);
-        const players = parseCSV(rosterRes.data).filter(p => p['playing?']?.toLowerCase() === 'yes');
+            // 3. Fetch live game data (lineups) and process each game
+            let loadedPlayers = 0;
+            const totalPlayers = todaysGames.length * 12; // Estimate for progress bar
 
-        let loaded = 0;
-        const total = players.length;
-        const updateProgress = () => {
-          loading.textContent = `Loaded ${loaded++} out of ${total} players...`;
-        };
+            const updateProgress = () => {
+                loading.textContent = `Loaded ${++loadedPlayers} of ${totalPlayers} players...`;
+            };
+            
+            for (let i = 0; i < todaysGames.length; i++) {
+                const game = todaysGames[i];
+                
+                // Construct the canonical game ID for the live_games collection
+                const [year, month, day] = game.date.split('/').reverse();
+                const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                const sortedTeams = [game.team1_id, game.team2_id].sort();
+                const liveGameId = `${formattedDate}-${sortedTeams[0]}-${sortedTeams[1]}`;
+                
+                const liveGameRef = doc(db, getCollectionName('live_games'), liveGameId);
+                const liveGameSnap = await getDoc(liveGameRef);
+                
+                if (!liveGameSnap.exists()) continue; // Skip if no live data
+                
+                const liveGameData = liveGameSnap.data();
+                
+                // Fetch team names
+                const teamNamePromises = [game.team1_id, game.team2_id].map(async (teamId) => {
+                    if (teamNameCache.has(teamId)) return teamNameCache.get(teamId);
+                    const teamRecordRef = doc(db, `${getCollectionName('v2_teams')}/${teamId}/${getCollectionName('seasonal_records')}/${activeSeasonId}`);
+                    const teamSnap = await getDoc(teamRecordRef);
+                    const name = teamSnap.exists() ? teamSnap.data().team_name : teamId;
+                    teamNameCache.set(teamId, name);
+                    return name;
+                });
 
-        for (let i = 0; i < games.length; i++) {
-          const game = games[i];
-          const t1 = game['Team 1'];
-          const t2 = game['Team 2'];
-          const t1Players = players.filter(p => p.Team === t1);
-          const t2Players = players.filter(p => p.Team === t2);
+                const [team1Name, team2Name] = await Promise.all(teamNamePromises);
 
-          const [t1Data, t2Data] = await Promise.all([
-            processTeam(t1Players, updateProgress),
-            processTeam(t2Players, updateProgress)
-          ]);
+                // Process player scores for each team
+                const [t1Data, t2Data] = await Promise.all([
+                    processTeam(liveGameData.team1_lineup, updateProgress),
+                    processTeam(liveGameData.team2_lineup, updateProgress)
+                ]);
 
-          container.innerHTML += createGameHTML(t1, t2, t1Data.total, t2Data.total, t1Data.rows, t2Data.rows, i);
+                // Render the game card
+                container.innerHTML += createGameHTML(team1Name, team2Name, t1Data.total, t2Data.total, t1Data.rows, t2Data.rows, i);
+            }
+
+            loading.textContent = todaysGames.length > 0 ? 'Done.' : `No live games found for today.`;
+
+        } catch (e) {
+            loading.textContent = 'Failed to load game data.';
+            console.error(e);
         }
-
-        loading.textContent = 'Done.';
-      } catch (e) {
-        loading.textContent = 'Failed to load game data.';
-        console.error(e);
-      }
     }
 
     loadGames();

@@ -91,16 +91,13 @@ async function seedDatabase() {
     ]);
     console.log("All raw data fetched.");
 
-    // Parse numbers in lineups
     [...lineupsData, ...postLineupsData].forEach(l => {
         l.points_adjusted = parseNumber(l.points_adjusted);
         l.global_rank = parseNumber(l.global_rank);
-        l.raw_score = parseNumber(l.raw_score); // Add this line
+        l.raw_score = parseNumber(l.raw_score);
     });
 
     // --- 2. PRE-CALCULATIONS & DATA ENHANCEMENT ---
-
-    // Calculate Daily Averages and enhance Lineup data
     const dailyAveragesMap = new Map();
     const postDailyAveragesMap = new Map();
 
@@ -141,7 +138,6 @@ async function seedDatabase() {
     processDailyData(lineupsData, dailyAveragesMap);
     processDailyData(postLineupsData, postDailyAveragesMap);
 
-    // Calculate Daily Team Scores
     const dailyScores = [];
     const postDailyScores = [];
     const processTeamScores = (schedule, dailyScoresOutput) => {
@@ -174,10 +170,7 @@ async function seedDatabase() {
     processTeamScores(scheduleData, dailyScores);
     processTeamScores(postScheduleData, postDailyScores);
 
-
     // --- 3. AGGREGATE SEASONAL STATS ---
-
-    // Aggregate Player Stats
     const playerSeasonalStats = new Map();
     const aggregatePlayerStats = (lineups, dailyAverages, isPostseason) => {
         const prefix = isPostseason ? 'post_' : '';
@@ -213,7 +206,7 @@ async function seedDatabase() {
                 stats[statKey('rel_median')] = stats[statKey('medsum')] > 0 ? stats[statKey('total_points')] / stats[statKey('medsum')] : 0;
                 stats[statKey('medrank')] = calculateMedian(stats[statKey('ranks')] || []);
                 stats[statKey('GEM')] = calculateGeometricMean(stats[statKey('ranks')] || []);
-                delete stats[statKey('ranks')]; // clean up temporary array
+                delete stats[statKey('ranks')];
             }
         }
     };
@@ -221,7 +214,6 @@ async function seedDatabase() {
     aggregatePlayerStats(lineupsData, dailyAveragesMap, false);
     aggregatePlayerStats(postLineupsData, postDailyAveragesMap, true);
 
-    // Aggregate Team Stats
     const teamSeasonalStats = new Map();
     const aggregateTeamStats = (schedule, dailyScores, lineups, isPostseason) => {
         const prefix = isPostseason ? 'post_' : '';
@@ -243,7 +235,7 @@ async function seedDatabase() {
             const stats = teamSeasonalStats.get(s.data.team_id);
             if (stats) {
                 stats[statKey('pam')] = (stats[statKey('pam')] || 0) + s.data.points_above_median;
-                if (!isPostseason) { // apPAM is regular season only
+                if (!isPostseason) {
                     stats.apPAM_total = (stats.apPAM_total || 0) + s.data.pct_above_median;
                     stats.apPAM_count = (stats.apPAM_count || 0) + 1;
                 }
@@ -278,7 +270,6 @@ async function seedDatabase() {
     aggregateTeamStats(scheduleData, dailyScores, lineupsData, false);
     aggregateTeamStats(postScheduleData, postDailyScores, postLineupsData, true);
 
-    // Final Team Ranking Calculations
     const allTeamCalculatedStats = Array.from(teamSeasonalStats.entries()).map(([teamId, stats]) => ({ teamId, ...stats }));
     const rankAndSort = (teams, stat, ascending = true, rankKey) => {
         [...teams].sort((a, b) => ascending ? (a[stat] || 0) - (b[stat] || 0) : (b[stat] || 0) - (a[stat] || 0))
@@ -307,16 +298,27 @@ async function seedDatabase() {
         });
     });
 
-    // Merge calculated stats back into the main map
     allTeamCalculatedStats.forEach(t => teamSeasonalStats.set(t.teamId, t));
 
     // --- 4. SEED DATABASE ---
-    const batch = db.batch();
-    // Seed Teams and Seasonal Records
-    teamsData.forEach(team => {
-        const teamDocRef = db.collection("v2_teams_dev").doc(team.team_id);
 
-        // MODIFIED: Add team_id as a field to the static root document data.
+    // NEW: Batching helper function
+    const BATCH_SIZE = 400; // Keep well under the 500 limit
+    let batch = db.batch();
+    let writeCount = 0;
+
+    const commitBatchIfNeeded = async () => {
+        if (writeCount >= BATCH_SIZE) {
+            console.log(`Committing batch of ${writeCount} writes...`);
+            await batch.commit();
+            batch = db.batch();
+            writeCount = 0;
+        }
+    };
+
+    // Seed Teams and Seasonal Records
+    for (const team of teamsData) {
+        const teamDocRef = db.collection("v2_teams_dev").doc(team.team_id);
         const staticData = {
             team_id: team.team_id,
             conference: team.conference,
@@ -324,95 +326,99 @@ async function seedDatabase() {
             gm_uid: team.gm_uid
         };
         batch.set(teamDocRef, staticData);
+        writeCount++;
 
         const seasonalData = teamSeasonalStats.get(team.team_id) || {};
         seasonalData.team_name = team.team_name;
-
-        // Delete the redundant teamId property from the seasonal object.
         delete seasonalData.teamId;
 
         const seasonRecordRef = teamDocRef.collection("seasonal_records_dev").doc(SEASON_ID);
         batch.set(seasonRecordRef, seasonalData, { merge: true });
-    });
+        writeCount++;
+        await commitBatchIfNeeded();
+    }
     console.log(`Prepared ${teamsData.length} teams and their seasonal stats for seeding.`);
 
     // Seed Players and Seasonal Stats
-    playersData.forEach(player => {
+    for (const player of playersData) {
         const playerDocRef = db.collection("v2_players_dev").doc(player.player_id);
-        // MODIFIED: Only write static data to the root player document
         const staticData = {
             player_handle: player.player_handle,
             player_status: player.player_status,
             current_team_id: player.current_team_id
         };
         batch.set(playerDocRef, staticData);
+        writeCount++;
 
         if (playerSeasonalStats.has(player.player_id)) {
             const seasonalData = playerSeasonalStats.get(player.player_id);
-            // MODIFIED: Add rookie and all_star status from the source sheet to the seasonal data
             seasonalData.rookie = player.rookie || '0';
             seasonalData.all_star = player.all_star || '0';
 
             const seasonStatsRef = playerDocRef.collection("seasonal_stats_dev").doc(SEASON_ID);
             batch.set(seasonStatsRef, seasonalData);
+            writeCount++;
         }
-    });
+        await commitBatchIfNeeded();
+    }
     console.log(`Prepared ${playersData.length} players and their seasonal stats for seeding.`);
 
-    // FIX: Explicitly create the parent season document
     const seasonRef = db.collection("seasons_dev").doc(SEASON_ID);
     batch.set(seasonRef, { season_name: `Season ${SEASON_NUM}`, status: "active" });
+    writeCount++;
     console.log(`Prepared parent document for season ${SEASON_ID}.`);
 
-
     // Seed Games
-    [...scheduleData, ...postScheduleData].forEach(game => {
+    for (const game of [...scheduleData, ...postScheduleData]) {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
         const collectionName = scheduleData.includes(game) ? "games_dev" : "post_games_dev";
         batch.set(seasonRef.collection(collectionName).doc(gameId), game);
-    });
+        writeCount++;
+        await commitBatchIfNeeded();
+    }
     console.log(`Prepared ${scheduleData.length + postScheduleData.length} games for seeding.`);
 
-    // --- NEW: Create a schedule map to find opponents ---
     const scheduleMap = new Map();
     [...scheduleData, ...postScheduleData].forEach(game => {
         const date = game.date.replace(/\//g, "-");
-        // For a given date and team, store their opponent
         scheduleMap.set(`${date}|${game.team1_id}`, game.team2_id);
         scheduleMap.set(`${date}|${game.team2_id}`, game.team1_id);
     });
 
-    // Seed Lineups with corrected IDs
-    [...lineupsData, ...postLineupsData].forEach(lineup => {
+    // Seed Lineups
+    for (const lineup of [...lineupsData, ...postLineupsData]) {
         const date = lineup.date.replace(/\//g, "-");
         const opponentId = scheduleMap.get(`${date}|${lineup.team_id}`);
 
         if (!opponentId) {
             console.warn(`Could not find opponent for team ${lineup.team_id} on ${date}. Skipping lineup for ${lineup.player_handle}.`);
-            return; // Skip this lineup if no game matchup is found
+            continue;
         }
 
-        // Sort team IDs alphabetically to create a consistent, canonical game ID
         const teams = [lineup.team_id, opponentId].sort();
         const gameId = `${date}-${teams[0]}-${teams[1]}`;
         const lineupId = `${gameId}-${lineup.player_id}`;
-
         const collectionName = lineupsData.includes(lineup) ? "lineups_dev" : "post_lineups_dev";
-
-        // Add the canonical gameId to the data being written
         lineup.game_id = gameId;
 
         batch.set(seasonRef.collection(collectionName).doc(lineupId), lineup);
-    });
+        writeCount++;
+        await commitBatchIfNeeded();
+    }
     console.log(`Prepared ${lineupsData.length + postLineupsData.length} enhanced lineups with corrected IDs for seeding.`);
 
-    draftPicksData.forEach(pick => {
-        if (pick.pick_id) batch.set(db.collection("draftPicks_dev").doc(pick.pick_id), pick);
-    });
+    // Seed Draft Picks
+    for (const pick of draftPicksData) {
+        if (pick.pick_id) {
+            batch.set(db.collection("draftPicks_dev").doc(pick.pick_id), pick);
+            writeCount++;
+            await commitBatchIfNeeded();
+        }
+    }
     console.log(`Prepared ${draftPicksData.length} draft picks for seeding.`);
 
     // Seed Intermediate Collections
-    const seedIntermediate = (map, collName) => {
+    const seedIntermediate = async (map, collName) => {
         for (const [date, data] of map.entries()) {
             if (!date || typeof date !== 'string' || !date.includes('/')) {
                 console.warn(`Skipping invalid or empty date key found in source data for collection: ${collName}`);
@@ -426,18 +432,32 @@ async function seedDatabase() {
             const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
             const docRef = db.doc(`${collName}_dev/season_${SEASON_NUM}/S${SEASON_NUM}_${collName}_dev/${yyyymmdd}`);
             batch.set(docRef, data);
+            writeCount++;
+            await commitBatchIfNeeded();
         }
     };
-    seedIntermediate(dailyAveragesMap, 'daily_averages');
-    seedIntermediate(postDailyAveragesMap, 'post_daily_averages');
+    await seedIntermediate(dailyAveragesMap, 'daily_averages');
+    await seedIntermediate(postDailyAveragesMap, 'post_daily_averages');
     console.log(`Prepared ${dailyAveragesMap.size + postDailyAveragesMap.size} daily average documents.`);
 
-    dailyScores.forEach(s => batch.set(db.doc(`daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_daily_scores_dev/${s.docId}`), s.data));
-    postDailyScores.forEach(s => batch.set(db.doc(`post_daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_post_daily_scores_dev/${s.docId}`), s.data));
+    for (const s of dailyScores) {
+        batch.set(db.doc(`daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_daily_scores_dev/${s.docId}`), s.data);
+        writeCount++;
+        await commitBatchIfNeeded();
+    }
+    for (const s of postDailyScores) {
+        batch.set(db.doc(`post_daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_post_daily_scores_dev/${s.docId}`), s.data);
+        writeCount++;
+        await commitBatchIfNeeded();
+    }
     console.log(`Prepared ${dailyScores.length + postDailyScores.length} daily team score documents.`);
 
-    console.log("Committing all data to Firestore...");
-    await batch.commit();
+    // Commit any remaining writes
+    if (writeCount > 0) {
+        console.log(`Committing final batch of ${writeCount} writes...`);
+        await batch.commit();
+    }
+
     console.log("✅ Database seeding and backfill complete!");
 }
 
