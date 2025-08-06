@@ -48,27 +48,21 @@ async function performFullUpdate() {
         for (let i = 0; i < allStarters.length; i++) {
             const player = allStarters[i];
             const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
-            
             try {
                 const response = await fetch(workerUrl);
                 apiRequests++;
                 const data = await response.json();
-                
                 const rawScore = parseFloat(data?.stats?.karmaDelta || 0);
                 const adjustedScore = rawScore - (player.deductions || 0);
                 const finalScore = player.is_captain ? adjustedScore * 1.5 : adjustedScore;
-
                 player.points_raw = rawScore;
                 player.points_adjusted = adjustedScore;
                 player.final_score = finalScore;
-                
             } catch (error) {
                 console.error(`performFullUpdate: Failed to fetch karma for ${player.player_id}`, error);
             }
-            
-            await delay(Math.floor(Math.random() * 201) + 100); // Random 100-300ms delay
+            await delay(Math.floor(Math.random() * 201) + 100);
         }
-        
         batch.update(gameDoc.ref, { 
             team1_lineup: gameData.team1_lineup, 
             team2_lineup: gameData.team2_lineup 
@@ -77,20 +71,22 @@ async function performFullUpdate() {
 
     await batch.commit();
 
-    // Usage tracking
     const today = new Date().toISOString().split('T')[0];
     const usageRef = db.doc(`${getCollectionName('usage_stats')}/${today}`);
     await usageRef.set({ 
         api_requests_full_update: FieldValue.increment(apiRequests) 
     }, { merge: true });
 
+    // --- NEW: Log the completion time of this update ---
+    const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
+    await statusRef.set({
+        last_full_update_completed: FieldValue.serverTimestamp()
+    }, { merge: true });
+
     return { success: true, message: `Updated scores for ${liveGamesSnap.size} games. Made ${apiRequests} API requests.` };
 }
 
 
-/**
- * Callable function for an admin to manually trigger a full update of all live scores.
- */
 exports.updateAllLiveScores = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -99,38 +95,38 @@ exports.updateAllLiveScores = onCall({ region: "us-central1" }, async (request) 
     if (!userDoc.exists || userDoc.data().role !== 'admin') {
         throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
     }
-    
     return await performFullUpdate();
 });
 
-
-/**
- * Callable function for an admin to start or stop the live scoring sampler.
- */
-exports.toggleLiveScoring = onCall({ region: "us-central1" }, async (request) => {
+// --- RENAMED & UPDATED to handle new states ---
+exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
     if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new HttpsError('permission-denied', 'Must be an admin to toggle live scoring.');
+        throw new HttpsError('permission-denied', 'Must be an admin to set live scoring status.');
     }
 
-    const { isActive, interval } = request.data;
-    if (typeof isActive !== 'boolean' || (interval && typeof interval !== 'number')) {
-        throw new HttpsError('invalid-argument', 'Invalid payload. Expects { isActive: boolean, interval: number }');
+    const { status, interval } = request.data;
+    const validStatuses = ['active', 'paused', 'stopped'];
+    if (!validStatuses.includes(status)) {
+        throw new HttpsError('invalid-argument', 'Invalid payload. Expects { status: "active" | "paused" | "stopped" }');
     }
 
     const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
     try {
-        await statusRef.set({
-            is_active: isActive,
-            interval_minutes: interval || 5,
+        const updateData = {
+            status: status,
             updated_by: request.auth.uid,
             last_updated: FieldValue.serverTimestamp()
-        }, { merge: true });
+        };
+        if (interval && typeof interval === 'number') {
+            updateData.interval_minutes = interval;
+        }
+        await statusRef.set(updateData, { merge: true });
 
-        return { success: true, message: `Live scoring sampler is now ${isActive ? 'ACTIVE' : 'INACTIVE'}.` };
+        return { success: true, message: `Live scoring status set to ${status}.` };
     } catch (error) {
         console.error("Error updating live scoring status:", error);
         throw new HttpsError('internal', 'Could not update live scoring status.');
@@ -145,11 +141,12 @@ exports.sampleLiveScores = onSchedule("every 5 minutes", async (event) => {
     const statusRef = db.doc(getCollectionName('live_scoring_status') + '/status');
     const statusSnap = await statusRef.get();
 
-    if (!statusSnap.exists || statusSnap.data().is_active !== true) {
-        console.log("Sampler is not active. Exiting.");
+    // --- UPDATED: Now checks for 'active' state specifically ---
+    if (!statusSnap.exists || statusSnap.data().status !== 'active') {
+        console.log(`Sampler is not active (current status: ${statusSnap.data().status || 'stopped'}). Exiting.`);
         return null;
     }
-
+    
     const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
     if (liveGamesSnap.empty) {
         console.log("No live games to sample.");

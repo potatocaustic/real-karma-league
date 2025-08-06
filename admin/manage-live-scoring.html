@@ -2,11 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>Manage Live Scoring - RKL Admin</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        /* Progress Bar Styles (copied from manage-draft.html) */
+        #progress-bar-container { width: 100%; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 1rem; }
+        #progress-bar { width: 0%; height: 20px; background-color: #007bff; transition: width 0.2s ease-in-out; }
+    </style>
 </head>
 <body>
     <header>
@@ -20,20 +25,35 @@
 
         <div class="form-container-admin">
             <h4>System Status</h4>
-            <p>Current Status: <strong id="system-status">LOADING...</strong></p>
-            <div id="controls-container" style="display: flex; gap: 1rem; margin-top: 1rem;">
-                <button id="start-btn" class="btn-admin-save">Begin Live Scoring</button>
-                <button id="stop-btn" class="btn-admin-delete" style="display:none;">Stop Live Scoring</button>
-                <button id="manual-update-btn" class="btn-admin-edit">Run Full Update Manually</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <p>Current Status: <strong id="system-status">LOADING...</strong></p>
+                <p>Next Scheduled Sample: <strong id="next-sample-display">--:--</strong></p>
+                <p>Last Full Update: <strong id="last-update-display">Never</strong></p>
             </div>
-            <hr style="margin: 1.5rem 0;">
+            
+            <div id="controls-container" style="margin-top: 1.5rem;">
+                <div id="stopped-controls" style="display: none;">
+                    <button id="begin-btn" class="btn-admin-save">Begin Live Scoring</button>
+                </div>
+                <div id="paused-controls" style="display: none;">
+                    <button id="resume-paused-btn" class="btn-admin-save">Resume Live Scoring</button>
+                </div>
+                <div id="active-controls" style="display: none; flex-wrap: wrap; gap: 1rem;">
+                    <button id="pause-btn" class="btn-admin-secondary">Pause Live Scoring</button>
+                    <button id="stop-btn" class="btn-admin-delete">Stop Live Scoring</button>
+                </div>
+            </div>
+             <hr style="margin: 1.5rem 0;">
 
-            <h4>Configuration</h4>
+            <h4>Actions & Configuration</h4>
             <div class="form-group-admin">
                 <label for="interval-input">Sampling Interval (minutes)</label>
-                <input type="number" id="interval-input" value="5" min="1">
-                <button id="save-interval-btn" class="btn-admin-secondary" style="margin-top:0.5rem;">Save Interval</button>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="number" id="interval-input" value="5" min="1" style="max-width: 150px;">
+                    <button id="save-interval-btn" class="btn-admin-secondary">Save Interval</button>
+                </div>
             </div>
+            <button id="manual-update-btn" class="btn-admin-edit" style="margin-top:1rem; width:100%;">Run Full Update Manually</button>
         </div>
         
         <div class="form-container-admin" style="margin-top: 2rem;">
@@ -43,6 +63,19 @@
     </main>
     
     <div id="loading-container" class="loading">Authenticating...</div>
+
+    <div id="progress-modal" class="modal-admin" style="display: none;">
+        <div class="modal-content-admin" style="max-width: 500px;">
+            <h3 id="progress-title">Performing Full Score Update...</h3>
+            <p id="progress-status">This may take a minute. Please do not close this page.</p>
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="progress-counter" style="text-align: center; margin-top: 1rem; font-weight: bold;"></p>
+            <button type="button" id="progress-close-btn" class="btn-admin-secondary" style="margin-top: 1.5rem; display: none;">Close</button>
+        </div>
+    </div>
+
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/admin/manage-live-scoring.js"></script>
 </body>

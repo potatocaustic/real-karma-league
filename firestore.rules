@@ -90,6 +90,12 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdminDev();
     }
+    match /live_scoring_status_dev/{doc=**} {
+        allow read, write: if isAdminDev();
+    }
+    match /usage_stats_dev/{doc=**} {
+        allow read, write: if isAdminDev();
+    }
     match /users_dev/{userId} {
         allow read: if request.auth.uid == userId || isAdminDev();
         allow write: if isAdminDev();
