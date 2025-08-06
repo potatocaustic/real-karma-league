@@ -1478,9 +1478,6 @@ function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = fal
 }
 
 
-/**
- * Core logic to update player ranks for an entire season.
- */
 async function performPlayerRankingUpdate() {
     console.log("Starting player ranking update...");
     const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
@@ -1494,16 +1491,27 @@ async function performPlayerRankingUpdate() {
     const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
     const gpMinimum = seasonGamesPlayed >= 60 ? 3 : 0; // Conditional games played minimum
 
-    const playerStatsSnap = await db.collectionGroup(getCollectionName('seasonal_stats')).where(admin.firestore.FieldPath.documentId(), '>=', `v2_players_dev/`).where(admin.firestore.FieldPath.documentId(), '<', `v2_players_dev0`).get();
-    
-    const allPlayerStats = playerStatsSnap.docs.map(doc => {
-        const pathParts = doc.ref.path.split('/');
-        return {
-            player_id: pathParts[1],
-            ...doc.data()
-        };
-    });
-    
+    // --- FIXED QUERY LOGIC ---
+    // 1. Fetch all players
+    const playersSnap = await db.collection(getCollectionName('v2_players')).get();
+
+    // 2. For each player, fetch their stats for the active season
+    const playerStatPromises = playersSnap.docs.map(playerDoc =>
+        playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
+    );
+    const playerStatsDocs = await Promise.all(playerStatPromises);
+
+    const allPlayerStats = playerStatsDocs
+        .filter(doc => doc.exists) // Only include players who have a stats doc for the season
+        .map(doc => {
+            const pathParts = doc.ref.path.split('/');
+            // The playerID is the 2nd segment in the path (e.g., v2_players_dev/PLAYER_ID/...)
+            return {
+                player_id: pathParts[1],
+                ...doc.data()
+            };
+        });
+
     const leaderboards = {
         total_points: getRanks(allPlayerStats, 'total_points'),
         rel_mean: getRanks(allPlayerStats, 'rel_mean', null, false, gpMinimum),
@@ -1544,28 +1552,39 @@ async function performPerformanceRankingUpdate() {
     }
     const seasonId = activeSeasonSnap.docs[0].id;
 
-    const lineupsSnap = await db.collectionGroup(getCollectionName('lineups')).where('seasonId', '==', seasonId).get();
-    const postLineupsSnap = await db.collectionGroup(getCollectionName('post_lineups')).where('seasonId', '==', seasonId).get();
-    
+    // --- FIXED QUERY LOGIC ---
+    // 1. Define the explicit paths to the season's subcollections.
+    const lineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('lineups'));
+    const postLineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_lineups'));
+
+    // 2. Fetch from both collections simultaneously.
+    const [lineupsSnap, postLineupsSnap] = await Promise.all([
+        lineupsRef.get(),
+        postLineupsRef.get()
+    ]);
+
+    // 3. Combine the results into a single array.
     const allPerformances = [...lineupsSnap.docs, ...postLineupsSnap.docs].map(d => d.data());
+    // --- END OF FIX ---
 
     const karmaLeaderboard = [...allPerformances]
         .sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0))
         .slice(0, 250);
-        
+
     const rankLeaderboard = [...allPerformances]
         .filter(p => (p.global_rank || 0) > 0)
         .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
         .slice(0, 250);
 
     const batch = db.batch();
-    batch.set(db.doc(`${getCollectionName('leaderboards')}/single_game_karma`), { seasonId, rankings: karmaLeaderboard });
-    batch.set(db.doc(`${getCollectionName('leaderboards')}/single_game_rank`), { seasonId, rankings: rankLeaderboard });
-    
+    const leaderboardsCollection = getCollectionName('leaderboards');
+
+    batch.set(db.doc(`${leaderboardsCollection}/single_game_karma`), { seasonId, rankings: karmaLeaderboard });
+    batch.set(db.doc(`${leaderboardsCollection}/single_game_rank`), { seasonId, rankings: rankLeaderboard });
+
     await batch.commit();
     console.log("Single-performance leaderboard update complete.");
 }
-
 
 /**
  * Scheduled function to update player ranks daily.
