@@ -234,11 +234,11 @@ window.addEventListener('load', () => {
                 if (last_sample_results && last_sample_results.length > 0) {
                     logContainer.innerHTML = last_sample_results.map(res => {
                         const changeIndicator = res.changed ? '✓' : '✗';
-                        const color = res.changed ? 'var(--accent-color)' : '#ffc107';
-                        return `<p style="color: ${color};">[${changeIndicator}] ${res.handle}: ${res.oldScore.toFixed(2)} → ${res.newScore.toFixed(2)}</p>`;
+                        // Use explicit, high-contrast colors
+                        const color = res.changed ? '#28a745' : '#555'; // Green for changed, dark gray for no change
+                        const fontWeight = res.changed ? 'bold' : 'normal'; // Make changes bold
+                        return `<p style="color: ${color}; font-weight: ${fontWeight}; margin-bottom: 0.25rem;">[${changeIndicator}] ${res.handle}: ${res.oldScore.toFixed(2)} → ${res.newScore.toFixed(2)}</p>`;
                     }).join('');
-                } else {
-                    logContainer.innerHTML = `<p>No sample run yet.</p>`;
                 }
                 
                 if (active_game_date) {

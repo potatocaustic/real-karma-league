@@ -657,3 +657,15 @@ main {
 .round-date-inputs {
     padding: 1rem;
 }
+
+/* --- NEW: Live Scoring Sample Log Styles --- */
+#last-sample-log {
+    font-family: monospace;
+    font-size: 0.9rem;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: #f8f9fa; /* Light gray background */
+    border: 1px solid #e0e0e0;   /* Subtle border */
+    padding: 1rem;
+    border-radius: 6px;
+}
