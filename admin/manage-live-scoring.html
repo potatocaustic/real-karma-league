@@ -2,16 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manage Live Scoring - RKL Admin</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <style>
-        /* Progress Bar Styles (copied from manage-draft.html) */
         #progress-bar-container { width: 100%; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 1rem; }
         #progress-bar { width: 0%; height: 20px; background-color: #007bff; transition: width 0.2s ease-in-out; }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
@@ -54,11 +54,27 @@
                 </div>
             </div>
             <button id="manual-update-btn" class="btn-admin-edit" style="margin-top:1rem; width:100%;">Run Full Update Manually</button>
+            <hr style="margin: 1.5rem 0;">
+
+            <h4>Last Sample Results</h4>
+            <div id="last-sample-log" style="font-family: monospace; font-size: 0.9rem; max-height: 150px; overflow-y: auto; background: #333; padding: 0.5rem; border-radius: 4px;">
+                <p>No sample run yet.</p>
+            </div>
         </div>
         
         <div class="form-container-admin" style="margin-top: 2rem;">
             <h4>Today's Usage Statistics</h4>
             <p id="usage-stats-display">Loading stats...</p>
+            <div style="max-width: 400px; margin: 1rem auto;">
+                 <canvas id="current-day-chart"></canvas>
+            </div>
+        </div>
+
+        <div class="form-container-admin" style="margin-top: 2rem;">
+            <h4>Historical Usage</h4>
+            <div style="width: 100%; margin: 1rem auto;">
+                 <canvas id="historical-usage-chart"></canvas>
+            </div>
         </div>
     </main>
     

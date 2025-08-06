@@ -26,11 +26,10 @@ const getCollectionName = (baseName) => {
 // LIVE SCORING REFACTOR FUNCTIONS
 // ===================================================================
 
-/**
- * Internal helper function containing the core logic to update all live scores.
- * This can be called by both the onCall and onSchedule functions.
- */
 async function performFullUpdate() {
+    const statusSnap = await db.doc(`${getCollectionName('live_scoring_status')}/status`).get();
+    const gameDate = statusSnap.exists() ? statusSnap.data().active_game_date : new Date().toISOString().split('T')[0];
+
     const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
     if (liveGamesSnap.empty) {
         console.log("performFullUpdate: No active games to update.");
@@ -63,21 +62,19 @@ async function performFullUpdate() {
             }
             await delay(Math.floor(Math.random() * 201) + 100);
         }
-        batch.update(gameDoc.ref, { 
-            team1_lineup: gameData.team1_lineup, 
-            team2_lineup: gameData.team2_lineup 
+        batch.update(gameDoc.ref, {
+            team1_lineup: gameData.team1_lineup,
+            team2_lineup: gameData.team2_lineup
         });
     }
 
     await batch.commit();
 
-    const today = new Date().toISOString().split('T')[0];
-    const usageRef = db.doc(`${getCollectionName('usage_stats')}/${today}`);
-    await usageRef.set({ 
-        api_requests_full_update: FieldValue.increment(apiRequests) 
+    const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
+    await usageRef.set({
+        api_requests_full_update: FieldValue.increment(apiRequests)
     }, { merge: true });
 
-    // --- NEW: Log the completion time of this update ---
     const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
     await statusRef.set({
         last_full_update_completed: FieldValue.serverTimestamp()
@@ -85,6 +82,7 @@ async function performFullUpdate() {
 
     return { success: true, message: `Updated scores for ${liveGamesSnap.size} games. Made ${apiRequests} API requests.` };
 }
+
 
 
 exports.updateAllLiveScores = onCall({ region: "us-central1" }, async (request) => {
@@ -98,7 +96,10 @@ exports.updateAllLiveScores = onCall({ region: "us-central1" }, async (request) 
     return await performFullUpdate();
 });
 
-// --- RENAMED & UPDATED to handle new states ---
+/**
+ * Manages the state of the live scoring system. Can be set to 'active', 'paused', or 'stopped'.
+ * Now also handles setting the active game date and logging the number of live games for usage stats.
+ */
 exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -108,7 +109,7 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
         throw new HttpsError('permission-denied', 'Must be an admin to set live scoring status.');
     }
 
-    const { status, interval } = request.data;
+    const { status, interval, gameDate } = request.data;
     const validStatuses = ['active', 'paused', 'stopped'];
     if (!validStatuses.includes(status)) {
         throw new HttpsError('invalid-argument', 'Invalid payload. Expects { status: "active" | "paused" | "stopped" }');
@@ -124,6 +125,14 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
         if (interval && typeof interval === 'number') {
             updateData.interval_minutes = interval;
         }
+
+        if (gameDate) {
+            updateData.active_game_date = gameDate;
+            const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+            const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
+            await usageRef.set({ live_game_count: liveGamesSnap.size }, { merge: true });
+        }
+
         await statusRef.set(updateData, { merge: true });
 
         return { success: true, message: `Live scoring status set to ${status}.` };
@@ -136,20 +145,22 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
 
 /**
  * Scheduled function that runs every 5 minutes to sample scores and check for changes.
+ * Now stops if no live games are found and logs its results to the status document.
  */
 exports.sampleLiveScores = onSchedule("every 5 minutes", async (event) => {
     const statusRef = db.doc(getCollectionName('live_scoring_status') + '/status');
     const statusSnap = await statusRef.get();
 
-    // --- UPDATED: Now checks for 'active' state specifically ---
     if (!statusSnap.exists || statusSnap.data().status !== 'active') {
         console.log(`Sampler is not active (current status: ${statusSnap.data().status || 'stopped'}). Exiting.`);
         return null;
     }
     
+    const gameDate = statusSnap.data().active_game_date;
+
     const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
     if (liveGamesSnap.empty) {
-        console.log("No live games to sample.");
+        console.log("No live games to sample. Stopping.");
         return null;
     }
 
@@ -175,6 +186,8 @@ exports.sampleLiveScores = onSchedule("every 5 minutes", async (event) => {
 
     let changesDetected = 0;
     let apiRequests = 0;
+    const sampleResults = [];
+
     for (const player of sampledPlayers) {
         const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
         try {
@@ -182,19 +195,29 @@ exports.sampleLiveScores = onSchedule("every 5 minutes", async (event) => {
             apiRequests++;
             const data = await response.json();
             const newRawScore = parseFloat(data?.stats?.karmaDelta || 0);
+            const oldRawScore = player.points_raw || 0;
+            const hasChanged = newRawScore !== oldRawScore;
 
-            if (newRawScore !== player.points_raw) {
+            if (hasChanged) {
                 changesDetected++;
             }
+            sampleResults.push({
+                handle: player.player_handle,
+                oldScore: oldRawScore,
+                newScore: newRawScore,
+                changed: hasChanged
+            });
+
         } catch (error) {
             console.error(`Sampler failed to fetch karma for ${player.player_id}`, error);
         }
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const usageRef = db.doc(`${getCollectionName('usage_stats')}/${today}`);
-    await usageRef.set({ 
-        api_requests_sample: FieldValue.increment(apiRequests) 
+    await statusRef.set({ last_sample_results: sampleResults }, { merge: true });
+
+    const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
+    await usageRef.set({
+        api_requests_sample: FieldValue.increment(apiRequests)
     }, { merge: true });
 
     if (changesDetected >= 2) {
