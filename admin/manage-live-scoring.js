@@ -86,7 +86,7 @@ window.addEventListener('load', () => {
                     borderColor: 'rgba(255, 193, 7, 1)',
                 }]
             },
-            options: { scales: { y: { beginAtZero: true, stacked: false }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } } }
+            options: { scales: { y: { beginAtZero: true, stacked: false }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false }, ticks: {precision: 0, stepSize: 1} } } }
         });
 
         const currentDayData = usageSnap.docs.find(doc => doc.id === currentDayId)?.data();
