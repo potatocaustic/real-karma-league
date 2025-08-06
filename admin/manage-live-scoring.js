@@ -11,38 +11,10 @@ const getCollectionName = (baseName) => {
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 };
 
-// --- Page Elements ---
-const loadingContainer = document.getElementById('loading-container');
-const adminContainer = document.getElementById('admin-container');
-const authStatusDiv = document.getElementById('auth-status');
-const statusDisplay = document.getElementById('system-status');
-const nextSampleDisplay = document.getElementById('next-sample-display');
-const lastUpdateDisplay = document.getElementById('last-update-display');
-const usageDisplay = document.getElementById('usage-stats-display');
-const logContainer = document.getElementById('last-sample-log');
-const sampleProgressContainer = document.getElementById('sample-progress-container');
-const sampleProgressBar = document.getElementById('sample-progress-bar');
-
-
-// Control Buttons & Inputs
-const stoppedControls = document.getElementById('stopped-controls');
-const pausedControls = document.getElementById('paused-controls');
-const activeControls = document.getElementById('active-controls');
-const beginBtn = document.getElementById('begin-btn');
-const resumePausedBtn = document.getElementById('resume-paused-btn');
-const pauseBtn = document.getElementById('pause-btn');
-const stopBtn = document.getElementById('stop-btn');
-const manualUpdateBtn = document.getElementById('manual-update-btn');
-const intervalInput = document.getElementById('interval-input');
-const saveIntervalBtn = document.getElementById('save-interval-btn');
-
-// Progress Modal Elements
-const progressModal = document.getElementById('progress-modal');
-const progressBar = document.getElementById('progress-bar');
-const progressCounter = document.getElementById('progress-counter');
-const progressTitle = document.getElementById('progress-title');
-const progressStatus = document.getElementById('progress-status');
-const progressCloseBtn = document.getElementById('progress-close-btn');
+// --- Page Elements (Declare variables, but don't assign yet) ---
+let loadingContainer, adminContainer, authStatusDiv, statusDisplay, nextSampleDisplay, lastUpdateDisplay, usageDisplay, logContainer, sampleProgressContainer, sampleProgressBar;
+let stoppedControls, pausedControls, activeControls, beginBtn, resumePausedBtn, pauseBtn, stopBtn, manualUpdateBtn, intervalInput, saveIntervalBtn;
+let progressModal, progressBar, progressCounter, progressTitle, progressStatus, progressCloseBtn;
 
 // --- Firebase Callable Functions ---
 const setLiveScoringStatus = httpsCallable(functions, 'setLiveScoringStatus');
@@ -52,6 +24,65 @@ const updateAllLiveScores = httpsCallable(functions, 'updateAllLiveScores');
 let countdownIntervalId = null;
 let historicalChart = null;
 let currentDayChart = null;
+
+// --- Wait for the DOM to be fully loaded before running the script ---
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Assign Page Elements Now that the DOM is Ready ---
+    loadingContainer = document.getElementById('loading-container');
+    adminContainer = document.getElementById('admin-container');
+    authStatusDiv = document.getElementById('auth-status');
+    statusDisplay = document.getElementById('system-status');
+    nextSampleDisplay = document.getElementById('next-sample-display');
+    lastUpdateDisplay = document.getElementById('last-update-display');
+    usageDisplay = document.getElementById('usage-stats-display');
+    logContainer = document.getElementById('last-sample-log');
+    sampleProgressContainer = document.getElementById('sample-progress-container');
+    sampleProgressBar = document.getElementById('sample-progress-bar');
+
+    stoppedControls = document.getElementById('stopped-controls');
+    pausedControls = document.getElementById('paused-controls');
+    activeControls = document.getElementById('active-controls');
+    beginBtn = document.getElementById('begin-btn');
+    resumePausedBtn = document.getElementById('resume-paused-btn');
+    pauseBtn = document.getElementById('pause-btn');
+    stopBtn = document.getElementById('stop-btn');
+    manualUpdateBtn = document.getElementById('manual-update-btn');
+    intervalInput = document.getElementById('interval-input');
+    saveIntervalBtn = document.getElementById('save-interval-btn');
+
+    progressModal = document.getElementById('progress-modal');
+    progressBar = document.getElementById('progress-bar');
+    progressCounter = document.getElementById('progress-counter');
+    progressTitle = document.getElementById('progress-title');
+    progressStatus = document.getElementById('progress-status');
+    progressCloseBtn = document.getElementById('progress-close-btn');
+
+    // --- Main Authentication and Initialization Logic ---
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userDoc = await getDoc(userRef);
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+                loadingContainer.style.display = 'none';
+                adminContainer.style.display = 'block';
+                authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        auth.signOut().then(() => { window.location.href = '/login.html'; });
+                    });
+                }
+                initializeControlPanel();
+            } else {
+                loadingContainer.innerHTML = '<div class="error">Access Denied.</div>';
+            }
+        } else {
+            window.location.href = '/login.html';
+        }
+    });
+});
+
 
 async function renderUsageCharts(currentDayId) {
     const usageQuery = query(collection(db, getCollectionName('usage_stats')));
@@ -146,7 +177,7 @@ function startSampleCountdown(lastSampleTimestamp, intervalMinutes) {
                 progress += 10;
                 sampleProgressBar.style.width = `${progress}%`;
                 if (progress >= 100) clearInterval(progressInterval);
-            }, 300); // Simulate 3 seconds of sampling time
+            }, 300);
             return;
         }
 
@@ -156,49 +187,6 @@ function startSampleCountdown(lastSampleTimestamp, intervalMinutes) {
     }, 1000);
 }
 
-async function runFullUpdateWithProgress() {
-    const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
-    const liveGamesSnap = await getDocs(liveGamesQuery);
-    const playerCount = liveGamesSnap.docs.reduce((sum, doc) => sum + doc.data().team1_lineup.length + doc.data().team2_lineup.length, 0);
-
-    if (playerCount === 0) {
-        alert("No active live games found. Cannot run an update.");
-        return;
-    }
-
-    progressModal.style.display = 'flex';
-    progressBar.style.width = '0%';
-    progressCounter.textContent = '';
-    progressTitle.textContent = 'Performing Full Score Update...';
-    progressStatus.textContent = `Fetching scores for ${playerCount} players.`;
-    progressCloseBtn.style.display = 'none';
-
-    const avgTimePerPlayer = 250;
-    const totalTime = playerCount * avgTimePerPlayer;
-    let elapsedTime = 0;
-
-    const progressInterval = setInterval(() => {
-        elapsedTime += 100;
-        const progress = Math.min((elapsedTime / totalTime) * 100, 99);
-        progressBar.style.width = `${progress}%`;
-        const playersProcessed = Math.min(Math.floor((elapsedTime / totalTime) * playerCount), playerCount);
-        progressCounter.textContent = `${playersProcessed} / ${playerCount} players processed...`;
-    }, 100);
-
-    try {
-        await updateAllLiveScores();
-    } catch (error) {
-        throw error;
-    } finally {
-        clearInterval(progressInterval);
-        progressBar.style.width = '100%';
-        progressTitle.textContent = "Processing Complete!";
-        progressStatus.textContent = "All live game scores have been updated.";
-        progressCounter.textContent = `${playerCount} / ${playerCount} players processed.`;
-        progressCloseBtn.style.display = 'block';
-    }
-}
-
 function initializeControlPanel() {
     const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
 
@@ -206,7 +194,7 @@ function initializeControlPanel() {
         if (docSnap.exists()) {
             const { status = 'stopped', interval_minutes = 5, last_full_update_completed, last_sample_results, active_game_date, last_sample_completed_at } = docSnap.data();
             
-            sampleProgressContainer.style.display = 'none'; // Hide progress on new data
+            sampleProgressContainer.style.display = 'none';
             sampleProgressBar.style.width = '0%';
 
             statusDisplay.textContent = status.toUpperCase();
@@ -263,7 +251,7 @@ function initializeControlPanel() {
             pausedControls.style.display = 'none';
             activeControls.style.display = 'none';
             intervalInput.value = 5;
-            if (nextSampleIntervalId) clearInterval(nextSampleIntervalId);
+            if (countdownIntervalId) clearInterval(countdownIntervalId);
             nextSampleDisplay.textContent = 'INACTIVE';
             logContainer.innerHTML = `<p>System is stopped.</p>`;
         }
