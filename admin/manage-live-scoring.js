@@ -45,6 +45,7 @@ window.addEventListener('load', () => {
     // --- Firebase Callable Functions ---
     const setLiveScoringStatus = httpsCallable(functions, 'setLiveScoringStatus');
     const updateAllLiveScores = httpsCallable(functions, 'updateAllLiveScores');
+    const forceLeaderboardRecalculation = httpsCallable(functions, 'forceLeaderboardRecalculation');
 
     // --- Global State ---
     let countdownIntervalId = null;
@@ -346,7 +347,28 @@ window.addEventListener('load', () => {
                 alert("Interval must be a positive number.");
             }
         });
-    
+
+        const recalcBtn = document.getElementById('force-recalc-btn');
+        if (recalcBtn) {
+            recalcBtn.addEventListener('click', async () => {
+                if (!confirm("Are you sure you want to force a full recalculation of all leaderboards? This can be a resource-intensive operation.")) {
+                    return;
+                }
+                recalcBtn.disabled = true;
+                recalcBtn.textContent = 'Recalculating...';
+                try {
+                    await forceLeaderboardRecalculation();
+                    alert("Leaderboard recalculation completed successfully!");
+                } catch (error) {
+                    console.error("Error forcing leaderboard recalculation:", error);
+                    alert(`An error occurred: ${error.message}`);
+                } finally {
+                    recalcBtn.disabled = false;
+                    recalcBtn.textContent = 'Force Leaderboard Recalc';
+                }
+            });
+        }
+
         progressCloseBtn.addEventListener('click', () => {
             progressModal.style.display = 'none';
         });

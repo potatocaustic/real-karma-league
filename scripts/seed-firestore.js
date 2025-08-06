@@ -205,6 +205,7 @@ async function seedDatabase() {
                 stats[statKey('rel_mean')] = stats[statKey('meansum')] > 0 ? stats[statKey('total_points')] / stats[statKey('meansum')] : 0;
                 stats[statKey('rel_median')] = stats[statKey('medsum')] > 0 ? stats[statKey('total_points')] / stats[statKey('medsum')] : 0;
                 stats[statKey('medrank')] = calculateMedian(stats[statKey('ranks')] || []);
+                stats[statKey('meanrank')] = calculateMean(stats[statKey('ranks')] || []);
                 stats[statKey('GEM')] = calculateGeometricMean(stats[statKey('ranks')] || []);
                 delete stats[statKey('ranks')];
             }

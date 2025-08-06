@@ -487,10 +487,10 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     playersSnap.forEach(playerDoc => {
         const statsRef = playerDoc.ref.collection(getCollectionName("seasonal_stats")).doc(seasonId);
         batch.set(statsRef, {
-            aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
+            aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, meanrank: 0, medsum: 0,
             post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
-            post_medrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
-            WAR: 0, total_points: 0, rookie: '0', all_star: '0'
+            post_medrank: 0, post_meanrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
+            WAR: 0, total_points: 0, t100: 0, t100_pct: 0, post_t100: 0, post_t100_pct: 0, t50: 0, t50_pct: 0, post_t50: 0, post_t50_pct: 0, rookie: '0', all_star: '0'
         });
     });
     console.log(`Prepared empty seasonal_stats for ${playersSnap.size} players.`);
@@ -894,10 +894,10 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
         const isCurrentDraft = draftSeason === activeSeasonId;
 
         const initialStats = {
-            aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
+            aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, meanrank: 0, medsum: 0,
             post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
-            post_medrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
-            WAR: 0, total_points: 0, all_star: '0'
+            post_medrank: 0, post_meanrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
+            WAR: 0, t100: 0, t100_pct: 0, post_t100: 0, post_t100_pct: 0, t50: 0, t50_pct: 0, post_t50: 0, post_t50_pct: 0, total_points: 0, all_star: '0'
         };
 
         if (isCurrentDraft) {
@@ -1121,8 +1121,10 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
 
     const globalRanks = allLineups.map(l => l.global_rank || 0).filter(r => r > 0);
     const medrank = calculateMedian(globalRanks);
+    const meanrank = calculateMean(globalRanks);
     const GEM = calculateGeometricMean(globalRanks);
-
+    const t100 = allLineups.filter(l => l.global_rank > 0 && l.global_rank <= 100).length;
+    const t50 = allLineups.filter(l => l.global_rank > 0 && l.global_rank <= 50).length;
     let meansum = 0;
     let medsum = 0;
     const uniqueDates = [...new Set(allLineups.map(l => l.date))];
@@ -1140,6 +1142,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     statsUpdate[`${prefix}games_played`] = games_played;
     statsUpdate[`${prefix}total_points`] = total_points;
     statsUpdate[`${prefix}medrank`] = medrank;
+    statsUpdate[`${prefix}meanrank`] = meanrank;
     statsUpdate[`${prefix}aag_mean`] = aag_mean;
     statsUpdate[`${prefix}aag_mean_pct`] = games_played > 0 ? aag_mean / games_played : 0;
     statsUpdate[`${prefix}meansum`] = meansum;
@@ -1150,7 +1153,10 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     statsUpdate[`${prefix}rel_median`] = medsum > 0 ? total_points / medsum : 0;
     statsUpdate[`${prefix}GEM`] = GEM;
     statsUpdate[`${prefix}WAR`] = WAR;
-
+    statsUpdate[`${prefix}t100`] = t100;
+    statsUpdate[`${prefix}t100_pct`] = games_played > 0 ? t100 / games_played : 0;
+    statsUpdate[`${prefix}t50`] = t50;
+    statsUpdate[`${prefix}t50_pct`] = games_played > 0 ? t50 / games_played : 0;
     const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(playerId).collection(getCollectionName('seasonal_stats')).doc(seasonId);
     batch.set(playerStatsRef, statsUpdate, { merge: true });
 
@@ -1438,6 +1444,169 @@ async function processCompletedGame(event) {
 exports.onRegularGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('games')}/{gameId}`, processCompletedGame);
 exports.onPostGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('post_games')}/{gameId}`, processCompletedGame);
 
+/**
+ * Helper function to rank an array of players based on specified criteria.
+ * @param {Array<Object>} players - The array of player stat objects.
+ * @param {string} primaryStat - The main stat to sort by.
+ * @param {string} tiebreakerStat - The secondary stat for tiebreaking.
+ * @param {boolean} isAscending - True to sort ascending (lower is better), false for descending.
+ * @param {number} gpMinimum - The minimum games played required to be ranked.
+ * @returns {Map<string, number>} A map of player IDs to their rank.
+ */
+function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0) {
+    const rankedMap = new Map();
+    const eligiblePlayers = players.filter(p => (p.games_played || 0) >= gpMinimum);
+
+    eligiblePlayers.sort((a, b) => {
+        const aPrimary = a[primaryStat] || 0;
+        const bPrimary = b[primaryStat] || 0;
+        const primaryCompare = isAscending ? aPrimary - bPrimary : bPrimary - aPrimary;
+        if (primaryCompare !== 0) return primaryCompare;
+
+        if (tiebreakerStat) {
+            const aSecondary = a[tiebreakerStat] || 0;
+            const bSecondary = b[tiebreakerStat] || 0;
+            return bSecondary - aSecondary; // Tiebreakers are always descending
+        }
+        return 0;
+    });
+
+    eligiblePlayers.forEach((player, index) => {
+        rankedMap.set(player.player_id, index + 1);
+    });
+    return rankedMap;
+}
+
+
+/**
+ * Core logic to update player ranks for an entire season.
+ */
+async function performPlayerRankingUpdate() {
+    console.log("Starting player ranking update...");
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+    if (activeSeasonSnap.empty) {
+        console.log("No active season found. Aborting player ranking update.");
+        return;
+    }
+
+    const activeSeasonDoc = activeSeasonSnap.docs[0];
+    const seasonId = activeSeasonDoc.id;
+    const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
+    const gpMinimum = seasonGamesPlayed >= 60 ? 3 : 0; // Conditional games played minimum
+
+    const playerStatsSnap = await db.collectionGroup(getCollectionName('seasonal_stats')).where(admin.firestore.FieldPath.documentId(), '>=', `v2_players_dev/`).where(admin.firestore.FieldPath.documentId(), '<', `v2_players_dev0`).get();
+    
+    const allPlayerStats = playerStatsSnap.docs.map(doc => {
+        const pathParts = doc.ref.path.split('/');
+        return {
+            player_id: pathParts[1],
+            ...doc.data()
+        };
+    });
+    
+    const leaderboards = {
+        total_points: getRanks(allPlayerStats, 'total_points'),
+        rel_mean: getRanks(allPlayerStats, 'rel_mean', null, false, gpMinimum),
+        rel_median: getRanks(allPlayerStats, 'rel_median', null, false, gpMinimum),
+        GEM: getRanks(allPlayerStats, 'GEM', null, true, gpMinimum),
+        WAR: getRanks(allPlayerStats, 'WAR', null, false, gpMinimum),
+        medrank: getRanks(allPlayerStats, 'medrank', null, true, gpMinimum),
+        meanrank: getRanks(allPlayerStats, 'meanrank', null, true, gpMinimum),
+        aag_mean: getRanks(allPlayerStats, 'aag_mean', 'aag_mean_pct'),
+        aag_median: getRanks(allPlayerStats, 'aag_median', 'aag_median_pct'),
+        t100: getRanks(allPlayerStats, 't100', 't100_pct'),
+        t50: getRanks(allPlayerStats, 't50', 't50_pct'),
+    };
+    
+    const batch = db.batch();
+    allPlayerStats.forEach(player => {
+        const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(player.player_id).collection(getCollectionName('seasonal_stats')).doc(seasonId);
+        const ranksUpdate = {};
+        for (const key in leaderboards) {
+            ranksUpdate[`${key}_rank`] = leaderboards[key].get(player.player_id) || null;
+        }
+        batch.update(playerStatsRef, ranksUpdate);
+    });
+
+    await batch.commit();
+    console.log(`Player ranking update complete for season ${seasonId}.`);
+}
+
+/**
+ * Core logic to update single game performance leaderboards.
+ */
+async function performPerformanceRankingUpdate() {
+    console.log("Starting single-performance leaderboard update...");
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+    if (activeSeasonSnap.empty) {
+        console.log("No active season found. Aborting performance leaderboard update.");
+        return;
+    }
+    const seasonId = activeSeasonSnap.docs[0].id;
+
+    const lineupsSnap = await db.collectionGroup(getCollectionName('lineups')).where('seasonId', '==', seasonId).get();
+    const postLineupsSnap = await db.collectionGroup(getCollectionName('post_lineups')).where('seasonId', '==', seasonId).get();
+    
+    const allPerformances = [...lineupsSnap.docs, ...postLineupsSnap.docs].map(d => d.data());
+
+    const karmaLeaderboard = [...allPerformances]
+        .sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0))
+        .slice(0, 250);
+        
+    const rankLeaderboard = [...allPerformances]
+        .filter(p => (p.global_rank || 0) > 0)
+        .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
+        .slice(0, 250);
+
+    const batch = db.batch();
+    batch.set(db.doc(`${getCollectionName('leaderboards')}/single_game_karma`), { seasonId, rankings: karmaLeaderboard });
+    batch.set(db.doc(`${getCollectionName('leaderboards')}/single_game_rank`), { seasonId, rankings: rankLeaderboard });
+    
+    await batch.commit();
+    console.log("Single-performance leaderboard update complete.");
+}
+
+
+/**
+ * Scheduled function to update player ranks daily.
+ */
+exports.updatePlayerRanks = onSchedule({
+    schedule: "30 3 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    await performPlayerRankingUpdate();
+    return null;
+});
+
+/**
+ * Scheduled function to update performance leaderboards daily.
+ */
+exports.updatePerformanceLeaderboards = onSchedule({
+    schedule: "30 3 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    await performPerformanceRankingUpdate();
+    return null;
+});
+
+exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    try {
+        await performPlayerRankingUpdate();
+        await performPerformanceRankingUpdate();
+        return { success: true, message: "All leaderboards have been recalculated." };
+    } catch (error) {
+        console.error("Manual leaderboard recalculation failed:", error);
+        throw new HttpsError('internal', 'An error occurred during leaderboard recalculation.');
+    }
+});
 
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
