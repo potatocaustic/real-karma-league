@@ -1451,11 +1451,22 @@ exports.onPostGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}
  * @param {string} tiebreakerStat - The secondary stat for tiebreaking.
  * @param {boolean} isAscending - True to sort ascending (lower is better), false for descending.
  * @param {number} gpMinimum - The minimum games played required to be ranked.
+ * @param {boolean} excludeZeroes - NEW: If true, players with a value of 0 for the primaryStat will not be ranked.
  * @returns {Map<string, number>} A map of player IDs to their rank.
  */
-function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0) {
+function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0, excludeZeroes = false) {
     const rankedMap = new Map();
-    const eligiblePlayers = players.filter(p => (p.games_played || 0) >= gpMinimum);
+
+    // The primary filter is now a multi-stage process
+    let eligiblePlayers = players.filter(p => {
+        const gamesPlayedField = primaryStat.startsWith('post_') ? 'post_games_played' : 'games_played';
+        return (p[gamesPlayedField] || 0) >= gpMinimum;
+    });
+
+    // NEW: Conditionally filter out players with a zero value for the stat being ranked.
+    if (excludeZeroes) {
+        eligiblePlayers = eligiblePlayers.filter(p => (p[primaryStat] || 0) !== 0);
+    }
 
     eligiblePlayers.sort((a, b) => {
         const aPrimary = a[primaryStat] || 0;
@@ -1478,6 +1489,9 @@ function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = fal
 }
 
 
+/**
+ * Core logic to update player ranks for an entire season.
+ */
 async function performPlayerRankingUpdate() {
     console.log("Starting player ranking update...");
     const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
@@ -1489,43 +1503,55 @@ async function performPlayerRankingUpdate() {
     const activeSeasonDoc = activeSeasonSnap.docs[0];
     const seasonId = activeSeasonDoc.id;
     const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
-    const gpMinimum = seasonGamesPlayed >= 60 ? 3 : 0; // Conditional games played minimum
+    const regSeasonGpMinimum = seasonGamesPlayed >= 60 ? 3 : 0;
+    const postSeasonGpMinimum = 0; // No GP minimum for postseason
 
-    // --- FIXED QUERY LOGIC ---
-    // 1. Fetch all players
     const playersSnap = await db.collection(getCollectionName('v2_players')).get();
-
-    // 2. For each player, fetch their stats for the active season
     const playerStatPromises = playersSnap.docs.map(playerDoc =>
         playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
     );
     const playerStatsDocs = await Promise.all(playerStatPromises);
 
     const allPlayerStats = playerStatsDocs
-        .filter(doc => doc.exists) // Only include players who have a stats doc for the season
+        .filter(doc => doc.exists)
         .map(doc => {
             const pathParts = doc.ref.path.split('/');
-            // The playerID is the 2nd segment in the path (e.g., v2_players_dev/PLAYER_ID/...)
             return {
                 player_id: pathParts[1],
                 ...doc.data()
             };
         });
 
+    // List of base stat names that should not rank zero values
+    const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
+
     const leaderboards = {
-        total_points: getRanks(allPlayerStats, 'total_points'),
-        rel_mean: getRanks(allPlayerStats, 'rel_mean', null, false, gpMinimum),
-        rel_median: getRanks(allPlayerStats, 'rel_median', null, false, gpMinimum),
-        GEM: getRanks(allPlayerStats, 'GEM', null, true, gpMinimum),
-        WAR: getRanks(allPlayerStats, 'WAR', null, false, gpMinimum),
-        medrank: getRanks(allPlayerStats, 'medrank', null, true, gpMinimum),
-        meanrank: getRanks(allPlayerStats, 'meanrank', null, true, gpMinimum),
+        // Regular Season Ranks
+        total_points: getRanks(allPlayerStats, 'total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
+        rel_mean: getRanks(allPlayerStats, 'rel_mean', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
+        rel_median: getRanks(allPlayerStats, 'rel_median', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
+        GEM: getRanks(allPlayerStats, 'GEM', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
+        WAR: getRanks(allPlayerStats, 'WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
+        medrank: getRanks(allPlayerStats, 'medrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
+        meanrank: getRanks(allPlayerStats, 'meanrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
         aag_mean: getRanks(allPlayerStats, 'aag_mean', 'aag_mean_pct'),
         aag_median: getRanks(allPlayerStats, 'aag_median', 'aag_median_pct'),
         t100: getRanks(allPlayerStats, 't100', 't100_pct'),
         t50: getRanks(allPlayerStats, 't50', 't50_pct'),
+        // Postseason Ranks
+        post_total_points: getRanks(allPlayerStats, 'post_total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
+        post_rel_mean: getRanks(allPlayerStats, 'post_rel_mean', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
+        post_rel_median: getRanks(allPlayerStats, 'post_rel_median', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
+        post_GEM: getRanks(allPlayerStats, 'post_GEM', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
+        post_WAR: getRanks(allPlayerStats, 'post_WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
+        post_medrank: getRanks(allPlayerStats, 'post_medrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
+        post_meanrank: getRanks(allPlayerStats, 'post_meanrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
+        post_aag_mean: getRanks(allPlayerStats, 'post_aag_mean', 'post_aag_mean_pct'),
+        post_aag_median: getRanks(allPlayerStats, 'post_aag_median', 'post_aag_median_pct'),
+        post_t100: getRanks(allPlayerStats, 'post_t100', 'post_t100_pct'),
+        post_t50: getRanks(allPlayerStats, 'post_t50', 'post_t50_pct'),
     };
-    
+
     const batch = db.batch();
     allPlayerStats.forEach(player => {
         const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(player.player_id).collection(getCollectionName('seasonal_stats')).doc(seasonId);
