@@ -1299,15 +1299,25 @@ async function processCompletedGame(event) {
     console.log(`V2: Processing completed game ${gameId} in season ${seasonId}`);
 
     const gameDate = after.date;
-    const regIncompleteQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
-    const postIncompleteQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).where('completed', '!=', 'TRUE').get();
 
-    const [regIncomplete, postIncomplete] = await Promise.all([regIncompleteQuery, postIncompleteQuery]);
+    // --- FIX #1: Robustly check for other incomplete games ---
+    const regGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).get();
+    const postGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).get();
 
-    if (regIncomplete.size > 0 || postIncomplete.size > 0) {
-        console.log(`Not all games for ${gameDate} are complete. Deferring calculations.`);
+    const [regGamesSnap, postGamesSnap] = await Promise.all([regGamesQuery, postGamesQuery]);
+    
+    // Combine results and store them in a variable for reuse
+    const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
+
+    const incompleteGames = allGamesForDate.filter(doc => {
+        return doc.id !== gameId && doc.data().completed !== 'TRUE';
+    });
+    
+    if (incompleteGames.length > 0) {
+        console.log(`Not all games for ${gameDate} are complete. Deferring calculations. Incomplete count: ${incompleteGames.length}`);
         return null;
     }
+    
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 
     const batch = db.batch();
@@ -1379,9 +1389,7 @@ async function processCompletedGame(event) {
         lineupsByPlayer.get(lineupData.player_id).push(enhancedData);
     });
 
-    const regGamesSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).get();
-    const postGamesSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).get();
-    const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
+    // --- FIX #2: Remove re-declaration of variables. Use 'allGamesForDate' from above. ---
     const teamScores = allGamesForDate.flatMap(d => [d.data().team1_score, d.data().team2_score]);
     const teamMedian = calculateMedian(teamScores);
 
