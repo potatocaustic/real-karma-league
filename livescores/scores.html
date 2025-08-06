@@ -12,13 +12,7 @@
       --text-color: #ffffff;
       --text-muted: #aaa;
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg-color);
@@ -28,81 +22,17 @@
       max-width: 760px;
       margin: auto;
     }
-
-    h1 {
-      text-align: center;
-      font-size: 32px;
-      margin-bottom: 16px;
-    }
-
-    .loading {
-      text-align: center;
-      font-size: 14px;
-      color: var(--accent-color);
-      margin-bottom: 16px;
-    }
-
-    .home-link {
-      display: block;
-      text-align: center;
-      margin-top: 30px;
-      font-size: 14px;
-      color: var(--accent-color);
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-
-    .home-link:hover {
-      opacity: 0.7;
-    }
-
-    .game-container {
-      background-color: var(--card-color);
-      border-radius: 16px;
-      margin-bottom: 24px;
-      box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
-      overflow: hidden;
-    }
-
-    .game-header {
-      padding: 16px 20px;
-      background-color: #2a2a2a;
-      cursor: pointer;
-      border-bottom: 1px solid #333;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: 600;
-      font-size: 17px;
-      transition: background 0.2s ease;
-    }
-
-    .game-header:hover {
-      background-color: #353535;
-    }
-
-    .game-body {
-      display: none;
-      padding: 20px;
-    }
-
-    .team-roster {
-      margin-bottom: 24px;
-    }
-
-    .roster-title {
-      font-weight: bold;
-      margin-bottom: 8px;
-      color: var(--text-muted);
-    }
-
-    .player-row {
-      padding: 6px 12px;
-      background-color: #333;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
+    h1 { text-align: center; font-size: 32px; margin-bottom: 16px; }
+    .loading { text-align: center; font-size: 14px; color: var(--accent-color); margin-bottom: 16px; }
+    .home-link { display: block; text-align: center; margin-top: 30px; font-size: 14px; color: var(--accent-color); text-decoration: none; transition: opacity 0.2s; }
+    .home-link:hover { opacity: 0.7; }
+    .game-container { background-color: var(--card-color); border-radius: 16px; margin-bottom: 24px; box-shadow: 0 0 12px rgba(0, 255, 136, 0.15); overflow: hidden; }
+    .game-header { padding: 16px 20px; background-color: #2a2a2a; cursor: pointer; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 17px; transition: background 0.2s ease; }
+    .game-header:hover { background-color: #353535; }
+    .game-body { display: none; padding: 20px; }
+    .team-roster { margin-bottom: 24px; }
+    .roster-title { font-weight: bold; margin-bottom: 8px; color: var(--text-muted); }
+    .player-row { padding: 6px 12px; background-color: #333; border-radius: 6px; margin-bottom: 6px; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -112,188 +42,117 @@
   <a href="index.html" class="home-link">← Home</a>
 
   <script type="module">
-    import { db, collection, query, where, getDocs, doc, getDoc, limit } from '/js/firebase-init.js';
+    import { db, collection, query, onSnapshot, doc, getDoc } from '/js/firebase-init.js';
     import '/js/firebase-public-auth.js';
 
     // --- DEV ENVIRONMENT CONFIG ---
     const USE_DEV_COLLECTIONS = true;
     const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
     
-    // --- SCRIPT CONSTANTS ---
-    const WORKER_URL = 'https://rkl-karma-proxy.caustic.workers.dev/';
-    const karmaCache = new Map();
+    // --- SCRIPT ELEMENTS & CACHE ---
+    const loading = document.getElementById('loading-indicator');
+    const container = document.getElementById('games-container');
     const teamNameCache = new Map();
 
     // --- HELPER FUNCTIONS ---
-
-    function getTodayString() {
-        const now = new Date();
-        const est = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
-        if (est.getHours() < 7) {
-            est.setDate(est.getDate() - 1);
-        }
-        // Format to YYYY-MM-DD to match the start of the live_games document ID
-        const year = est.getFullYear();
-        const month = String(est.getMonth() + 1).padStart(2, '0');
-        const day = String(est.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+    async function getTeamName(teamId, seasonId) {
+        if (!teamId || !seasonId) return 'TBD';
+        if (teamNameCache.has(teamId)) return teamNameCache.get(teamId);
+        
+        const teamRecordRef = doc(db, `${getCollectionName('v2_teams')}/${teamId}/${getCollectionName('seasonal_records')}/${seasonId}`);
+        const teamSnap = await getDoc(teamRecordRef);
+        const name = teamSnap.exists() ? teamSnap.data().team_name : teamId;
+        teamNameCache.set(teamId, name);
+        return name;
     }
 
-    async function fetchKarma(userId) {
-        if (karmaCache.has(userId)) return karmaCache.get(userId);
-        try {
-            const res = await fetch(`${WORKER_URL}?userId=${encodeURIComponent(userId)}`);
-            const data = await res.json();
-            const val = parseFloat(data?.stats?.karmaDelta || 0);
-            karmaCache.set(userId, val);
-            return val;
-        } catch (error) {
-            console.error(`Failed to fetch karma for ${userId}:`, error);
-            return 0;
-        }
-    }
+    function createGameHTML(gameDoc) {
+        const gameData = gameDoc.data();
+        const { team1_lineup, team2_lineup } = gameData;
 
-    async function limitedMap(array, limit, asyncFn, onProgress) {
-        const results = [];
-        let index = 0;
-        const executing = new Set();
-        for (const item of array) {
-            const p = asyncFn(item).then(res => {
-                results.push(res);
-                if (onProgress) onProgress(++index, array.length);
-            });
-            executing.add(p);
-            p.finally(() => executing.delete(p));
-            if (executing.size >= limit) await Promise.race(executing);
-        }
-        await Promise.all(executing);
-        return results;
-    }
+        // Extract team info using the cache
+        const team1_id = team1_lineup[0]?.team_id || 'Team1';
+        const team2_id = team2_lineup[0]?.team_id || 'Team2';
+        const team1_name = teamNameCache.get(team1_id) || team1_id;
+        const team2_name = teamNameCache.get(team2_id) || team2_id;
+        
+        // Calculate totals directly from the server-populated final_score field
+        const team1_total = Math.round(team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0));
+        const team2_total = Math.round(team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0));
 
-    async function processTeam(players, updateProgress) {
-        let teamTotal = 0;
-        const rows = await limitedMap(players, 10, async p => {
-            const userId = p.player_id?.trim();
-            const userHandle = p.player_handle?.trim() || 'Unknown';
-            const isCaptain = p.is_captain === true || p.is_captain === 'TRUE';
-            const deduction = parseFloat(p.deductions || 0);
-
-            if (!userId) return `<div class="player-row">${userHandle}: Missing ID</div>`;
-            
-            const base = await fetchKarma(userId);
-            const adjusted = base - deduction;
-            const boosted = isCaptain ? adjusted * 1.5 : adjusted;
-            
-            teamTotal += boosted;
-            
-            const rounded = Math.round(adjusted);
-            const label = isCaptain
-                ? `${userHandle} (C): ${rounded} → ${Math.round(boosted)}`
-                : `${userHandle}: ${rounded}`;
-            
+        const renderPlayerRow = (player) => {
+            const adjustedRounded = Math.round(player.points_adjusted || 0);
+            const finalRounded = Math.round(player.final_score || 0);
+            const label = player.is_captain
+                ? `${player.player_handle} (C): ${adjustedRounded} → ${finalRounded}`
+                : `${player.player_handle}: ${finalRounded}`;
             return `<div class="player-row">${label}</div>`;
-        }, updateProgress);
-        return { rows, total: Math.round(teamTotal) };
-    }
+        };
 
-    function createGameHTML(team1Name, team2Name, t1Total, t2Total, t1Rows, t2Rows, index) {
-        const id = `game-${index}`;
+        const gameBodyId = `body-${gameDoc.id}`;
+
         return `
-            <div class="game-container">
-                <div class="game-header" onclick="
-                    const body = document.getElementById('${id}');
+            <div class="game-container" id="game-${gameDoc.id}">
+                 <div class="game-header" onclick="
+                    const body = document.getElementById('${gameBodyId}');
                     body.style.display = body.style.display === 'block' ? 'none' : 'block';
                 ">
-                    ${team1Name} (${t1Total}) vs ${team2Name} (${t2Total})
+                    <span>${team1_name} (${team1_total})</span>
+                    <span>vs</span>
+                    <span>${team2_name} (${team2_total})</span>
                 </div>
-                <div class="game-body" id="${id}">
+                <div class="game-body" id="${gameBodyId}">
                     <div class="team-roster">
-                        <div class="roster-title">${team1Name}</div>
-                        ${t1Rows.join('')}
+                        <div class="roster-title">${team1_name}</div>
+                        ${team1_lineup.map(renderPlayerRow).join('')}
                     </div>
                     <div class="team-roster">
-                        <div class="roster-title">${team2Name}</div>
-                        ${t2Rows.join('')}
+                        <div class="roster-title">${team2_name}</div>
+                        ${team2_lineup.map(renderPlayerRow).join('')}
                     </div>
                 </div>
-            </div>`;
+            </div>
+        `;
     }
 
     // --- MAIN LOGIC ---
+    loading.textContent = "Connecting to live scores...";
+    const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
 
-    async function loadGames() {
-        const loading = document.getElementById('loading-indicator');
-        const container = document.getElementById('games-container');
-        
-        try {
-            // 1. Find the active season
-            loading.textContent = "Finding active season...";
-            const seasonsQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"), limit(1));
-            const activeSeasonsSnap = await getDocs(seasonsQuery);
-            if (activeSeasonsSnap.empty) throw new Error("No active season found.");
-            const activeSeasonId = activeSeasonsSnap.docs[0].id;
-            
-            // 2. Fetch all live games and filter for today
-            loading.textContent = "Fetching today's live games...";
-            const todayStr = getTodayString();
-            const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
-            const liveGamesSnap = await getDocs(liveGamesQuery);
-
-            const todaysGames = liveGamesSnap.docs.filter(doc => doc.id.startsWith(todayStr));
-
-            if (todaysGames.length === 0) {
-                loading.textContent = `No live games found for today (${todayStr}).`;
-                return;
-            }
-
-            // 3. Process each live game
-            let loadedPlayers = 0;
-            const totalPlayers = todaysGames.length * 12;
-
-            const updateProgress = () => {
-                loading.textContent = `Loaded ${++loadedPlayers} of ${totalPlayers} players...`;
-            };
-            
-            for (let i = 0; i < todaysGames.length; i++) {
-                const liveGameDoc = todaysGames[i];
-                const liveGameData = liveGameDoc.data();
-                
-                // Extract team IDs from the document ID
-                const idParts = liveGameDoc.id.split('-');
-                const team1Id = idParts[3];
-                const team2Id = idParts[4];
-                
-                // Fetch team names
-                const teamNamePromises = [team1Id, team2Id].map(async (teamId) => {
-                    if (teamNameCache.has(teamId)) return teamNameCache.get(teamId);
-                    const teamRecordRef = doc(db, `${getCollectionName('v2_teams')}/${teamId}/${getCollectionName('seasonal_records')}/${activeSeasonId}`);
-                    const teamSnap = await getDoc(teamRecordRef);
-                    const name = teamSnap.exists() ? teamSnap.data().team_name : teamId;
-                    teamNameCache.set(teamId, name);
-                    return name;
-                });
-
-                const [team1Name, team2Name] = await Promise.all(teamNamePromises);
-
-                // Process player scores for each team
-                const [t1Data, t2Data] = await Promise.all([
-                    processTeam(liveGameData.team1_lineup, updateProgress),
-                    processTeam(liveGameData.team2_lineup, updateProgress)
-                ]);
-
-                // Render the game card
-                container.innerHTML += createGameHTML(team1Name, team2Name, t1Data.total, t2Data.total, t1Data.rows, t2Data.rows, i);
-            }
-
-            loading.textContent = 'Done.';
-
-        } catch (e) {
-            loading.textContent = 'Failed to load game data.';
-            console.error(e);
+    onSnapshot(liveGamesQuery, async (querySnapshot) => {
+        if (querySnapshot.empty) {
+            loading.textContent = "No live games are currently active.";
+            container.innerHTML = '';
+            return;
         }
-    }
 
-    loadGames();
+        loading.textContent = "Updating scores...";
+        
+        // Pre-fetch all team names needed for the current set of live games
+        const uniqueTeamIds = new Set();
+        let activeSeasonId = null;
+        querySnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            if (!activeSeasonId) activeSeasonId = data.seasonId;
+            data.team1_lineup.forEach(p => uniqueTeamIds.add(p.team_id));
+            data.team2_lineup.forEach(p => uniqueTeamIds.add(p.team_id));
+        });
+
+        if (activeSeasonId) {
+            await Promise.all(
+                Array.from(uniqueTeamIds).map(id => getTeamName(id, activeSeasonId))
+            );
+        }
+        
+        // Render all games with the updated data
+        container.innerHTML = querySnapshot.docs.map(createGameHTML).join('');
+        loading.style.display = 'none';
+
+    }, (error) => {
+        console.error("Error listening to live games:", error);
+        loading.textContent = "Error connecting to the live score service.";
+        container.innerHTML = '';
+    });
   </script>
 </body>
 </html>

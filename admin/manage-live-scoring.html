@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Live Scoring - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Live Scoring Control Panel</h2>
+
+        <div class="form-container-admin">
+            <h4>System Status</h4>
+            <p>Current Status: <strong id="system-status">LOADING...</strong></p>
+            <div id="controls-container" style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button id="start-btn" class="btn-admin-save">Begin Live Scoring</button>
+                <button id="stop-btn" class="btn-admin-delete" style="display:none;">Stop Live Scoring</button>
+                <button id="manual-update-btn" class="btn-admin-edit">Run Full Update Manually</button>
+            </div>
+            <hr style="margin: 1.5rem 0;">
+
+            <h4>Configuration</h4>
+            <div class="form-group-admin">
+                <label for="interval-input">Sampling Interval (minutes)</label>
+                <input type="number" id="interval-input" value="5" min="1">
+                <button id="save-interval-btn" class="btn-admin-secondary" style="margin-top:0.5rem;">Save Interval</button>
+            </div>
+        </div>
+        
+        <div class="form-container-admin" style="margin-top: 2rem;">
+            <h4>Today's Usage Statistics</h4>
+            <p id="usage-stats-display">Loading stats...</p>
+        </div>
+    </main>
+    
+    <div id="loading-container" class="loading">Authenticating...</div>
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-live-scoring.js"></script>
+</body>
+</html>
