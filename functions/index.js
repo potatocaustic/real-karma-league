@@ -28,7 +28,7 @@ const getCollectionName = (baseName) => {
 
 async function performFullUpdate() {
     const statusSnap = await db.doc(`${getCollectionName('live_scoring_status')}/status`).get();
-    const gameDate = statusSnap.exists() ? statusSnap.data().active_game_date : new Date().toISOString().split('T')[0];
+    const gameDate = statusSnap.exists ? statusSnap.data().active_game_date : new Date().toISOString().split('T')[0];
 
     const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
     if (liveGamesSnap.empty) {
