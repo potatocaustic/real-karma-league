@@ -20,6 +20,9 @@ const nextSampleDisplay = document.getElementById('next-sample-display');
 const lastUpdateDisplay = document.getElementById('last-update-display');
 const usageDisplay = document.getElementById('usage-stats-display');
 const logContainer = document.getElementById('last-sample-log');
+const sampleProgressContainer = document.getElementById('sample-progress-container');
+const sampleProgressBar = document.getElementById('sample-progress-bar');
+
 
 // Control Buttons & Inputs
 const stoppedControls = document.getElementById('stopped-controls');
@@ -46,7 +49,7 @@ const setLiveScoringStatus = httpsCallable(functions, 'setLiveScoringStatus');
 const updateAllLiveScores = httpsCallable(functions, 'updateAllLiveScores');
 
 // --- Global State ---
-let nextSampleIntervalId = null;
+let countdownIntervalId = null;
 let historicalChart = null;
 let currentDayChart = null;
 
@@ -92,6 +95,7 @@ async function renderUsageCharts(currentDayId) {
     const currentCtx = document.getElementById('current-day-chart').getContext('2d');
     if (currentDayChart) currentDayChart.destroy();
     if (currentDayData) {
+        const totalRequests = (currentDayData.api_requests_full_update || 0) + (currentDayData.api_requests_sample || 0);
         currentDayChart = new Chart(currentCtx, {
             type: 'doughnut',
             data: {
@@ -100,42 +104,56 @@ async function renderUsageCharts(currentDayId) {
                     data: [currentDayData.api_requests_full_update || 0, currentDayData.api_requests_sample || 0],
                     backgroundColor: ['#17a2b8', '#ffc107']
                 }]
-            }
+            },
+            plugins: [{
+                id: 'doughnut-center-text',
+                beforeDraw: (chart) => {
+                    const { ctx, width, height } = chart;
+                    ctx.restore();
+                    const fontSize = (height / 114).toFixed(2);
+                    ctx.font = `${fontSize}em sans-serif`;
+                    ctx.textBaseline = 'middle';
+                    const text = `${totalRequests}`;
+                    const textX = Math.round((width - ctx.measureText(text).width) / 2);
+                    const textY = height / 2;
+                    ctx.fillText(text, textX, textY);
+                    ctx.save();
+                }
+            }]
         });
     }
 }
 
+function startSampleCountdown(lastSampleTimestamp, intervalMinutes) {
+    if (countdownIntervalId) clearInterval(countdownIntervalId);
+    if (!lastSampleTimestamp) {
+        nextSampleDisplay.textContent = "Waiting...";
+        return;
+    };
 
-function updateNextSampleTime(intervalMinutes) {
-    if (nextSampleIntervalId) clearInterval(nextSampleIntervalId);
+    const targetTime = lastSampleTimestamp.toDate().getTime() + (intervalMinutes * 60 * 1000);
 
-    function update() {
-        const now = new Date();
-        const minutes = now.getMinutes();
-        const seconds = now.getSeconds();
-        const nextRunMinute = (Math.floor(minutes / intervalMinutes) + 1) * intervalMinutes;
+    countdownIntervalId = setInterval(() => {
+        const now = new Date().getTime();
+        const distance = targetTime - now;
 
-        let diffMinutes = nextRunMinute - minutes - 1;
-        let diffSeconds = 60 - seconds;
-
-        if (diffSeconds === 60) {
-            diffSeconds = 0;
-            diffMinutes += 1;
-        }
-
-        if (diffMinutes < 0) {
-            diffMinutes += 60;
-        }
-
-        if (diffMinutes <= 0 && diffSeconds <= 1) {
+        if (distance < 0) {
+            clearInterval(countdownIntervalId);
             nextSampleDisplay.textContent = "Sampling...";
-            clearInterval(nextSampleIntervalId);
-        } else {
-            nextSampleDisplay.textContent = `${String(diffMinutes).padStart(2, '0')}:${String(diffSeconds).padStart(2, '0')}`;
+            sampleProgressContainer.style.display = 'block';
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                sampleProgressBar.style.width = `${progress}%`;
+                if (progress >= 100) clearInterval(progressInterval);
+            }, 300); // Simulate 3 seconds of sampling time
+            return;
         }
-    }
-    update();
-    nextSampleIntervalId = setInterval(update, 1000);
+
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        nextSampleDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }, 1000);
 }
 
 async function runFullUpdateWithProgress() {
@@ -186,7 +204,10 @@ function initializeControlPanel() {
 
     onSnapshot(statusRef, (docSnap) => {
         if (docSnap.exists()) {
-            const { status = 'stopped', interval_minutes = 5, last_full_update_completed, last_sample_results, active_game_date } = docSnap.data();
+            const { status = 'stopped', interval_minutes = 5, last_full_update_completed, last_sample_results, active_game_date, last_sample_completed_at } = docSnap.data();
+            
+            sampleProgressContainer.style.display = 'none'; // Hide progress on new data
+            sampleProgressBar.style.width = '0%';
 
             statusDisplay.textContent = status.toUpperCase();
             intervalInput.value = interval_minutes;
@@ -199,16 +220,16 @@ function initializeControlPanel() {
             if (status === 'active') {
                 statusDisplay.style.color = '#28a745';
                 activeControls.style.display = 'flex';
-                updateNextSampleTime(interval_minutes);
+                startSampleCountdown(last_sample_completed_at, interval_minutes);
             } else if (status === 'paused') {
                 statusDisplay.style.color = '#ffc107';
                 pausedControls.style.display = 'block';
-                if (nextSampleIntervalId) clearInterval(nextSampleIntervalId);
+                if (countdownIntervalId) clearInterval(countdownIntervalId);
                 nextSampleDisplay.textContent = 'PAUSED';
             } else {
                 statusDisplay.style.color = '#dc3545';
                 stoppedControls.style.display = 'block';
-                if (nextSampleIntervalId) clearInterval(nextSampleIntervalId);
+                if (countdownIntervalId) clearInterval(countdownIntervalId);
                 nextSampleDisplay.textContent = 'INACTIVE';
             }
 
@@ -216,13 +237,22 @@ function initializeControlPanel() {
                 logContainer.innerHTML = last_sample_results.map(res => {
                     const changeIndicator = res.changed ? '✓' : '✗';
                     const color = res.changed ? 'var(--accent-color)' : '#ffc107';
-                    return `<p style="color: ${color};">[${changeIndicator}] ${res.handle}: ${res.oldScore} → ${res.newScore}</p>`;
+                    return `<p style="color: ${color};">[${changeIndicator}] ${res.handle}: ${res.oldScore.toFixed(2)} → ${res.newScore.toFixed(2)}</p>`;
                 }).join('');
             } else {
                 logContainer.innerHTML = `<p>No sample run yet.</p>`;
             }
             
             if (active_game_date) {
+                const todayUsageRef = doc(db, getCollectionName('usage_stats'), active_game_date);
+                onSnapshot(todayUsageRef, (usageSnap) => {
+                    if (usageSnap.exists()) {
+                        const { api_requests_full_update = 0, api_requests_sample = 0 } = usageSnap.data();
+                        usageDisplay.textContent = `Full Update API Calls: ${api_requests_full_update} | Sampler API Calls: ${api_requests_sample}`;
+                    } else {
+                        usageDisplay.textContent = "No usage recorded yet for today.";
+                    }
+                });
                 renderUsageCharts(active_game_date);
             }
 

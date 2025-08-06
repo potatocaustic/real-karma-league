@@ -143,11 +143,8 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
 });
 
 
-/**
- * Scheduled function that runs every 5 minutes to sample scores and check for changes.
- * Now stops if no live games are found and logs its results to the status document.
- */
-exports.sampleLiveScores = onSchedule("every 5 minutes", async (event) => {
+// This function now runs every minute to CHECK if it's time to sample.
+exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
     const statusRef = db.doc(getCollectionName('live_scoring_status') + '/status');
     const statusSnap = await statusRef.get();
 
@@ -155,78 +152,76 @@ exports.sampleLiveScores = onSchedule("every 5 minutes", async (event) => {
         console.log(`Sampler is not active (current status: ${statusSnap.data().status || 'stopped'}). Exiting.`);
         return null;
     }
+
+    const { interval_minutes, last_sample_completed_at } = statusSnap.data();
+    const now = new Date();
     
-    const gameDate = statusSnap.data().active_game_date;
+    // If a sample has never been run, or if enough time has passed, run the sample.
+    if (!last_sample_completed_at || now.getTime() >= last_sample_completed_at.toDate().getTime() + (interval_minutes * 60 * 1000)) {
+        
+        console.log(`Interval of ${interval_minutes} minutes has passed. Performing sample.`);
+        const gameDate = statusSnap.data().active_game_date;
 
-    const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
-    if (liveGamesSnap.empty) {
-        console.log("No live games to sample. Stopping.");
-        return null;
-    }
-
-    const allStarters = liveGamesSnap.docs.flatMap(doc => [
-        ...doc.data().team1_lineup,
-        ...doc.data().team2_lineup
-    ]);
-    
-    if (allStarters.length < 3) {
-        console.log("Not enough players to sample (< 3).");
-        return null;
-    }
-
-    const sampledPlayers = [];
-    const usedIndices = new Set();
-    while (sampledPlayers.length < 3 && usedIndices.size < allStarters.length) {
-        const randomIndex = Math.floor(Math.random() * allStarters.length);
-        if (!usedIndices.has(randomIndex)) {
-            sampledPlayers.push(allStarters[randomIndex]);
-            usedIndices.add(randomIndex);
+        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+        if (liveGamesSnap.empty) {
+            console.log("No live games to sample. Stopping.");
+            return null;
         }
-    }
 
-    let changesDetected = 0;
-    let apiRequests = 0;
-    const sampleResults = [];
+        const allStarters = liveGamesSnap.docs.flatMap(doc => [...doc.data().team1_lineup, ...doc.data().team2_lineup]);
+        if (allStarters.length < 3) {
+            console.log("Not enough players to sample (< 3).");
+            return null;
+        }
 
-    for (const player of sampledPlayers) {
-        const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
-        try {
-            const response = await fetch(workerUrl);
-            apiRequests++;
-            const data = await response.json();
-            const newRawScore = parseFloat(data?.stats?.karmaDelta || 0);
-            const oldRawScore = player.points_raw || 0;
-            const hasChanged = newRawScore !== oldRawScore;
-
-            if (hasChanged) {
-                changesDetected++;
+        // --- Sampling Logic (Unchanged, but now runs dynamically) ---
+        const sampledPlayers = [];
+        const usedIndices = new Set();
+        while (sampledPlayers.length < 3 && usedIndices.size < allStarters.length) {
+            const randomIndex = Math.floor(Math.random() * allStarters.length);
+            if (!usedIndices.has(randomIndex)) {
+                sampledPlayers.push(allStarters[randomIndex]);
+                usedIndices.add(randomIndex);
             }
-            sampleResults.push({
-                handle: player.player_handle,
-                oldScore: oldRawScore,
-                newScore: newRawScore,
-                changed: hasChanged
-            });
-
-        } catch (error) {
-            console.error(`Sampler failed to fetch karma for ${player.player_id}`, error);
         }
-    }
+        
+        let changesDetected = 0;
+        let apiRequests = 0;
+        const sampleResults = [];
+        for (const player of sampledPlayers) {
+            const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
+            await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1001) + 500)); // Randomized delay
+            try {
+                const response = await fetch(workerUrl);
+                apiRequests++;
+                const data = await response.json();
+                const newRawScore = parseFloat(data?.stats?.karmaDelta || 0);
+                const oldRawScore = player.points_raw || 0;
+                const hasChanged = newRawScore !== oldRawScore;
+                if (hasChanged) changesDetected++;
+                sampleResults.push({ handle: player.player_handle, oldScore: oldRawScore, newScore: newRawScore, changed: hasChanged });
+            } catch (error) { console.error(`Sampler failed to fetch karma for ${player.player_id}`, error); }
+        }
 
-    await statusRef.set({ last_sample_results: sampleResults }, { merge: true });
+        // --- Update status doc with results and the NEW completion time ---
+        await statusRef.set({ 
+            last_sample_results: sampleResults,
+            last_sample_completed_at: FieldValue.serverTimestamp()
+        }, { merge: true });
 
-    const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
-    await usageRef.set({
-        api_requests_sample: FieldValue.increment(apiRequests)
-    }, { merge: true });
+        const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
+        await usageRef.set({ api_requests_sample: FieldValue.increment(apiRequests) }, { merge: true });
 
-    if (changesDetected >= 2) {
-        console.log(`Sampler detected ${changesDetected} changes. Triggering full update.`);
-        await performFullUpdate();
+        if (changesDetected >= 2) {
+            console.log(`Sampler detected ${changesDetected} changes. Triggering full update.`);
+            await performFullUpdate();
+        } else {
+            console.log(`Sampler detected only ${changesDetected} changes. No update triggered.`);
+        }
     } else {
-        console.log(`Sampler detected only ${changesDetected} changes. No update triggered.`);
+        // Not time to run yet, exit quietly.
+        return null;
     }
-
     return null;
 });
 
