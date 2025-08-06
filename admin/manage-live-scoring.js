@@ -2,17 +2,10 @@
 
 import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, setDoc, query, collection, getDocs, limit } from '/js/firebase-init.js';
 
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = true;
-const getCollectionName = (baseName) => {
-    if (baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('live_games')) {
-        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-    }
-    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-};
-
-// --- Wait for the DOM to be fully loaded before running ANY script logic ---
+// --- The entire script is wrapped in this event listener ---
+// This guarantees that no code runs until the HTML page is fully loaded and ready.
 document.addEventListener('DOMContentLoaded', () => {
+
     // --- Page Elements ---
     const loadingContainer = document.getElementById('loading-container');
     const adminContainer = document.getElementById('admin-container');
@@ -40,6 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressTitle = document.getElementById('progress-title');
     const progressStatus = document.getElementById('progress-status');
     const progressCloseBtn = document.getElementById('progress-close-btn');
+
+    // --- DEV ENVIRONMENT CONFIG ---
+    const USE_DEV_COLLECTIONS = true;
+    const getCollectionName = (baseName) => {
+        if (baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('live_games')) {
+            return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+        }
+        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+    };
 
     // --- Firebase Callable Functions ---
     const setLiveScoringStatus = httpsCallable(functions, 'setLiveScoringStatus');
@@ -151,6 +153,49 @@ document.addEventListener('DOMContentLoaded', () => {
             const seconds = Math.floor((distance % (1000 * 60)) / 1000);
             nextSampleDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }, 1000);
+    }
+
+    async function runFullUpdateWithProgress() {
+        const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
+        const liveGamesSnap = await getDocs(liveGamesQuery);
+        const playerCount = liveGamesSnap.docs.reduce((sum, doc) => sum + doc.data().team1_lineup.length + doc.data().team2_lineup.length, 0);
+
+        if (playerCount === 0) {
+            alert("No active live games found. Cannot run an update.");
+            return;
+        }
+
+        progressModal.style.display = 'flex';
+        progressBar.style.width = '0%';
+        progressCounter.textContent = '';
+        progressTitle.textContent = 'Performing Full Score Update...';
+        progressStatus.textContent = `Fetching scores for ${playerCount} players.`;
+        progressCloseBtn.style.display = 'none';
+
+        const avgTimePerPlayer = 250;
+        const totalTime = playerCount * avgTimePerPlayer;
+        let elapsedTime = 0;
+
+        const progressInterval = setInterval(() => {
+            elapsedTime += 100;
+            const progress = Math.min((elapsedTime / totalTime) * 100, 99);
+            progressBar.style.width = `${progress}%`;
+            const playersProcessed = Math.min(Math.floor((elapsedTime / totalTime) * playerCount), playerCount);
+            progressCounter.textContent = `${playersProcessed} / ${playerCount} players processed...`;
+        }, 100);
+
+        try {
+            await updateAllLiveScores();
+        } catch (error) {
+            throw error;
+        } finally {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            progressTitle.textContent = "Processing Complete!";
+            progressStatus.textContent = "All live game scores have been updated.";
+            progressCounter.textContent = `${playerCount} / ${playerCount} players processed.`;
+            progressCloseBtn.style.display = 'block';
+        }
     }
 
     function initializeControlPanel() {
