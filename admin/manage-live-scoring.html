@@ -15,48 +15,81 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <header>
+        <h1>RKL Admin Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
     <main id="admin-container" style="display: none;">
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2>Live Scoring Control Panel</h2>
 
         <div class="form-container-admin">
             <h4>System Status</h4>
-            <div id="controls-container" style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
-                <div id="stopped-controls" style="display: none;">
-                    <button id="begin-btn" class="btn-admin-save" style="width:100%;">Begin Live Scoring Session</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <p>Current Status: <strong id="system-status">LOADING...</strong></p>
+                <div>
+                    <p>Next Scheduled Sample: <strong id="next-sample-display">--:--</strong></p>
+                    <div id="sample-progress-container" style="display: none; width: 100%; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; height: 5px; margin-top: 4px;">
+                        <div id="sample-progress-bar" style="width: 0%; height: 5px;"></div>
+                    </div>
+                </div>
+                <p>Last Full Update: <strong id="last-update-display">Never</strong></p>
+            </div>
+            
+            <div id="controls-container" style="margin-top: 1.5rem;">
+                 <div id="stopped-controls" style="display: none;">
+                    <button id="begin-btn" class="btn-admin-save">Begin Live Scoring</button>
                 </div>
                 <div id="paused-controls" style="display: none;">
-                    <button id="resume-paused-btn" class="btn-admin-edit" style="width:100%;">Resume Live Scoring</button>
+                    <button id="resume-paused-btn" class="btn-admin-save">Resume Live Scoring</button>
                 </div>
-                <div id="active-controls" style="display: none; gap: 1rem;">
-                    <button id="pause-btn" class="btn-admin-secondary" style="flex-grow:1;">Pause System</button>
-                    <button id="stop-btn" class="btn-admin-delete" style="flex-grow:1;">Stop System</button>
-                    <button id="manual-update-btn" class="btn-admin-edit" style="flex-grow:2; background-color: #17a2b8;">Run Full Update Manually</button>
+                <div id="active-controls" style="display: none; flex-wrap: wrap; gap: 1rem;">
+                    <button id="pause-btn" class="btn-admin-secondary">Pause Live Scoring</button>
+                    <button id="stop-btn" class="btn-admin-delete">Stop Live Scoring</button>
                 </div>
             </div>
-            <hr style="margin: 1.5rem 0;">
+             <hr style="margin: 1.5rem 0;">
 
             <h4>Actions & Configuration</h4>
-            <div class="form-group-admin" style="max-width: 300px;">
-                <label for="interval-input">Sample Interval (minutes)</label>
-                <div style="display: flex; gap: 0.5rem;">
-                    <input type="number" id="interval-input" value="5" min="1">
-                    <button id="save-interval-btn" class="btn-admin-secondary">Save</button>
+             <div class="form-group-admin">
+                <label for="interval-input">Sampling Interval (minutes)</label>
+                <div style="display: flex; gap: 1rem;">
+                    <input type="number" id="interval-input" value="5" min="1" style="max-width: 150px;">
+                    <button id="save-interval-btn" class="btn-admin-secondary">Save Interval</button>
                 </div>
             </div>
+            <button id="manual-update-btn" class="btn-admin-edit" style="margin-top:1rem; width:100%;">Run Full Update Manually</button>
             <hr style="margin: 1.5rem 0;">
 
             <h4>Last Sample Results</h4>
+            <div id="last-sample-log" style="font-family: monospace; font-size: 0.9rem; max-height: 150px; overflow-y: auto; background: #333; padding: 0.5rem; border-radius: 4px;">
+                <p>No sample run yet.</p>
             </div>
+        </div>
         
-        </main>
+        <div class="form-container-admin" style="margin-top: 2rem;">
+            <h4>Today's Usage Statistics</h4>
+            <p id="usage-stats-display"></p>
+            <div style="max-width: 400px; margin: 1rem auto;">
+                 <canvas id="current-day-chart"></canvas>
+            </div>
+        </div>
 
+        <div class="form-container-admin" style="margin-top: 2rem;">
+            <h4>Historical Usage</h4>
+            <div style="width: 100%; margin: 1rem auto;">
+                 <canvas id="historical-usage-chart"></canvas>
+            </div>
+        </div>
+    </main>
+    
     <div id="loading-container" class="loading">Authenticating...</div>
 
     <div id="progress-modal" class="modal-admin" style="display: none;">
         <div class="modal-content-admin" style="max-width: 500px;">
-            <h3 id="progress-title">Processing...</h3>
-            <p id="progress-status">Please do not close or navigate away from this page.</p>
+            <h3 id="progress-title">Performing Full Score Update...</h3>
+            <p id="progress-status">This may take a minute. Please do not close this page.</p>
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
@@ -64,6 +97,7 @@
             <button type="button" id="progress-close-btn" class="btn-admin-secondary" style="margin-top: 1.5rem; display: none;">Close</button>
         </div>
     </div>
+
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/admin/manage-live-scoring.js"></script>
 </body>

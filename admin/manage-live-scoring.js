@@ -2,7 +2,7 @@
 
 import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, setDoc, query, collection, getDocs, limit } from '/js/firebase-init.js';
 
-// --- This is the key change: Using 'load' on 'window' instead of 'DOMContentLoaded' ---
+// The entire script is wrapped in this event listener to ensure the HTML is fully loaded first.
 window.addEventListener('load', () => {
 
     // --- Page Elements ---
@@ -376,5 +376,4 @@ window.addEventListener('load', () => {
             window.location.href = '/login.html';
         }
     });
-
 });
