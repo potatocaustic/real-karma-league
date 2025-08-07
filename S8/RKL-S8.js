@@ -4,7 +4,7 @@ const USE_DEV_COLLECTIONS = true; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 let activeSeasonId = '';
-let allTeams = []; // This will store only the top 10 teams (5 per conference) for the standings preview
+let allTeams = []; // This will now store all teams with a seasonal record
 
 // --- UTILITY FUNCTIONS ---
 function formatInThousands(value) {
@@ -42,39 +42,36 @@ async function getActiveSeason() {
     return seasonDoc.data();
 }
 
-async function fetchTopTeams(seasonId) {
+async function fetchAllTeams(seasonId) {
     if (!seasonId) {
-        console.error("fetchTopTeams was called without a seasonId.");
+        console.error("fetchAllTeams was called without a seasonId.");
         return;
     }
     const teamsCollectionName = getCollectionName('v2_teams');
-    const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
-
-    const fetchConference = async (conferenceName) => {
-        // This query requires a composite index on 'v2_teams' and 'v2_teams_dev'
-        const teamRecordsQuery = query(
-            collection(db, teamsCollectionName),
-            where('conference', '==', conferenceName),
-            orderBy('postseed', 'asc'),
-            limit(5)
-        );
-        const snapshot = await getDocs(teamRecordsQuery);
-        const teamPromises = snapshot.docs.map(async (teamDoc) => {
-            const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
-            const seasonalRecordSnap = await getDoc(seasonalRecordRef);
-            if (seasonalRecordSnap.exists()) {
-                return { ...teamDoc.data(), ...seasonalRecordSnap.data(), id: teamDoc.id };
-            }
-            return null;
-        });
-        return await Promise.all(teamPromises);
-    };
-
-    const easternTeams = await fetchConference('Eastern');
-    const westernTeams = await fetchConference('Western');
+    const seasonalRecordsCollectionName = getCollectionName('seasonal_records'); 
     
-    allTeams = [...easternTeams, ...westernTeams].filter(t => t !== null);
-    console.log(`Successfully loaded top ${allTeams.length} teams for standings preview.`);
+    const teamsQuery = query(collection(db, teamsCollectionName));
+    const teamsSnapshot = await getDocs(teamsQuery);
+
+    if (teamsSnapshot.empty) {
+        console.error(`No documents found in the '${teamsCollectionName}' collection.`);
+        return;
+    }
+
+    const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
+        const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+
+        if (seasonalRecordSnap.exists()) {
+            return { ...teamData, ...seasonalRecordSnap.data() };
+        }
+        return null;
+    });
+
+    const teams = await Promise.all(teamPromises);
+    allTeams = teams.filter(t => t !== null);
+    console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
 }
 
 // --- DOM MANIPULATION & RENDERING ---
@@ -86,8 +83,17 @@ function loadStandingsPreview() {
         return;
     }
 
-    const easternTeams = allTeams.filter(t => t.conference === 'Eastern');
-    const westernTeams = allTeams.filter(t => t.conference === 'Western');
+    const standingsSort = (a, b) => (a.postseed || 99) - (b.postseed || 99);
+    
+    const easternTeams = allTeams
+        .filter(t => t.conference && t.conference.toLowerCase() === 'eastern')
+        .sort(standingsSort)
+        .slice(0, 5);
+        
+    const westernTeams = allTeams
+        .filter(t => t.conference && t.conference.toLowerCase() === 'western')
+        .sort(standingsSort)
+        .slice(0, 5);
 
     const renderTable = (teams, tbodyId) => {
         const tbody = document.getElementById(tbodyId);
@@ -97,7 +103,6 @@ function loadStandingsPreview() {
              return;
         }
         tbody.innerHTML = teams.map(team => {
-            // **This is the key fix**: Using the pre-calculated clinching status fields
             let clinchBadgeHtml = '';
             if (team.playoffs === 1 || team.playoffs === '1') {
                 clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
@@ -144,23 +149,10 @@ async function loadRecentGames() {
         gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
         return;
     }
-    
-    // We need a comprehensive list of all teams to display recent games correctly
-    const allTeamsQuery = query(collection(db, getCollectionName('v2_teams')));
-    const allTeamsSnapshot = await getDocs(allTeamsQuery);
-    const allTeamsWithRecords = await Promise.all(allTeamsSnapshot.docs.map(async (teamDoc) => {
-         const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), activeSeasonId);
-         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
-         if (seasonalRecordSnap.exists()) {
-             return { id: teamDoc.id, ...teamDoc.data(), ...seasonalRecordSnap.data() };
-         }
-         return null;
-    }));
-    const fullTeamList = allTeamsWithRecords.filter(t => t !== null);
 
     gamesList.innerHTML = games.map(game => {
-        const team1 = fullTeamList.find(t => t.id === game.team1_id);
-        const team2 = fullTeamList.find(t => t.id === game.team2_id);
+        const team1 = allTeams.find(t => t.id === game.team1_id);
+        const team2 = allTeams.find(t => t.id === game.team2_id);
         if (!team1 || !team2) return ''; 
 
         const winnerId = game.winner;
@@ -199,7 +191,6 @@ function loadSeasonInfo(seasonData) {
     const seasonStatsContainer = document.getElementById('season-stats');
     if (!currentWeekSpan || !seasonStatsContainer) return;
 
-    // All data now comes directly from the seasonData object
     currentWeekSpan.textContent = `Week ${seasonData.current_week || '1'}`;
 
     if (seasonData.status === 'postseason') {
@@ -241,22 +232,8 @@ async function showGameDetails(gameId) {
         const lineupsSnapshot = await getDocs(lineupsQuery);
         const lineups = lineupsSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
         
-        const fullTeamList = await (async () => {
-             const allTeamsQuery = query(collection(db, getCollectionName('v2_teams')));
-             const allTeamsSnapshot = await getDocs(allTeamsQuery);
-             const allTeamsWithRecords = await Promise.all(allTeamsSnapshot.docs.map(async (teamDoc) => {
-                  const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), activeSeasonId);
-                  const seasonalRecordSnap = await getDoc(seasonalRecordRef);
-                  if (seasonalRecordSnap.exists()) {
-                      return { id: teamDoc.id, ...teamDoc.data(), ...seasonalRecordSnap.data() };
-                  }
-                  return null;
-             }));
-             return allTeamsWithRecords.filter(t => t !== null);
-        })();
-
-        const team1 = fullTeamList.find(t => t.id === game.team1_id);
-        const team2 = fullTeamList.find(t => t.id === game.team2_id);
+        const team1 = allTeams.find(t => t.id === game.team1_id);
+        const team2 = allTeams.find(t => t.id === game.team2_id);
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
 
         const team1Lineups = lineups.filter(l => l.team_id === game.team1_id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
@@ -312,7 +289,7 @@ function closeModal() {
 async function initializePage() {
     try {
         const seasonData = await getActiveSeason();
-        await fetchTopTeams(activeSeasonId);
+        await fetchAllTeams(activeSeasonId);
 
         loadStandingsPreview();
         loadRecentGames();
