@@ -121,6 +121,7 @@
         font-weight: bold;
         border-bottom: 2px solid #ddd;
         font-size: 0.9rem;
+        cursor: pointer; 
         position: relative; 
         transition: background-color 0.3s, border-color 0.3s;
       }
@@ -132,6 +133,7 @@
         top: 50%;
         transform: translateY(-50%);
       }
+      .standings-table th.no-sort { cursor: default; }
 
       #conferenceViewContainer .standings-table th:nth-child(1), 
       #conferenceViewContainer .standings-table td:nth-child(1),
@@ -440,11 +442,11 @@
             <table class="standings-table">
               <thead>
                 <tr>
-                  <th>Rank</th>
-                  <th>Team</th>
-                  <th>Record</th>
-                  <th>PAM</th>
-                  <th>Med Rank</th>
+                  <th data-sort-column="postseed" onclick="handleSort('Eastern', 'postseed')">Rank<span class="sort-indicator"></span></th>
+                  <th class="no-sort">Team</th>
+                  <th data-sort-column="record" onclick="handleSort('Eastern', 'record')">Record<span class="sort-indicator"></span></th>
+                  <th data-sort-column="pam" onclick="handleSort('Eastern', 'pam')">PAM<span class="sort-indicator"></span></th>
+                  <th data-sort-column="med_starter_rank" onclick="handleSort('Eastern', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
                 </tr>
               </thead>
               <tbody id="eastern-standings">
@@ -460,11 +462,11 @@
             <table class="standings-table">
               <thead>
                 <tr>
-                  <th>Rank</th>
-                  <th>Team</th>
-                  <th>Record</th>
-                  <th>PAM</th>
-                  <th>Med Rank</th>
+                  <th data-sort-column="postseed" onclick="handleSort('Western', 'postseed')">Rank<span class="sort-indicator"></span></th>
+                  <th class="no-sort">Team</th>
+                  <th data-sort-column="record" onclick="handleSort('Western', 'record')">Record<span class="sort-indicator"></span></th>
+                  <th data-sort-column="pam" onclick="handleSort('Western', 'pam')">PAM<span class="sort-indicator"></span></th>
+                  <th data-sort-column="med_starter_rank" onclick="handleSort('Western', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
                 </tr>
               </thead>
               <tbody id="western-standings">
@@ -483,11 +485,11 @@
           <table class="standings-table">
             <thead>
               <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th>Record</th>
-                <th>PAM</th>
-                <th>Med Rank</th>
+                <th data-sort-column="sortscore" onclick="handleSort('FullLeague', 'sortscore')">Rank<span class="sort-indicator"></span></th>
+                <th class="no-sort">Team</th>
+                <th data-sort-column="record" onclick="handleSort('FullLeague', 'record')">Record<span class="sort-indicator"></span></th>
+                <th data-sort-column="pam" onclick="handleSort('FullLeague', 'pam')">PAM<span class="sort-indicator"></span></th>
+                <th data-sort-column="med_starter_rank" onclick="handleSort('FullLeague', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
               </tr>
             </thead>
             <tbody id="full-league-standings">
@@ -508,11 +510,11 @@
           <table class="standings-table"> 
             <thead>
               <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th>Record</th>
-                <th class="prev-rank-col">Prev</th>
-                <th>Change</th>
+                <th class="no-sort">Rank</th>
+                <th class="no-sort">Team</th>
+                <th class="no-sort">Record</th>
+                <th class="no-sort prev-rank-col">Prev</th>
+                <th class="no-sort">Change</th>
               </tr>
             </thead>
             <tbody id="power-rankings-standings">
