@@ -5,7 +5,6 @@ const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` 
 
 let activeSeasonId = '';
 let allTeams = [];
-let allPlayers = [];
 
 // --- UTILITY FUNCTIONS ---
 function formatInThousands(value) {
@@ -46,12 +45,15 @@ async function getActiveSeason() {
 async function fetchAllTeams(seasonId) {
     if (!seasonId) {
         console.error("fetchAllTeams was called without a seasonId.");
-        allTeams = []; // Ensure it's empty
+        allTeams = [];
         return;
     }
     console.log(`Fetching all teams for season: ${seasonId}`);
 
     const teamsCollectionName = getCollectionName('v2_teams');
+    // **This is the key fix**: The subcollection name now also gets the _dev suffix
+    const seasonalRecordsCollectionName = getCollectionName('seasonal_records'); 
+    
     const teamsQuery = query(collection(db, teamsCollectionName));
     const teamsSnapshot = await getDocs(teamsQuery);
 
@@ -64,19 +66,21 @@ async function fetchAllTeams(seasonId) {
 
     const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, 'seasonal_records', seasonId);
+        // **This is the key fix**: Using the corrected subcollection name here
+        const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
 
         if (seasonalRecordSnap.exists()) {
             return { ...teamData, ...seasonalRecordSnap.data() };
         } else {
-            console.warn(`Team '${teamData.id}' is missing a seasonal_record for season '${seasonId}'.`);
+            // This warning is now expected for teams without a seasonal record (like FREE_AGENT)
+            // console.warn(`Team '${teamData.id}' is missing a seasonal_record for season '${seasonId}'.`);
             return null;
         }
     });
 
     const teams = await Promise.all(teamPromises);
-    allTeams = teams.filter(t => t !== null); // Filter out any nulls
+    allTeams = teams.filter(t => t !== null && t.conference); // Filter out nulls and non-league teams
     console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
 }
 
@@ -305,7 +309,7 @@ async function initializePage() {
         // Step 2: Fetch all team data for that season. This must complete before rendering.
         await fetchAllTeams(activeSeasonId);
 
-        // Step 3: Now that all required data is loaded into the `allTeams` global array, render the page sections.
+        // Step 3: Now that all required data is loaded, render the page sections.
         loadStandingsPreview();
         loadRecentGames();
         loadSeasonInfo(seasonData);
