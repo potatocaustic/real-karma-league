@@ -459,6 +459,30 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
     await batch.commit();
 }
 
+exports.scheduledLiveScoringShutdown = onSchedule({
+    schedule: "30 3 * * *", // Runs at 3:30 AM daily
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled job to set live scoring status to 'stopped'.");
+
+    try {
+        const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
+        
+        // Update the status to 'stopped'
+        await statusRef.set({
+            status: 'stopped',
+            last_updated_by: 'automated_shutdown',
+            last_updated: FieldValue.serverTimestamp()
+        }, { merge: true }); // Use merge: true to avoid overwriting other fields
+
+        console.log("Successfully set live scoring status to 'stopped'.");
+
+    } catch (error) {
+        console.error("Error during scheduled shutdown of live scoring:", error);
+    }
+    
+    return null;
+});
 
 async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     const seasonId = `S${seasonNum}`;
