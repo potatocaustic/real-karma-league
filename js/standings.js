@@ -58,33 +58,40 @@ async function fetchAllTeamsAndRecords() {
  * It assumes versions are named 'v0', 'v1', etc., and finds the highest one.
  */
 async function fetchLatestPowerRankings() {
-    const prCollectionName = getCollectionName('power_rankings');
-    const prQuery = query(collection(db, prCollectionName), orderBy('__name__', 'desc'), limit(1));
-    const prSnapshot = await getDocs(prQuery);
+    // TODO: This logic currently hardcodes 'v0'. To make this dynamic,
+    // you could store the name of the latest version (e.g., "v2") in the
+    // parent 'season_8' document and fetch that value first.
+    const latestVersionName = 'v0';
+    const seasonDocName = `season_${activeSeasonId.replace('S', '')}`;
+
+    const prCollectionRef = collection(db, getCollectionName('power_rankings'), seasonDocName, latestVersionName);
+    const prSnapshot = await getDocs(prCollectionRef);
 
     if (prSnapshot.empty) {
-        console.warn("No power rankings documents found.");
+        console.warn(`No power rankings documents found in ${seasonDocName}/${latestVersionName}.`);
         powerRankingsData = [];
         return;
     }
-
-    const latestPRDoc = prSnapshot.docs[0];
-    const prData = latestPRDoc.data();
     
-    // Update header with dynamic version and week
+    // The snapshot now contains all the individual team documents from the latest version.
+    const prDocsData = prSnapshot.docs.map(doc => doc.data());
+
+    // Update header with dynamic version and week (assuming it's on one of the docs, or you could fetch the parent)
+    // For now, we'll just make a generic title.
     const prHeader = document.querySelector('#powerRankingsViewContainer .conference-header h3');
     if (prHeader) {
-        prHeader.textContent = `Power Rankings ${prData.version_name || ''} (${prData.week || ''})`;
+        // This would need a more robust way to get version_name and week if it's not on team docs.
+        prHeader.textContent = `Power Rankings`;
     }
 
     // Combine power ranking data with team records
-    powerRankingsData = prData.rankings
+    powerRankingsData = prDocsData
         .map(prTeam => {
             const teamRecord = allTeamsData.find(t => t.id === prTeam.team_id);
             return teamRecord ? { ...prTeam, ...teamRecord } : null;
         })
         .filter(t => t !== null)
-        .sort((a, b) => a.rank - b.rank);
+        .sort((a, b) => (a.rank || 99) - (b.rank || 99));
 }
 
 
@@ -159,8 +166,8 @@ function renderPowerRankingsSummary() {
     const summaryContainer = document.getElementById('powerRankingsSummary');
     if (!summaryContainer || !powerRankingsData || powerRankingsData.length === 0) return;
 
-    const biggestRiser = powerRankingsData.reduce((prev, curr) => (curr.change > prev.change ? curr : prev), { change: -Infinity });
-    const biggestFaller = powerRankingsData.reduce((prev, curr) => (curr.change < prev.change ? curr : prev), { change: Infinity });
+    const biggestRiser = powerRankingsData.reduce((prev, curr) => ((curr.change || 0) > (prev.change || 0) ? curr : prev), { change: -Infinity });
+    const biggestFaller = powerRankingsData.reduce((prev, curr) => ((curr.change || 0) < (prev.change || 0) ? curr : prev), { change: Infinity });
 
     let summaryHTML = '';
     if (biggestRiser.change > 0) {
@@ -222,7 +229,7 @@ function getClinchBadge(team) {
 }
 
 function getPlayoffIndicator(rank) {
-    if (rank <= 0) return '-';
+    if (!rank || rank <= 0) return '-';
     if (rank <= 6) return `<div class="playoff-seed">${rank}</div>`;
     if (rank <= 10) return `<div class="playin-seed">${rank}</div>`;
     return `<div class="eliminated-seed">${rank}</div>`;
@@ -261,10 +268,12 @@ async function initializePage() {
 
         // Set up button listeners
         viewToggleButton1.addEventListener('click', () => {
-            switchView(currentView === 'conferences' ? 'fullLeague' : 'conferences');
+            const targetView = currentView === 'conferences' ? 'fullLeague' : 'conferences';
+            switchView(targetView);
         });
         viewToggleButton2.addEventListener('click', () => {
-            switchView(currentView === 'powerRankings' ? (document.getElementById('fullLeagueViewContainer').classList.contains('hidden') ? 'fullLeague' : 'conferences') : 'powerRankings');
+            const targetView = currentView === 'powerRankings' ? 'conferences' : 'powerRankings';
+            switchView(targetView);
         });
         
         // Default to conference view
