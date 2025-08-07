@@ -1,3 +1,5 @@
+// /js/login.js
+
 import { auth, onAuthStateChanged } from './firebase-init.js';
 import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 
