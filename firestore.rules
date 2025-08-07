@@ -85,19 +85,19 @@ service cloud.firestore {
     }
     match /transactions_dev/{transactionId} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAdminDev();
     }
     match /draft_results_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAdminDev();
     }
     match /awards_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAdminDev();
     }
     match /power_rankings_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAdminDev();
     }
     match /lottery_results_dev/{doc=**} {
         allow read: if true;
@@ -105,11 +105,11 @@ service cloud.firestore {
     }
     match /live_scoring_status_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAdminDev();
     }
     match /usage_stats_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAdminDev();
     }
     match /users_dev/{userId} {
         allow read: if request.auth.uid == userId || isAdminDev();

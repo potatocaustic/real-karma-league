@@ -135,7 +135,8 @@ function loadStandingsPreview() {
 async function loadRecentGames() {
     const gamesQuery = query(
         collection(db, getCollectionName('seasons'), activeSeasonId, 'games'),
-        where('completed', '==', true),
+        // **This is the key fix**: Looking for the string "TRUE" instead of the boolean true
+        where('completed', '==', 'TRUE'),
         orderBy('date', 'desc'),
         limit(5)
     );
@@ -236,8 +237,8 @@ async function showGameDetails(gameId) {
         const team2 = allTeams.find(t => t.id === game.team2_id);
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
 
-        const team1Lineups = lineups.filter(l => l.team_id === game.team1_id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
-        const team2Lineups = lineups.filter(l => l.team_id === game.team2_id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
+        const team1Lineups = lineups.filter(l => l.team_id === team1.id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
+        const team2Lineups = lineups.filter(l => l.team_id === team2.id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
 
         contentArea.innerHTML = `
             <div class="game-details-grid">
