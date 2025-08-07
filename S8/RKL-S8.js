@@ -137,15 +137,25 @@ async function loadRecentGames() {
     if (!gamesList) return;
 
     try {
+        // **This is the key fix**: Fetch recent games without filtering by 'completed' status initially.
         const gamesQuery = query(
             collection(db, getCollectionName('seasons'), activeSeasonId, 'games'),
-            where('completed', '==', 'TRUE'),
             orderBy('date', 'desc'),
-            limit(5)
+            limit(10) // Fetch more to ensure we get the completed ones
         );
 
         const gamesSnapshot = await getDocs(gamesQuery);
-        const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const allRecentGames = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        console.log("Fetched raw recent games data:", allRecentGames); // Diagnostic log
+
+        // Now, filter and sort in JavaScript
+        const games = allRecentGames
+            .filter(game => game.completed === 'TRUE')
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 5);
+        
+        console.log("Filtered completed games:", games); // Diagnostic log
 
         if (games.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
@@ -187,8 +197,8 @@ async function loadRecentGames() {
             item.addEventListener('click', () => showGameDetails(item.dataset.gameId));
         });
     } catch (error) {
-        console.error("Error fetching recent games. This is likely due to a missing Firestore index.", error);
-        gamesList.innerHTML = '<div class="error">Could not load recent games. A Firestore index is likely required. See console for details.</div>';
+        console.error("Error fetching recent games:", error);
+        gamesList.innerHTML = '<div class="error">Could not load recent games. See console for details.</div>';
     }
 }
 
