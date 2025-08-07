@@ -322,11 +322,9 @@ async function handleFormSubmit(e) {
         // --- NEW: Update the latest_version field on the parent season document ---
         const seasonDocRef = doc(db, getCollectionName('power_rankings'), seasonDocName);
         const versionLabel = `v${versionToSave}`;
-        const weekLabel = versionToSave === 0 ? 'Preseason' : `Week ${versionToSave * 3}`;
         
         batch.set(seasonDocRef, { 
             latest_version: versionLabel,
-            latest_version_name: `${versionLabel} (${weekLabel})`
         }, { merge: true }); // Use merge:true to create or update without overwriting other fields
 
         await batch.commit();
