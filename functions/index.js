@@ -342,7 +342,7 @@ exports.autoFinalizeGames = onSchedule({
 
     for (const gameDoc of liveGamesSnap.docs) {
         try {
-            const randomGameDelay = Math.floor(Math.random() * (30000 - 5000 + 1)) + 5000;
+            const randomGameDelay = Math.floor(Math.random() * 201) + 200;
             await delay(randomGameDelay);
 
             console.log(`Auto-finalizing game ${gameDoc.id} after a ${randomGameDelay}ms delay.`);
@@ -375,7 +375,7 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
     const finalScoresMap = new Map();
     for (const player of allPlayersInGame) {
         if (isAutoFinalize) {
-            const randomPlayerDelay = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+            const randomPlayerDelay = Math.floor(Math.random() * 201) + 200;
             await delay(randomPlayerDelay);
         }
 
@@ -399,7 +399,7 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
     let team1FinalScore = 0;
     let team2FinalScore = 0;
 
-    const lineupsCollectionName = collectionName.replace('_games', '_lineups');
+    const lineupsCollectionName = collectionName.replace('games', 'lineups');
     const lineupsCollectionRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollectionName));
 
     for (const player of allPlayersInGame) {
@@ -901,7 +901,7 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
         };
 
         if (isCurrentDraft) {
-            const randomDelay = Math.floor(Math.random() * (1500 - 500 + 1)) + 500;
+            const randomDelay = Math.floor(Math.random() * 201) + 100;
             await delay(randomDelay);
 
             console.log(`Current draft (${draftSeason}). Fetching player ID for: ${player_handle}.`);
