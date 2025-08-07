@@ -168,7 +168,7 @@ service cloud.firestore {
     }
     match /tradeblocks/{doc} {
       allow read: if true;
-      allow write: if request.auth.uid == resource.data.gm_uid || isAdmin();
+      allow write: if request.auth.uid == resource.data.gm_uid || isAdmin() || isAdminDev();
     }
 
     // These 'new_' collections will eventually be deprecated.
