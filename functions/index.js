@@ -1654,6 +1654,86 @@ exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async 
     }
 });
 
+/**
+ * Runs daily to determine the current week of the active season.
+ * It finds the earliest incomplete game and writes its week/round name
+ * to the active season document.
+ */
+exports.updateCurrentWeek = onSchedule({
+    schedule: "every day 03:30",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled function to update current week...");
+
+    try {
+        const seasonsRef = db.collection(getCollectionName('seasons'));
+        const activeSeasonQuery = query(seasonsRef, where("status", "==", "active"), limit(1));
+        const activeSeasonSnap = await getDocs(activeSeasonQuery);
+
+        if (activeSeasonSnap.empty) {
+            console.log("No active season found. Exiting function.");
+            return null;
+        }
+
+        const activeSeasonDoc = activeSeasonSnap.docs[0];
+        const seasonId = activeSeasonDoc.id;
+        console.log(`Active season is ${seasonId}. Checking for next incomplete game.`);
+
+        let nextGameWeek = null;
+
+        // 1. Check for the next incomplete regular season game
+        const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
+        const incompleteGamesQuery = query(
+            gamesRef,
+            where('completed', '!=', 'TRUE'),
+            orderBy('date', 'asc'),
+            limit(1)
+        );
+        const incompleteGamesSnap = await getDocs(incompleteGamesQuery);
+
+        if (!incompleteGamesSnap.empty) {
+            nextGameWeek = incompleteGamesSnap.docs[0].data().week;
+        } else {
+            // 2. If no regular season games are left, check the postseason
+            console.log("No incomplete regular season games found. Checking postseason...");
+            const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
+            const incompletePostGamesQuery = query(
+                postGamesRef,
+                where('completed', '!=', 'TRUE'),
+                orderBy('date', 'asc'),
+                limit(1)
+            );
+            const incompletePostGamesSnap = await getDocs(incompletePostGamesQuery);
+
+            if (!incompletePostGamesSnap.empty) {
+                nextGameWeek = incompletePostGamesSnap.docs[0].data().week;
+            }
+        }
+
+        if (nextGameWeek !== null) {
+            console.log(`The next game is in week/round: '${nextGameWeek}'. Updating season document.`);
+            await activeSeasonDoc.ref.set({
+                current_week: String(nextGameWeek) // Ensure it's stored as a string
+            }, { merge: true });
+            console.log("Successfully updated the current week.");
+        } else {
+            // 3. If no incomplete games are found anywhere, the season is over.
+            console.log("No incomplete games found in regular or postseason. Setting current week to 'Season Complete'.");
+            await activeSeasonDoc.ref.set({
+                current_week: "Season Complete"
+            }, { merge: true });
+        }
+
+        return null;
+
+    } catch (error) {
+        console.error("Error updating current week:", error);
+        // Throwing an error will cause the function to retry if configured,
+        // but for a daily job, logging is often sufficient.
+        return null;
+    }
+});
+
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
 // ===================================================================

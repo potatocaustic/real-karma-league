@@ -4,7 +4,7 @@ const USE_DEV_COLLECTIONS = true; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 let activeSeasonId = '';
-let allTeams = [];
+let allTeams = []; // This will store only the top 10 teams (5 per conference) for the standings preview
 
 // --- UTILITY FUNCTIONS ---
 function formatInThousands(value) {
@@ -42,59 +42,52 @@ async function getActiveSeason() {
     return seasonDoc.data();
 }
 
-async function fetchAllTeams(seasonId) {
+async function fetchTopTeams(seasonId) {
     if (!seasonId) {
-        console.error("fetchAllTeams was called without a seasonId.");
-        allTeams = [];
+        console.error("fetchTopTeams was called without a seasonId.");
         return;
     }
-    console.log(`Fetching all teams for season: ${seasonId}`);
-
     const teamsCollectionName = getCollectionName('v2_teams');
-    const seasonalRecordsCollectionName = getCollectionName('seasonal_records'); 
-    
-    const teamsQuery = query(collection(db, teamsCollectionName));
-    const teamsSnapshot = await getDocs(teamsQuery);
+    const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
 
-    if (teamsSnapshot.empty) {
-        console.error(`No documents found in the '${teamsCollectionName}' collection.`);
-        allTeams = [];
-        return;
-    }
-    console.log(`Found ${teamsSnapshot.size} documents in '${teamsCollectionName}'.`);
-
-    const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
-        const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
-        const seasonalRecordSnap = await getDoc(seasonalRecordRef);
-
-        if (seasonalRecordSnap.exists()) {
-            return { ...teamData, ...seasonalRecordSnap.data() };
-        } else {
+    const fetchConference = async (conferenceName) => {
+        // This query requires a composite index on 'v2_teams' and 'v2_teams_dev'
+        const teamRecordsQuery = query(
+            collection(db, teamsCollectionName),
+            where('conference', '==', conferenceName),
+            orderBy('postseed', 'asc'),
+            limit(5)
+        );
+        const snapshot = await getDocs(teamRecordsQuery);
+        const teamPromises = snapshot.docs.map(async (teamDoc) => {
+            const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
+            const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+            if (seasonalRecordSnap.exists()) {
+                return { ...teamDoc.data(), ...seasonalRecordSnap.data(), id: teamDoc.id };
+            }
             return null;
-        }
-    });
+        });
+        return await Promise.all(teamPromises);
+    };
 
-    const teams = await Promise.all(teamPromises);
-    allTeams = teams.filter(t => t !== null); // Keep all teams with records, filter conference later.
-    console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
+    const easternTeams = await fetchConference('Eastern');
+    const westernTeams = await fetchConference('Western');
+    
+    allTeams = [...easternTeams, ...westernTeams].filter(t => t !== null);
+    console.log(`Successfully loaded top ${allTeams.length} teams for standings preview.`);
 }
-
 
 // --- DOM MANIPULATION & RENDERING ---
 
 function loadStandingsPreview() {
     if (allTeams.length === 0) {
-        console.error("Team data not available for standings.");
         document.getElementById('eastern-standings').innerHTML = '<tr><td colspan="4" class="error">Could not load standings.</td></tr>';
         document.getElementById('western-standings').innerHTML = '<tr><td colspan="4" class="error">Could not load standings.</td></tr>';
         return;
     }
-    const standingsSort = (a, b) => (b.wpct || 0) - (a.wpct || 0) || (b.pam || 0) - (a.pam || 0);
-    
-    // **This is the key fix**: Check for "eastern" and "western" instead of "east" and "west".
-    const easternTeams = allTeams.filter(t => t.conference && t.conference.toLowerCase() === 'eastern').sort(standingsSort).slice(0, 5);
-    const westernTeams = allTeams.filter(t => t.conference && t.conference.toLowerCase() === 'western').sort(standingsSort).slice(0, 5);
+
+    const easternTeams = allTeams.filter(t => t.conference === 'Eastern');
+    const westernTeams = allTeams.filter(t => t.conference === 'Western');
 
     const renderTable = (teams, tbodyId) => {
         const tbody = document.getElementById(tbodyId);
@@ -104,10 +97,15 @@ function loadStandingsPreview() {
              return;
         }
         tbody.innerHTML = teams.map(team => {
+            // **This is the key fix**: Using the pre-calculated clinching status fields
             let clinchBadgeHtml = '';
-            if (team.playoff_seed > 0) clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
-            else if (team.play_in_seed > 0) clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
-            else if (team.eliminated) clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+            if (team.playoffs === 1 || team.playoffs === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+            } else if (team.playin === 1 || team.playin === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+            } else if (team.elim === 1 || team.elim === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+            }
 
             return `
                 <tr>
@@ -120,7 +118,7 @@ function loadStandingsPreview() {
                     </td>
                     <td style="text-align: center;">${team.wins || 0}-${team.losses || 0}</td>
                     <td style="text-align: center;">${Math.round(team.pam || 0).toLocaleString()}</td>
-                    <td class="desktop-only-col" style="text-align: center;">${Math.round(team.median_rank || 0) || '-'}</td>
+                    <td class="desktop-only-col" style="text-align: center;">${Math.round(team.med_starter_rank) || '-'}</td>
                 </tr>`;
         }).join('');
     };
@@ -146,10 +144,23 @@ async function loadRecentGames() {
         gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
         return;
     }
+    
+    // We need a comprehensive list of all teams to display recent games correctly
+    const allTeamsQuery = query(collection(db, getCollectionName('v2_teams')));
+    const allTeamsSnapshot = await getDocs(allTeamsQuery);
+    const allTeamsWithRecords = await Promise.all(allTeamsSnapshot.docs.map(async (teamDoc) => {
+         const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), activeSeasonId);
+         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+         if (seasonalRecordSnap.exists()) {
+             return { id: teamDoc.id, ...teamDoc.data(), ...seasonalRecordSnap.data() };
+         }
+         return null;
+    }));
+    const fullTeamList = allTeamsWithRecords.filter(t => t !== null);
 
     gamesList.innerHTML = games.map(game => {
-        const team1 = allTeams.find(t => t.id === game.team1_id);
-        const team2 = allTeams.find(t => t.id === game.team2_id);
+        const team1 = fullTeamList.find(t => t.id === game.team1_id);
+        const team2 = fullTeamList.find(t => t.id === game.team2_id);
         if (!team1 || !team2) return ''; 
 
         const winnerId = game.winner;
@@ -183,42 +194,32 @@ async function loadRecentGames() {
     });
 }
 
-async function loadSeasonInfo(seasonData) {
+function loadSeasonInfo(seasonData) {
     const currentWeekSpan = document.getElementById('current-week');
     const seasonStatsContainer = document.getElementById('season-stats');
-
     if (!currentWeekSpan || !seasonStatsContainer) return;
 
+    // All data now comes directly from the seasonData object
     currentWeekSpan.textContent = `Week ${seasonData.current_week || '1'}`;
+
     if (seasonData.status === 'postseason') {
         currentWeekSpan.textContent = seasonData.current_stage || 'Postseason';
         document.getElementById('playoff-button-container').style.display = 'block';
     }
      if (seasonData.status === 'completed') {
-        const winner = allTeams.find(t => t.id === seasonData.champion_id);
-        if (winner) {
-             currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winner.id}.webp" onerror="this.style.display='none'"/> ${winner.team_name} 🏆</p>`;
+        const winnerInfo = allTeams.find(t => t.id === seasonData.champion_id);
+        if (winnerInfo) {
+             currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.webp" onerror="this.style.display='none'"/> ${winnerInfo.team_name} 🏆</p>`;
         } else {
              currentWeekSpan.parentElement.innerHTML = `<p><strong>Season Complete!</strong></p>`;
         }
         document.getElementById('playoff-button-container').style.display = 'block';
     }
 
-    const gamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, 'games'));
-    const gamesSnapshot = await getDocs(gamesQuery);
-    const completedGames = gamesSnapshot.docs.filter(doc => doc.data().completed).length;
-    const totalGames = gamesSnapshot.size;
-
-    const transactionsQuery = query(collection(db, getCollectionName('transactions')), where('season', '==', activeSeasonId));
-    const transactionsSnapshot = await getDocs(transactionsQuery);
-    const totalTransactions = transactionsSnapshot.size;
-
-    const totalKarma = allTeams.reduce((sum, team) => sum + (team.total_points || 0), 0);
-
     seasonStatsContainer.innerHTML = `
-        <p><strong>${completedGames} of ${totalGames}</strong> regular season games complete</p>
-        <p><strong>${totalTransactions}</strong> transactions made</p>
-        <p><strong>${Math.round(totalKarma).toLocaleString()}</strong> total karma earned</p>
+        <p><strong>${seasonData.gp || 0} of ${seasonData.gs || 0}</strong> regular season games complete</p>
+        <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
+        <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
     `;
 }
 
@@ -235,14 +236,28 @@ async function showGameDetails(gameId) {
         const gameSnap = await getDoc(gameRef);
         if (!gameSnap.exists()) throw new Error("Game not found");
         const game = gameSnap.data();
-
-        const team1 = allTeams.find(t => t.id === game.team1_id);
-        const team2 = allTeams.find(t => t.id === game.team2_id);
-        modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
-
+        
         const lineupsQuery = query(collection(gameRef, 'lineups'));
         const lineupsSnapshot = await getDocs(lineupsQuery);
         const lineups = lineupsSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
+        
+        const fullTeamList = await (async () => {
+             const allTeamsQuery = query(collection(db, getCollectionName('v2_teams')));
+             const allTeamsSnapshot = await getDocs(allTeamsQuery);
+             const allTeamsWithRecords = await Promise.all(allTeamsSnapshot.docs.map(async (teamDoc) => {
+                  const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), activeSeasonId);
+                  const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+                  if (seasonalRecordSnap.exists()) {
+                      return { id: teamDoc.id, ...teamDoc.data(), ...seasonalRecordSnap.data() };
+                  }
+                  return null;
+             }));
+             return allTeamsWithRecords.filter(t => t !== null);
+        })();
+
+        const team1 = fullTeamList.find(t => t.id === game.team1_id);
+        const team2 = fullTeamList.find(t => t.id === game.team2_id);
+        modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
 
         const team1Lineups = lineups.filter(l => l.team_id === game.team1_id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
         const team2Lineups = lineups.filter(l => l.team_id === game.team2_id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
@@ -297,7 +312,7 @@ function closeModal() {
 async function initializePage() {
     try {
         const seasonData = await getActiveSeason();
-        await fetchAllTeams(activeSeasonId);
+        await fetchTopTeams(activeSeasonId);
 
         loadStandingsPreview();
         loadRecentGames();
