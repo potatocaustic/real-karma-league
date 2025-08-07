@@ -52,11 +52,20 @@ async function performFullUpdate() {
                 apiRequests++;
                 const data = await response.json();
                 const rawScore = parseFloat(data?.stats?.karmaDelta || 0);
+                
+                // --- NEW: Fetch and add the global rank ---
+                const globalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
+                
                 const adjustedScore = rawScore - (player.deductions || 0);
                 const finalScore = player.is_captain ? adjustedScore * 1.5 : adjustedScore;
+                
                 player.points_raw = rawScore;
                 player.points_adjusted = adjustedScore;
                 player.final_score = finalScore;
+                
+                // --- NEW: Assign the rank to the player object ---
+                player.global_rank = globalRank;
+
             } catch (error) {
                 console.error(`performFullUpdate: Failed to fetch karma for ${player.player_id}`, error);
             }
