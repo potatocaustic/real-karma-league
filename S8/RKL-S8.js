@@ -133,58 +133,63 @@ function loadStandingsPreview() {
 }
 
 async function loadRecentGames() {
-    const gamesQuery = query(
-        collection(db, getCollectionName('seasons'), activeSeasonId, 'games'),
-        // **This is the key fix**: Looking for the string "TRUE" instead of the boolean true
-        where('completed', '==', 'TRUE'),
-        orderBy('date', 'desc'),
-        limit(5)
-    );
-    const gamesSnapshot = await getDocs(gamesQuery);
-    const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
     const gamesList = document.getElementById('recent-games');
     if (!gamesList) return;
 
-    if (games.length === 0) {
-        gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
-        return;
+    try {
+        const gamesQuery = query(
+            collection(db, getCollectionName('seasons'), activeSeasonId, 'games'),
+            where('completed', '==', 'TRUE'),
+            orderBy('date', 'desc'),
+            limit(5)
+        );
+
+        const gamesSnapshot = await getDocs(gamesQuery);
+        const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (games.length === 0) {
+            gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
+            return;
+        }
+
+        gamesList.innerHTML = games.map(game => {
+            const team1 = allTeams.find(t => t.id === game.team1_id);
+            const team2 = allTeams.find(t => t.id === game.team2_id);
+            if (!team1 || !team2) return ''; 
+
+            const winnerId = game.winner;
+            return `
+                <div class="game-item" data-game-id="${game.id}">
+                    <div class="game-matchup">
+                        <div class="team ${winnerId === team1.id ? 'winner' : ''}">
+                            <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <div class="team-info">
+                                <span class="team-name">${team1.team_name}</span>
+                                <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                            </div>
+                            <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
+                        </div>
+                        <span class="vs">vs</span>
+                        <div class="team ${winnerId === team2.id ? 'winner' : ''}">
+                            <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <div class="team-info">
+                                <span class="team-name">${team2.team_name}</span>
+                                <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                            </div>
+                            <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
+                        </div>
+                    </div>
+                    <div class="game-date">${formatDate(game.date)}</div>
+                </div>`;
+        }).join('');
+
+        document.querySelectorAll('.game-item').forEach(item => {
+            item.addEventListener('click', () => showGameDetails(item.dataset.gameId));
+        });
+    } catch (error) {
+        console.error("Error fetching recent games. This is likely due to a missing Firestore index.", error);
+        gamesList.innerHTML = '<div class="error">Could not load recent games. A Firestore index is likely required. See console for details.</div>';
     }
-
-    gamesList.innerHTML = games.map(game => {
-        const team1 = allTeams.find(t => t.id === game.team1_id);
-        const team2 = allTeams.find(t => t.id === game.team2_id);
-        if (!team1 || !team2) return ''; 
-
-        const winnerId = game.winner;
-        return `
-            <div class="game-item" data-game-id="${game.id}">
-                <div class="game-matchup">
-                    <div class="team ${winnerId === team1.id ? 'winner' : ''}">
-                        <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                        <div class="team-info">
-                            <span class="team-name">${team1.team_name}</span>
-                            <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
-                        </div>
-                        <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
-                    </div>
-                    <span class="vs">vs</span>
-                    <div class="team ${winnerId === team2.id ? 'winner' : ''}">
-                        <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                        <div class="team-info">
-                            <span class="team-name">${team2.team_name}</span>
-                            <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
-                        </div>
-                        <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
-                    </div>
-                </div>
-                <div class="game-date">${formatDate(game.date)}</div>
-            </div>`;
-    }).join('');
-
-    document.querySelectorAll('.game-item').forEach(item => {
-        item.addEventListener('click', () => showGameDetails(item.dataset.gameId));
-    });
 }
 
 function loadSeasonInfo(seasonData) {
@@ -237,8 +242,8 @@ async function showGameDetails(gameId) {
         const team2 = allTeams.find(t => t.id === game.team2_id);
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
 
-        const team1Lineups = lineups.filter(l => l.team_id === team1.id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
-        const team2Lineups = lineups.filter(l => l.team_id === team2.id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
+        const team1Lineups = lineups.filter(l => l.team_id === team1.id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
+        const team2Lineups = lineups.filter(l => l.team_id === team2.id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
 
         contentArea.innerHTML = `
             <div class="game-details-grid">
@@ -266,11 +271,12 @@ function generateLineupTable(lineups, team, isWinner) {
                 <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
                 <tbody>
                     ${lineups.map(p => {
-                        const captainBonus = p.captain ? (p.points_final - p.points_raw) : 0;
+                        const isCaptain = p.captain === "TRUE";
+                        const captainBonus = isCaptain ? (p.points_final - p.points_raw) : 0;
                         return `
-                            <tr class="${p.captain ? 'captain-row' : ''}">
+                            <tr class="${isCaptain ? 'captain-row' : ''}">
                                 <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a></td>
-                                <td class="points-cell">${Math.round(p.points_raw).toLocaleString()}${p.captain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
+                                <td class="points-cell">${Math.round(p.points_raw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
                                 <td class="rank-cell">${p.global_rank || '-'}</td>
                             </tr>
                         `
