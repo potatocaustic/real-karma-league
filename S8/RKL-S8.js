@@ -279,7 +279,6 @@ async function showGameDetails(gameId, gameDate) {
 
 function generateLineupTable(lineups, team, isWinner) {
      if (!team) return '<div>Team data not found</div>';
-    // **This is the key fix**: Using final_score to calculate the total
     const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
     return `
         <div class="team-breakdown ${isWinner ? 'winner' : ''}">
@@ -292,14 +291,15 @@ function generateLineupTable(lineups, team, isWinner) {
                 <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
                 <tbody>
                     ${lineups.map(p => {
-                        // **This is the key fix**: Using the correct field names
                         const isCaptain = p.is_captain === "TRUE";
                         const baseScore = p.points_adjusted || 0;
                         const finalScore = p.final_score || 0;
                         const captainBonus = isCaptain ? finalScore - baseScore : 0;
+                        // **This is the key fix**: Conditionally create the captain badge HTML
+                        const captainBadge = isCaptain ? '<span class="captain-badge">C</span>' : '';
                         return `
                             <tr class="${isCaptain ? 'captain-row' : ''}">
-                                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a></td>
+                                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a>${captainBadge}</td>
                                 <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
                                 <td class="rank-cell">${p.global_rank || '-'}</td>
                             </tr>
