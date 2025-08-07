@@ -54,15 +54,22 @@ async function fetchAllTeamsAndRecords() {
 }
 
 /**
- * Fetches the most recent power rankings document.
- * It assumes versions are named 'v0', 'v1', etc., and finds the highest one.
+ * Fetches the most recent power rankings by first reading the 'latest_version'
+ * field from the season document.
  */
 async function fetchLatestPowerRankings() {
-    // TODO: This logic currently hardcodes 'v0'. To make this dynamic,
-    // you could store the name of the latest version (e.g., "v2") in the
-    // parent 'season_8' document and fetch that value first.
-    const latestVersionName = 'v0';
     const seasonDocName = `season_${activeSeasonId.replace('S', '')}`;
+    const seasonDocRef = doc(db, getCollectionName('power_rankings'), seasonDocName);
+    const seasonDocSnap = await getDoc(seasonDocRef);
+
+    if (!seasonDocSnap.exists() || !seasonDocSnap.data().latest_version) {
+        console.warn(`No 'latest_version' field found for ${seasonDocName}.`);
+        powerRankingsData = [];
+        return;
+    }
+
+    const latestVersionName = seasonDocSnap.data().latest_version;
+    const latestVersionLabel = seasonDocSnap.data().latest_version_name;
 
     const prCollectionRef = collection(db, getCollectionName('power_rankings'), seasonDocName, latestVersionName);
     const prSnapshot = await getDocs(prCollectionRef);
@@ -73,15 +80,14 @@ async function fetchLatestPowerRankings() {
         return;
     }
     
-    // The snapshot now contains all the individual team documents from the latest version.
     const prDocsData = prSnapshot.docs.map(doc => doc.data());
 
-    // Update header with dynamic version and week (assuming it's on one of the docs, or you could fetch the parent)
-    // For now, we'll just make a generic title.
+    // Update header with the dynamic label from the season document
     const prHeader = document.querySelector('#powerRankingsViewContainer .conference-header h3');
     if (prHeader) {
-        // This would need a more robust way to get version_name and week if it's not on team docs.
-        prHeader.textContent = `Power Rankings`;
+        const versionNumber = parseInt(latestVersionName.replace('v', ''), 10);
+        const label = versionNumber === 0 ? 'v0 (Preseason)' : `v${versionNumber} (Week ${versionNumber * 3})`;
+        prHeader.textContent = `Power Rankings: ${label}`;
     }
 
     // Combine power ranking data with team records
@@ -120,7 +126,7 @@ function generateStandingsRows(teams, isFullLeague = false) {
                 <td class="rank-cell">${getPlayoffIndicator(rank)}</td>
                 <td>
                     <div class="team-cell" onclick="window.location.href='team.html?id=${team.id}'">
-                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <img src="icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                         <span class="team-name">${team.team_name}</span>
                         ${clinchBadge}
                     </div>
@@ -148,7 +154,7 @@ function renderPowerRankings() {
                 <td class="rank-cell">${getRankDisplay(team.rank)}</td>
                 <td>
                     <div class="team-cell" onclick="window.location.href='team.html?id=${team.id}'">
-                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <img src="icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                         <span class="team-name">${team.team_name}</span>
                         ${clinchBadge}
                     </div>
