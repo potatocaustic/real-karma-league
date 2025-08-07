@@ -9,6 +9,7 @@ let activeSeasonId = '';
 let allTeamsData = [];
 let powerRankingsData = [];
 let currentView = 'conferences'; // 'conferences', 'fullLeague', or 'powerRankings'
+let latestPRVersion = null; // To store the latest version string, e.g., "v4"
 
 // --- DOM ELEMENTS ---
 const viewToggleButton1 = document.getElementById('viewToggleButton1');
@@ -19,6 +20,8 @@ const powerRankingsViewContainer = document.getElementById('powerRankingsViewCon
 const standingsPageTitle = document.getElementById('standingsPageTitle');
 const pageDescription = document.getElementById('pageDescription');
 const playoffLegend = document.querySelector('.playoff-legend');
+const playoffBracketBtn = document.querySelector('button[onclick*="playoff-bracket.html"]');
+
 
 // --- DATA FETCHING ---
 
@@ -68,24 +71,23 @@ async function fetchLatestPowerRankings() {
         return;
     }
 
-    const latestVersionName = seasonDocSnap.data().latest_version;
-    const latestVersionLabel = seasonDocSnap.data().latest_version_name;
+    latestPRVersion = seasonDocSnap.data().latest_version; // Store the version string globally
 
-    const prCollectionRef = collection(db, getCollectionName('power_rankings'), seasonDocName, latestVersionName);
+    const prCollectionRef = collection(db, getCollectionName('power_rankings'), seasonDocName, latestPRVersion);
     const prSnapshot = await getDocs(prCollectionRef);
 
     if (prSnapshot.empty) {
-        console.warn(`No power rankings documents found in ${seasonDocName}/${latestVersionName}.`);
+        console.warn(`No power rankings documents found in ${seasonDocName}/${latestPRVersion}.`);
         powerRankingsData = [];
         return;
     }
     
     const prDocsData = prSnapshot.docs.map(doc => doc.data());
 
-    // Update header with the dynamic label from the season document
+    // Update header with the dynamic label
     const prHeader = document.querySelector('#powerRankingsViewContainer .conference-header h3');
     if (prHeader) {
-        const versionNumber = parseInt(latestVersionName.replace('v', ''), 10);
+        const versionNumber = parseInt(latestPRVersion.replace('v', ''), 10);
         const label = versionNumber === 0 ? 'v0 (Preseason)' : `v${versionNumber} (Week ${versionNumber * 3})`;
         prHeader.textContent = `Power Rankings: ${label}`;
     }
@@ -126,7 +128,7 @@ function generateStandingsRows(teams, isFullLeague = false) {
                 <td class="rank-cell">${getPlayoffIndicator(rank)}</td>
                 <td>
                     <div class="team-cell" onclick="window.location.href='team.html?id=${team.id}'">
-                        <img src="icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                         <span class="team-name">${team.team_name}</span>
                         ${clinchBadge}
                     </div>
@@ -154,7 +156,7 @@ function renderPowerRankings() {
                 <td class="rank-cell">${getRankDisplay(team.rank)}</td>
                 <td>
                     <div class="team-cell" onclick="window.location.href='team.html?id=${team.id}'">
-                        <img src="icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                         <span class="team-name">${team.team_name}</span>
                         ${clinchBadge}
                     </div>
@@ -271,6 +273,18 @@ async function initializePage() {
 
         renderStandings();
         renderPowerRankings();
+        
+        // --- NEW: Conditionally show the playoff bracket button ---
+        if (playoffBracketBtn) {
+            playoffBracketBtn.style.display = 'none'; // Hide by default
+            if (latestPRVersion) {
+                const versionNum = parseInt(latestPRVersion.replace('v', ''), 10);
+                if (!isNaN(versionNum) && versionNum >= 4) {
+                    playoffBracketBtn.style.display = 'inline-block';
+                }
+            }
+        }
+
 
         // Set up button listeners
         viewToggleButton1.addEventListener('click', () => {
