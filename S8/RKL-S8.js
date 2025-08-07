@@ -51,7 +51,6 @@ async function fetchAllTeams(seasonId) {
     console.log(`Fetching all teams for season: ${seasonId}`);
 
     const teamsCollectionName = getCollectionName('v2_teams');
-    // **This is the key fix**: The subcollection name now also gets the _dev suffix
     const seasonalRecordsCollectionName = getCollectionName('seasonal_records'); 
     
     const teamsQuery = query(collection(db, teamsCollectionName));
@@ -66,21 +65,18 @@ async function fetchAllTeams(seasonId) {
 
     const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        // **This is the key fix**: Using the corrected subcollection name here
         const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
 
         if (seasonalRecordSnap.exists()) {
             return { ...teamData, ...seasonalRecordSnap.data() };
         } else {
-            // This warning is now expected for teams without a seasonal record (like FREE_AGENT)
-            // console.warn(`Team '${teamData.id}' is missing a seasonal_record for season '${seasonId}'.`);
             return null;
         }
     });
 
     const teams = await Promise.all(teamPromises);
-    allTeams = teams.filter(t => t !== null && t.conference); // Filter out nulls and non-league teams
+    allTeams = teams.filter(t => t !== null); // Keep all teams with records, filter conference later.
     console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
 }
 
@@ -95,9 +91,10 @@ function loadStandingsPreview() {
         return;
     }
     const standingsSort = (a, b) => (b.wpct || 0) - (a.wpct || 0) || (b.pam || 0) - (a.pam || 0);
-
-    const easternTeams = allTeams.filter(t => t.conference === 'East').sort(standingsSort).slice(0, 5);
-    const westernTeams = allTeams.filter(t => t.conference === 'West').sort(standingsSort).slice(0, 5);
+    
+    // **This is the key fix**: Check for "eastern" and "western" instead of "east" and "west".
+    const easternTeams = allTeams.filter(t => t.conference && t.conference.toLowerCase() === 'eastern').sort(standingsSort).slice(0, 5);
+    const westernTeams = allTeams.filter(t => t.conference && t.conference.toLowerCase() === 'western').sort(standingsSort).slice(0, 5);
 
     const renderTable = (teams, tbodyId) => {
         const tbody = document.getElementById(tbodyId);
@@ -153,7 +150,7 @@ async function loadRecentGames() {
     gamesList.innerHTML = games.map(game => {
         const team1 = allTeams.find(t => t.id === game.team1_id);
         const team2 = allTeams.find(t => t.id === game.team2_id);
-        if (!team1 || !team2) return ''; // Skip if team data isn't loaded yet
+        if (!team1 || !team2) return ''; 
 
         const winnerId = game.winner;
         return `
@@ -181,7 +178,6 @@ async function loadRecentGames() {
             </div>`;
     }).join('');
 
-    // Add event listeners after rendering
     document.querySelectorAll('.game-item').forEach(item => {
         item.addEventListener('click', () => showGameDetails(item.dataset.gameId));
     });
@@ -193,7 +189,6 @@ async function loadSeasonInfo(seasonData) {
 
     if (!currentWeekSpan || !seasonStatsContainer) return;
 
-    // Display Current Week/Stage
     currentWeekSpan.textContent = `Week ${seasonData.current_week || '1'}`;
     if (seasonData.status === 'postseason') {
         currentWeekSpan.textContent = seasonData.current_stage || 'Postseason';
@@ -209,8 +204,6 @@ async function loadSeasonInfo(seasonData) {
         document.getElementById('playoff-button-container').style.display = 'block';
     }
 
-
-    // Fetch and Display Season Stats
     const gamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, 'games'));
     const gamesSnapshot = await getDocs(gamesQuery);
     const completedGames = gamesSnapshot.docs.filter(doc => doc.data().completed).length;
@@ -303,18 +296,13 @@ function closeModal() {
 
 async function initializePage() {
     try {
-        // Step 1: Get the active season ID and data. This is critical.
         const seasonData = await getActiveSeason();
-        
-        // Step 2: Fetch all team data for that season. This must complete before rendering.
         await fetchAllTeams(activeSeasonId);
 
-        // Step 3: Now that all required data is loaded, render the page sections.
         loadStandingsPreview();
         loadRecentGames();
         loadSeasonInfo(seasonData);
 
-        // Step 4: Setup event listeners.
         document.getElementById('close-modal-btn').addEventListener('click', closeModal);
         window.addEventListener('click', (event) => {
             if (event.target == document.getElementById('game-modal')) {
