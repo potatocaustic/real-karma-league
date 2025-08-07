@@ -45,25 +45,39 @@ async function getActiveSeason() {
 
 async function fetchAllTeams(seasonId) {
     if (!seasonId) {
-        console.error("Cannot fetch teams without a valid seasonId.");
-        return; // Exit if no seasonId is provided
+        console.error("fetchAllTeams was called without a seasonId.");
+        allTeams = []; // Ensure it's empty
+        return;
     }
-    const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
+    console.log(`Fetching all teams for season: ${seasonId}`);
+
+    const teamsCollectionName = getCollectionName('v2_teams');
+    const teamsQuery = query(collection(db, teamsCollectionName));
     const teamsSnapshot = await getDocs(teamsQuery);
-    
+
+    if (teamsSnapshot.empty) {
+        console.error(`No documents found in the '${teamsCollectionName}' collection.`);
+        allTeams = [];
+        return;
+    }
+    console.log(`Found ${teamsSnapshot.size} documents in '${teamsCollectionName}'.`);
+
     const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, 'seasonal_records', seasonId);
+        const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, 'seasonal_records', seasonId);
         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
-        
+
         if (seasonalRecordSnap.exists()) {
             return { ...teamData, ...seasonalRecordSnap.data() };
+        } else {
+            console.warn(`Team '${teamData.id}' is missing a seasonal_record for season '${seasonId}'.`);
+            return null;
         }
-        return null; // Return null if a team doesn't have a record for this season
     });
 
     const teams = await Promise.all(teamPromises);
-    allTeams = teams.filter(t => t !== null); // Filter out any nulls and assign to global variable
+    allTeams = teams.filter(t => t !== null); // Filter out any nulls
+    console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
 }
 
 
@@ -71,7 +85,7 @@ async function fetchAllTeams(seasonId) {
 
 function loadStandingsPreview() {
     if (allTeams.length === 0) {
-        console.error("Team data not available for standings."); // This error should no longer appear
+        console.error("Team data not available for standings.");
         document.getElementById('eastern-standings').innerHTML = '<tr><td colspan="4" class="error">Could not load standings.</td></tr>';
         document.getElementById('western-standings').innerHTML = '<tr><td colspan="4" class="error">Could not load standings.</td></tr>';
         return;
@@ -84,6 +98,10 @@ function loadStandingsPreview() {
     const renderTable = (teams, tbodyId) => {
         const tbody = document.getElementById(tbodyId);
         if (!tbody) return;
+        if (teams.length === 0) {
+             tbody.innerHTML = '<tr><td colspan="4" class="loading">No teams to display.</td></tr>';
+             return;
+        }
         tbody.innerHTML = teams.map(team => {
             let clinchBadgeHtml = '';
             if (team.playoff_seed > 0) clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
@@ -281,15 +299,18 @@ function closeModal() {
 
 async function initializePage() {
     try {
+        // Step 1: Get the active season ID and data. This is critical.
         const seasonData = await getActiveSeason();
+        
+        // Step 2: Fetch all team data for that season. This must complete before rendering.
         await fetchAllTeams(activeSeasonId);
 
-        // Now that data is fetched and awaited, populate all sections
+        // Step 3: Now that all required data is loaded into the `allTeams` global array, render the page sections.
         loadStandingsPreview();
         loadRecentGames();
         loadSeasonInfo(seasonData);
 
-        // Setup Modal Listeners
+        // Step 4: Setup event listeners.
         document.getElementById('close-modal-btn').addEventListener('click', closeModal);
         window.addEventListener('click', (event) => {
             if (event.target == document.getElementById('game-modal')) {
