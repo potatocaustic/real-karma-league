@@ -139,7 +139,6 @@ async function loadRecentGames() {
     try {
         const gamesCollectionName = getCollectionName('games');
         
-        // Step 1: Find the most recent date with a completed game.
         const mostRecentQuery = query(
             collection(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName),
             where('completed', '==', 'TRUE'),
@@ -153,7 +152,6 @@ async function loadRecentGames() {
         }
         const mostRecentDate = mostRecentSnapshot.docs[0].data().date;
 
-        // Step 2: Fetch all games that occurred on that specific date.
         const gamesOnDateQuery = query(
             collection(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName),
             where('date', '==', mostRecentDate),
@@ -245,7 +243,6 @@ async function showGameDetails(gameId, gameDate) {
     contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
 
     try {
-        // **This is the key fix**: Logic is now completely different.
         const gamesCollectionName = getCollectionName('games');
         const lineupsCollectionName = getCollectionName('lineups');
 
@@ -254,7 +251,6 @@ async function showGameDetails(gameId, gameDate) {
         if (!gameSnap.exists()) throw new Error("Game not found");
         const game = gameSnap.data();
         
-        // Query the top-level lineups collection for players from this game date
         const lineupsQuery = query(
             collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName),
             where('date', '==', gameDate)
@@ -266,9 +262,8 @@ async function showGameDetails(gameId, gameDate) {
         const team2 = allTeams.find(t => t.id === game.team2_id);
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
         
-        // Filter the fetched lineups for each team in this specific game
-        const team1Lineups = allLineupsForDate.filter(l => l.team_id === game.team1_id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
-        const team2Lineups = allLineupsForDate.filter(l => l.team_id === game.team2_id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
+        const team1Lineups = allLineupsForDate.filter(l => l.team_id === game.team1_id && l.started === "TRUE").sort((a,b) => (b.is_captain === "TRUE" ? 1 : -1) || (b.final_score || 0) - (a.final_score || 0));
+        const team2Lineups = allLineupsForDate.filter(l => l.team_id === game.team2_id && l.started === "TRUE").sort((a,b) => (b.is_captain === "TRUE" ? 1 : -1) || (b.final_score || 0) - (a.final_score || 0));
 
         contentArea.innerHTML = `
             <div class="game-details-grid">
@@ -284,7 +279,8 @@ async function showGameDetails(gameId, gameDate) {
 
 function generateLineupTable(lineups, team, isWinner) {
      if (!team) return '<div>Team data not found</div>';
-    const totalPoints = lineups.reduce((sum, p) => sum + (p.points_final || 0), 0);
+    // **This is the key fix**: Using final_score to calculate the total
+    const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
     return `
         <div class="team-breakdown ${isWinner ? 'winner' : ''}">
             <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'" style="cursor: pointer;">
@@ -296,12 +292,15 @@ function generateLineupTable(lineups, team, isWinner) {
                 <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
                 <tbody>
                     ${lineups.map(p => {
-                        const isCaptain = p.captain === "TRUE";
-                        const captainBonus = isCaptain ? (p.points_final - p.points_raw) : 0;
+                        // **This is the key fix**: Using the correct field names
+                        const isCaptain = p.is_captain === "TRUE";
+                        const baseScore = p.points_adjusted || 0;
+                        const finalScore = p.final_score || 0;
+                        const captainBonus = isCaptain ? finalScore - baseScore : 0;
                         return `
                             <tr class="${isCaptain ? 'captain-row' : ''}">
                                 <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a></td>
-                                <td class="points-cell">${Math.round(p.points_raw).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
+                                <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
                                 <td class="rank-cell">${p.global_rank || '-'}</td>
                             </tr>
                         `
