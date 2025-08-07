@@ -137,16 +137,30 @@ async function loadRecentGames() {
     if (!gamesList) return;
 
     try {
-        // **This is the key fix**: Get the correct subcollection name ('games' or 'games_dev')
         const gamesCollectionName = getCollectionName('games');
-        const gamesQuery = query(
+        
+        // Step 1: Find the most recent date with a completed game.
+        const mostRecentQuery = query(
             collection(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName),
             where('completed', '==', 'TRUE'),
             orderBy('date', 'desc'),
-            limit(5)
+            limit(1)
+        );
+        const mostRecentSnapshot = await getDocs(mostRecentQuery);
+        if (mostRecentSnapshot.empty) {
+            gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
+            return;
+        }
+        const mostRecentDate = mostRecentSnapshot.docs[0].data().date;
+
+        // Step 2: Fetch all games that occurred on that specific date.
+        const gamesOnDateQuery = query(
+            collection(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName),
+            where('date', '==', mostRecentDate),
+            where('completed', '==', 'TRUE')
         );
 
-        const gamesSnapshot = await getDocs(gamesQuery);
+        const gamesSnapshot = await getDocs(gamesOnDateQuery);
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (games.length === 0) {
@@ -161,7 +175,7 @@ async function loadRecentGames() {
 
             const winnerId = game.winner;
             return `
-                <div class="game-item" data-game-id="${game.id}">
+                <div class="game-item" data-game-id="${game.id}" data-game-date="${game.date}">
                     <div class="game-matchup">
                         <div class="team ${winnerId === team1.id ? 'winner' : ''}">
                             <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -186,7 +200,7 @@ async function loadRecentGames() {
         }).join('');
 
         document.querySelectorAll('.game-item').forEach(item => {
-            item.addEventListener('click', () => showGameDetails(item.dataset.gameId));
+            item.addEventListener('click', () => showGameDetails(item.dataset.gameId, item.dataset.gameDate));
         });
     } catch (error) {
         console.error("Error fetching recent games:", error);
@@ -222,7 +236,7 @@ function loadSeasonInfo(seasonData) {
     `;
 }
 
-async function showGameDetails(gameId) {
+async function showGameDetails(gameId, gameDate) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
     const contentArea = document.getElementById('game-details-content-area');
@@ -231,7 +245,7 @@ async function showGameDetails(gameId) {
     contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
 
     try {
-        // **This is the key fix**: Get the correct subcollection names
+        // **This is the key fix**: Logic is now completely different.
         const gamesCollectionName = getCollectionName('games');
         const lineupsCollectionName = getCollectionName('lineups');
 
@@ -240,16 +254,21 @@ async function showGameDetails(gameId) {
         if (!gameSnap.exists()) throw new Error("Game not found");
         const game = gameSnap.data();
         
-        const lineupsQuery = query(collection(gameRef, lineupsCollectionName));
+        // Query the top-level lineups collection for players from this game date
+        const lineupsQuery = query(
+            collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName),
+            where('date', '==', gameDate)
+        );
         const lineupsSnapshot = await getDocs(lineupsQuery);
-        const lineups = lineupsSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
+        const allLineupsForDate = lineupsSnapshot.docs.map(d => d.data());
         
         const team1 = allTeams.find(t => t.id === game.team1_id);
         const team2 = allTeams.find(t => t.id === game.team2_id);
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
-
-        const team1Lineups = lineups.filter(l => l.team_id === team1.id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
-        const team2Lineups = lineups.filter(l => l.team_id === team2.id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
+        
+        // Filter the fetched lineups for each team in this specific game
+        const team1Lineups = allLineupsForDate.filter(l => l.team_id === game.team1_id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
+        const team2Lineups = allLineupsForDate.filter(l => l.team_id === game.team2_id && l.started === "TRUE").sort((a,b) => (b.captain === "TRUE" ? 1 : -1) || b.points_raw - a.points_raw);
 
         contentArea.innerHTML = `
             <div class="game-details-grid">
