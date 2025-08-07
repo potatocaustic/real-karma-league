@@ -1667,8 +1667,10 @@ exports.updateCurrentWeek = onSchedule({
 
     try {
         const seasonsRef = db.collection(getCollectionName('seasons'));
-        const activeSeasonQuery = query(seasonsRef, where("status", "==", "active"), limit(1));
-        const activeSeasonSnap = await getDocs(activeSeasonQuery);
+        // CORRECTED: Chained .where() and .limit() instead of using query()
+        const activeSeasonQuery = seasonsRef.where("status", "==", "active").limit(1);
+        // CORRECTED: Used .get() to execute the query
+        const activeSeasonSnap = await activeSeasonQuery.get();
 
         if (activeSeasonSnap.empty) {
             console.log("No active season found. Exiting function.");
@@ -1683,13 +1685,12 @@ exports.updateCurrentWeek = onSchedule({
 
         // 1. Check for the next incomplete regular season game
         const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
-        const incompleteGamesQuery = query(
-            gamesRef,
-            where('completed', '!=', 'TRUE'),
-            orderBy('date', 'asc'),
-            limit(1)
-        );
-        const incompleteGamesSnap = await getDocs(incompleteGamesQuery);
+        // CORRECTED: Rewrote this query with chained methods
+        const incompleteGamesQuery = gamesRef
+            .where('completed', '!=', 'TRUE')
+            .orderBy('date', 'asc')
+            .limit(1);
+        const incompleteGamesSnap = await incompleteGamesQuery.get();
 
         if (!incompleteGamesSnap.empty) {
             nextGameWeek = incompleteGamesSnap.docs[0].data().week;
@@ -1697,13 +1698,12 @@ exports.updateCurrentWeek = onSchedule({
             // 2. If no regular season games are left, check the postseason
             console.log("No incomplete regular season games found. Checking postseason...");
             const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
-            const incompletePostGamesQuery = query(
-                postGamesRef,
-                where('completed', '!=', 'TRUE'),
-                orderBy('date', 'asc'),
-                limit(1)
-            );
-            const incompletePostGamesSnap = await getDocs(incompletePostGamesQuery);
+             // CORRECTED: Rewrote this query with chained methods
+            const incompletePostGamesQuery = postGamesRef
+                .where('completed', '!=', 'TRUE')
+                .orderBy('date', 'asc')
+                .limit(1);
+            const incompletePostGamesSnap = await incompletePostGamesQuery.get();
 
             if (!incompletePostGamesSnap.empty) {
                 nextGameWeek = incompletePostGamesSnap.docs[0].data().week;
