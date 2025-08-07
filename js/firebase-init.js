@@ -11,6 +11,7 @@ import {
     query,
     where,
     limit,
+    orderBy, // Added
     setDoc,
     deleteDoc,
     serverTimestamp,
@@ -41,8 +42,6 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 
-// --- REMOVED: The automatic anonymous sign-in logic has been removed from this file ---
-
 // --- Connect to Emulators when running locally ---
 if (window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1")) {
     console.log("Connecting to local Firebase emulators...");
@@ -62,6 +61,7 @@ export {
     query,
     where,
     limit,
+    orderBy, // Added
     httpsCallable,
     setDoc,
     deleteDoc,

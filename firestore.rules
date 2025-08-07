@@ -34,18 +34,27 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
     match /transactions/{transactionId} {
-        allow read, write: if isAdmin();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /draft_results/{doc=**} {
-      allow read, write: if isAdmin();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /awards/{doc=**} {
-        allow read, write: if isAdmin();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /power_rankings/{doc=**} {
-        allow read, write: if isAdmin();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /lottery_results/{doc=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+
+    match /live_scoring_status/{doc=**} {
         allow read: if true;
         allow write: if isAdmin();
     }
@@ -75,26 +84,32 @@ service cloud.firestore {
         allow write: if isAdminDev();
     }
     match /transactions_dev/{transactionId} {
-        allow read, write: if isAdminDev();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /draft_results_dev/{doc=**} {
-      allow read, write: if isAdminDev();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /awards_dev/{doc=**} {
-        allow read, write: if isAdminDev();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /power_rankings_dev/{doc=**} {
-        allow read, write: if isAdminDev();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /lottery_results_dev/{doc=**} {
         allow read: if true;
         allow write: if isAdminDev();
     }
     match /live_scoring_status_dev/{doc=**} {
-        allow read, write: if isAdminDev();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /usage_stats_dev/{doc=**} {
-        allow read, write: if isAdminDev();
+        allow read: if true;
+        allow write: if isAdmin();
     }
     match /users_dev/{userId} {
         allow read: if request.auth.uid == userId || isAdminDev();
