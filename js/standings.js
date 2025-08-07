@@ -11,6 +11,13 @@ let powerRankingsData = [];
 let currentView = 'conferences'; // 'conferences', 'fullLeague', or 'powerRankings'
 let latestPRVersion = null; // To store the latest version string, e.g., "v4"
 
+// --- NEW: State for managing table sorting ---
+const sortState = {
+    Eastern: { column: 'postseed', direction: 'asc' },
+    Western: { column: 'postseed', direction: 'asc' },
+    FullLeague: { column: 'sortscore', direction: 'desc' }
+};
+
 // --- DOM ELEMENTS ---
 const viewToggleButton1 = document.getElementById('viewToggleButton1');
 const viewToggleButton2 = document.getElementById('viewToggleButton2');
@@ -106,21 +113,57 @@ async function fetchLatestPowerRankings() {
 // --- RENDERING LOGIC ---
 
 /**
- * Renders the standings tables for conferences or the full league.
+ * Renders all standings tables based on the current sort state.
  */
 function renderStandings() {
-    const easternTeams = allTeamsData.filter(t => t.conference === 'Eastern').sort((a, b) => (a.postseed || 99) - (b.postseed || 99));
-    const westernTeams = allTeamsData.filter(t => t.conference === 'Western').sort((a, b) => (a.postseed || 99) - (b.postseed || 99));
-    const fullLeagueTeams = [...allTeamsData].sort((a, b) => (a.sortscore || 0) > (b.sortscore || 0) ? -1 : 1);
+    const sortFunction = (tableType) => (a, b) => {
+        const { column, direction } = sortState[tableType];
+        const asc = direction === 'asc';
+        let valA, valB;
+
+        switch (column) {
+            case 'record':
+                valA = (a.wins || 0) / ((a.wins || 0) + (a.losses || 0) || 1);
+                valB = (b.wins || 0) / ((b.wins || 0) + (b.losses || 0) || 1);
+                if (valA === valB) return (b.pam || 0) - (a.pam || 0); // Tiebreaker
+                break;
+            case 'pam':
+                valA = a.pam || 0;
+                valB = b.pam || 0;
+                break;
+            case 'med_starter_rank':
+                valA = a.med_starter_rank || 99;
+                valB = b.med_starter_rank || 99;
+                break;
+            case 'postseed':
+                valA = a.postseed || 99;
+                valB = b.postseed || 99;
+                break;
+            case 'sortscore':
+                valA = a.sortscore || 0;
+                valB = b.sortscore || 0;
+                break;
+            default:
+                return 0;
+        }
+        return asc ? valA - valB : valB - valA;
+    };
+
+    const easternTeams = allTeamsData.filter(t => t.conference === 'Eastern').sort(sortFunction('Eastern'));
+    const westernTeams = allTeamsData.filter(t => t.conference === 'Western').sort(sortFunction('Western'));
+    const fullLeagueTeams = [...allTeamsData].sort(sortFunction('FullLeague'));
 
     document.getElementById('eastern-standings').innerHTML = generateStandingsRows(easternTeams);
     document.getElementById('western-standings').innerHTML = generateStandingsRows(westernTeams);
     document.getElementById('full-league-standings').innerHTML = generateStandingsRows(fullLeagueTeams, true);
+
+    updateSortIndicators();
 }
 
 function generateStandingsRows(teams, isFullLeague = false) {
     if (!teams || teams.length === 0) return '<tr><td colspan="5">No teams to display.</td></tr>';
     return teams.map((team, index) => {
+        // The rank displayed is always the postseed for conferences, or a generated index for full league
         const rank = isFullLeague ? index + 1 : team.postseed;
         const clinchBadge = getClinchBadge(team);
         return `
@@ -200,6 +243,51 @@ function renderPowerRankingsSummary() {
 
 // --- UI LOGIC & HELPERS ---
 
+/**
+ * NEW: Handles clicks on table headers to update sort state and re-render.
+ */
+function handleSort(tableType, column) {
+    const currentSort = sortState[tableType];
+    let newDirection;
+
+    if (currentSort.column === column) {
+        newDirection = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        newDirection = (column === 'med_starter_rank' || column === 'postseed') ? 'asc' : 'desc';
+    }
+    sortState[tableType] = { column, direction: newDirection };
+    renderStandings();
+}
+window.handleSort = handleSort; // Expose to global scope for onclick attributes in HTML
+
+/**
+ * NEW: Updates the sort indicator arrows in the table headers.
+ */
+function updateSortIndicators() {
+    ['Eastern', 'Western', 'FullLeague'].forEach(tableType => {
+        let tableId;
+        if (tableType === 'Eastern') tableId = 'eastern-standings';
+        else if (tableType === 'Western') tableId = 'western-standings';
+        else tableId = 'full-league-standings';
+
+        const table = document.getElementById(tableId)?.closest('table');
+        if (!table) return;
+
+        table.querySelectorAll('thead th[data-sort-column]').forEach(th => {
+            const column = th.dataset.sortColumn;
+            const indicator = th.querySelector('.sort-indicator');
+            if (indicator) {
+                if (sortState[tableType].column === column) {
+                    indicator.textContent = sortState[tableType].direction === 'asc' ? '▲' : '▼';
+                } else {
+                    indicator.textContent = '';
+                }
+            }
+        });
+    });
+}
+
+
 function switchView(view) {
     currentView = view;
     const isConference = view === 'conferences';
@@ -213,12 +301,12 @@ function switchView(view) {
 
     if (isConference) {
         standingsPageTitle.textContent = 'Conference Standings';
-        pageDescription.textContent = 'Teams sorted by playoff seeding.';
+        pageDescription.textContent = 'Teams sorted by playoff seeding. Click headers to sort.';
         viewToggleButton1.textContent = 'Show Full League';
         viewToggleButton2.textContent = 'Show Power Rankings';
     } else if (isFullLeague) {
         standingsPageTitle.textContent = 'Full League Standings';
-        pageDescription.textContent = 'All teams sorted by overall record and point differential.';
+        pageDescription.textContent = 'All teams sorted by overall record and point differential. Click headers to sort.';
         viewToggleButton1.textContent = 'Show Conferences';
         viewToggleButton2.textContent = 'Show Power Rankings';
     } else if (isPowerRankings) {
@@ -274,7 +362,6 @@ async function initializePage() {
         renderStandings();
         renderPowerRankings();
         
-        // --- NEW: Conditionally show the playoff bracket button ---
         if (playoffBracketBtn) {
             playoffBracketBtn.style.display = 'none'; // Hide by default
             if (latestPRVersion) {
