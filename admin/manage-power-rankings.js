@@ -1,6 +1,6 @@
 // /admin/manage-power-rankings.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, setDoc } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = true;
@@ -275,7 +275,9 @@ async function handleFormSubmit(e) {
 
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
-        const rankingsCollectionRef = collection(db, `${getCollectionName('power_rankings')}/season_${seasonNumber}/v${versionToSave}`);
+        const seasonDocName = `season_${seasonNumber}`;
+        const rankingsCollectionPath = `${getCollectionName('power_rankings')}/${seasonDocName}/v${versionToSave}`;
+        const rankingsCollectionRef = collection(db, rankingsCollectionPath);
 
         const ranksToWrite = [];
         let error = false;
@@ -316,9 +318,19 @@ async function handleFormSubmit(e) {
                 season: currentSeasonId
             });
         }
+        
+        // --- NEW: Update the latest_version field on the parent season document ---
+        const seasonDocRef = doc(db, getCollectionName('power_rankings'), seasonDocName);
+        const versionLabel = `v${versionToSave}`;
+        const weekLabel = versionToSave === 0 ? 'Preseason' : `Week ${versionToSave * 3}`;
+        
+        batch.set(seasonDocRef, { 
+            latest_version: versionLabel,
+            latest_version_name: `${versionLabel} (${weekLabel})`
+        }, { merge: true }); // Use merge:true to create or update without overwriting other fields
 
         await batch.commit();
-        alert(`Power Rankings v${versionToSave} saved successfully!`);
+        alert(`Power Rankings ${versionLabel} saved successfully!`);
 
     } catch (error) {
         console.error("Error saving power rankings:", error);
