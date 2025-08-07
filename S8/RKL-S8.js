@@ -137,25 +137,17 @@ async function loadRecentGames() {
     if (!gamesList) return;
 
     try {
-        // **This is the key fix**: Fetch recent games without filtering by 'completed' status initially.
+        // **This is the key fix**: Get the correct subcollection name ('games' or 'games_dev')
+        const gamesCollectionName = getCollectionName('games');
         const gamesQuery = query(
-            collection(db, getCollectionName('seasons'), activeSeasonId, 'games'),
+            collection(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName),
+            where('completed', '==', 'TRUE'),
             orderBy('date', 'desc'),
-            limit(10) // Fetch more to ensure we get the completed ones
+            limit(5)
         );
 
         const gamesSnapshot = await getDocs(gamesQuery);
-        const allRecentGames = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        console.log("Fetched raw recent games data:", allRecentGames); // Diagnostic log
-
-        // Now, filter and sort in JavaScript
-        const games = allRecentGames
-            .filter(game => game.completed === 'TRUE')
-            .sort((a, b) => new Date(b.date) - new Date(a.date))
-            .slice(0, 5);
-        
-        console.log("Filtered completed games:", games); // Diagnostic log
+        const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (games.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
@@ -239,12 +231,16 @@ async function showGameDetails(gameId) {
     contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
 
     try {
-        const gameRef = doc(db, getCollectionName('seasons'), activeSeasonId, 'games', gameId);
+        // **This is the key fix**: Get the correct subcollection names
+        const gamesCollectionName = getCollectionName('games');
+        const lineupsCollectionName = getCollectionName('lineups');
+
+        const gameRef = doc(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName, gameId);
         const gameSnap = await getDoc(gameRef);
         if (!gameSnap.exists()) throw new Error("Game not found");
         const game = gameSnap.data();
         
-        const lineupsQuery = query(collection(gameRef, 'lineups'));
+        const lineupsQuery = query(collection(gameRef, lineupsCollectionName));
         const lineupsSnapshot = await getDocs(lineupsQuery);
         const lineups = lineupsSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
         
