@@ -1329,7 +1329,8 @@ async function processCompletedGame(event) {
     const lineupsColl = isPostseason ? 'post_lineups' : 'lineups';
 
     if (!isPostseason) {
-        batch.update(seasonRef, { gp: FieldValue.increment(1) });
+        const gamesCompletedToday = allGamesForDate.length;
+        batch.update(seasonRef, { gp: FieldValue.increment(gamesCompletedToday) });
     }
 
     const lineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsColl)).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
