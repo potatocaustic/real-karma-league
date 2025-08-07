@@ -1,5 +1,3 @@
-// RKL-S8.js
-
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit } from '../js/firebase-init.js';
 
 const USE_DEV_COLLECTIONS = true; // Set to false for production
@@ -37,36 +35,45 @@ function formatDateShort(dateString) {
 async function getActiveSeason() {
     const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
     const seasonsSnapshot = await getDocs(seasonsQuery);
-    if (!seasonsSnapshot.empty) {
-        const seasonDoc = seasonsSnapshot.docs[0];
-        activeSeasonId = seasonDoc.id;
-        return seasonDoc.data();
+    if (seasonsSnapshot.empty) {
+        throw new Error("No active season found in Firestore.");
     }
-    throw new Error("No active season found.");
+    const seasonDoc = seasonsSnapshot.docs[0];
+    activeSeasonId = seasonDoc.id;
+    return seasonDoc.data();
 }
 
 async function fetchAllTeams(seasonId) {
+    if (!seasonId) {
+        console.error("Cannot fetch teams without a valid seasonId.");
+        return; // Exit if no seasonId is provided
+    }
     const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
     const teamsSnapshot = await getDocs(teamsQuery);
-    const teams = [];
-    for (const teamDoc of teamsSnapshot.docs) {
+    
+    const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
         const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, 'seasonal_records', seasonId);
         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+        
         if (seasonalRecordSnap.exists()) {
-            teams.push({ ...teamData, ...seasonalRecordSnap.data() });
+            return { ...teamData, ...seasonalRecordSnap.data() };
         }
-    }
-    allTeams = teams;
-    return teams;
+        return null; // Return null if a team doesn't have a record for this season
+    });
+
+    const teams = await Promise.all(teamPromises);
+    allTeams = teams.filter(t => t !== null); // Filter out any nulls and assign to global variable
 }
 
 
 // --- DOM MANIPULATION & RENDERING ---
 
-async function loadStandingsPreview() {
+function loadStandingsPreview() {
     if (allTeams.length === 0) {
-        console.error("Team data not available for standings.");
+        console.error("Team data not available for standings."); // This error should no longer appear
+        document.getElementById('eastern-standings').innerHTML = '<tr><td colspan="4" class="error">Could not load standings.</td></tr>';
+        document.getElementById('western-standings').innerHTML = '<tr><td colspan="4" class="error">Could not load standings.</td></tr>';
         return;
     }
     const standingsSort = (a, b) => (b.wpct || 0) - (a.wpct || 0) || (b.pam || 0) - (a.pam || 0);
@@ -277,7 +284,7 @@ async function initializePage() {
         const seasonData = await getActiveSeason();
         await fetchAllTeams(activeSeasonId);
 
-        // Populate all sections
+        // Now that data is fetched and awaited, populate all sections
         loadStandingsPreview();
         loadRecentGames();
         loadSeasonInfo(seasonData);
