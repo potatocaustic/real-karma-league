@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RKL Draft Lottery Simulator</title>
+    <link rel="stylesheet" href="../css/global-styles.css">
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme from local storage before page loads to prevent flashing
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <style>
+        /* Page-specific styles for draft-lottery.html */
+        .page-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+            .page-header h2 {
+                font-size: 2.5rem;
+                margin-bottom: 1rem;
+            }
+
+            .page-header p {
+                color: #555;
+                transition: color 0.3s;
+            }
+
+        .quick-links-container {
+            text-align: center;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .quick-link-btn {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+            .quick-link-btn:hover {
+                background-color: #f8f9fa;
+                border-color: #ccc;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+
+        .lottery-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 960px;
+            margin: 0 auto 2rem auto;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .lottery-header {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .lottery-card-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .action-button {
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 0.75rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+            .action-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            }
+
+            .action-button:active {
+                transform: translateY(0);
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+            .action-button:disabled {
+                background-color: #999;
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+
+        #simulateBtn {
+            background-color: #2563eb;
+        }
+
+            #simulateBtn:hover:not(:disabled) {
+                background-color: #1d4ed8;
+            }
+
+        #simulateAgainBtn {
+            background-color: #16a34a;
+        }
+
+            #simulateAgainBtn:hover {
+                background-color: #15803d;
+            }
+
+        #resetBtn {
+            background-color: #6b7280;
+        }
+
+            #resetBtn:hover {
+                background-color: #4b5563;
+            }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .lottery-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .lottery-table th, .lottery-table td {
+                text-align: left;
+                padding: 1rem 1.25rem;
+                border-bottom: 1px solid #eee;
+                transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+            }
+
+            .lottery-table th {
+                background-color: #f8f9fa;
+                text-transform: uppercase;
+                font-size: 0.8rem;
+                color: #444;
+            }
+
+            .lottery-table td {
+                color: #333;
+            }
+
+            .lottery-table tr:hover {
+                background-color: #f8f9fa;
+            }
+
+            .lottery-table .text-center {
+                text-align: center;
+            }
+
+        .team-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #111827;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+            .team-cell:hover {
+                color: #2563eb;
+            }
+
+        .team-cell-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .team-cell .font-semibold {
+            font-weight: 600;
+        }
+
+        .team-logo {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+
+        .original-team-traded {
+            opacity: 0.6;
+            text-decoration: line-through;
+        }
+
+        .move-up {
+            color: #16a34a;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        .move-down {
+            color: #dc2626;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hidden-mobile {
+            display: table-cell;
+        }
+
+        /* Dark Mode Styles */
+        .dark-mode .page-header p {
+            color: #aaa;
+        }
+
+        .dark-mode .quick-link-btn {
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            border-color: #444;
+        }
+
+            .dark-mode .quick-link-btn:hover {
+                background-color: #383838;
+                border-color: #666;
+            }
+
+        .dark-mode .lottery-container {
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .dark-mode .lottery-table th, .dark-mode .lottery-table td {
+            border-bottom-color: #333;
+        }
+
+        .dark-mode .lottery-table th {
+            background-color: #2c2c2c;
+            color: #bbb;
+        }
+
+        .dark-mode .lottery-table td {
+            color: #e0e0e0;
+        }
+
+        .dark-mode .lottery-table tr:hover {
+            background-color: #2c2c2c;
+        }
+
+        .dark-mode .team-cell {
+            color: #e0e0e0;
+        }
+
+            .dark-mode .team-cell:hover {
+                color: #8ab4f8;
+            }
+
+        .dark-mode .move-up {
+            color: #66bb6a;
+        }
+
+        .dark-mode .move-down {
+            color: #ef5350;
+        }
+
+        .dark-mode #simulateBtn {
+            background-color: #3b82f6;
+        }
+
+            .dark-mode #simulateBtn:hover:not(:disabled) {
+                background-color: #60a5fa;
+            }
+
+        .dark-mode #simulateAgainBtn {
+            background-color: #22c55e;
+        }
+
+            .dark-mode #simulateAgainBtn:hover {
+                background-color: #4ade80;
+            }
+
+        .dark-mode #resetBtn {
+            background-color: #9ca3af;
+        }
+
+            .dark-mode #resetBtn:hover {
+                background-color: #d1d5db;
+            }
+
+        .dark-mode .action-button:disabled {
+            background-color: #4b5563;
+        }
+
+        /* Responsive Styles */
+        @media (min-width: 640px) { /* sm breakpoint */
+            .lottery-header {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .button-container {
+                flex-direction: row;
+            }
+        }
+
+        @media (max-width: 768px) { /* md breakpoint */
+            .hidden-mobile {
+                display: none;
+            }
+
+            .lottery-table th, .lottery-table td {
+                padding: 0.8rem 0.6rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            main {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <span class="header-text">Real Karma League</span>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="RKL-S7.html">S7 Home</a></li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+
+        <div class="page-header">
+            <h2 id="table-title">S8 Lottery Odds</h2>
+            <p id="table-description">S8 lottery odds for the 14 non-playoff teams.</p>
+        </div>
+
+        <div class="quick-links-container">
+            <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
+            <a href="draft-results.html" class="quick-link-btn">S7 Draft Results</a>
+        </div>
+
+        <div class="lottery-container">
+            <div class="lottery-header">
+                <h3 class="lottery-card-title">Season 8 Draft</h3>
+                <div id="button-container" class="button-container">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="lottery-table" class="lottery-table">
+                    <thead id="lottery-table-head">
+                    </thead>
+                    <tbody id="lottery-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="/S7/trade-block.html">GM Portal</a>
+    </footer>
+
+    <script src="../js/main.js" type="module"></script>
+    <script>
+        // --- DATA AND CONFIGURATION ---
+        const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+        const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+
+        const lotteryOdds = [
+            { seed: 1, chances: 140, pct1st: 14.0, pctTop4: 52.14 }, { seed: 2, chances: 140, pct1st: 14.0, pctTop4: 52.14 },
+            { seed: 3, chances: 140, pct1st: 14.0, pctTop4: 52.14 }, { seed: 4, chances: 125, pct1st: 12.5, pctTop4: 48.08 },
+            { seed: 5, chances: 105, pct1st: 10.5, pctTop4: 42.13 }, { seed: 6, chances: 90, pct1st: 9.0, pctTop4: 37.23 },
+            { seed: 7, chances: 75, pct1st: 7.5, pctTop4: 31.96 }, { seed: 8, chances: 60, pct1st: 6.0, pctTop4: 26.30 },
+            { seed: 9, chances: 45, pct1st: 4.5, pctTop4: 20.27 }, { seed: 10, chances: 30, pct1st: 3.0, pctTop4: 13.88 },
+            { seed: 11, chances: 20, pct1st: 2.0, pctTop4: 9.41 }, { seed: 12, chances: 15, pct1st: 1.5, pctTop4: 7.12 },
+            { seed: 13, chances: 10, pct1st: 1.0, pctTop4: 4.79 }, { seed: 14, chances: 5, pct1st: 0.5, pctTop4: 2.41 },
+        ];
+        const DRAFT_SEASON = 8;
+
+        // --- STATE MANAGEMENT ---
+        let initialLotteryTeams = [];
+        let teamDataMap = {};
+        let pickOwnership = {};
+        let allPlayoffGames = [];
+        let finalLotteryResults = null;
+
+        // --- UTILITY FUNCTIONS ---
+        async function fetchSheetData(sheetName) {
+            try {
+                const response = await fetch(`${BASE_URL}${encodeURIComponent(sheetName)}`);
+                if (!response.ok) throw new Error(`Network response not OK for ${sheetName}`);
+                return parseCSV(await response.text());
+            } catch (error) {
+                console.error(`Error fetching ${sheetName}:`, error);
+                const tableBody = document.getElementById('lottery-table-body');
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="5"><div class="error">Failed to load required data from sheet: ${sheetName}. Please try again later.</div></td></tr>`;
+                }
+                return null;
+            }
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+            return lines.slice(1).map(line => {
+                const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                const row = {};
+                if (values.length === headers.length) {
+                    headers.forEach((header, index) => {
+                        row[header] = values[index].replace(/"/g, '').trim();
+                    });
+                }
+                return row;
+            }).filter(row => Object.keys(row).length > 0);
+        }
+
+        // --- PLAYOFF LOGIC ---
+        function getSeries(seriesId) {
+            return allPlayoffGames.find(g => g.series_id === seriesId);
+        }
+
+        function getWeekNameFromSeriesId(seriesId) {
+            if (seriesId.includes('-PI-')) return 'Play-In';
+            if (seriesId.includes('-R1-')) return 'Round 1';
+            if (seriesId.includes('-R2-')) return 'Round 2';
+            if (seriesId.includes('-CF')) return 'Conf Finals';
+            if (seriesId.includes('FINALS')) return 'Finals';
+            return '';
+        }
+
+        function getSeriesWinner(seriesId) {
+            const series = getSeries(seriesId);
+            if (!series) return null;
+
+            const week = getWeekNameFromSeriesId(seriesId);
+            const team1Wins = parseInt(series.team1_wins, 10) || 0;
+            const team2Wins = parseInt(series.team2_wins, 10) || 0;
+
+            if (week === 'Play-In') {
+                return series.winner || null;
+            }
+
+            let win_condition = 0;
+            if (week === 'Round 1' || week === 'Round 2') win_condition = 2;
+            else if (week === 'Conf Finals') win_condition = 3;
+            else if (week === 'Finals') win_condition = 4;
+
+            if (team1Wins === win_condition) return series.team1_id;
+            if (team2Wins === win_condition) return series.team2_id;
+
+            return null;
+        }
+
+        // --- RENDERING FUNCTIONS ---
+        function renderTableHeader(isSimulatedView = false) {
+            const pickOrSeed = isSimulatedView ? 'Pick' : 'Seed';
+            document.getElementById('lottery-table-head').innerHTML = `
+                <tr>
+                    <th scope="col">${pickOrSeed}</th>
+                    <th scope="col">Team</th>
+                    <th scope="col" class="text-center hidden-mobile">Record</th>
+                    <th scope="col" class="text-center">#1 Pick Odds</th>
+                    <th scope="col" class="text-center hidden-mobile">Top 4 Odds</th>
+                </tr>
+            `;
+        }
+
+        function getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded) {
+            const teamName = ownerTeam ? ownerTeam.team_name : 'Unknown';
+            const originalTeamName = originalTeam ? originalTeam.team_name : 'Unknown';
+            const teamLogoUrl = ownerId ? `icons/${ownerId}.webp` : '';
+
+            if (isTraded) {
+                return `
+                    <a href="team.html?id=${ownerId}" class="team-cell">
+                        <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                        <div class="team-cell-content">
+                            <span class="font-semibold">${teamName}</span>
+                            <span class="original-team-traded">${originalTeamName}</span>
+                        </div>
+                    </a>
+                `;
+            } else {
+                return `
+                    <a href="team.html?id=${ownerId}" class="team-cell">
+                        <img src="${teamLogoUrl}" alt="${teamName}" class="team-logo" onerror="this.style.display='none'">
+                        <span class="font-semibold whitespace-nowrap">${teamName}</span>
+                    </a>
+                `;
+            }
+        }
+
+
+        function renderLotteryOddsTable() {
+            renderTableHeader(false);
+            const tableBody = document.getElementById('lottery-table-body');
+            let html = '';
+
+            initialLotteryTeams.forEach(team => {
+                const ownerId = pickOwnership[team.team_id] || team.team_id;
+                const ownerTeam = teamDataMap[ownerId];
+                const isTraded = team.team_id !== ownerId;
+                const teamCellHtml = getTeamCellHtml(ownerTeam, team, ownerId, isTraded);
+
+                html += `
+                    <tr>
+                        <td class="font-semibold">${team.seed}</td>
+                        <td>${teamCellHtml}</td>
+                        <td class="text-center hidden-mobile">${team.wins} - ${team.losses}</td>
+                        <td class="text-center">${team.pct1st.toFixed(2)}%</td>
+                        <td class="text-center hidden-mobile">${team.pctTop4.toFixed(2)}%</td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = html;
+        }
+
+        function renderSimulatedResults(finalOrder) {
+            renderTableHeader(true);
+            const tableBody = document.getElementById('lottery-table-body');
+            let html = '';
+
+            finalOrder.forEach((originalTeam, index) => {
+                const pickNumber = index + 1;
+                const ownerId = pickOwnership[originalTeam.team_id] || originalTeam.team_id;
+                const ownerTeam = teamDataMap[ownerId];
+                const isTraded = originalTeam.team_id !== ownerId;
+                const movement = originalTeam.seed - pickNumber;
+
+                let movementHtml;
+                if (movement > 0) {
+                    movementHtml = `<span class="move-up">▲ ${movement}</span>`;
+                } else if (movement < 0) {
+                    movementHtml = `<span class="move-down">▼ ${Math.abs(movement)}</span>`;
+                } else {
+                    movementHtml = ``; // No indicator for no move
+                }
+
+                const teamCellHtml = getTeamCellHtml(ownerTeam, originalTeam, ownerId, isTraded);
+
+                html += `
+                    <tr class="fade-in" style="animation-delay: ${index * 50}ms;">
+                        <td class="font-semibold">
+                            <div style="display: flex; align-items: center; white-space: nowrap;">
+                                <span>${pickNumber}</span>
+                                ${movementHtml}
+                            </div>
+                        </td>
+                        <td>${teamCellHtml}</td>
+                        <td class="text-center hidden-mobile">${originalTeam.wins} - ${originalTeam.losses}</td>
+                        <td class="text-center">${originalTeam.pct1st.toFixed(2)}%</td>
+                        <td class="text-center hidden-mobile">${originalTeam.pctTop4.toFixed(2)}%</td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = html;
+        }
+
+
+        // --- SIMULATION LOGIC ---
+        function runSimulation() {
+            const combinations = [];
+            initialLotteryTeams.forEach(team => {
+                for (let i = 0; i < team.chances; i++) {
+                    combinations.push(team.seed);
+                }
+            });
+
+            const top4WinningSeeds = [];
+            while (top4WinningSeeds.length < 4) {
+                const randomIndex = Math.floor(Math.random() * combinations.length);
+                const winningSeed = combinations[randomIndex];
+                if (!top4WinningSeeds.includes(winningSeed)) {
+                    top4WinningSeeds.push(winningSeed);
+                }
+            }
+
+            const lotteryWinners = top4WinningSeeds.map(seed => initialLotteryTeams.find(t => t.seed === seed));
+            const remainingTeams = initialLotteryTeams
+                .filter(team => !top4WinningSeeds.includes(team.seed))
+                .sort((a, b) => a.seed - b.seed);
+
+            const finalOrder = [...lotteryWinners, ...remainingTeams];
+            renderSimulatedResults(finalOrder);
+        }
+
+        // --- UI AND EVENT HANDLING ---
+        const buttonContainer = document.getElementById('button-container');
+
+        function renderInitialButtons() {
+            buttonContainer.innerHTML = `
+                <button id="simulateBtn" class="action-button">
+                    Simulate Lottery
+                </button>
+            `;
+        }
+
+        function renderSimulatedButtons() {
+            buttonContainer.innerHTML = `
+                <button id="simulateAgainBtn" class="action-button">
+                    Simulate Again
+                </button>
+                <button id="resetBtn" class="action-button">
+                    Reset
+                </button>
+            `;
+        }
+
+        function disableSimulation() {
+            const simulateBtn = document.getElementById('simulateBtn');
+            if (simulateBtn) {
+                simulateBtn.disabled = true;
+            }
+            const simulateAgainBtn = document.getElementById('simulateAgainBtn');
+            if (simulateAgainBtn) {
+                simulateAgainBtn.disabled = true;
+            }
+        }
+
+        function resetView() {
+            document.getElementById('table-title').textContent = 'S8 Lottery Odds';
+            document.getElementById('table-description').textContent = 'S8 lottery odds for the 14 non-playoff teams.';
+            renderLotteryOddsTable();
+            renderInitialButtons();
+        }
+
+        function handleFirstSimulation() {
+            document.getElementById('table-title').textContent = 'Lottery Simulation';
+            document.getElementById('table-description').textContent = 'Projected draft order based on the simulation.';
+            runSimulation();
+            renderSimulatedButtons();
+        }
+
+        function setupButtonListeners() {
+            buttonContainer.addEventListener('click', (event) => {
+                const button = event.target.closest('button');
+                if (!button) return;
+
+                const buttonId = button.id;
+                if (buttonId === 'simulateBtn') {
+                    handleFirstSimulation();
+                } else if (buttonId === 'simulateAgainBtn') {
+                    runSimulation();
+                } else if (buttonId === 'resetBtn') {
+                    resetView();
+                }
+            });
+        }
+
+
+        // --- INITIALIZATION ---
+        async function initializeApp() {
+            const tableBody = document.getElementById('lottery-table-body');
+            tableBody.innerHTML = `<tr><td colspan="5"><div class="loading">Loading Team Data...</div></td></tr>`;
+            renderTableHeader();
+            renderInitialButtons();
+            document.getElementById('simulateBtn').disabled = true;
+
+            // Set initial titles
+            document.getElementById('table-title').textContent = 'S8 Lottery Odds';
+            document.getElementById('table-description').textContent = 'S8 lottery odds for the 14 non-playoff teams.';
+
+            // Attempt to load lottery_results.js
+            try {
+                const lotteryResultsScript = document.createElement('script');
+                lotteryResultsScript.src = 'lottery_results.js';
+                document.head.appendChild(lotteryResultsScript);
+                lotteryResultsScript.onload = () => {
+                    if (typeof lotteryResults !== 'undefined') {
+                        finalLotteryResults = lotteryResults;
+                    }
+                    loadDataAndRender();
+                };
+                lotteryResultsScript.onerror = () => {
+                    loadDataAndRender();
+                };
+            } catch (error) {
+                loadDataAndRender();
+            }
+        }
+
+        async function loadDataAndRender() {
+            const [allTeams, draftPicks, playoffGames] = await Promise.all([
+                fetchSheetData('Teams'),
+                fetchSheetData('Draft_Capital'),
+                fetchSheetData('Post_Schedule')
+            ]);
+
+            allPlayoffGames = playoffGames;
+
+            if (!allTeams || !draftPicks) {
+                // Error is already handled inside fetchSheetData
+                renderInitialButtons(); // Render buttons even on fail, but they will be disabled.
+                return;
+            }
+
+            // Define sets of team IDs and names to exclude from the lottery.
+            const excludedTeamIds = new Set(['EGM', 'WGM', 'RSE', 'RSW', 'EAST', 'WEST', 'RETIRED', 'FREE_AGENT']);
+            const excludedTeamNames = new Set(['East GMs', 'West GMs', 'East Rising Stars', 'West Rising Stars', 'East All-Stars', 'West All-Stars']);
+
+            // Filter out excluded teams, parse data, and sort by the new logic.
+            const sortedTeams = allTeams
+                .filter(t => {
+                    if (!t.team_id) return false; // Always exclude if no team_id
+                    if (excludedTeamIds.has(t.team_id)) return false; // Exclude if ID is in the set
+                    if (t.team_name && excludedTeamNames.has(t.team_name)) return false; // Exclude if name is in the set
+                    return true; // Otherwise, include the team
+                })
+                .map(t => ({
+                    ...t,
+                    wins: parseInt(t.wins, 10) || 0,
+                    losses: parseInt(t.losses, 10) || 0,
+                    pam: parseFloat(t.pam || 0)
+                }))
+                .sort((a, b) => {
+                    const totalGamesA = a.wins + a.losses;
+                    const winPctA = totalGamesA > 0 ? a.wins / totalGamesA : 0;
+
+                    const totalGamesB = b.wins + b.losses;
+                    const winPctB = totalGamesB > 0 ? b.wins / totalGamesB : 0;
+
+                    // Primary sort: Ascending win percentage (lower is better seed)
+                    if (winPctA !== winPctB) {
+                        return winPctA - winPctB;
+                    }
+
+                    // Tie-breaker 1: For teams with 0 wins, more losses is worse (gets better seed)
+                    if (winPctA === 0) { // This implies winPctB is also 0
+                        if (a.losses !== b.losses) {
+                            return b.losses - a.losses; // Higher losses come first
+                        }
+                    }
+
+                    // Tie-breaker 2: Ascending PAM (lower is better seed)
+                    return a.pam - b.pam;
+                });
+
+            // Playoff teams and play-in teams
+            const playoffTeams = new Set();
+            for (let i = 1; i <= 6; i++) {
+                const eastPlayoffTeam = allTeams.find(t => t.conference === 'Eastern' && parseInt(t.postseed) === i);
+                if (eastPlayoffTeam) playoffTeams.add(eastPlayoffTeam.team_id);
+                const westPlayoffTeam = allTeams.find(t => t.conference === 'Western' && parseInt(t.postseed) === i);
+                if (westPlayoffTeam) playoffTeams.add(westPlayoffTeam.team_id);
+            }
+
+            const west7thSeed = getSeriesWinner('W-PI-7v8');
+            if (west7thSeed) playoffTeams.add(west7thSeed);
+            const west8thSeed = getSeriesWinner('W-PI-L78vW910');
+            if (west8thSeed) playoffTeams.add(west8thSeed);
+
+            const east7thSeed = getSeriesWinner('E-PI-7v8');
+            if (east7thSeed) playoffTeams.add(east7thSeed);
+            const east8thSeed = getSeriesWinner('E-PI-L78vW910');
+            if (east8thSeed) playoffTeams.add(east8thSeed);
+
+            // Take the bottom 14 teams for the lottery pool.
+            initialLotteryTeams = sortedTeams.filter(team => !playoffTeams.has(team.team_id)).slice(0, 14).map((team, index) => ({
+                ...team,
+                seed: index + 1,
+                ...lotteryOdds[index]
+            }));
+
+            // Create a map for quick team data lookup by ID.
+            teamDataMap = allTeams.reduce((acc, team) => {
+                acc[team.team_id] = team;
+                return acc;
+            }, {});
+
+            // Process draft pick ownership for the relevant season and round.
+            draftPicks.filter(p => parseInt(p.season) === DRAFT_SEASON && parseInt(p.round) === 1)
+                .forEach(pick => { pickOwnership[pick.original_team] = pick.current_owner; });
+
+            if (finalLotteryResults) {
+                document.getElementById('table-title').textContent = 'Official S8 Lottery Results';
+                document.getElementById('table-description').textContent = 'The official results of the Season 8 Draft Lottery.';
+                const finalOrder = finalLotteryResults.map(teamId => initialLotteryTeams.find(t => t.team_id === teamId));
+                renderSimulatedResults(finalOrder);
+                buttonContainer.innerHTML = '';
+            } else {
+                renderLotteryOddsTable();
+                document.getElementById('simulateBtn').disabled = false;
+                setupButtonListeners();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+</body>
+</html>

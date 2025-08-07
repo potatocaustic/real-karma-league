@@ -1,0 +1,299 @@
+// RKL-S8.js
+
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit } from '../js/firebase-init.js';
+
+const USE_DEV_COLLECTIONS = true; // Set to false for production
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+
+let activeSeasonId = '';
+let allTeams = [];
+let allPlayers = [];
+
+// --- UTILITY FUNCTIONS ---
+function formatInThousands(value) {
+    const num = parseFloat(value);
+    if (isNaN(num)) return '-';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+    return Math.round(num).toLocaleString();
+}
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatDateShort(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2);
+    return `${month}/${day}/${year}`;
+}
+
+// --- DATA FETCHING FUNCTIONS ---
+
+async function getActiveSeason() {
+    const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
+    const seasonsSnapshot = await getDocs(seasonsQuery);
+    if (!seasonsSnapshot.empty) {
+        const seasonDoc = seasonsSnapshot.docs[0];
+        activeSeasonId = seasonDoc.id;
+        return seasonDoc.data();
+    }
+    throw new Error("No active season found.");
+}
+
+async function fetchAllTeams(seasonId) {
+    const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
+    const teamsSnapshot = await getDocs(teamsQuery);
+    const teams = [];
+    for (const teamDoc of teamsSnapshot.docs) {
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, 'seasonal_records', seasonId);
+        const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+        if (seasonalRecordSnap.exists()) {
+            teams.push({ ...teamData, ...seasonalRecordSnap.data() });
+        }
+    }
+    allTeams = teams;
+    return teams;
+}
+
+
+// --- DOM MANIPULATION & RENDERING ---
+
+async function loadStandingsPreview() {
+    if (allTeams.length === 0) {
+        console.error("Team data not available for standings.");
+        return;
+    }
+    const standingsSort = (a, b) => (b.wpct || 0) - (a.wpct || 0) || (b.pam || 0) - (a.pam || 0);
+
+    const easternTeams = allTeams.filter(t => t.conference === 'East').sort(standingsSort).slice(0, 5);
+    const westernTeams = allTeams.filter(t => t.conference === 'West').sort(standingsSort).slice(0, 5);
+
+    const renderTable = (teams, tbodyId) => {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return;
+        tbody.innerHTML = teams.map(team => {
+            let clinchBadgeHtml = '';
+            if (team.playoff_seed > 0) clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+            else if (team.play_in_seed > 0) clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+            else if (team.eliminated) clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+
+            return `
+                <tr>
+                    <td>
+                        <a href="team.html?id=${team.id}" class="team-link">
+                            <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <span>${team.team_name}</span>
+                            ${clinchBadgeHtml}
+                        </a>
+                    </td>
+                    <td style="text-align: center;">${team.wins || 0}-${team.losses || 0}</td>
+                    <td style="text-align: center;">${Math.round(team.pam || 0).toLocaleString()}</td>
+                    <td class="desktop-only-col" style="text-align: center;">${Math.round(team.median_rank || 0) || '-'}</td>
+                </tr>`;
+        }).join('');
+    };
+
+    renderTable(easternTeams, 'eastern-standings');
+    renderTable(westernTeams, 'western-standings');
+}
+
+async function loadRecentGames() {
+    const gamesQuery = query(
+        collection(db, getCollectionName('seasons'), activeSeasonId, 'games'),
+        where('completed', '==', true),
+        orderBy('date', 'desc'),
+        limit(5)
+    );
+    const gamesSnapshot = await getDocs(gamesQuery);
+    const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const gamesList = document.getElementById('recent-games');
+    if (!gamesList) return;
+
+    if (games.length === 0) {
+        gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
+        return;
+    }
+
+    gamesList.innerHTML = games.map(game => {
+        const team1 = allTeams.find(t => t.id === game.team1_id);
+        const team2 = allTeams.find(t => t.id === game.team2_id);
+        if (!team1 || !team2) return ''; // Skip if team data isn't loaded yet
+
+        const winnerId = game.winner;
+        return `
+            <div class="game-item" data-game-id="${game.id}">
+                <div class="game-matchup">
+                    <div class="team ${winnerId === team1.id ? 'winner' : ''}">
+                        <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <div class="team-info">
+                            <span class="team-name">${team1.team_name}</span>
+                            <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                        </div>
+                        <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
+                    </div>
+                    <span class="vs">vs</span>
+                    <div class="team ${winnerId === team2.id ? 'winner' : ''}">
+                        <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <div class="team-info">
+                            <span class="team-name">${team2.team_name}</span>
+                            <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                        </div>
+                        <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
+                    </div>
+                </div>
+                <div class="game-date">${formatDate(game.date)}</div>
+            </div>`;
+    }).join('');
+
+    // Add event listeners after rendering
+    document.querySelectorAll('.game-item').forEach(item => {
+        item.addEventListener('click', () => showGameDetails(item.dataset.gameId));
+    });
+}
+
+async function loadSeasonInfo(seasonData) {
+    const currentWeekSpan = document.getElementById('current-week');
+    const seasonStatsContainer = document.getElementById('season-stats');
+
+    if (!currentWeekSpan || !seasonStatsContainer) return;
+
+    // Display Current Week/Stage
+    currentWeekSpan.textContent = `Week ${seasonData.current_week || '1'}`;
+    if (seasonData.status === 'postseason') {
+        currentWeekSpan.textContent = seasonData.current_stage || 'Postseason';
+        document.getElementById('playoff-button-container').style.display = 'block';
+    }
+     if (seasonData.status === 'completed') {
+        const winner = allTeams.find(t => t.id === seasonData.champion_id);
+        if (winner) {
+             currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winner.id}.webp" onerror="this.style.display='none'"/> ${winner.team_name} 🏆</p>`;
+        } else {
+             currentWeekSpan.parentElement.innerHTML = `<p><strong>Season Complete!</strong></p>`;
+        }
+        document.getElementById('playoff-button-container').style.display = 'block';
+    }
+
+
+    // Fetch and Display Season Stats
+    const gamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, 'games'));
+    const gamesSnapshot = await getDocs(gamesQuery);
+    const completedGames = gamesSnapshot.docs.filter(doc => doc.data().completed).length;
+    const totalGames = gamesSnapshot.size;
+
+    const transactionsQuery = query(collection(db, getCollectionName('transactions')), where('season', '==', activeSeasonId));
+    const transactionsSnapshot = await getDocs(transactionsQuery);
+    const totalTransactions = transactionsSnapshot.size;
+
+    const totalKarma = allTeams.reduce((sum, team) => sum + (team.total_points || 0), 0);
+
+    seasonStatsContainer.innerHTML = `
+        <p><strong>${completedGames} of ${totalGames}</strong> regular season games complete</p>
+        <p><strong>${totalTransactions}</strong> transactions made</p>
+        <p><strong>${Math.round(totalKarma).toLocaleString()}</strong> total karma earned</p>
+    `;
+}
+
+async function showGameDetails(gameId) {
+    const modal = document.getElementById('game-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const contentArea = document.getElementById('game-details-content-area');
+
+    modal.style.display = 'block';
+    contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
+
+    try {
+        const gameRef = doc(db, getCollectionName('seasons'), activeSeasonId, 'games', gameId);
+        const gameSnap = await getDoc(gameRef);
+        if (!gameSnap.exists()) throw new Error("Game not found");
+        const game = gameSnap.data();
+
+        const team1 = allTeams.find(t => t.id === game.team1_id);
+        const team2 = allTeams.find(t => t.id === game.team2_id);
+        modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(game.date)}`;
+
+        const lineupsQuery = query(collection(gameRef, 'lineups'));
+        const lineupsSnapshot = await getDocs(lineupsQuery);
+        const lineups = lineupsSnapshot.docs.map(d => ({id: d.id, ...d.data()}));
+
+        const team1Lineups = lineups.filter(l => l.team_id === game.team1_id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
+        const team2Lineups = lineups.filter(l => l.team_id === game.team2_id && l.started).sort((a,b) => (b.captain ? 1 : -1) || b.points_raw - a.points_raw);
+
+        contentArea.innerHTML = `
+            <div class="game-details-grid">
+                ${generateLineupTable(team1Lineups, team1, game.winner === team1.id)}
+                ${generateLineupTable(team2Lineups, team2, game.winner === team2.id)}
+            </div>
+        `;
+    } catch (error) {
+        console.error("Error loading game details:", error);
+        contentArea.innerHTML = '<div class="error">Could not load game details.</div>';
+    }
+}
+
+function generateLineupTable(lineups, team, isWinner) {
+     if (!team) return '<div>Team data not found</div>';
+    const totalPoints = lineups.reduce((sum, p) => sum + (p.points_final || 0), 0);
+    return `
+        <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+            <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'" style="cursor: pointer;">
+                <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                <div><h4>${team.team_name}</h4><div style="font-size: 0.9rem; opacity: 0.9;">(${team.wins}-${team.losses})</div></div>
+            </div>
+            <div class="team-total">Total: ${Math.round(totalPoints).toLocaleString()}</div>
+            <table class="lineup-table">
+                <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
+                <tbody>
+                    ${lineups.map(p => {
+                        const captainBonus = p.captain ? (p.points_final - p.points_raw) : 0;
+                        return `
+                            <tr class="${p.captain ? 'captain-row' : ''}">
+                                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a></td>
+                                <td class="points-cell">${Math.round(p.points_raw).toLocaleString()}${p.captain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
+                                <td class="rank-cell">${p.global_rank || '-'}</td>
+                            </tr>
+                        `
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function closeModal() {
+    document.getElementById('game-modal').style.display = 'none';
+}
+
+// --- INITIALIZATION ---
+
+async function initializePage() {
+    try {
+        const seasonData = await getActiveSeason();
+        await fetchAllTeams(activeSeasonId);
+
+        // Populate all sections
+        loadStandingsPreview();
+        loadRecentGames();
+        loadSeasonInfo(seasonData);
+
+        // Setup Modal Listeners
+        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+        window.addEventListener('click', (event) => {
+            if (event.target == document.getElementById('game-modal')) {
+                closeModal();
+            }
+        });
+
+    } catch (error) {
+        console.error("Failed to initialize page:", error);
+        document.querySelector('main').innerHTML = `<p style="text-align:center; color: red;">Error: Could not load league data. ${error.message}</p>`;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', initializePage);

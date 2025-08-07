@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL Season 7 Standings</title>
+    <link rel="stylesheet" href="../css/global-styles.css" />
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
+    <style>
+      /* Page-specific styles for standings.html */
+      .hidden { display: none !important; }
+
+      .view-toggle-button {
+        padding: 0.6rem 1.2rem;
+        font-size: 1rem;
+        cursor: pointer;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        margin: 0 5px; 
+      }
+      .view-toggle-button:hover { background-color: #0056b3; }
+      .page-buttons-container { 
+        text-align: center;
+        margin-bottom: 1.5rem;
+      }
+
+      .standings-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .conference-section { 
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
+      }
+      
+      #fullLeagueViewContainer .conference-section,
+      #powerRankingsViewContainer .conference-section { 
+        max-width: 700px; 
+        margin-left: auto;  
+        margin-right: auto; 
+      }
+
+      .conference-header {
+        background-color: #333;
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      .conference-header h3 {
+        color: white;
+        font-size: 1.5rem;
+        margin: 0;
+      }
+      
+      .power-rankings-summary {
+        padding: 0.8rem 1rem;
+        text-align: center;
+        background-color: #f0f0f0;
+        border-bottom: 1px solid #ddd;
+        font-size: 0.9em;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+      .summary-item {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+      }
+      .summary-item:last-child {
+        margin-bottom: 0;
+      }
+      .summary-team-logo {
+        width: 20px;
+        height: 20px;
+        border-radius: 2px;
+        margin-right: 8px;
+        flex-shrink: 0;
+      }
+      .summary-item strong {
+          font-weight: 600;
+      }
+      .summary-team-link {
+          color: inherit; 
+          text-decoration: none;
+      }
+      .summary-team-link:hover {
+          text-decoration: underline;
+      }
+
+
+      .standings-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed; 
+      }
+
+      .standings-table th {
+        background-color: #f8f9fa;
+        padding: 1rem 0.5rem;
+        text-align: center; 
+        font-weight: bold;
+        border-bottom: 2px solid #ddd;
+        font-size: 0.9rem;
+        cursor: pointer; 
+        position: relative; 
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+       .standings-table th .sort-indicator {
+        font-size: 0.8em;
+        margin-left: 5px;
+        position: absolute;
+        right: 5px; 
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .standings-table th.no-sort { cursor: default; }
+
+      #conferenceViewContainer .standings-table th:nth-child(1), 
+      #conferenceViewContainer .standings-table td:nth-child(1),
+      #fullLeagueViewContainer .standings-table th:nth-child(1), 
+      #fullLeagueViewContainer .standings-table td:nth-child(1) { width: 15%; text-align: center; }
+      #conferenceViewContainer .standings-table th:nth-child(2), 
+      #conferenceViewContainer .standings-table td:nth-child(2),
+      #fullLeagueViewContainer .standings-table th:nth-child(2), 
+      #fullLeagueViewContainer .standings-table td:nth-child(2) { width: 35%; text-align: left; }
+      #conferenceViewContainer .standings-table th:nth-child(3), 
+      #conferenceViewContainer .standings-table td:nth-child(3),
+      #fullLeagueViewContainer .standings-table th:nth-child(3), 
+      #fullLeagueViewContainer .standings-table td:nth-child(3) { width: 20%; text-align: center; }
+      #conferenceViewContainer .standings-table th:nth-child(4), 
+      #conferenceViewContainer .standings-table td:nth-child(4),
+      #fullLeagueViewContainer .standings-table th:nth-child(4), 
+      #fullLeagueViewContainer .standings-table td:nth-child(4) { width: 15%; text-align: center; }
+      #conferenceViewContainer .standings-table th:nth-child(5), 
+      #conferenceViewContainer .standings-table td:nth-child(5),
+      #fullLeagueViewContainer .standings-table th:nth-child(5), 
+      #fullLeagueViewContainer .standings-table td:nth-child(5) { width: 15%; text-align: center; }
+      
+      #powerRankingsViewContainer .standings-table th:nth-child(1), 
+      #powerRankingsViewContainer .standings-table td:nth-child(1) { width: 12%; text-align: center; }
+      #powerRankingsViewContainer .standings-table th:nth-child(2), 
+      #powerRankingsViewContainer .standings-table td:nth-child(2) { width: 33%; text-align: left; }
+      #powerRankingsViewContainer .standings-table th:nth-child(3), 
+      #powerRankingsViewContainer .standings-table td:nth-child(3) { width: 18%; text-align: center; }
+      #powerRankingsViewContainer .standings-table th:nth-child(4), 
+      #powerRankingsViewContainer .standings-table td:nth-child(4) { width: 15%; text-align: center; }
+      #powerRankingsViewContainer .standings-table th:nth-child(5), 
+      #powerRankingsViewContainer .standings-table td:nth-child(5) { width: 22%; text-align: center; }
+
+      .standings-table td {
+        padding: 0.8rem 0.5rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.9rem;
+        vertical-align: middle;
+        transition: border-color 0.3s;
+      }
+
+      .standings-table tr:hover { background-color: #f8f9fa; }
+      .rank-cell { font-weight: bold; }
+
+      .team-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+      }
+      .team-cell:hover { color: #007bff; }
+      .team-logo { width: 24px; height: 24px; border-radius: 2px; flex-shrink: 0; }
+      .team-name { font-weight: 500; flex-grow: 1; word-break: break-word; }
+      .record-cell { font-weight: 500; }
+      .pam-cell { font-weight: 500; }
+      .pam-positive { color: #28a745; font-weight: 600;}
+      .pam-negative { color: #dc3545; font-weight: 600;}
+
+      .playoff-seed, .playin-seed, .eliminated-seed {
+        width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; margin: 0 auto;
+        border-radius: 50%; 
+      }
+      .playoff-seed { background-color: #28a745; color: white; }
+      .playin-seed { background-color: #ffc107; color: #333; }
+      .eliminated-seed { background-color: #dc3545; color: white; }
+      
+      .rank-badge { 
+        width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; margin: 0 auto;
+        border-radius: 4px; 
+      }
+      .gold-badge { background-color: gold; color: #333; }
+      .silver-badge { background-color: silver; color: #333; }
+      .bronze-badge { background-color: #cd7f32; color: white; }
+
+      .eliminated { opacity: 0.6; }
+
+      .playoff-legend {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        transition: background-color 0.3s, box-shadow 0.3s;
+      }
+      .legend-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; text-align: center; }
+      .legend-items { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+      .legend-item { display: flex; align-items: center; gap: 0.5rem; }
+      .legend-color { width: 20px; height: 20px; border-radius: 50%; }
+      .playoff-color { background-color: #28a745; }
+      .playin-color { background-color: #ffc107; }
+      .eliminated-color { background-color: #dc3545; }
+      
+      /* Clinch Indicator Styles */
+      .clinch-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin-left: 6px;
+        flex-shrink: 0;
+      }
+      .clinch-playoff { background-color: #28a745; color: white; }
+      .clinch-playin { background-color: #ffc107; color: #333; }
+      .clinch-eliminated { background-color: #dc3545; color: white; }
+
+      /* Legend Styles */
+      .clinch-legend {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-top: 2rem;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        transition: background-color 0.3s, box-shadow 0.3s;
+      }
+      .clinch-legend-title { font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; text-align: center; }
+      .clinch-legend-items { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; }
+      .clinch-legend-item { display: flex; align-items: center; gap: 0.75rem; }
+
+      /* Page-specific Dark Mode Styles */
+      .dark-mode .view-toggle-button {
+        background-color: #373737;
+        color: #e0e0e0;
+        border: 1px solid #555;
+      }
+      .dark-mode .view-toggle-button:hover {
+        background-color: #4a4a4a;
+      }
+      .dark-mode .conference-section, 
+      .dark-mode .playoff-legend,
+      .dark-mode .clinch-legend {
+        background-color: #1e1e1e;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      .dark-mode .standings-table th {
+        background-color: #2c2c2c;
+        border-bottom-color: #444;
+      }
+      .dark-mode .standings-table td {
+        border-bottom-color: #333;
+      }
+      .dark-mode .standings-table tr:hover { 
+        background-color: #2c2c2c; 
+      }
+      .dark-mode .team-cell:hover {
+        color: #bb86fc;
+      }
+      .dark-mode .pam-positive { color: #66bb6a; }
+      .dark-mode .pam-negative { color: #f06292; }
+      .dark-mode .eliminated { opacity: 0.5; }
+      .dark-mode .power-rankings-summary {
+        background-color: #2c2c2c;
+        border-bottom-color: #444;
+      }
+      .dark-mode .summary-team-link {
+        color: #e0e0e0;
+      }
+      .dark-mode .summary-team-link:hover {
+        color: #bb86fc;
+      }
+
+      /* Page-specific responsive adjustments */
+      @media (max-width: 768px) {
+        .standings-container { grid-template-columns: 1fr; gap: 1.5rem; }
+        #fullLeagueViewContainer .conference-section,
+        #powerRankingsViewContainer .conference-section { max-width: 100%; }
+        .standings-table th .sort-indicator { display: none; }
+        .page-buttons-container { display: flex; flex-direction: column; gap: 0.5rem; }
+        .view-toggle-button { width: 80%; margin: 0 auto; }
+        .prev-rank-col { display: none; }
+
+        #conferenceViewContainer .standings-table thead th:nth-child(5),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(5) {
+            display: none;
+        }
+
+        #eastern-standings td:nth-child(5),
+        #western-standings td:nth-child(5),
+        #full-league-standings td:nth-child(5) {
+            display: none;
+        }
+
+        #conferenceViewContainer .standings-table thead th:nth-child(1),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(1) { width: 20%; }
+        #conferenceViewContainer .standings-table thead th:nth-child(2),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(2) { width: 42%; }
+        #conferenceViewContainer .standings-table thead th:nth-child(3),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(3) { width: 20%; }
+        #conferenceViewContainer .standings-table thead th:nth-child(4),
+        #fullLeagueViewContainer .standings-table thead th:nth-child(4) { width: 18%; }
+        #eastern-standings td:nth-child(1),
+        #western-standings td:nth-child(1),
+        #full-league-standings td:nth-child(1) { width: 20%; }
+        #eastern-standings td:nth-child(2),
+        #western-standings td:nth-child(2),
+        #full-league-standings td:nth-child(2) { width: 42%; }
+        #eastern-standings td:nth-child(3),
+        #western-standings td:nth-child(3),
+        #full-league-standings td:nth-child(3) { width: 20%; }
+        #eastern-standings td:nth-child(4),
+        #western-standings td:nth-child(4),
+        #full-league-standings td:nth-child(4) { width: 18%; }
+        
+        #powerRankingsViewContainer .standings-table th:nth-child(1),
+        #powerRankingsViewContainer .standings-table td:nth-child(1) { width: 15%; }
+        #powerRankingsViewContainer .standings-table th:nth-child(2),
+        #powerRankingsViewContainer .standings-table td:nth-child(2) { width: 40%; }
+        #powerRankingsViewContainer .standings-table th:nth-child(3),
+        #powerRankingsViewContainer .standings-table td:nth-child(3) { width: 20%; }
+        #powerRankingsViewContainer .standings-table th:nth-child(5),
+        #powerRankingsViewContainer .standings-table td:nth-child(5) { width: 25%; }
+        
+        .team-name {
+          font-size: 0.82rem; 
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0; 
+        }
+        
+        #powerRankingsViewContainer .conference-header h3 {
+          font-size: 1.1rem; 
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2 id="standingsPageTitle">Conference Standings</h2> 
+        <p id="pageDescription">Updated after each completed game. Click headers to sort (where applicable).</p> 
+      </div>
+
+      <div class="page-buttons-container">
+        <button id="viewToggleButton1" class="view-toggle-button">Show Full League Standings</button>
+        <button id="viewToggleButton2" class="view-toggle-button">Show Power Rankings</button>
+        <button onclick="window.location.href='playoff-bracket.html'" class="view-toggle-button">Show Playoff Bracket</button>
+      </div>
+
+      <div id="conferenceViewContainer">
+        <div class="playoff-legend">
+          <div class="legend-title">Playoff Picture (Based on Rank)</div>
+          <div class="legend-items">
+            <div class="legend-item">
+              <div class="legend-color playoff-color"></div>
+              <span>Playoffs (Seeds 1-6)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color playin-color"></div>
+              <span>Play-in (Seeds 7-10)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color eliminated-color"></div>
+              <span>Out (Seeds 11+)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="standings-container">
+          <div class="conference-section">
+            <div class="conference-header">
+              <h3>Eastern Conference</h3>
+            </div>
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th class="no-sort">Rank<span class="sort-indicator"></span></th>
+                  <th class="no-sort">Team<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Eastern', 'record')">Record<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Eastern', 'pam')">PAM<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Eastern', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+                </tr>
+              </thead>
+              <tbody id="eastern-standings">
+                <tr>
+                  <td colspan="5" class="loading mobile-colspan-adjust">Loading Eastern Conference standings...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="conference-section">
+            <div class="conference-header">
+              <h3>Western Conference</h3>
+            </div>
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th class="no-sort">Rank<span class="sort-indicator"></span></th>
+                  <th class="no-sort">Team<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Western', 'record')">Record<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Western', 'pam')">PAM<span class="sort-indicator"></span></th>
+                  <th onclick="handleSort('Western', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+                </tr>
+              </thead>
+              <tbody id="western-standings">
+                <tr>
+                  <td colspan="5" class="loading mobile-colspan-adjust">Loading Western Conference standings...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="fullLeagueViewContainer" class="hidden">
+        <div class="conference-section"> 
+          <div class="conference-header">
+            <h3>Full League (All Teams)</h3>
+          </div>
+          <table class="standings-table">
+            <thead>
+              <tr>
+                <th class="no-sort">Rank<span class="sort-indicator"></span></th>
+                <th class="no-sort">Team<span class="sort-indicator"></span></th>
+                <th onclick="handleSort('FullLeague', 'record')">Record<span class="sort-indicator"></span></th>
+                <th onclick="handleSort('FullLeague', 'pam')">PAM<span class="sort-indicator"></span></th>
+                <th onclick="handleSort('FullLeague', 'med_starter_rank')">Med Rank<span class="sort-indicator"></span></th>
+              </tr>
+            </thead>
+            <tbody id="full-league-standings">
+              <tr>
+                <td colspan="5" class="loading mobile-colspan-adjust">Loading Full League standings...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="powerRankingsViewContainer" class="hidden">
+        <div class="conference-section"> 
+          <div class="conference-header">
+            <h3>Power Rankings v5 (Week 12)</h3> </div>
+          <div id="powerRankingsSummary" class="power-rankings-summary">
+            Loading summary...
+          </div>
+          <table class="standings-table"> 
+            <thead>
+              <tr>
+                <th class="no-sort">Rank<span class="sort-indicator"></span></th>
+                <th class="no-sort">Team<span class="sort-indicator"></span></th>
+                <th class="no-sort">Record<span class="sort-indicator"></span></th>
+                <th class="no-sort prev-rank-col">Prev<span class="sort-indicator"></span></th>
+                <th class="no-sort">Change<span class="sort-indicator"></span></th>
+              </tr>
+            </thead>
+            <tbody id="power-rankings-standings">
+              <tr>
+                <td colspan="5" class="loading">Loading Power Rankings...</td> </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div class="clinch-legend">
+        <div class="clinch-legend-title">Postseason Clinching Status</div>
+        <div class="clinch-legend-items">
+          <div class="clinch-legend-item">
+            <span class="clinch-badge clinch-playoff">x</span>
+            <span>Clinched Playoffs</span>
+          </div>
+          <div class="clinch-legend-item">
+            <span class="clinch-badge clinch-playin">p</span>
+            <span>Clinched Play-In</span>
+          </div>
+          <div class="clinch-legend-item">
+            <span class="clinch-badge clinch-eliminated">e</span>
+            <span>Eliminated</span>
+          </div>
+        </div>
+      </div>
+    </main>
+    
+    <footer>
+      <p>@caustic on Real</p>
+      <a href="trade-block.html">GM Portal</a>
+    </footer>
+
+    <script src="../js/main.js" type="module"></script>
+    <script>
+      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+
+      let allTeamsData = [];
+      let easternTeamsData = [];
+      let westernTeamsData = [];
+      let fullLeagueTeamsData = [];
+      let powerRankingsData = []; 
+
+      let currentView = 'conferences'; 
+      let viewButton1, viewButton2; 
+
+      const sortState = {
+        Eastern: { column: 'record', direction: 'asc' },
+        Western: { column: 'record', direction: 'asc' },
+        FullLeague: { column: 'record', direction: 'asc' }
+      };
+
+      function getUrlParameter(name) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(name);
+      }
+
+      function getColspanForMobile() {
+        if ((currentView === 'conferences' || currentView === 'fullLeague') && window.innerWidth <= 768) {
+          return 4;
+        }
+        return 5;
+      }
+
+      async function fetchSheetData(sheetName) {
+        try {
+          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
+          if (!response.ok) {
+            throw new Error(`Network response was not ok for ${sheetName}: ${response.statusText}`);
+          }
+          const csvText = await response.text();
+          if (!csvText) { 
+            console.warn(`Empty CSV data received from ${sheetName}`);
+            return [];
+          }
+          return parseCSV(csvText);
+        } catch (error) {
+          console.error(`Error fetching ${sheetName}:`, error);
+          let colspan = 5; 
+          if (sheetName === 'Teams' && (document.getElementById('eastern-standings') || document.getElementById('full-league-standings'))) {
+             colspan = getColspanForMobile();
+          }
+          
+          const errorMsgHtml = (colspanVal) => `<tr><td colspan="${colspanVal}" class="error">Error loading data from ${sheetName}</td></tr>`;
+          
+          if (sheetName === 'Teams') { 
+            ['eastern-standings', 'western-standings', 'full-league-standings'].forEach(id => {
+                const tableBody = document.getElementById(id);
+                if (tableBody) {
+                    tableBody.innerHTML = errorMsgHtml(getColspanForMobile());
+                }
+            });
+            const prTableBody = document.getElementById('power-rankings-standings');
+            if (prTableBody) { 
+                 prTableBody.innerHTML = errorMsgHtml(5); 
+            }
+            const summaryContainer = document.getElementById('powerRankingsSummary');
+            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Core team data failed to load.</span></div>';
+
+          } else if (sheetName === 'TPR') {
+            const tableBody = document.getElementById('power-rankings-standings');
+            if (tableBody) tableBody.innerHTML = errorMsgHtml(5); 
+            const summaryContainer = document.getElementById('powerRankingsSummary');
+            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Power rankings data failed to load.</span></div>';
+          }
+          return null;
+        }
+      }
+
+      function parseCSV(csvText) {
+        const lines = csvText.trim().split('\n');
+        if (lines.length === 0) return [];
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = [];
+          let currentVal = '';
+          let inQuotes = false;
+          for (let j = 0; j < lines[i].length; j++) {
+            const char = lines[i][j];
+            if (char === '"') {
+                if (inQuotes && j + 1 < lines[i].length && lines[i][j+1] === '"') {
+                    currentVal += '"'; 
+                    j++; 
+                    continue;
+                }
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(currentVal.trim()); 
+              currentVal = '';
+            } else {
+              currentVal += char;
+            }
+          }
+          values.push(currentVal.trim());
+          
+          const processedValues = values.map(v => v.replace(/^"|"$/g, ''));
+
+          if (processedValues.length === headers.length) {
+            const row = {};
+            headers.forEach((header, index) => { row[header] = processedValues[index] || ''; });
+            data.push(row);
+          } else {
+            console.warn('Skipping mismatched CSV line:', lines[i], 'Expected', headers.length, 'got', processedValues.length, 'values:', processedValues);
+          }
+        }
+        return data;
+      }
+
+      function getPlayoffIndicator(rank) {
+        if (rank <= 0) return '-';
+        if (rank <= 6) return `<div class="playoff-seed">${rank}</div>`;
+        else if (rank <= 10) return `<div class="playin-seed">${rank}</div>`;
+        else return `<div class="eliminated-seed">${rank}</div>`;
+      }
+
+      function getPAMClass(pam) {
+        const pamValue = parseFloat(pam);
+        if (pamValue > 0) return 'pam-positive';
+        if (pamValue < 0) return 'pam-negative';
+        return '';
+      }
+
+      function handleTeamClick(teamId) {
+        if (teamId && teamId !== 'null' && teamId !== 'undefined' && teamId.trim() !== '') {
+             window.location.href = `team.html?id=${teamId}`;
+        } else {
+            console.warn('handleTeamClick called with invalid teamId:', teamId);
+        }
+      }
+
+      function updateSortIndicators(tableType) {
+        let tableElementId;
+        if (tableType === 'Eastern') tableElementId = 'eastern-standings';
+        else if (tableType === 'Western') tableElementId = 'western-standings';
+        else if (tableType === 'FullLeague') tableElementId = 'full-league-standings';
+        else return; 
+        const table = document.getElementById(tableElementId)?.closest('table');
+        if (!table) return;
+        const headers = table.querySelectorAll('thead th[onclick]');
+        headers.forEach(th => {
+          const columnAttr = th.getAttribute('onclick');
+          if (!columnAttr) return;
+          const columnMatch = columnAttr.match(/'([^']+)'.*?'([^']+)'/);
+          if (!columnMatch || columnMatch.length < 3) return;
+          const column = columnMatch[2];
+          const indicator = th.querySelector('.sort-indicator');
+          if (indicator) {
+            if (sortState[tableType] && sortState[tableType].column === column) {
+              if (column === 'med_starter_rank') indicator.textContent = sortState[tableType].direction === 'asc_rank' ? '▲' : '▼';
+              else indicator.textContent = sortState[tableType].direction === 'asc' ? '▲' : '▼';
+            } else indicator.textContent = '';
+          }
+        });
+      }
+
+      function renderStandings(tableType, teamsToRender) {
+        let tableBodyId;
+        if (tableType === 'Eastern') tableBodyId = 'eastern-standings';
+        else if (tableType === 'Western') tableBodyId = 'western-standings';
+        else if (tableType === 'FullLeague') tableBodyId = 'full-league-standings';
+        else return;
+        const tableBody = document.getElementById(tableBodyId);
+        if (!tableBody) {
+            console.error(`Table body not found for ${tableBodyId}`);
+            return;
+        }
+
+        const colspan = getColspanForMobile(); 
+        if (!teamsToRender || teamsToRender.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="${colspan}" class="loading">No teams to display for ${tableType}.</td></tr>`;
+            return;
+        }
+
+        const sortedTeamsForDisplay = [...teamsToRender].sort((a, b) => {
+          if (!sortState[tableType]) return 0; 
+          const currentSortColumn = sortState[tableType].column;
+          const currentSortDirection = sortState[tableType].direction;
+          let valA, valB;
+          switch (currentSortColumn) {
+            case 'pam':
+              valA = parseFloat(a.pam || 0); valB = parseFloat(b.pam || 0);
+              return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1);
+            case 'med_starter_rank':
+              valA = parseFloat(a.med_starter_rank || 9999); valB = parseFloat(b.med_starter_rank || 9999);
+              if (window.innerWidth > 768) {
+                return (valA - valB) * (currentSortDirection === 'asc_rank' ? 1 : -1);
+              }
+              return 0; 
+            case 'record': default:
+              if (tableType === 'FullLeague') { valA = a.officialFullLeagueRank; valB = b.officialFullLeagueRank; }
+              else { valA = a.officialRecordRank; valB = b.officialRecordRank; }
+              return (valA - valB) * (currentSortDirection === 'asc' ? 1 : -1) ;
+          }
+        });
+        const html = sortedTeamsForDisplay.map(team => {
+          const wins = parseInt(team.wins || 0); const losses = parseInt(team.losses || 0);
+          const pam = parseFloat(team.pam || 0); const medRank = parseFloat(team.med_starter_rank || 0);
+          let rankCellContent; let trClass = '';
+          
+          let clinchBadgeHtml = '';
+          if (team.playoffs === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+          } else if (team.playin === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+          } else if (team.elim === '1') {
+              clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+          }
+
+          if (tableType === 'FullLeague') {
+            rankCellContent = team.officialFullLeagueRank;
+          } else {
+            rankCellContent = getPlayoffIndicator(team.officialRecordRank);
+            if (team.officialRecordRank > 10) trClass = 'eliminated';
+          }
+          
+          const medRankColumnHtml = (window.innerWidth > 768 && (tableType === 'Eastern' || tableType === 'Western' || tableType === 'FullLeague')) ? 
+            `<td class="rank-cell">${medRank > 0 ? Math.round(medRank) : '-'}</td>` : '';
+
+          return `
+            <tr class="${trClass}">
+              <td class="rank-cell">${rankCellContent}</td>
+              <td>
+                <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
+                  <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                  <span class="team-name">${team.team_name}</span>
+                  ${clinchBadgeHtml}
+                </div>
+              </td>
+              <td class="record-cell">${wins}-${losses}</td>
+              <td class="pam-cell ${getPAMClass(pam)}">${Math.round(pam).toLocaleString()}</td>
+              ${medRankColumnHtml}
+            </tr>`;
+        }).join('');
+        tableBody.innerHTML = html;
+        updateSortIndicators(tableType);
+      }
+
+      function getChangeIndicator(delta) {
+        const deltaValue = parseInt(delta);
+        if (isNaN(deltaValue)) return `<span>–</span>`; 
+        if (deltaValue > 0) return `<span class="pam-positive">▲ ${deltaValue}</span>`;
+        if (deltaValue < 0) return `<span class="pam-negative">▼ ${Math.abs(deltaValue)}</span>`;
+        return `<span>–</span>`;
+      }
+
+      function getRankDisplay(rank) {
+        if (rank === 1) return `<span class="rank-badge gold-badge">1</span>`;
+        if (rank === 2) return `<span class="rank-badge silver-badge">2</span>`;
+        if (rank === 3) return `<span class="rank-badge bronze-badge">3</span>`;
+        return rank; 
+      }
+
+      function renderPowerRankings(teamsToRender) {
+        const tableBody = document.getElementById('power-rankings-standings');
+        if (!tableBody) {
+            console.error("Table body not found for power-rankings-standings");
+            return;
+        }
+        if (!teamsToRender || teamsToRender.length === 0) {
+            if (tableBody.innerHTML.includes('class="loading"')) { 
+                 tableBody.innerHTML = `<tr><td colspan="5" class="loading">No teams to display for Power Rankings.</td></tr>`;
+            }
+            return;
+        }
+        
+        const html = teamsToRender.map(team => {
+            const record = `${team.wins}-${team.losses}`;
+            const prevRankDisplay = team.prev_rank !== null && !isNaN(team.prev_rank) ? team.prev_rank : '-';
+            
+            let clinchBadgeHtml = '';
+            if (team.playoffs === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-playoff">x</span>';
+            } else if (team.playin === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-playin">p</span>';
+            } else if (team.elim === '1') {
+                clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
+            }
+
+            return `
+                <tr>
+                    <td class="rank-cell">${getRankDisplay(team.rank)}</td>
+                    <td>
+                        <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
+                            <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <span class="team-name">${team.team_name}</span>
+                            ${clinchBadgeHtml}
+                        </div>
+                    </td>
+                    <td class="record-cell">${record}</td>
+                    <td class="rank-cell prev-rank-col">${prevRankDisplay}</td>
+                    <td class="record-cell">${getChangeIndicator(team.delta)}</td>
+                </tr>`;
+        }).join('');
+        tableBody.innerHTML = html;
+      }
+
+      function handleSort(tableType, column) {
+        if (column === 'med_starter_rank' && window.innerWidth <= 768 && (tableType === 'Eastern' || tableType === 'Western' || tableType === 'FullLeague')) {
+            return; 
+        }
+
+        if (!sortState[tableType]) { 
+            if (column === 'med_starter_rank') sortState[tableType] = { column, direction: 'asc_rank' };
+            else if (column === 'record') sortState[tableType] = { column, direction: 'asc' };
+            else sortState[tableType] = { column, direction: 'desc' };
+        }
+
+        const currentSort = sortState[tableType]; let newDirection;
+        if (currentSort.column === column) {
+          if (column === 'med_starter_rank') newDirection = currentSort.direction === 'asc_rank' ? 'desc_rank' : 'asc_rank';
+          else newDirection = currentSort.direction === 'desc' ? 'asc' : 'desc';
+        } else {
+          if (column === 'med_starter_rank') newDirection = 'asc_rank';
+          else if (column === 'record') newDirection = 'asc';
+          else newDirection = 'desc';
+        }
+        sortState[tableType] = { column, direction: newDirection };
+        let teamsToRender;
+        if (tableType === 'Eastern') teamsToRender = easternTeamsData;
+        else if (tableType === 'Western') teamsToRender = westernTeamsData;
+        else if (tableType === 'FullLeague') teamsToRender = fullLeagueTeamsData;
+        else return;
+        renderStandings(tableType, teamsToRender);
+      }
+      
+      function updateButtonStates() {
+        if (!viewButton1 || !viewButton2) {
+            console.error("View toggle buttons not found in updateButtonStates");
+            return;
+        }
+        let action1, text1, action2, text2;
+
+        if (currentView === 'conferences') {
+            text1 = 'Show Full League Standings';
+            action1 = showFullLeagueView;
+            text2 = 'Show Power Rankings';
+            action2 = showPowerRankingsView;
+        } else if (currentView === 'fullLeague') {
+            text1 = 'Show Conference Standings';
+            action1 = showConferenceView;
+            text2 = 'Show Power Rankings';
+            action2 = showPowerRankingsView;
+        } else { // currentView === 'powerRankings'
+            text1 = 'Show Conference Standings';
+            action1 = showConferenceView;
+            text2 = 'Show Full League Standings';
+            action2 = showFullLeagueView;
+        }
+
+        viewButton1.textContent = text1;
+        viewButton1.onclick = action1; 
+
+        viewButton2.textContent = text2;
+        viewButton2.onclick = action2; 
+      }
+
+      function showConferenceView() {
+          currentView = 'conferences';
+          document.getElementById('conferenceViewContainer').classList.remove('hidden');
+          document.getElementById('fullLeagueViewContainer').classList.add('hidden');
+          document.getElementById('powerRankingsViewContainer').classList.add('hidden');
+          document.getElementById('standingsPageTitle').textContent = 'Conference Standings';
+          document.getElementById('pageDescription').textContent = 'Updated after each completed game. Click headers to sort (where applicable).';
+          const playoffLegend = document.querySelector('.playoff-legend');
+          if (playoffLegend) playoffLegend.classList.remove('hidden');
+          updateColspanForLoadingPlaceholders();
+          renderStandings('Eastern', easternTeamsData);
+          renderStandings('Western', westernTeamsData);
+          updateButtonStates();
+      }
+
+      function showFullLeagueView() {
+          currentView = 'fullLeague';
+          document.getElementById('conferenceViewContainer').classList.add('hidden');
+          document.getElementById('fullLeagueViewContainer').classList.remove('hidden');
+          document.getElementById('powerRankingsViewContainer').classList.add('hidden');
+          document.getElementById('standingsPageTitle').textContent = 'Full League Standings';
+          document.getElementById('pageDescription').textContent = 'Updated after each completed game. Click headers to sort (where applicable).';
+          const playoffLegend = document.querySelector('.playoff-legend');
+          if (playoffLegend) playoffLegend.classList.add('hidden');
+          updateColspanForLoadingPlaceholders();
+          renderStandings('FullLeague', fullLeagueTeamsData);
+          updateButtonStates();
+      }
+
+      function showPowerRankingsView() {
+          currentView = 'powerRankings';
+          document.getElementById('conferenceViewContainer').classList.add('hidden');
+          document.getElementById('fullLeagueViewContainer').classList.add('hidden');
+          document.getElementById('powerRankingsViewContainer').classList.remove('hidden');
+          document.getElementById('standingsPageTitle').textContent = 'Power Rankings'; 
+          document.getElementById('pageDescription').textContent = 'Courtesy of @four. Updated every three weeks.';
+          const playoffLegend = document.querySelector('.playoff-legend');
+          if (playoffLegend) playoffLegend.classList.add('hidden');
+          calculateAndDisplayPowerRankingsSummary(); 
+          updateButtonStates();
+      }
+      
+      function updateColspanForLoadingPlaceholders() {
+        const colspan = getColspanForMobile();
+        document.querySelectorAll('.mobile-colspan-adjust').forEach(td => {
+            if (td.innerHTML.includes('Loading') || td.innerHTML.includes('Error')) {
+                td.setAttribute('colspan', colspan);
+            }
+        });
+      }
+
+
+      function calculateAndDisplayPowerRankingsSummary() {
+        const summaryContainer = document.getElementById('powerRankingsSummary');
+        if (!summaryContainer) return;
+
+        if (!powerRankingsData || powerRankingsData.length === 0) {
+            summaryContainer.innerHTML = '<div class="summary-item"><span>No power ranking data available to determine risers/fallers.</span></div>';
+            return;
+        }
+
+        let biggestRisers = [];
+        let maxRise = 0; 
+        let biggestFallers = [];
+        let maxFall = 0; 
+
+        powerRankingsData.forEach(team => {
+            const delta = parseInt(team.delta) || 0;
+            
+            // Riser logic
+            if (delta > 0) {
+              if (delta > maxRise) {
+                maxRise = delta;
+                biggestRisers = [team]; // New leader, start a new list
+              } else if (delta === maxRise) {
+                biggestRisers.push(team); // Tied, add to the list
+              }
+            }
+            
+            // Faller logic
+            if (delta < 0) {
+              if (delta < maxFall) {
+                maxFall = delta;
+                biggestFallers = [team]; // New leader, start a new list
+              } else if (delta === maxFall) {
+                biggestFallers.push(team); // Tied, add to the list
+              }
+            }
+        });
+
+        let riserHtml = '';
+        if (biggestRisers.length > 0) {
+            riserHtml = biggestRisers.map(riser => `
+                <div class="summary-item">
+                    <img src="icons/${riser.team_id}.webp" alt="${riser.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
+                    <span>Biggest Riser: 
+                        <strong class="pam-positive"><a href="team.html?id=${riser.team_id}" class="summary-team-link">${riser.team_name}</a></strong> (+<strong class="pam-positive">${riser.delta}</strong>) 📈
+                    </span>
+                </div>
+            `).join('');
+        } else {
+             riserHtml = '<div class="summary-item"><span>No significant risers this period.</span></div>';
+        }
+
+
+        let fallerHtml = '';
+        if (biggestFallers.length > 0) {
+            fallerHtml = biggestFallers.map(faller => `
+                <div class="summary-item">
+                    <img src="icons/${faller.team_id}.webp" alt="${faller.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
+                    <span>Biggest Faller: 
+                        <strong class="pam-negative"><a href="team.html?id=${faller.team_id}" class="summary-team-link">${faller.team_name}</a></strong> (<strong class="pam-negative">${faller.delta}</strong>) 📉
+                    </span>
+                </div>
+            `).join('');
+        } else {
+            fallerHtml = '<div class="summary-item"><span>No significant fallers this period.</span></div>';
+        }
+        
+        summaryContainer.innerHTML = riserHtml + fallerHtml;
+    }
+
+
+      async function loadStandings() {
+        const viewParam = getUrlParameter('view');
+        const sortByParam = getUrlParameter('sortBy');
+        let sortDirectionParam = getUrlParameter('sortDirection');
+        const playoffLegend = document.querySelector('.playoff-legend'); 
+
+        viewButton1 = document.getElementById('viewToggleButton1');
+        viewButton2 = document.getElementById('viewToggleButton2');
+        
+        updateColspanForLoadingPlaceholders(); 
+
+
+        if (!viewButton1 || !viewButton2) {
+            console.error("Toggle buttons not found on page load.");
+            document.getElementById('conferenceViewContainer').classList.add('hidden');
+            document.getElementById('fullLeagueViewContainer').classList.add('hidden');
+            document.getElementById('powerRankingsViewContainer').classList.add('hidden');
+            if(playoffLegend) playoffLegend.classList.add('hidden');
+            const buttonsContainer = document.querySelector('.page-buttons-container');
+            if (buttonsContainer) buttonsContainer.classList.add('hidden');
+            document.getElementById('standingsPageTitle').textContent = 'Page Error: UI Elements Missing';
+            return;
+        }
+
+        if (viewParam === 'fullLeague' && sortByParam) {
+            let effectiveSortDirection = sortDirectionParam;
+            if (!effectiveSortDirection) {
+                if (sortByParam === 'med_starter_rank') effectiveSortDirection = 'asc_rank';
+                else if (sortByParam === 'pam') effectiveSortDirection = 'desc';
+                else effectiveSortDirection = 'asc';
+            } else {
+                if (sortByParam === 'med_starter_rank') {
+                    if (sortDirectionParam.toLowerCase() === 'asc') effectiveSortDirection = 'asc_rank';
+                    else if (sortDirectionParam.toLowerCase() === 'desc') effectiveSortDirection = 'desc_rank';
+                }
+            }
+            sortState.FullLeague = { column: sortByParam, direction: effectiveSortDirection };
+        }
+
+        let fetchedTeamsData = await fetchSheetData('Teams');
+        if (!fetchedTeamsData) {
+          console.error("Failed to fetch main Teams data. Standings cannot be loaded.");
+          document.querySelector('.page-buttons-container').classList.add('hidden');
+          if(playoffLegend) playoffLegend.classList.add('hidden');
+          document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
+          return;
+        }
+        
+        const excludedTeamIds = new Set(['EGM', 'WGM', 'RSE', 'RSW', 'EAST', 'WEST', 'RETIRED', 'FREE_AGENT']);
+        const excludedTeamNames = new Set(['East GMs', 'West GMs', 'East Rising Stars', 'West Rising Stars', 'East All-Stars', 'West All-Stars']);
+
+        allTeamsData = fetchedTeamsData.filter(team => {
+            if (!team.team_id) return false;
+            if (excludedTeamIds.has(team.team_id.trim().toUpperCase())) return false;
+            if (team.team_name && excludedTeamNames.has(team.team_name)) return false;
+            return true;
+        });
+
+        if (!allTeamsData || allTeamsData.length === 0) {
+            const colspanForError = getColspanForMobile();
+            const errorMsg = `<tr><td colspan="${colspanForError}" class="error">No valid team data available after filtering.</td></tr>`;
+            const prErrorMsg = `<tr><td colspan="5" class="error">No valid team data available.</td></tr>`; 
+            ['eastern-standings', 'western-standings', 'full-league-standings'].forEach(id => {
+                const tableBody = document.getElementById(id);
+                if (tableBody) tableBody.innerHTML = errorMsg;
+            });
+            const prTableBody = document.getElementById('power-rankings-standings');
+            if(prTableBody) prTableBody.innerHTML = prErrorMsg; 
+            const summaryContainer = document.getElementById('powerRankingsSummary');
+            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Team data unavailable.</span></div>';
+
+            document.getElementById('conferenceViewContainer').classList.add('hidden');
+            document.getElementById('fullLeagueViewContainer').classList.add('hidden');
+            document.getElementById('powerRankingsViewContainer').classList.add('hidden');
+            if(playoffLegend) playoffLegend.classList.add('hidden');
+            document.querySelector('.page-buttons-container').classList.add('hidden');
+            document.getElementById('standingsPageTitle').textContent = 'Standings Data Unavailable';
+            return;
+        }
+
+        let rawEasternTeams = allTeamsData.filter(team => team.conference === 'Eastern');
+        let rawWesternTeams = allTeamsData.filter(team => team.conference === 'Western');
+
+        const sortLogic = (a, b) => {
+            const winsA = parseInt(a.wins || 0);
+            const lossesA = parseInt(a.losses || 0);
+            const totalGamesA = winsA + lossesA;
+            const winPctA = totalGamesA > 0 ? winsA / totalGamesA : 0;
+            
+            const winsB = parseInt(b.wins || 0);
+            const lossesB = parseInt(b.losses || 0);
+            const totalGamesB = winsB + lossesB;
+            const winPctB = totalGamesB > 0 ? winsB / totalGamesB : 0;
+
+            if (winPctB !== winPctA) {
+                return winPctB - winPctA;
+            }
+            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+        };
+
+        easternTeamsData = rawEasternTeams
+          .sort(sortLogic)
+          .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
+
+        westernTeamsData = rawWesternTeams
+          .sort(sortLogic)
+          .map((team, index) => ({ ...team, officialRecordRank: index + 1 }));
+
+        fullLeagueTeamsData = [...allTeamsData]
+          .sort(sortLogic)
+          .map((team, index) => ({ ...team, officialFullLeagueRank: index + 1 }));
+        
+        let rawPowerRankings = await fetchSheetData('TPR');
+        const prTableBody = document.getElementById('power-rankings-standings');
+        const summaryContainer = document.getElementById('powerRankingsSummary');
+
+        if (rawPowerRankings && rawPowerRankings.length > 0) {
+            powerRankingsData = rawPowerRankings.map(prTeam => {
+                const officialTeam = allTeamsData.find(t => t.team_id === prTeam.team_id);
+                const displayName = officialTeam ? officialTeam.team_name : prTeam.team_name; 
+                const wins = officialTeam ? (officialTeam.wins || 0) : 0;
+                const losses = officialTeam ? (officialTeam.losses || 0) : 0;
+                const playoffs = officialTeam ? officialTeam.playoffs : '0';
+                const playin = officialTeam ? officialTeam.playin : '0';
+                const elim = officialTeam ? officialTeam.elim : '0';
+
+                return {
+                    rank: parseInt(prTeam.power_rank),
+                    team_name: displayName, 
+                    team_id: prTeam.team_id,      
+                    prev_rank: prTeam.prev_power ? parseInt(prTeam.prev_power) : null,
+                    delta: parseInt(prTeam.power_delta) || 0,
+                    wins: wins,
+                    losses: losses,
+                    playoffs: playoffs,
+                    playin: playin,
+                    elim: elim
+                };
+            }).filter(team => team.team_id && team.team_id.trim() !== '' && !isNaN(team.rank))
+              .sort((a, b) => a.rank - b.rank);
+
+            if (powerRankingsData.length === 0 && rawPowerRankings.length > 0) {
+                 console.warn("Power rankings data fetched, but no teams could be fully processed.");
+                 if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="5" class="error">Could not process power ranking data.</td></tr>`;
+                 if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>Could not process power ranking data.</span></div>';
+            }
+        } else if (rawPowerRankings && rawPowerRankings.length === 0) { 
+            if(prTableBody) prTableBody.innerHTML = `<tr><td colspan="5" class="loading">No power ranking data available in the sheet.</td></tr>`;
+            if(summaryContainer) summaryContainer.innerHTML = '<div class="summary-item"><span>No power ranking data available in the sheet.</span></div>';
+        } else if (!rawPowerRankings) { 
+            console.log("TPR sheet fetch failed, error message already handled.");
+        }
+
+        renderStandings('Eastern', easternTeamsData);
+        renderStandings('Western', westernTeamsData);
+        renderStandings('FullLeague', fullLeagueTeamsData);
+        renderPowerRankings(powerRankingsData); 
+        
+        if (viewParam === 'fullLeague') {
+            showFullLeagueView();
+        } else if (viewParam === 'powerRankings') {
+            showPowerRankingsView();
+        } else {
+            showConferenceView(); 
+        }
+        updateColspanForLoadingPlaceholders();
+      }
+
+      window.addEventListener('resize', () => {
+        if (currentView === 'conferences') {
+            renderStandings('Eastern', easternTeamsData); 
+            renderStandings('Western', westernTeamsData); 
+        } else if (currentView === 'fullLeague') {
+            renderStandings('FullLeague', fullLeagueTeamsData); 
+        }
+        updateColspanForLoadingPlaceholders();
+      });
+
+      document.addEventListener('DOMContentLoaded', loadStandings);
+    </script>
+  </body>
+</html>

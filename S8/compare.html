@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compare Players & Teams - RKL S7</title>
+    <link rel="stylesheet" href="../css/global-styles.css">
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon">
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
+    <style>
+        /* Styles specific to the Compare page */
+        .comparison-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .dark-mode .comparison-container {
+            background-color: #1e1e1e;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        .type-selector {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .type-selector .btn-group {
+            display: inline-flex;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+        .dark-mode .type-selector .btn-group {
+            border-color: #444;
+        }
+        .type-selector button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #f8f9fa;
+            border: none;
+            color: #333;
+            transition: background-color 0.3s, color 0.3s;
+            border-right: 1px solid #ddd;
+        }
+        .dark-mode .type-selector button {
+            background-color: #2c2c2c;
+            color: #e0e0e0;
+            border-right: 1px solid #444;
+        }
+        .type-selector button:last-child {
+            border-right: none;
+        }
+        .type-selector button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        .dark-mode .type-selector button.active {
+            background-color: #3b82f6;
+        }
+        .selectors-grid {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1.5rem;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .selector-box {
+            display: flex;
+            flex-direction: column;
+        }
+        .selector-box label {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .selector-box select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            background-color: #fff;
+        }
+        .dark-mode .selector-box select {
+            background-color: #2c2c2c;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+        .vs-separator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #6c757d;
+            padding-top: 1.5rem; /* Align with select inputs */
+        }
+        .dark-mode .vs-separator {
+            color: #aaa;
+        }
+        .compare-btn-container {
+            text-align: center;
+        }
+        .compare-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .compare-btn:hover {
+            background-color: #218838;
+        }
+        .compare-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        /* Results Styles */
+        .results-container {
+            margin-top: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            border-top: 1px solid #eee;
+            padding-top: 2rem;
+        }
+        .dark-mode .results-container {
+            border-top-color: #333;
+        }
+        .results-container.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .results-header-flex {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .entity-header {
+            width: 40%;
+        }
+        .entity-header a {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-decoration: none;
+            color: inherit;
+            transition: color 0.3s;
+        }
+        .entity-header a:hover {
+            color: #007bff;
+        }
+        .dark-mode .entity-header a:hover {
+            color: #8ab4f8;
+        }
+        .entity-header.entity1 a { align-items: flex-start; text-align: left;}
+        .entity-header.entity2 a { align-items: flex-end; text-align: right;}
+        .entity-header .icon-name-wrapper {
+             display: flex;
+             align-items: center;
+             gap: 1rem;
+        }
+         .entity-header.entity2 .icon-name-wrapper {
+             flex-direction: row-reverse;
+         }
+
+        .entity-name-text {
+            display: inline;
+        }
+        .badge-container {
+            display: inline;
+        }
+
+        .entity-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #ddd;
+        }
+        .dark-mode .entity-icon {
+            border-color: #444;
+        }
+        .results-vs-separator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #6c757d;
+        }
+        .dark-mode .results-vs-separator {
+            color: #aaa;
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            align-items: center;
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            border: 1px solid #eee;
+        }
+        .dark-mode .comparison-row {
+            background-color: #2c2c2c;
+            border-color: #333;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .metric-label {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #666;
+        }
+        .dark-mode .metric-label {
+            color: #aaa;
+        }
+        .metric-value.winner {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .dark-mode .metric-value.winner {
+            background-color: #2e7d32;
+            color: #e8f5e9;
+        }
+        .metric-value.tie {
+            background-color: #fff3cd;
+        }
+        .dark-mode .metric-value.tie {
+            background-color: #4a4100;
+        }
+        .rookie-badge-compare {
+            background-color: #6c757d;
+            color: white;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .all-star-badge-compare {
+            color: gold;
+            text-shadow: 0 0 3px #a18000;
+            font-size: 1rem;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .dark-mode .rookie-badge-compare {
+            background-color: #9e9e9e;
+            color: #121212;
+        }
+
+
+        @media (max-width: 600px) {
+            .selectors-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .vs-separator, .results-vs-separator {
+                display: none;
+            }
+            .results-header-flex {
+                justify-content: space-between;
+                gap: 4%;
+            }
+            .entity-header {
+                width: 48%; /* Adjust width for side-by-side */
+            }
+            .entity-header a {
+                font-size: 1rem; /* Smaller font on mobile */
+            }
+            /* UPDATED RULE: Changed to allow text wrapping instead of truncation. */
+            .entity-header .entity-name-text {
+                display: block;
+                white-space: normal;
+                word-break: break-word;
+                max-width: 100%;
+            }
+            .entity-header .badge-container {
+                display: none; /* Hide badges on mobile */
+            }
+            .entity-icon {
+                width: 40px;
+                height: 40px;
+            }
+             .entity-header .icon-name-wrapper {
+                gap: 0.5rem;
+             }
+            .comparison-row {
+                grid-template-columns: 1fr 1.2fr 1fr;
+                padding: 0.5rem;
+            }
+            .metric-value {
+                font-size: 1.1rem;
+            }
+            .metric-label {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.onerror=null; this.src='../rklfavicon.ico';">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <h2>Head-to-Head Comparison</h2>
+            <p>Select two players or two teams to compare their key metrics.</p>
+            <p>Check out the <a href="stats-glossary.html">advanced stats glossary</a> to learn more about some of the metrics used on this page!</p>
+        </div>
+
+        <div class="comparison-container">
+            <div class="type-selector">
+                <div class="btn-group">
+                    <button id="select-players-btn" class="active">Players</button>
+                    <button id="select-teams-btn">Teams</button>
+                </div>
+            </div>
+
+            <div id="selectors-container">
+                <div class="loading">Loading data...</div>
+            </div>
+
+            <div class="compare-btn-container" style="display: none;">
+                <button id="compare-btn" class="compare-btn" disabled>Compare</button>
+            </div>
+
+            <div id="results-container" class="results-container">
+                </div>
+        </div>
+    </main>
+
+    <footer>
+      <p>@caustic on Real</p>
+      <a href="trade-block.html">GM Portal</a>
+    </footer>
+
+    <script src="../js/main.js" type="module"></script>
+    <script src="../js/compare.js"></script>
+</body>
+</html>

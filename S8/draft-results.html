@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL S7 Draft Results</title>
+    <link rel="stylesheet" href="../css/global-styles.css">
+    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <script>
+      // Apply theme from local storage before page loads to prevent flashing
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
+    <style>
+      /* Page-specific styles for draft-results.html */
+      .page-header { text-align: center; margin-bottom: 2rem; }
+      .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+      
+      /* Quick Links */
+      .quick-links-container { text-align: center; margin-bottom: 2rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+      .quick-link-btn { background-color: #fff; color: #333; border: 1px solid #ddd; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+      .quick-link-btn:hover { background-color: #f8f9fa; border-color: #ccc; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+      .results-container { overflow-x: auto; }
+      .results-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; }
+      .results-header h3 { color: white; margin: 0; font-size: 1.4rem; }
+      
+      .results-table { width: auto; margin: 0 auto; border-collapse: collapse; table-layout: auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; transition: background-color 0.3s, box-shadow 0.3s; }
+      .results-table th { background-color: #f8f9fa; padding: 1rem 1rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; white-space: nowrap; transition: background-color 0.3s, border-color 0.3s; }
+      .results-table th.sortable { cursor: pointer; }
+      .results-table th.sortable:hover { background-color: #e9ecef; }
+      .results-table th .sort-indicator { font-size: 0.8em; margin-left: 5px; }
+      
+      .results-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; text-align: center; transition: border-color 0.3s; }
+      .results-table tr:hover { background-color: #f8f9fa; }
+
+      .results-table td.team-cell, .results-table td.player-cell { text-align: left; }
+      .team-cell-content { display: flex; align-items: center; gap: 0.75rem; }
+      .team-logo { width: 24px; height: 24px; border-radius: 2px; flex-shrink: 0; }
+      .player-link, .team-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s; }
+      .player-link:hover, .team-link:hover { text-decoration: underline; }
+      
+      .mobile-only { display: none; }
+      .desktop-only { display: table-cell; }
+
+      /* Dark Mode Styles */
+      .dark-mode .quick-link-btn { background-color: #2c2c2c; color: #e0e0e0; border-color: #444; }
+      .dark-mode .quick-link-btn:hover { background-color: #383838; border-color: #666; }
+      .dark-mode .results-table { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+      .dark-mode .results-table th { background-color: #2c2c2c; border-bottom-color: #444; }
+      .dark-mode .results-table th.sortable:hover { background-color: #383838; }
+      .dark-mode .results-table td { border-bottom-color: #333; }
+      .dark-mode .results-table tr:hover { background-color: #2c2c2c; }
+      .dark-mode .player-link, .dark-mode .team-link { color: #8ab4f8; }
+      .dark-mode .player-link:hover, .dark-mode .team-link:hover { color: #a7c7fa; }
+
+      /* Responsive Styles */
+      @media (max-width: 768px) {
+        .results-table th, .results-table td { font-size: 0.85rem; padding: 0.6rem 0.5rem; }
+        .team-cell-content { gap: 0.5rem; }
+        .team-logo { width: 20px; height: 20px; }
+        .desktop-only { display: none; }
+        .mobile-only { display: table-cell; }
+
+        .results-table .team-link,
+        .results-table .player-link {
+            display: inline-block;
+            max-width: 90px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+        }
+      }
+
+      @media (max-width: 600px) {
+        main { padding: 1rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2>S7 Draft Results</h2>
+        <p>Season 7 draft results and player performance</p>
+      </div>
+
+      <div class="quick-links-container">
+          <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
+          <a href="draft-lottery.html" class="quick-link-btn">S8 Lottery Odds</a>
+      </div>
+
+      <div class="results-container">
+        <div class="results-header" style="border-radius: 8px 8px 0 0; width: auto; margin: 0 auto;">
+          <h3 id="results-title">Season 7 Draft</h3>
+        </div>
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th class="desktop-only">Round</th>
+              <th class="sortable" onclick="handleSort('Overall')">Overall<span class="sort-indicator"></span></th>
+              <th>Team</th>
+              <th>Player</th>
+              <th class="sortable desktop-only" onclick="handleSort('games_played')">GP<span class="sort-indicator"></span></th>
+              <th class="sortable desktop-only" onclick="handleSort('calculated_median_rank')">Med Rank<span class="sort-indicator"></span></th>
+              <th class="sortable" onclick="handleSort('calculated_rel_median')">REL<span class="sort-indicator"></span></th>
+              <th class="sortable desktop-only" onclick="handleSort('WAR')">WAR<span class="sort-indicator"></span></th>
+            </tr>
+          </thead>
+          <tbody id="results-body">
+            <tr><td colspan="8" class="loading">Loading draft results...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+    
+    <footer>
+      <p>@caustic on Real</p>
+      <a href="/S7/trade-block.html">GM Portal</a>
+    </footer>
+
+    <script src="../js/main.js" type="module"></script>
+    <script>
+      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
+      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+
+      let allDraftData = [];
+      let sortState = { column: 'Overall', direction: 'asc' };
+
+      async function fetchSheetData(sheetName) {
+        try {
+          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
+          if (!response.ok) throw new Error(`Network response was not ok for ${sheetName}`);
+          const csvText = await response.text();
+          return parseCSV(csvText);
+        } catch (error) {
+          console.error(`Error fetching ${sheetName}:`, error);
+          return null;
+        }
+      }
+
+      function parseCSV(csvText) {
+        const lines = csvText.trim().split('\n');
+        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
+        const data = [];
+        for (let i = 1; i < lines.length; i++) {
+          const values = [];
+          let currentVal = '';
+          let inQuotes = false;
+          for (let j = 0; j < lines[i].length; j++) {
+            const char = lines[i][j];
+            if (char === '"' && (j === 0 || lines[i][j-1] !== '\\')) inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) { values.push(currentVal.replace(/^"|"$/g, '').trim()); currentVal = ''; }
+            else currentVal += char;
+          }
+          values.push(currentVal.replace(/^"|"$/g, '').trim());
+          if (values.length === headers.length) {
+            const row = {};
+            headers.forEach((header, index) => { row[header] = values[index] || ''; });
+            data.push(row);
+          }
+        }
+        return data;
+      }
+      
+      function parseNumber(value) {
+        if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
+        const cleaned = String(value).replace(/,/g, '');
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+
+      function calculateAllPlayerStats(players, weeklyAverages, lineups) {
+        if (!players || !weeklyAverages || !lineups) return players || [];
+        const weeklyAveragesMap = {};
+        weeklyAverages.forEach(week => {
+          if (week.date) {
+            weeklyAveragesMap[week.date] = {
+              mean_score: parseNumber(week.mean_score),
+              median_score: parseNumber(week.median_score)
+            };
+          }
+        });
+
+        return players.map(player => {
+          const playerGames = lineups.filter(lineup => 
+            (lineup.player_handle === player.player_handle || lineup.player_id === player.player_id) && 
+            (String(lineup.started).toUpperCase() === 'TRUE')
+          );
+          
+          let totalPlayerKarmaRawForREL = 0;
+          let totalMeanKarma = 0;
+          let totalMedianKarma = 0;
+          let validGamesForREL = 0;
+          const ranks = [];
+
+          playerGames.forEach(game => {
+            if (weeklyAveragesMap[game.date]) {
+              totalPlayerKarmaRawForREL += parseNumber(game.points_raw);
+              totalMeanKarma += weeklyAveragesMap[game.date].mean_score;
+              totalMedianKarma += weeklyAveragesMap[game.date].median_score;
+              validGamesForREL++;
+            }
+            const globalRank = parseNumber(game.global_rank);
+            if (globalRank > 0) ranks.push(globalRank);
+          });
+          
+          const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0;
+          const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
+          const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
+          
+          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerRawKarmaForREL / avgMedianKarma) : 0;
+          
+          let calculated_median_rank = Infinity;
+          if (ranks.length > 0) {
+            ranks.sort((a, b) => a - b);
+            const mid = Math.floor(ranks.length / 2);
+            calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
+          }
+          
+          return {
+            ...player, 
+            calculated_rel_median: calculated_rel_median,
+            calculated_median_rank: calculated_median_rank,
+            games_played: parseInt(player.games_played || 0),
+            WAR: parseNumber(player.WAR)
+          };
+        });
+      }
+
+      async function loadDataAndDisplay() {
+        const resultsBody = document.getElementById('results-body');
+        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Fetching data...</td></tr>`;
+        
+        const [draftResultsRaw, playersRaw, teams, weeklyAverages, lineups] = await Promise.all([
+          fetchSheetData('Draft_Results'),
+          fetchSheetData('Players'),
+          fetchSheetData('Teams'),
+          fetchSheetData('Weekly_Averages'),
+          fetchSheetData('Lineups')
+        ]);
+
+        if (!draftResultsRaw || !playersRaw || !teams || !weeklyAverages || !lineups) {
+          resultsBody.innerHTML = `<tr><td colspan="8" class="error">Failed to load required data. Please try again later.</td></tr>`;
+          return;
+        }
+
+        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Processing data...</td></tr>`;
+        
+        // Filter for Season 7 draft picks only
+        const draftResults = draftResultsRaw.filter(p => p.Season === '7');
+
+        const playersWithStats = calculateAllPlayerStats(playersRaw, weeklyAverages, lineups);
+        const teamsMap = new Map(teams.map(team => [team.team_id, team.team_name]));
+        const playersMap = new Map(playersWithStats.map(p => [p.player_id, p]));
+
+        allDraftData = draftResults.map(pick => {
+          const playerData = playersMap.get(pick.player_id);
+          return {
+            ...pick,
+            team_name: teamsMap.get(pick.team_id) || pick.team_id,
+            games_played: playerData ? playerData.games_played : 0,
+            calculated_median_rank: playerData ? playerData.calculated_median_rank : Infinity,
+            calculated_rel_median: playerData ? playerData.calculated_rel_median : 0,
+            WAR: playerData ? playerData.WAR : 0,
+          };
+        });
+        
+        displayDraftResults();
+      }
+
+      function displayDraftResults() {
+        let dataToDisplay = [...allDraftData];
+        
+        // Sorting logic
+        dataToDisplay.sort((a, b) => {
+          const col = sortState.column;
+          const dir = sortState.direction === 'asc' ? 1 : -1;
+          
+          let valA = a[col];
+          let valB = b[col];
+
+          if (col === 'calculated_median_rank') {
+            valA = valA === Infinity ? Number.MAX_SAFE_INTEGER : valA;
+            valB = valB === Infinity ? Number.MAX_SAFE_INTEGER : valB;
+          }
+          
+          if (['Overall', 'games_played', 'calculated_median_rank', 'calculated_rel_median', 'WAR'].includes(col)) {
+              valA = parseFloat(valA) || 0;
+              valB = parseFloat(valB) || 0;
+          }
+
+          if (valA > valB) return 1 * dir;
+          if (valA < valB) return -1 * dir;
+          return 0;
+        });
+
+        const resultsBody = document.getElementById('results-body');
+        const resultsHeader = document.querySelector('.results-header');
+
+        if (dataToDisplay.length === 0) {
+            resultsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No S7 draft results found.</td></tr>`;
+            resultsHeader.style.display = 'none';
+            document.querySelector('.results-table').style.boxShadow = 'none';
+            return;
+        }
+
+        resultsHeader.style.display = 'block';
+        document.querySelector('.results-table').style.borderRadius = '0 0 8px 8px';
+
+        resultsBody.innerHTML = dataToDisplay.map(pick => {
+          const medRankDisplay = pick.calculated_median_rank === Infinity ? '-' : Math.round(pick.calculated_median_rank);
+          const relDisplay = pick.calculated_rel_median.toFixed(3);
+          const warDisplay = pick.WAR.toFixed(2);
+          const playerCellHTML = pick.Player.toUpperCase() === 'FORFEITED'
+            ? `<span>${pick.Player}</span>`
+            : `<a href="player.html?player=${encodeURIComponent(pick.Player)}" class="player-link">${pick.Player}</a>`;
+
+          return `
+            <tr>
+              <td class="desktop-only">${pick.Round}</td>
+              <td>${pick.Overall}</td>
+              <td class="team-cell">
+                <div class="team-cell-content">
+                  <img src="icons/${pick.team_id}.webp" alt="${pick.team_name}" class="team-logo" onerror="this.style.display='none'">
+                  <a href="team.html?id=${pick.team_id}" class="team-link">${pick.team_name}</a>
+                </div>
+              </td>
+              <td class="player-cell">
+                ${playerCellHTML}
+              </td>
+              <td class="desktop-only">${pick.games_played}</td>
+              <td class="desktop-only">${medRankDisplay}</td>
+              <td>${relDisplay}</td>
+              <td class="desktop-only">${warDisplay}</td>
+            </tr>
+          `;
+        }).join('');
+        
+        const table = document.querySelector('.results-table');
+        resultsHeader.style.width = `${table.offsetWidth}px`;
+        table.style.borderRadius = '0 0 8px 8px';
+      }
+
+      function handleSort(column) {
+        if (sortState.column === column) {
+          sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortState.column = column;
+          // Default sort directions
+          if (column === 'Overall' || column === 'calculated_median_rank') {
+            sortState.direction = 'asc';
+          } else {
+            sortState.direction = 'desc'; // Default desc for REL, WAR, GP
+          }
+        }
+        updateSortIndicators();
+        displayDraftResults();
+      }
+      
+      function updateSortIndicators() {
+          document.querySelectorAll('.results-table th.sortable .sort-indicator').forEach(el => el.textContent = '');
+          const activeHeader = document.querySelector(`.results-table th[onclick="handleSort('${sortState.column}')"]`);
+          if (activeHeader) {
+              const indicator = activeHeader.querySelector('.sort-indicator');
+              indicator.textContent = sortState.direction === 'asc' ? ' ▲' : ' ▼';
+          }
+      }
+      
+      const resultsHeader = document.querySelector('.results-header');
+      const table = document.querySelector('.results-table');
+      const resizeObserver = new ResizeObserver(entries => {
+        for (let entry of entries) {
+            if(entry.target.offsetWidth > 0) {
+              resultsHeader.style.width = `${entry.target.offsetWidth}px`;
+            }
+        }
+      });
+      if(table) {
+        resizeObserver.observe(table);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        loadDataAndDisplay();
+      });
+    </script>
+  </body>
+</html>
