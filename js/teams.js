@@ -9,7 +9,8 @@ import {
 } from './firebase-init.js';
 
 const SEASON_ID = 'S8';
-const USE_DEV_COLLECTIONS = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+// Changed this line to always use the dev collections
+const USE_DEV_COLLECTIONS = true; 
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 function getPlayoffIndicator(rankInConference) { 
