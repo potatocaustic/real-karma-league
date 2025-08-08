@@ -29,6 +29,12 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    match /draftPicks/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin(); 
+    }
+
     match /live_games/{gameId} {
         allow read: if true;
         allow write: if isAdmin();
@@ -106,6 +112,10 @@ service cloud.firestore {
     match /draft_results_dev/{doc=**} {
         allow read: if true;
         allow write: if isAdminDev();
+    }
+    match /draftPicks_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin_dev(); 
     }
     match /awards_dev/{doc=**} {
         allow read: if true;
