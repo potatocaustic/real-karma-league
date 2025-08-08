@@ -320,7 +320,6 @@
             align-items: center;
         }
         
-        /* NEW: Wrapper for matchup and scoring bar */
         .matchup-container {
             flex-grow: 1;
             display: flex;
@@ -333,14 +332,16 @@
             align-items: center;
             gap: 1rem;
             flex: 1;
+            justify-content: center; /* ADDED: This centers the teams */
         }
+
         .team {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             min-width: 120px;
             max-width: 180px;
-            flex: 1;
+            /* flex: 1; REMOVED: This stops the team container from growing */
         }
 
         .team-info {
