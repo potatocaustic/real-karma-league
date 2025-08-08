@@ -47,10 +47,21 @@ async function loadData() {
         ]);
 
         allTransactions = transactionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        allTeams = allTeamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
+        // Fetch team names from the seasonal_records subcollection
+        const teamPromises = allTeamsSnap.docs.map(async (teamDoc) => {
+            const teamId = teamDoc.id;
+            const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamId, getCollectionName('seasonal_records'), ACTIVE_SEASON_ID);
+            const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+            return {
+                id: teamId,
+                team_name: seasonalRecordSnap.data()?.team_name || teamId
+            };
+        });
+        allTeams = await Promise.all(teamPromises);
+
         draftPicksSnap.docs.forEach(doc => {
-            allDraftPicks[doc.id] = doc.data().pick_description;
+            allDraftPicks[doc.id] = doc.data()?.pick_description;
         });
 
         await fetchAllPlayerStats();
@@ -190,6 +201,7 @@ function getTeamNameLink(teamId) {
 
 function getPlayerNameLink(playerHandle) {
     if (!playerHandle) return 'N/A';
+    // Find the player ID from the allPlayers list
     const player = allTransactions.flatMap(t => t.involved_players || []).find(p => p.player_handle === playerHandle);
     const playerId = player?.id || '';
     return `<a href="../player.html?player=${playerId}" class="player-name-link">${playerHandle}</a>`;
@@ -212,7 +224,9 @@ function renderTransaction(transaction) {
         }
         case 'CUT': {
             const player = transaction.involved_players[0];
-            const team = getTeamDataFromTransaction(transaction, player.from);
+            // Access the team ID from the `involved_teams` array, not from player.from
+            const fromTeamId = transaction.involved_teams[0]?.id;
+            const team = allTeams.find(t => t.id === fromTeamId);
             if (team) {
                 details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} cut by ${getTeamNameLink(team.id)}.`;
             } else {
