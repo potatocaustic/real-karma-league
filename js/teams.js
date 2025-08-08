@@ -92,7 +92,7 @@ async function loadTeams() {
   console.log("Attempting to load teams for season:", SEASON_ID, "in dev mode:", USE_DEV_COLLECTIONS);
   try {
     const teamsRef = collection(db, getCollectionName('v2_teams'));
-    const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('id', '==', SEASON_ID));
+    const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')));
 
     console.log("Starting parallel Firestore queries...");
     const [teamsSnap, recordsSnap] = await Promise.all([
@@ -111,8 +111,11 @@ async function loadTeams() {
     
     const seasonalRecordsMap = new Map();
     recordsSnap.forEach(doc => {
-        const teamId = doc.ref.parent.parent.id;
-        seasonalRecordsMap.set(teamId, doc.data());
+        // Only process documents that match the current season ID
+        if (doc.id === SEASON_ID) {
+            const teamId = doc.ref.parent.parent.id;
+            seasonalRecordsMap.set(teamId, doc.data());
+        }
     });
     console.log("Seasonal records map created with size:", seasonalRecordsMap.size);
 
