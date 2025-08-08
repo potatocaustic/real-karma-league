@@ -201,10 +201,16 @@ function getTeamNameLink(teamId) {
 
 function getPlayerNameLink(playerHandle) {
     if (!playerHandle) return 'N/A';
-    // Find the player ID from the allPlayers list
     const player = allTransactions.flatMap(t => t.involved_players || []).find(p => p.player_handle === playerHandle);
     const playerId = player?.id || '';
     return `<a href="../player.html?player=${playerId}" class="player-name-link">${playerHandle}</a>`;
+}
+
+function getVerb(teamName, verb) {
+    if (typeof teamName === 'string' && teamName.toLowerCase().endsWith('s')) {
+        return verb;
+    }
+    return verb + 's';
 }
 
 function renderTransaction(transaction) {
@@ -260,9 +266,13 @@ function renderTransaction(transaction) {
 
             teamIdsArray.forEach((teamId, index) => {
                 const assets = teamAssetsMap[teamId];
+                const teamData = allTeams.find(t => t.id === teamId);
+                const teamName = teamData ? teamData.team_name : teamId;
+                const verb = getVerb(teamName, 'receive');
+
                 tradeSummaryHtml += `
                     <div class="trade-side">
-                        <div class="trade-team">${getTeamLogo(teamId)}${getTeamNameLink(teamId)} receives:</div>
+                        <div class="trade-team">${getTeamLogo(teamId)}${getTeamNameLink(teamId)}&nbsp;${verb}:</div>
                         <ul class="trade-assets">
                             ${assets.players.map(p => `<li>📝 ${getPlayerNameLink(p.player_handle)}${getPlayerStatsString(p.id)}</li>`).join('')}
                             ${assets.picks.map(p => `<li>🎯 <span class="draft-pick">${allDraftPicks[p.id] || p.id}</span></li>`).join('')}
