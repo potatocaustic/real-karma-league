@@ -88,9 +88,12 @@ async function loadTeams() {
   easternTeamsGrid.innerHTML = '<div class="loading">Loading Eastern Conference teams...</div>';
   westernTeamsGrid.innerHTML = '<div class="loading">Loading Western Conference teams...</div>';
 
+  console.log("Attempting to load teams for season:", SEASON_ID, "in dev mode:", USE_DEV_COLLECTIONS);
   try {
     const teamsRef = collection(db, getCollectionName('v2_teams'));
     const teamsSnap = await getDocs(teamsRef);
+
+    console.log("Found teams collection:", !teamsSnap.empty, "Count:", teamsSnap.docs.length);
 
     if (teamsSnap.empty) {
       easternTeamsGrid.innerHTML = '<p class="error" style="grid-column: 1 / -1;">No teams found or data error.</p>';
@@ -101,10 +104,12 @@ async function loadTeams() {
     const allTeams = [];
     for (const teamDoc of teamsSnap.docs) {
       const teamData = teamDoc.data();
+      console.log(`Processing team: ${teamDoc.id}, Conference: ${teamData.conference}`);
       if (teamData.conference === 'Eastern' || teamData.conference === 'Western') {
         const teamRecordsRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), SEASON_ID);
         const teamRecordsSnap = await getDoc(teamRecordsRef);
         
+        console.log(`- Found seasonal record for ${teamDoc.id}:`, teamRecordsSnap.exists());
         if (teamRecordsSnap.exists()) {
           const combinedData = {
             id: teamDoc.id,
@@ -115,6 +120,8 @@ async function loadTeams() {
         }
       }
     }
+    
+    console.log("Total valid teams found with records:", allTeams.length);
 
     const easternTeams = allTeams
       .filter(team => team.conference === 'Eastern')
@@ -133,6 +140,9 @@ async function loadTeams() {
         if (winsB !== winsA) return winsB - winsA; 
         return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
       });
+
+    console.log("Eastern teams to display:", easternTeams.length);
+    console.log("Western teams to display:", westernTeams.length);
 
     const easternHTML = easternTeams.map((team, index) => {
       return generateTeamCard(team, index + 1); 
