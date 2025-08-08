@@ -62,6 +62,22 @@ service cloud.firestore {
         allow read: if request.auth.uid == userId || isAdmin();
         allow write: if isAdmin();
     }
+    match /daily_scores/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /post_daily_scores/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /daily_averages/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /post_daily_averages/{doc=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
 
     // =======================================================
     // V2 DEVELOPMENT RULES (_dev)
@@ -115,7 +131,22 @@ service cloud.firestore {
         allow read: if request.auth.uid == userId || isAdminDev();
         allow write: if isAdminDev();
     }
-    
+    match /daily_scores_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isAdminDev();
+    }
+    match /post_daily_scores_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isAdminDev();
+    }
+    match /daily_averages_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isAdminDev();
+    }
+    match /post_daily_averages_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isAdminDev();
+    }
     // =======================================================
     // ADMIN-ONLY & LEGACY RULES (Unchanged)
     // =======================================================
