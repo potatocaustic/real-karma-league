@@ -133,16 +133,10 @@ function loadStandingsPreview() {
     renderTable(westernTeams, 'western-standings');
 }
 
-/**
- * NEW: Main controller for the games section.
- * Listens to the live scoring status and decides whether to show
- * live games or recent completed games.
- */
 function initializeGamesSection() {
     const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
 
     onSnapshot(statusRef, (statusSnap) => {
-        // If a listener for live games is active, unsubscribe first to prevent duplicates.
         if (liveGamesUnsubscribe) {
             liveGamesUnsubscribe();
             liveGamesUnsubscribe = null;
@@ -157,19 +151,21 @@ function initializeGamesSection() {
         }
     }, (error) => {
         console.error("Error listening to scoring status, defaulting to recent games:", error);
-        loadRecentGames(); // Fallback to recent games on error
+        loadRecentGames();
     });
 }
 
-/**
- * NEW: Fetches and displays live games with real-time updates.
- */
 function loadLiveGames() {
     const gamesList = document.getElementById('recent-games');
-    const gamesHeader = document.querySelector('.recent-games .games-header h3');
+    const gamesHeader = document.getElementById('games-header-title');
     if (!gamesList || !gamesHeader) return;
 
-    gamesHeader.textContent = 'Live Games 🔴';
+    gamesHeader.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24" style="vertical-align: -6px; margin-right: 8px;">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
+            <circle cx="12" cy="12" r="5" fill="#dc3545"/>
+        </svg>
+        Live Games`;
     gamesList.innerHTML = '<div class="loading">Connecting to live games...</div>';
 
     const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
@@ -188,33 +184,46 @@ function loadLiveGames() {
 
             const team1_total = game.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             const team2_total = game.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+            
+            const totalScore = team1_total + team2_total;
+            const team1_pct = totalScore > 0 ? (team1_total / totalScore) * 100 : 50;
+            const team2_pct = totalScore > 0 ? (team2_total / totalScore) * 100 : 50;
+            
+            const isTeam1Winning = team1_total > team2_total;
 
             return `
                 <div class="game-item" data-game-id="${gameDoc.id}" data-is-live="true">
-                    <div class="game-matchup">
-                        <div class="team">
-                            <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-info">
-                                <span class="team-name">${team1.team_name}</span>
-                                <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                    <div class="game-item-content">
+                        <div class="game-matchup">
+                            <div class="team">
+                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team1.team_name}</span>
+                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                                </div>
+                                <span class="team-score">${formatInThousands(team1_total)}</span>
                             </div>
-                            <span class="team-score">${formatInThousands(team1_total)}</span>
+                            <span class="vs">vs</span>
+                            <div class="team">
+                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team2.team_name}</span>
+                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                </div>
+                                <span class="team-score">${formatInThousands(team2_total)}</span>
+                            </div>
                         </div>
-                        <span class="vs">vs</span>
-                        <div class="team">
-                            <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-info">
-                                <span class="team-name">${team2.team_name}</span>
-                                <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
-                            </div>
-                            <span class="team-score">${formatInThousands(team2_total)}</span>
+                        <div class="game-date" style="color: #dc3545; font-weight: bold;">
+                            <span class="live-indicator"></span>LIVE
                         </div>
                     </div>
-                    <div class="game-date" style="color: #dc3545; font-weight: bold;">LIVE</div>
+                    <div class="scoring-bar">
+                        <div class="${isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
+                        <div class="${!isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                    </div>
                 </div>`;
         }).join('');
 
-        // Add event listeners to the newly created live game items
         document.querySelectorAll('.game-item[data-is-live="true"]').forEach(item => {
             item.addEventListener('click', () => showGameDetails(item.dataset.gameId, true));
         });
@@ -228,7 +237,7 @@ function loadLiveGames() {
 
 async function loadRecentGames() {
     const gamesList = document.getElementById('recent-games');
-    const gamesHeader = document.querySelector('.recent-games .games-header h3');
+    const gamesHeader = document.getElementById('games-header-title');
     if (!gamesList || !gamesHeader) return;
 
     gamesHeader.textContent = 'Recent Games';
@@ -270,28 +279,40 @@ async function loadRecentGames() {
             if (!team1 || !team2) return '';
 
             const winnerId = game.winner;
+            const team1_total = game.team1_score || 0;
+            const team2_total = game.team2_score || 0;
+            const totalScore = team1_total + team2_total;
+            const team1_pct = totalScore > 0 ? (team1_total / totalScore) * 100 : 50;
+            const team2_pct = totalScore > 0 ? (team2_total / totalScore) * 100 : 50;
+            
             return `
                 <div class="game-item" data-game-id="${game.id}" data-game-date="${game.date}">
-                    <div class="game-matchup">
-                        <div class="team ${winnerId === team1.id ? 'winner' : ''}">
-                            <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-info">
-                                <span class="team-name">${team1.team_name}</span>
-                                <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                    <div class="game-item-content">
+                        <div class="game-matchup">
+                            <div class="team">
+                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team1.team_name}</span>
+                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                                </div>
+                                <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
                             </div>
-                            <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
-                        </div>
-                        <span class="vs">vs</span>
-                        <div class="team ${winnerId === team2.id ? 'winner' : ''}">
-                            <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-info">
-                                <span class="team-name">${team2.team_name}</span>
-                                <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                            <span class="vs">vs</span>
+                            <div class="team">
+                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team2.team_name}</span>
+                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                </div>
+                                <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
                             </div>
-                            <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
                         </div>
+                        <div class="game-date">${formatDate(game.date)}</div>
                     </div>
-                    <div class="game-date">${formatDate(game.date)}</div>
+                    <div class="scoring-bar">
+                        <div class="${winnerId === team1.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
+                        <div class="${winnerId === team2.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                    </div>
                 </div>`;
         }).join('');
 

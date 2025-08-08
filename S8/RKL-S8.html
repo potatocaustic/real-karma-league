@@ -283,6 +283,9 @@
             color: white;
             padding: 1rem;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
             .games-header h3 {
@@ -297,8 +300,7 @@
 
         .game-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: column; /* Changed for scoring bar */
             padding: 1rem;
             border-bottom: 1px solid #ddd;
             transition: background-color 0.2s, border-color 0.3s;
@@ -312,6 +314,13 @@
             .game-item:last-child {
                 border-bottom: none;
             }
+        
+        .game-item-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
 
         .game-matchup {
             display: flex;
@@ -380,6 +389,23 @@
             text-align: center;
             min-width: 60px;
             transition: color 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .live-indicator {
+            width: 8px;
+            height: 8px;
+            background-color: #dc3545;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: pulse-live 1.5s infinite;
+        }
+
+        @keyframes pulse-live {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
         }
 
         .recent-games .team-score.winner {
@@ -391,6 +417,28 @@
             height: 28px;
             vertical-align: middle;
         }
+
+        /* NEW: Scoring Bar Styles */
+        .scoring-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            margin-top: 1rem;
+            display: flex;
+            overflow: hidden;
+        }
+        .scoring-bar-loser {
+            background-color: #dc3545;
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+        }
+        .scoring-bar-winner {
+            background-color: #28a745;
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+        }
+
 
         /* Modal styles */
         .modal {
@@ -663,6 +711,10 @@
         .dark-mode .recent-games .team-score.winner {
             color: #66bb6a;
         }
+        
+        .dark-mode .scoring-bar {
+            background-color: #333;
+        }
 
         .dark-mode .modal-content {
             background-color: #1e1e1e;
@@ -795,6 +847,12 @@
 
             .game-item {
                 padding: 0.75rem;
+            }
+            
+            .game-item-content {
+                flex-direction: column;
+                gap: 0.5rem;
+                align-items: stretch;
             }
 
             .game-date {
@@ -959,7 +1017,7 @@
             </div>
 
             <div class="recent-games">
-                <div class="games-header"><h3>Recent Games</h3></div>
+                <div class="games-header"><h3 id="games-header-title">Recent Games</h3></div>
                 <div class="games-list" id="recent-games"><div class="loading">Loading recent games...</div></div>
                 <div class="view-full"><a href="schedule.html">View Full Schedule →</a></div>
             </div>
