@@ -39,9 +39,17 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdmin();
     }
+    // Updated rule for transactions: read is public, write is for the initial document,
+    // and new rule for season-specific subcollections.
     match /transactions/{transactionId} {
-        allow read: if true;
-        allow write: if isAdmin();
+      allow read: if true;
+      allow create: if isAdmin();
+      allow update, delete: if false; // Original doc is meant to be moved, not edited
+    }
+    // New rule for season-specific transactions subcollection
+    match /transactions/seasons/{seasonId}/{transactionId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
     match /draft_results/{doc=**} {
         allow read: if true;
@@ -105,9 +113,17 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdminDev();
     }
+    // Updated rule for transactions: read is public, write is for the initial document,
+    // and new rule for season-specific subcollections.
     match /transactions_dev/{transactionId} {
-        allow read: if true;
-        allow write: if isAdminDev();
+      allow read: if true;
+      allow create: if isAdminDev();
+      allow update, delete: if false;
+    }
+    // New rule for season-specific transactions subcollection
+    match /transactions_dev/seasons/{seasonId}/{transactionId} {
+      allow read: if true;
+      allow write: if isAdminDev();
     }
     match /draft_results_dev/{doc=**} {
         allow read: if true;

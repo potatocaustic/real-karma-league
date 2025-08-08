@@ -1027,53 +1027,121 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
 
 
 
+/**
+ * Triggered when a new transaction is created in the admin portal.
+ * Updates player/pick ownership, adds season ID, player handles, and team names.
+ * The transaction document is then moved to a season-specific subcollection.
+ */
 exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
     const transaction = event.data.data();
+    const transactionId = event.params.transactionId;
+
     if (transaction.schema !== 'v2') {
-        console.log(`V2: Ignoring transaction ${event.params.transactionId} without v2 schema.`);
+        console.log(`V2: Ignoring transaction ${transactionId} without v2 schema.`);
         return null;
     }
-    const transactionId = event.params.transactionId;
+
     console.log(`V2: Processing transaction ${transactionId} for player/pick moves.`);
 
-    const batch = db.batch();
     try {
-        if (transaction.type === 'SIGN' || transaction.type === 'CUT') {
-            const playerMove = transaction.involved_players[0];
-            const playerRef = db.collection(getCollectionName('v2_players')).doc(playerMove.id);
-            const newTeamId = (transaction.type === 'SIGN') ? playerMove.to : 'FREE_AGENT';
-            batch.update(playerRef, { current_team_id: newTeamId });
-        } else if (transaction.type === 'TRADE') {
-            if (transaction.involved_players) {
-                for (const playerMove of transaction.involved_players) {
-                    const playerRef = db.collection(getCollectionName('v2_players')).doc(playerMove.id);
-                    batch.update(playerRef, { current_team_id: playerMove.to });
-                }
-            }
-            if (transaction.involved_picks) {
-                for (const pickMove of transaction.involved_picks) {
-                    const pickRef = db.collection(getCollectionName('draftPicks')).doc(pickMove.id);
-                    batch.update(pickRef, { current_owner: pickMove.to });
-                }
-            }
+        const batch = db.batch();
+
+        // 1. Find the active season
+        const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
+        const activeSeasonSnap = await activeSeasonQuery.get();
+
+        if (activeSeasonSnap.empty) {
+            throw new Error('No active season found. Cannot process transaction.');
         }
-        await event.data.ref.update({ status: 'PROCESSED', processed_at: FieldValue.serverTimestamp() });
+
+        const activeSeasonDoc = activeSeasonSnap.docs[0];
+        const activeSeasonId = activeSeasonDoc.id;
+
+        // 2. Prepare data for player handles and team names
+        const involvedPlayers = transaction.involved_players || [];
+        const involvedPicks = transaction.involved_picks || [];
+        const involvedTeams = transaction.involved_teams || [];
+
+        const playerIds = involvedPlayers.map(p => p.id);
+        const teamIds = involvedTeams;
+
+        const playerDocsPromises = playerIds.map(id => db.collection(getCollectionName('v2_players')).doc(id).get());
+        const teamRecordDocsPromises = teamIds.map(id => db.collection(getCollectionName('v2_teams')).doc(id).collection(getCollectionName('seasonal_records')).doc(activeSeasonId).get());
+
+        const [playerDocsSnap, teamRecordsDocsSnap] = await Promise.all([
+            Promise.all(playerDocsPromises),
+            Promise.all(teamRecordDocsPromises),
+        ]);
+
+        const playerHandlesMap = new Map(playerDocsSnap.map(doc => [doc.id, doc.data()?.player_handle]));
+        const teamNamesMap = new Map(teamRecordsDocsSnap.map(doc => [doc.ref.parent.parent.id, doc.data()?.team_name]));
+
+        // 3. Update player and pick ownership
+        for (const playerMove of involvedPlayers) {
+            const playerRef = db.collection(getCollectionName('v2_players')).doc(playerMove.id);
+            const newTeamId = playerMove.to;
+            batch.update(playerRef, { current_team_id: newTeamId });
+        }
+
+        for (const pickMove of involvedPicks) {
+            const pickRef = db.collection(getCollectionName('draftPicks')).doc(pickMove.id);
+            const newOwnerId = pickMove.to;
+            batch.update(pickRef, { current_owner: newOwnerId });
+        }
+
+        // 4. Create the new, enhanced transaction document
+        const enhancedInvolvedPlayers = involvedPlayers.map(p => ({
+            ...p,
+            player_handle: playerHandlesMap.get(p.id) || 'Unknown'
+        }));
+        const enhancedInvolvedTeams = involvedTeams.map(id => ({
+            id: id,
+            team_name: teamNamesMap.get(id) || 'Unknown'
+        }));
+
+        const newTransactionData = {
+            ...transaction,
+            involved_players: enhancedInvolvedPlayers,
+            involved_teams: enhancedInvolvedTeams,
+            season: activeSeasonId,
+            status: 'PROCESSED',
+            processed_at: FieldValue.serverTimestamp()
+        };
+
+        // 5. Store the transaction in the season-specific subcollection
+        const seasonTransactionsRef = db.collection(getCollectionName('transactions')).doc('seasons').collection(activeSeasonId);
+        const newTransactionRef = seasonTransactionsRef.doc(transactionId);
+        batch.set(newTransactionRef, newTransactionData);
+
+        // 6. Delete the original transaction document
+        const originalTransactionRef = event.data.ref;
+        batch.delete(originalTransactionRef);
+
         await batch.commit();
-        console.log(`V2 Transaction ${transactionId} processed successfully for player/pick moves.`);
+
+        console.log(`V2 Transaction ${transactionId} processed successfully and moved to season ${activeSeasonId}.`);
+
     } catch (error) {
-        console.error(`Error processing V2 transaction ${transactionId} for player/pick moves:`, error);
+        console.error(`Error processing V2 transaction ${transactionId}:`, error);
         await event.data.ref.update({ status: 'FAILED', error: error.message });
     }
     return null;
 });
 
-
+/**
+ * Triggered when a new transaction is created in the admin portal.
+ * This is the same trigger path as onTransactionCreate_V2, but for updating the transaction counter.
+ * The transaction document will be deleted by onTransactionCreate_V2, but the trigger will still fire.
+ * We must now look for the relevant transaction in the season-specific subcollection.
+ */
 exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
     const transaction = event.data.data();
     if (transaction.schema !== 'v2') {
         console.log(`V2: Ignoring transaction count update for ${event.params.transactionId} without v2 schema.`);
         return null;
     }
+
+    const transactionId = event.params.transactionId;
 
     const activeSeasonQuery = db.collection(getCollectionName("seasons")).where("status", "==", "active").limit(1);
     const activeSeasonSnap = await activeSeasonQuery.get();
@@ -1084,10 +1152,22 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
     }
     const seasonId = activeSeasonSnap.docs[0].id;
 
-    console.log(`V2: Updating transaction counts for transaction ${event.params.transactionId} in season ${seasonId}`);
+    console.log(`V2: Updating transaction counts for transaction ${transactionId} in season ${seasonId}`);
 
-    const involvedTeams = new Set(transaction.involved_teams || []);
-    if (involvedTeams.size === 0) return null;
+    // Fetch the involved teams from the NEW, processed transaction document
+    const transactionRef = db.collection(getCollectionName('transactions')).doc('seasons').collection(seasonId).doc(transactionId);
+    const transactionSnap = await transactionRef.get();
+    
+    if (!transactionSnap.exists) {
+        console.error(`Transaction document ${transactionId} not found in the season subcollection. Skipping count update.`);
+        return null;
+    }
+
+    const involvedTeams = new Set(transactionSnap.data().involved_teams?.map(t => t.id) || []);
+    if (involvedTeams.size === 0) {
+        console.log("No teams involved. Skipping transaction count update.");
+        return null;
+    }
 
     const batch = db.batch();
     const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
@@ -1101,7 +1181,10 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
 
     await batch.commit();
     console.log(`Successfully updated transaction counts for teams: ${[...involvedTeams].join(', ')}`);
+
+    return null;
 });
+
 
 
 function calculateMedian(numbers) {
