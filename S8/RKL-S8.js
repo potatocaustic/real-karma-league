@@ -169,7 +169,7 @@ function loadLiveGames() {
     const gamesHeader = document.querySelector('.recent-games .games-header h3');
     if (!gamesList || !gamesHeader) return;
 
-    gamesHeader.textContent = 'Live Games';
+    gamesHeader.textContent = 'Live Games 🔴';
     gamesList.innerHTML = '<div class="loading">Connecting to live games...</div>';
 
     const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
