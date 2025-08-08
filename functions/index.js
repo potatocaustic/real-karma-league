@@ -1153,17 +1153,10 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
     const seasonId = activeSeasonSnap.docs[0].id;
 
     console.log(`V2: Updating transaction counts for transaction ${transactionId} in season ${seasonId}`);
-
-    // Fetch the involved teams from the NEW, processed transaction document
-    const transactionRef = db.collection(getCollectionName('transactions')).doc('seasons').collection(seasonId).doc(transactionId);
-    const transactionSnap = await transactionRef.get();
     
-    if (!transactionSnap.exists) {
-        console.error(`Transaction document ${transactionId} not found in the season subcollection. Skipping count update.`);
-        return null;
-    }
-
-    const involvedTeams = new Set(transactionSnap.data().involved_teams?.map(t => t.id) || []);
+    // NOTE: The transaction document has not been moved to the season subcollection yet at this point.
+    // So we can directly read the involved teams from the event data.
+    const involvedTeams = new Set(transaction.involved_teams || []);
     if (involvedTeams.size === 0) {
         console.log("No teams involved. Skipping transaction count update.");
         return null;
@@ -1172,12 +1165,14 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
     const batch = db.batch();
     const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
 
+    // 1. Increment the total transaction count for the active season document
+    batch.update(seasonRef, { season_trans: FieldValue.increment(1) });
+    
+    // 2. Increment the total transaction count for each involved team's seasonal record
     for (const teamId of involvedTeams) {
         const teamStatsRef = db.collection(getCollectionName('v2_teams')).doc(teamId).collection(getCollectionName('seasonal_records')).doc(seasonId);
         batch.update(teamStatsRef, { total_transactions: FieldValue.increment(1) });
     }
-
-    batch.update(seasonRef, { season_trans: FieldValue.increment(involvedTeams.size) });
 
     await batch.commit();
     console.log(`Successfully updated transaction counts for teams: ${[...involvedTeams].join(', ')}`);
