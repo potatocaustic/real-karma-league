@@ -189,11 +189,11 @@ function loadLiveGames() {
             const team1_pct = totalScore > 0 ? (team1_total / totalScore) * 100 : 50;
             const team2_pct = totalScore > 0 ? (team2_total / totalScore) * 100 : 50;
             
-            const isTeam1Winning = team1_total > team2_total;
+            const isTeam1Winning = team1_total >= team2_total;
 
             return `
                 <div class="game-item" data-game-id="${gameDoc.id}" data-is-live="true">
-                    <div class="game-item-content">
+                    <div class="matchup-container">
                         <div class="game-matchup">
                             <div class="team">
                                 <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -213,13 +213,13 @@ function loadLiveGames() {
                                 <span class="team-score">${formatInThousands(team2_total)}</span>
                             </div>
                         </div>
-                        <div class="game-date" style="color: #dc3545; font-weight: bold;">
-                            <span class="live-indicator"></span>LIVE
+                        <div class="scoring-bar">
+                            <div class="${isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
+                            <div class="${!isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
                         </div>
                     </div>
-                    <div class="scoring-bar">
-                        <div class="${isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
-                        <div class="${!isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                    <div class="game-date" style="color: #dc3545; font-weight: bold;">
+                        <span class="live-indicator"></span>LIVE
                     </div>
                 </div>`;
         }).join('');
@@ -287,7 +287,7 @@ async function loadRecentGames() {
             
             return `
                 <div class="game-item" data-game-id="${game.id}" data-game-date="${game.date}">
-                    <div class="game-item-content">
+                    <div class="matchup-container">
                         <div class="game-matchup">
                             <div class="team">
                                 <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -307,12 +307,12 @@ async function loadRecentGames() {
                                 <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
                             </div>
                         </div>
-                        <div class="game-date">${formatDate(game.date)}</div>
+                        <div class="scoring-bar">
+                            <div class="${winnerId === team1.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
+                            <div class="${winnerId === team2.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                        </div>
                     </div>
-                    <div class="scoring-bar">
-                        <div class="${winnerId === team1.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
-                        <div class="${winnerId === team2.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
-                    </div>
+                    <div class="game-date">${formatDate(game.date)}</div>
                 </div>`;
         }).join('');
 
