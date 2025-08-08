@@ -245,21 +245,121 @@ function calculateAndDisplayStandouts(week, completedGamesThisWeek) {
     } else { worstPlayerEl.textContent = 'No ranked player data.'; }
 }
 
-// Modal, initialization, etc. (Abridged for brevity)
-async function showGameDetails(gameId, isLive, gameDate) { /* ... same as before ... */ }
-function closeModal() { document.getElementById('game-modal').style.display = 'none'; }
+// --- MODAL & DETAILS ---
+async function showGameDetails(gameId, isLive, gameDate) {
+    const modal = document.getElementById('game-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const contentArea = document.getElementById('modal-content-area');
+    modal.style.display = 'block';
+    contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
 
+    try {
+        let game, team1Lineups, team2Lineups, team1, team2;
+
+        if (isLive) {
+            const liveGameRef = doc(db, getCollectionName('live_games'), gameId);
+            const liveGameSnap = await getDoc(liveGameRef);
+            if (!liveGameSnap.exists()) throw new Error("Live game not found.");
+            game = liveGameSnap.data();
+            team1 = getTeamById(game.team1_lineup[0]?.team_id);
+            team2 = getTeamById(game.team2_lineup[0]?.team_id);
+            team1Lineups = game.team1_lineup || [];
+            team2Lineups = game.team2_lineup || [];
+            modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - Live`;
+        } else {
+            const gameData = allGamesCache.find(g => g.id === gameId);
+            if (!gameData) throw new Error("Game not found in cache.");
+            
+            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('lineups'));
+            const postLineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_lineups'));
+
+            const lineupsQuery = query(lineupsRef, where('date', '==', gameDate), where('game_id', '==', gameId));
+            const postLineupsQuery = query(postLineupsRef, where('date', '==', gameDate), where('game_id', '==', gameId));
+            
+            const [lineupsSnap, postLineupsSnap] = await Promise.all([getDocs(lineupsQuery), getDocs(postLineupsQuery)]);
+            const allLineups = [...lineupsSnap.docs, ...postLineupsSnap.docs].map(d => d.data());
+
+            team1 = getTeamById(gameData.team1_id);
+            team2 = getTeamById(gameData.team2_id);
+            team1Lineups = allLineups.filter(l => l.team_id === team1.id && l.started === "TRUE");
+            team2Lineups = allLineups.filter(l => l.team_id === team2.id && l.started === "TRUE");
+            modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(gameDate)}`;
+        }
+
+        const winnerId = isLive ? null : allGamesCache.find(g => g.id === gameId)?.winner;
+        
+        contentArea.innerHTML = `
+            <div class="game-details-grid">
+                ${generateLineupTable(team1Lineups, team1, !isLive && winnerId === team1.id)}
+                ${generateLineupTable(team2Lineups, team2, !isLive && winnerId === team2.id)}
+            </div>
+        `;
+
+    } catch (error) {
+        console.error("Error showing game details:", error);
+        contentArea.innerHTML = `<div class="error">Could not load details. ${error.message}</div>`;
+    }
+}
+
+function generateLineupTable(lineups, team, isWinner) {
+    if (!team) return '<div>Team data not found.</div>';
+    const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
+    
+    lineups.sort((a, b) => (b.is_captain ? 1 : -1) || (b.final_score || 0) - (a.final_score || 0));
+
+    return `
+        <div class="team-breakdown ${isWinner ? 'winner' : ''}">
+            <div class="team-header modal-team-header ${isWinner ? 'winner' : ''}">
+                <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo">
+                <div><h4>${team.team_name}</h4></div>
+            </div>
+            <div class="team-total">Total: ${formatInThousands(totalPoints)}</div>
+            <table class="lineup-table">
+                <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
+                <tbody>
+                    ${lineups.map(p => {
+                        const isCaptain = p.is_captain === "TRUE" || p.is_captain === true;
+                        const baseScore = p.points_adjusted || p.final_score || 0;
+                        const finalScore = p.final_score || 0;
+                        const captainBonus = isCaptain ? finalScore - baseScore : 0;
+                        return `
+                            <tr class="${isCaptain ? 'captain-row' : ''}">
+                                <td><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a></td>
+                                <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div>+${Math.round(captainBonus)}</div>` : ''}</td>
+                                <td class="rank-cell">${p.global_rank || '-'}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function closeModal() {
+    document.getElementById('game-modal').style.display = 'none';
+}
+
+// --- INITIALIZATION ---
 async function initializePage() {
     try {
-        await getActiveSeason();
-        await fetchAllData(activeSeasonId);
-        initializeGamesSection();
+        const seasonData = await getActiveSeason();
+        await Promise.all([
+            fetchAllTeams(activeSeasonId),
+            fetchAllGames(activeSeasonId)
+        ]);
+
+        initializeGamesSection(); // For live games
         setupWeekSelector();
-        displayWeek(currentWeek);
+        displayWeek(currentWeek); // Display initial week
+
         document.querySelector('#game-modal .close-btn').addEventListener('click', closeModal);
         window.addEventListener('click', (event) => {
-            if (event.target == document.getElementById('game-modal')) closeModal();
+            if (event.target == document.getElementById('game-modal')) {
+                closeModal();
+            }
         });
+
     } catch (error) {
         console.error("Failed to initialize page:", error);
         document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${error.message}</div>`;
