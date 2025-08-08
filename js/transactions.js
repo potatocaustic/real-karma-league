@@ -159,6 +159,7 @@ function displayTransactions() {
 
 // --- HTML Rendering Functions ---
 function getTeamDataFromTransaction(transaction, teamId) {
+    if (!transaction || !transaction.involved_teams || !teamId) return null;
     return transaction.involved_teams.find(t => t.id === teamId);
 }
 
@@ -202,13 +203,21 @@ function renderTransaction(transaction) {
         case 'SIGN': {
             const player = transaction.involved_players[0];
             const team = getTeamDataFromTransaction(transaction, player.to);
-            details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} signed with ${getTeamNameLink(team.id)} as a free agent.`;
+            if (team) {
+                details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} signed with ${getTeamNameLink(team.id)} as a free agent.`;
+            } else {
+                details = `${getPlayerNameLink(player.player_handle)} signed with an unknown team.`;
+            }
             break;
         }
         case 'CUT': {
             const player = transaction.involved_players[0];
             const team = getTeamDataFromTransaction(transaction, player.from);
-            details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} cut by ${getTeamNameLink(team.id)}.`;
+            if (team) {
+                details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} cut by ${getTeamNameLink(team.id)}.`;
+            } else {
+                details = `${getPlayerNameLink(player.player_handle)} cut by an unknown team.`;
+            }
             break;
         }
         case 'TRADE': {
