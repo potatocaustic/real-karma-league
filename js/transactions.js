@@ -55,7 +55,8 @@ async function loadData() {
             const seasonalRecordSnap = await getDoc(seasonalRecordRef);
             return {
                 id: teamId,
-                team_name: seasonalRecordSnap.data()?.team_name || teamId
+                team_name: seasonalRecordSnap.data()?.team_name || teamId,
+                conference: teamDoc.data()?.conference // Fetching conference value from the top-level team document
             };
         });
         allTeams = await Promise.all(teamPromises);
@@ -107,8 +108,8 @@ function populateFilters() {
     const weekOptions = weekValues.map(week => `<option value="${week}">${week}</option>`).join('');
     weekFilterEl.innerHTML = '<option value="all">All Weeks</option>' + weekOptions;
     
-    // Filter out malformed team documents before sorting
-    const validTeams = allTeams.filter(team => team.id !== 'FA' && team.team_name && typeof team.team_name === 'string');
+    // Filter out malformed team documents AND teams without a conference
+    const validTeams = allTeams.filter(team => team.id !== 'FA' && team.team_name && typeof team.team_name === 'string' && team.conference);
 
     // Sort valid teams alphabetically by name
     const sortedTeams = validTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
