@@ -20,7 +20,8 @@ import {
     writeBatch,
     arrayUnion,
     onSnapshot,
-    connectFirestoreEmulator
+    connectFirestoreEmulator,
+    collectionGroup // Added
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
@@ -70,5 +71,6 @@ export {
     updateDoc,
     writeBatch,
     arrayUnion,
-    onSnapshot
+    onSnapshot,
+    collectionGroup // Added
 };
