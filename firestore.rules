@@ -92,7 +92,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-
+    // --- ADDED: Rule for collectionGroup on seasonal_records ---
+    match /{path=**}/seasonal_records/{recordId} {
+        allow read: if true;
+    }
     // =======================================================
     // V2 DEVELOPMENT RULES (_dev)
     // =======================================================
@@ -131,7 +134,7 @@ service cloud.firestore {
     }
     match /draftPicks_dev/{doc=**} {
       allow read: if true;
-      allow write: if isAdmin_dev(); 
+      allow write: if isAdminDev(); 
     }
     match /awards_dev/{doc=**} {
         allow read: if true;
@@ -168,6 +171,10 @@ service cloud.firestore {
     match /daily_averages_dev/{doc=**} {
       allow read: if true;
       allow write: if isAdminDev();
+    }
+    // --- ADDED: Rule for collectionGroup on seasonal_records_dev ---
+    match /{path=**}/seasonal_records_dev/{recordId} {
+        allow read: if true;
     }
     match /post_daily_averages_dev/{doc=**} {
       allow read: if true;

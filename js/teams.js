@@ -10,7 +10,7 @@ import {
 } from './firebase-init.js';
 
 const SEASON_ID = 'S8';
-const USE_DEV_COLLECTIONS = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+const USE_DEV_COLLECTIONS = true;
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 function getPlayoffIndicator(rankInConference) {
@@ -89,15 +89,19 @@ async function loadTeams() {
   easternTeamsGrid.innerHTML = '<div class="loading">Loading Eastern Conference teams...</div>';
   westernTeamsGrid.innerHTML = '<div class="loading">Loading Western Conference teams...</div>';
 
+  console.log("Attempting to load teams for season:", SEASON_ID, "in dev mode:", USE_DEV_COLLECTIONS);
   try {
-    // New, more efficient query strategy
     const teamsRef = collection(db, getCollectionName('v2_teams'));
     const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('seasonId', '==', SEASON_ID));
 
+    console.log("Starting parallel Firestore queries...");
     const [teamsSnap, recordsSnap] = await Promise.all([
         getDocs(teamsRef),
         getDocs(recordsQuery)
     ]);
+    
+    console.log(`- Teams collection query: Found ${teamsSnap.docs.length} documents.`);
+    console.log(`- Seasonal records collection group query: Found ${recordsSnap.docs.length} documents.`);
 
     if (teamsSnap.empty) {
         easternTeamsGrid.innerHTML = '<p class="error" style="grid-column: 1 / -1;">No teams found or data error.</p>';
@@ -105,13 +109,13 @@ async function loadTeams() {
         return;
     }
     
-    // Create a map for quick lookup of seasonal records
     const seasonalRecordsMap = new Map();
     recordsSnap.forEach(doc => {
         const teamId = doc.ref.parent.parent.id;
         seasonalRecordsMap.set(teamId, doc.data());
     });
-    
+    console.log("Seasonal records map created with size:", seasonalRecordsMap.size);
+
     const allTeams = [];
     teamsSnap.docs.forEach(teamDoc => {
         const teamData = teamDoc.data();
@@ -126,6 +130,8 @@ async function loadTeams() {
             allTeams.push(combinedData);
         }
     });
+
+    console.log("Total valid teams found with records:", allTeams.length);
 
     const easternTeams = allTeams
       .filter(team => team.conference === 'Eastern')
@@ -144,6 +150,9 @@ async function loadTeams() {
         if (winsB !== winsA) return winsB - winsA;
         return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
       });
+
+    console.log("Eastern teams to display:", easternTeams.length);
+    console.log("Western teams to display:", westernTeams.length);
 
     const easternHTML = easternTeams.map((team, index) => generateTeamCard(team, index + 1)).join('');
     const westernHTML = westernTeams.map((team, index) => generateTeamCard(team, index + 1)).join('');
