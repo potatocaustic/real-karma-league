@@ -1,4 +1,4 @@
-// /js/transactions.js
+// transactions.js
 
 import {
   db,
@@ -91,16 +91,16 @@ async function fetchAllPlayerStats() {
 
 // --- Filter and Display Logic ---
 function populateFilters() {
-    const teamOptions = allTeams
-        .filter(team => team.id !== 'FA')
-        .sort((a, b) => a.team_name.localeCompare(b.team_name))
+    const weekValues = [...new Set(allTransactions.map(t => t.week))].filter(Boolean).sort();
+    const weekOptions = weekValues.map(week => `<option value="${week}">${week}</option>`).join('');
+    weekFilterEl.innerHTML = '<option value="all">All Weeks</option>' + weekOptions;
+    
+    const validTeams = allTeams.filter(team => team.id !== 'FA' && team.team_name);
+    const sortedTeams = validTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
+    const teamOptions = sortedTeams
         .map(team => `<option value="${team.id}">${team.team_name}</option>`)
         .join('');
     teamFilterEl.innerHTML = '<option value="all">All Teams</option>' + teamOptions;
-
-    // NOTE: The `week` field is not present in the new transaction documents, so the week filter will be populated differently if needed later.
-    // For now, we'll keep it simple and just show "All Weeks".
-    weekFilterEl.innerHTML = '<option value="all">All Weeks</option>';
 }
 
 function setupEventListeners() {
@@ -115,6 +115,11 @@ function getFilteredTransactions() {
     const teamFilterValue = teamFilterEl.value;
     
     return allTransactions.filter(transaction => {
+        // Filter by week
+        if (weekFilterValue !== 'all' && transaction.week !== weekFilterValue) {
+            return false;
+        }
+
         // Filter by type
         if (typeFilterValue !== 'all' && transaction.type !== typeFilterValue) {
             return false;
@@ -127,8 +132,6 @@ function getFilteredTransactions() {
                 return false;
             }
         }
-        
-        // No week filter logic for now as 'week' field is not available in the new schema.
         
         return true;
     });
@@ -252,11 +255,14 @@ function renderTransaction(transaction) {
             break;
     }
 
+    const weekDisplay = transaction.week ? `Week ${transaction.week}` : '';
+    const dateDisplay = transaction.date?.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
     return `
       <div class="transaction-item">
         <div class="transaction-header">
           <span class="transaction-type ${typeClass}">${transaction.type.replace(/_/g, ' ')}</span>
-          <span class="transaction-date">${transaction.date?.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+          <span class="transaction-date">${weekDisplay} - ${dateDisplay}</span>
         </div>
         <div class="transaction-details">
           ${details}

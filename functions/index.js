@@ -1046,7 +1046,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
     try {
         const batch = db.batch();
 
-        // 1. Find the active season
+        // 1. Find the active season and get its 'current_week' value
         const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
         const activeSeasonSnap = await activeSeasonQuery.get();
 
@@ -1056,6 +1056,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
 
         const activeSeasonDoc = activeSeasonSnap.docs[0];
         const activeSeasonId = activeSeasonDoc.id;
+        const currentWeek = activeSeasonDoc.data().current_week || null;
 
         // 2. Prepare data for player handles and team names
         const involvedPlayers = transaction.involved_players || [];
@@ -1104,6 +1105,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
             involved_players: enhancedInvolvedPlayers,
             involved_teams: enhancedInvolvedTeams,
             season: activeSeasonId,
+            week: currentWeek, // Added the week field here
             status: 'PROCESSED',
             processed_at: FieldValue.serverTimestamp()
         };
