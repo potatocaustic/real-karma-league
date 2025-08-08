@@ -1,19 +1,19 @@
 // /js/teams.js
-// testing hellooooo
-import { 
-  db, 
-  collection, 
-  getDocs, 
-  doc, 
-  getDoc 
+import {
+  db,
+  collection,
+  getDocs,
+  doc,
+  query,
+  where,
+  collectionGroup,
 } from './firebase-init.js';
 
 const SEASON_ID = 'S8';
-// Changed this line to always use the dev collections
-const USE_DEV_COLLECTIONS = true; 
+const USE_DEV_COLLECTIONS = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
-function getPlayoffIndicator(rankInConference) { 
+function getPlayoffIndicator(rankInConference) {
   if (rankInConference <= 6) {
     return `<div class="playoff-position playoff-seed">${rankInConference}</div>`;
   } else if (rankInConference <= 10) {
@@ -38,11 +38,11 @@ function getRecordClass(wins, losses) {
   return '';
 }
 
-function generateTeamCard(team, rankInConference) { 
+function generateTeamCard(team, rankInConference) {
   const wins = parseInt(team.wins || 0);
   const losses = parseInt(team.losses || 0);
   const pam = parseFloat(team.pam || 0);
-  const medStarterRank = parseFloat(team.med_starter_rank || 0); 
+  const medStarterRank = parseFloat(team.med_starter_rank || 0);
   const cardClass = rankInConference > 10 ? 'eliminated-from-playoffs' : '';
   const totalTransactions = team.total_transactions || 0;
 
@@ -50,10 +50,10 @@ function generateTeamCard(team, rankInConference) {
     <a href="team.html?id=${team.id}" class="team-card ${cardClass}">
       ${getPlayoffIndicator(rankInConference)}
       <div class="team-header">
-        <img src="../icons/${team.id}.webp" 
-             alt="${team.team_name}" 
+        <img src="icons/${team.id}.webp"
+             alt="${team.team_name}"
              class="team-logo"
-             onerror="this.onerror=null; this.src='../icons/FA.webp';">
+             onerror="this.onerror=null; this.src='icons/FA.webp';">
         <div class="team-info">
           <div class="team-name">${team.team_name}</div>
           <div class="team-id">${team.id}</div>
@@ -89,48 +89,51 @@ async function loadTeams() {
   easternTeamsGrid.innerHTML = '<div class="loading">Loading Eastern Conference teams...</div>';
   westernTeamsGrid.innerHTML = '<div class="loading">Loading Western Conference teams...</div>';
 
-  console.log("Attempting to load teams for season:", SEASON_ID, "in dev mode:", USE_DEV_COLLECTIONS);
   try {
+    // New, more efficient query strategy
     const teamsRef = collection(db, getCollectionName('v2_teams'));
-    const teamsSnap = await getDocs(teamsRef);
+    const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('seasonId', '==', SEASON_ID));
 
-    console.log("Found teams collection:", !teamsSnap.empty, "Count:", teamsSnap.docs.length);
+    const [teamsSnap, recordsSnap] = await Promise.all([
+        getDocs(teamsRef),
+        getDocs(recordsQuery)
+    ]);
 
     if (teamsSnap.empty) {
-      easternTeamsGrid.innerHTML = '<p class="error" style="grid-column: 1 / -1;">No teams found or data error.</p>';
-      westernTeamsGrid.innerHTML = '<p class="error" style="grid-column: 1 / -1;">No teams found or data error.</p>';
-      return;
-    }
-
-    const allTeams = [];
-    for (const teamDoc of teamsSnap.docs) {
-      const teamData = teamDoc.data();
-      console.log(`Processing team: ${teamDoc.id}, Conference: ${teamData.conference}`);
-      if (teamData.conference === 'Eastern' || teamData.conference === 'Western') {
-        const teamRecordsRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), SEASON_ID);
-        const teamRecordsSnap = await getDoc(teamRecordsRef);
-        
-        console.log(`- Found seasonal record for ${teamDoc.id}:`, teamRecordsSnap.exists());
-        if (teamRecordsSnap.exists()) {
-          const combinedData = {
-            id: teamDoc.id,
-            ...teamData,
-            ...teamRecordsSnap.data()
-          };
-          allTeams.push(combinedData);
-        }
-      }
+        easternTeamsGrid.innerHTML = '<p class="error" style="grid-column: 1 / -1;">No teams found or data error.</p>';
+        westernTeamsGrid.innerHTML = '<p class="error" style="grid-column: 1 / -1;">No teams found or data error.</p>';
+        return;
     }
     
-    console.log("Total valid teams found with records:", allTeams.length);
+    // Create a map for quick lookup of seasonal records
+    const seasonalRecordsMap = new Map();
+    recordsSnap.forEach(doc => {
+        const teamId = doc.ref.parent.parent.id;
+        seasonalRecordsMap.set(teamId, doc.data());
+    });
+    
+    const allTeams = [];
+    teamsSnap.docs.forEach(teamDoc => {
+        const teamData = teamDoc.data();
+        const seasonalRecord = seasonalRecordsMap.get(teamDoc.id);
+
+        if (seasonalRecord && (teamData.conference === 'Eastern' || teamData.conference === 'Western')) {
+            const combinedData = {
+                id: teamDoc.id,
+                ...teamData,
+                ...seasonalRecord
+            };
+            allTeams.push(combinedData);
+        }
+    });
 
     const easternTeams = allTeams
       .filter(team => team.conference === 'Eastern')
       .sort((a, b) => {
         const winsA = parseInt(a.wins || 0);
         const winsB = parseInt(b.wins || 0);
-        if (winsB !== winsA) return winsB - winsA; 
-        return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
+        if (winsB !== winsA) return winsB - winsA;
+        return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
       });
       
     const westernTeams = allTeams
@@ -138,20 +141,12 @@ async function loadTeams() {
       .sort((a, b) => {
         const winsA = parseInt(a.wins || 0);
         const winsB = parseInt(b.wins || 0);
-        if (winsB !== winsA) return winsB - winsA; 
-        return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
+        if (winsB !== winsA) return winsB - winsA;
+        return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
       });
 
-    console.log("Eastern teams to display:", easternTeams.length);
-    console.log("Western teams to display:", westernTeams.length);
-
-    const easternHTML = easternTeams.map((team, index) => {
-      return generateTeamCard(team, index + 1); 
-    }).join('');
-    
-    const westernHTML = westernTeams.map((team, index) => {
-      return generateTeamCard(team, index + 1); 
-    }).join('');
+    const easternHTML = easternTeams.map((team, index) => generateTeamCard(team, index + 1)).join('');
+    const westernHTML = westernTeams.map((team, index) => generateTeamCard(team, index + 1)).join('');
     
     easternTeamsGrid.innerHTML = easternHTML || '<p class="error" style="grid-column: 1 / -1;">No Eastern Conference teams found.</p>';
     westernTeamsGrid.innerHTML = westernHTML || '<p class="error" style="grid-column: 1 / -1;">No Western Conference teams found.</p>';
