@@ -50,10 +50,10 @@ function generateTeamCard(team, rankInConference) {
     <a href="team.html?id=${team.id}" class="team-card ${cardClass}">
       ${getPlayoffIndicator(rankInConference)}
       <div class="team-header">
-        <img src="icons/${team.id}.webp" 
+        <img src="../icons/${team.id}.webp" 
              alt="${team.team_name}" 
              class="team-logo"
-             onerror="this.onerror=null; this.src='icons/FA.webp';">
+             onerror="this.onerror=null; this.src='../icons/FA.webp';">
         <div class="team-info">
           <div class="team-name">${team.team_name}</div>
           <div class="team-id">${team.id}</div>
