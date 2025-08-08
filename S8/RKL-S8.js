@@ -1,4 +1,4 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot } from '../js/firebase-init.js';
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup } from '../js/firebase-init.js';
 
 const USE_DEV_COLLECTIONS = true; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -51,26 +51,41 @@ async function fetchAllTeams(seasonId) {
     const teamsCollectionName = getCollectionName('v2_teams');
     const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
 
+    // New, more efficient query strategy
     const teamsQuery = query(collection(db, teamsCollectionName));
-    const teamsSnapshot = await getDocs(teamsQuery);
-
-    if (teamsSnapshot.empty) {
+    const recordsQuery = query(collectionGroup(db, seasonalRecordsCollectionName));
+    
+    // Fetch all teams and all seasonal records in parallel
+    const [teamsSnap, recordsSnap] = await Promise.all([
+        getDocs(teamsQuery),
+        getDocs(recordsQuery)
+    ]);
+    
+    if (teamsSnap.empty) {
         console.error(`No documents found in the '${teamsCollectionName}' collection.`);
         return;
     }
 
-    const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
-        const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
-        const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+    // Create a map for quick lookup of seasonal records for the active season
+    const seasonalRecordsMap = new Map();
+    recordsSnap.forEach(doc => {
+        if (doc.id === seasonId) {
+            const teamId = doc.ref.parent.parent.id;
+            seasonalRecordsMap.set(teamId, doc.data());
+        }
+    });
 
-        if (seasonalRecordSnap.exists()) {
-            return { ...teamData, ...seasonalRecordSnap.data() };
+    // Combine team and seasonal data efficiently
+    const teams = teamsSnap.docs.map(teamDoc => {
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonalRecord = seasonalRecordsMap.get(teamDoc.id);
+
+        if (seasonalRecord) {
+            return { ...teamData, ...seasonalRecord };
         }
         return null;
     });
 
-    const teams = await Promise.all(teamPromises);
     allTeams = teams.filter(t => t !== null);
     console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
 }
