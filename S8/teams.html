@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Season 7 Teams</title>
+    <title>RKL Season 8 Teams</title>
     <link rel="stylesheet" href="../css/global-styles.css" />
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
@@ -223,7 +223,7 @@
       <nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
-            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="RKL-S8.html">S8 Home</a></li>
             <li><a href="standings.html">Standings & Rankings</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
@@ -280,193 +280,6 @@
     </footer>
 
     <script src="../js/main.js" type="module"></script>
-    <script>
-      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
-      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
-      
-      async function fetchSheetData(sheetName) {
-        try {
-          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
-          const csvText = await response.text();
-          return parseCSV(csvText);
-        } catch (error) {
-          console.error(`Error fetching ${sheetName}:`, error);
-          return null;
-        }
-      }
-      
-      function parseCSV(csvText) {
-        const lines = csvText.trim().split('\n');
-        const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-        const data = [];
-        
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(',').map(v => v.replace(/"/g, '').trim());
-          const row = {};
-          headers.forEach((header, index) => {
-            row[header] = values[index] || '';
-          });
-          data.push(row);
-        }
-        return data;
-      }
-
-      function countTransactionsForTeam(teamId, transactionLog) {
-        if (!transactionLog || transactionLog.length === 0) return 0;
-
-        const relevantTransactionIds = new Set();
-
-        transactionLog.forEach(transaction => {
-            const notes = transaction.notes ? transaction.notes.toLowerCase() : '';
-            if (notes.includes('pre-database') || notes.includes('preseason')) {
-                return;
-            }
-
-            let involved = false;
-            if (transaction.transaction_type === 'GM_RESIGNATION' && transaction.from_team === teamId) {
-                involved = true;
-            } else if (transaction.transaction_type === 'GM_HIRED' && transaction.to_team === teamId) {
-                involved = true;
-            } else if (transaction.from_team === teamId || transaction.to_team === teamId) {
-                involved = true;
-            }
-
-            if (involved && transaction.transaction_id) {
-                relevantTransactionIds.add(transaction.transaction_id);
-            }
-        });
-        return relevantTransactionIds.size;
-      }
-      
-      function getPlayoffIndicator(conference, rankInConference) { 
-        if (rankInConference <= 6) {
-          return `<div class="playoff-position playoff-seed">${rankInConference}</div>`;
-        } else if (rankInConference <= 10) {
-          return `<div class="playoff-position playin-seed">${rankInConference}</div>`;
-        } else {
-          return `<div class="playoff-position eliminated">${rankInConference}</div>`;
-        }
-      }
-      
-      function getPAMClass(pam) {
-        const pamValue = parseFloat(pam);
-        if (pamValue > 0) return 'pam-positive';
-        if (pamValue < 0) return 'pam-negative';
-        return '';
-      }
-      
-      function getRecordClass(wins, losses) {
-        const w = parseInt(wins || 0);
-        const l = parseInt(losses || 0);
-        if (w > l) return 'record-positive';
-        if (l > w) return 'record-negative';
-        return '';
-      }
-      
-      async function loadTeams() {
-        const [teams, transactionLogData] = await Promise.all([
-            fetchSheetData('Teams'),
-            fetchSheetData('Transaction_Log')
-        ]);
-
-        if (!teams) {
-          document.getElementById('eastern-teams').innerHTML = 
-            '<div class="error">Error loading team data</div>';
-          document.getElementById('western-teams').innerHTML = 
-            '<div class="error">Error loading team data</div>';
-          return;
-        }
-        
-        const activeTeams = teams.filter(team => 
-          team.team_id && 
-          team.team_id.toUpperCase() !== 'RETIRED' && 
-          team.team_id.toUpperCase() !== 'FREE_AGENT' &&
-          team.team_id.toUpperCase() !== 'FA' && 
-          team.conference && (team.conference.toLowerCase() === 'eastern' || team.conference.toLowerCase() === 'western')
-        );
-
-        activeTeams.forEach(team => {
-            team.calculated_total_transactions = countTransactionsForTeam(team.team_id, transactionLogData);
-        });
-        
-        const easternTeams = activeTeams
-          .filter(team => team.conference.toLowerCase() === 'eastern')
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0);
-            const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA; 
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
-          });
-          
-        const westernTeams = activeTeams
-          .filter(team => team.conference.toLowerCase() === 'western')
-          .sort((a, b) => {
-            const winsA = parseInt(a.wins || 0);
-            const winsB = parseInt(b.wins || 0);
-            if (winsB !== winsA) return winsB - winsA; 
-            return parseFloat(b.pam || 0) - parseFloat(a.pam || 0); 
-          });
-        
-        function generateTeamCard(team, rankInConference) { 
-          const wins = parseInt(team.wins || 0);
-          const losses = parseInt(team.losses || 0);
-          const pam = parseFloat(team.pam || 0);
-          const medianStarterRank = parseFloat(team.med_starter_rank || 0); 
-          const cardClass = rankInConference > 10 ? 'eliminated-from-playoffs' : '';
-          const totalTransactions = team.calculated_total_transactions || 0;
-
-          return `
-            <a href="team.html?id=${team.team_id}" class="team-card ${cardClass}">
-              ${getPlayoffIndicator(team.conference, rankInConference)}
-              <div class="team-header">
-                <img src="icons/${team.team_id}.webp" 
-                     alt="${team.team_name}" 
-                     class="team-logo"
-                     onerror="this.onerror=null; this.src='icons/FA.webp';">
-                <div class="team-info">
-                  <div class="team-name">${team.team_name}</div>
-                  <div class="team-id">${team.team_id}</div>
-                  <div class="gm-name">GM: ${team.current_gm_handle || 'N/A'}</div>
-                </div>
-              </div>
-              
-              <div class="team-stats">
-                <div class="stat-item">
-                  <div class="stat-value ${getRecordClass(wins, losses)}">${wins}-${losses}</div>
-                  <div class="stat-label">Record</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value ${getPAMClass(pam)}">${Math.round(pam).toLocaleString()}</div>
-                  <div class="stat-label">PAM</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">${medianStarterRank > 0 ? Math.round(medianStarterRank) : '-'}</div>
-                  <div class="stat-label">Med Rank</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">${totalTransactions}</div>
-                  <div class="stat-label">Transactions</div>
-                </div>
-              </div>
-            </a>
-          `;
-        }
-        
-        const easternHTML = easternTeams.map((team, index) => {
-          return generateTeamCard(team, index + 1); 
-        }).join('');
-        
-        const westernHTML = westernTeams.map((team, index) => {
-          return generateTeamCard(team, index + 1); 
-        }).join('');
-        
-        document.getElementById('eastern-teams').innerHTML = easternHTML || 
-          '<p class="error" style="grid-column: 1 / -1;">No Eastern Conference teams found or data error.</p>';
-        document.getElementById('western-teams').innerHTML = westernHTML || 
-          '<p class="error" style="grid-column: 1 / -1;">No Western Conference teams found or data error.</p>';
-      }
-      
-      document.addEventListener('DOMContentLoaded', loadTeams);
-    </script>
+    <script src="../js/teams.js" type="module"></script>
   </body>
 </html>
