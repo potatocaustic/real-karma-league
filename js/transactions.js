@@ -91,12 +91,17 @@ async function fetchAllPlayerStats() {
 
 // --- Filter and Display Logic ---
 function populateFilters() {
+    // Dynamically populate the week filter from transaction data
     const weekValues = [...new Set(allTransactions.map(t => t.week))].filter(Boolean).sort();
     const weekOptions = weekValues.map(week => `<option value="${week}">${week}</option>`).join('');
     weekFilterEl.innerHTML = '<option value="all">All Weeks</option>' + weekOptions;
     
-    const validTeams = allTeams.filter(team => team.id !== 'FA' && team.team_name);
+    // Filter out malformed team documents before sorting
+    const validTeams = allTeams.filter(team => team.id !== 'FA' && team.team_name && typeof team.team_name === 'string');
+
+    // Sort valid teams alphabetically by name
     const sortedTeams = validTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
+    
     const teamOptions = sortedTeams
         .map(team => `<option value="${team.id}">${team.team_name}</option>`)
         .join('');
