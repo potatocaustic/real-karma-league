@@ -92,7 +92,7 @@ async function loadTeams() {
   console.log("Attempting to load teams for season:", SEASON_ID, "in dev mode:", USE_DEV_COLLECTIONS);
   try {
     const teamsRef = collection(db, getCollectionName('v2_teams'));
-    const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('seasonId', '==', SEASON_ID));
+    const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('id', '==', SEASON_ID));
 
     console.log("Starting parallel Firestore queries...");
     const [teamsSnap, recordsSnap] = await Promise.all([
