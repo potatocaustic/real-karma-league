@@ -295,31 +295,28 @@
             }
 
         .games-list {
-        }
-
-        /* UPDATED: This is the new main container for each game */
-        .game-wrapper {
             padding: 1rem;
-            border-bottom: 1px solid #ddd;
-            cursor: pointer;
-            transition: background-color 0.2s, border-color 0.3s;
         }
 
-        .game-wrapper:hover {
-            background-color: #f8f9fa;
-        }
-
-        .game-wrapper:last-child {
-            border-bottom: none;
-        }
-
-        /* UPDATED: This now only handles the top part of the game info */
         .game-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #ddd;
+            transition: background-color 0.2s, border-color 0.3s;
+            cursor: pointer;
         }
+
+            .game-item:hover {
+                background-color: #f8f9fa;
+            }
+
+            .game-item:last-child {
+                border-bottom: none;
+            }
         
+        /* NEW: Wrapper for matchup and scoring bar */
         .matchup-container {
             flex-grow: 1;
             display: flex;
@@ -332,7 +329,6 @@
             align-items: center;
             gap: 1rem;
             flex: 1;
-            justify-content: center; /* ADDED: This centers the teams */
         }
 
         .team {
@@ -341,7 +337,7 @@
             gap: 0.5rem;
             min-width: 120px;
             max-width: 180px;
-            /* flex: 1; REMOVED: This stops the team container from growing */
+            flex: 1;
         }
 
         .team-info {
@@ -443,14 +439,6 @@
             background-color: #28a745;
             height: 100%;
             transition: width 0.5s ease-in-out;
-        }
-
-        /* Dark Mode Adjustments */
-        .dark-mode .game-wrapper {
-            border-color: #333;
-        }
-        .dark-mode .game-wrapper:hover {
-            background-color: #2c2c2c;
         }
 
 

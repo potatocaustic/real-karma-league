@@ -172,7 +172,7 @@ function loadLiveGames() {
 
     liveGamesUnsubscribe = onSnapshot(liveGamesQuery, (snapshot) => {
         if (snapshot.empty) {
-            gamesList.innerHTML = '<div class="loading" style="padding: 1rem;">No live games are currently active.</div>';
+            gamesList.innerHTML = '<div class="loading">No live games are currently active.</div>';
             return;
         }
 
@@ -192,41 +192,39 @@ function loadLiveGames() {
             const isTeam1Winning = team1_total >= team2_total;
 
             return `
-                <div class="game-wrapper" data-game-id="${gameDoc.id}" data-is-live="true">
-                    <div class="game-item">
-                        <div class="matchup-container">
-                            <div class="game-matchup">
-                                <div class="team">
-                                    <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                    <div class="team-info">
-                                        <span class="team-name">${team1.team_name}</span>
-                                        <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
-                                    </div>
-                                    <span class="team-score">${formatInThousands(team1_total)}</span>
+                <div class="game-item" data-game-id="${gameDoc.id}" data-is-live="true">
+                    <div class="matchup-container">
+                        <div class="game-matchup">
+                            <div class="team">
+                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team1.team_name}</span>
+                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
                                 </div>
-                                <span class="vs">vs</span>
-                                <div class="team">
-                                    <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                    <div class="team-info">
-                                        <span class="team-name">${team2.team_name}</span>
-                                        <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
-                                    </div>
-                                    <span class="team-score">${formatInThousands(team2_total)}</span>
-                                </div>
+                                <span class="team-score">${formatInThousands(team1_total)}</span>
                             </div>
-                            <div class="scoring-bar">
-                                <div class="${isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
-                                <div class="${!isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                            <span class="vs">vs</span>
+                            <div class="team">
+                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team2.team_name}</span>
+                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                </div>
+                                <span class="team-score">${formatInThousands(team2_total)}</span>
                             </div>
                         </div>
-                        <div class="game-date" style="color: #dc3545; font-weight: bold;">
-                            <span class="live-indicator"></span>LIVE
+                        <div class="scoring-bar">
+                            <div class="${isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
+                            <div class="${!isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
                         </div>
+                    </div>
+                    <div class="game-date" style="color: #dc3545; font-weight: bold;">
+                        <span class="live-indicator"></span>LIVE
                     </div>
                 </div>`;
         }).join('');
 
-        document.querySelectorAll('.game-wrapper[data-is-live="true"]').forEach(item => {
+        document.querySelectorAll('.game-item[data-is-live="true"]').forEach(item => {
             item.addEventListener('click', () => showGameDetails(item.dataset.gameId, true));
         });
 
@@ -256,7 +254,7 @@ async function loadRecentGames() {
         );
         const mostRecentSnapshot = await getDocs(mostRecentQuery);
         if (mostRecentSnapshot.empty) {
-            gamesList.innerHTML = '<div class="loading" style="padding: 1rem;">No completed games yet.</div>';
+            gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
         const mostRecentDate = mostRecentSnapshot.docs[0].data().date;
@@ -271,7 +269,7 @@ async function loadRecentGames() {
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (games.length === 0) {
-            gamesList.innerHTML = '<div class="loading" style="padding: 1rem;">No completed games yet.</div>';
+            gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
 
@@ -288,39 +286,37 @@ async function loadRecentGames() {
             const team2_pct = totalScore > 0 ? (team2_total / totalScore) * 100 : 50;
             
             return `
-                <div class="game-wrapper" data-game-id="${game.id}" data-game-date="${game.date}">
-                    <div class="game-item">
-                        <div class="matchup-container">
-                            <div class="game-matchup">
-                                <div class="team">
-                                    <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                    <div class="team-info">
-                                        <span class="team-name">${team1.team_name}</span>
-                                        <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
-                                    </div>
-                                    <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
+                <div class="game-item" data-game-id="${game.id}" data-game-date="${game.date}">
+                    <div class="matchup-container">
+                        <div class="game-matchup">
+                            <div class="team">
+                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team1.team_name}</span>
+                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
                                 </div>
-                                <span class="vs">vs</span>
-                                <div class="team">
-                                    <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                    <div class="team-info">
-                                        <span class="team-name">${team2.team_name}</span>
-                                        <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
-                                    </div>
-                                    <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
-                                </div>
+                                <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
                             </div>
-                            <div class="scoring-bar">
-                                <div class="${winnerId === team1.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
-                                <div class="${winnerId === team2.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                            <span class="vs">vs</span>
+                            <div class="team">
+                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team2.team_name}</span>
+                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                </div>
+                                <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
                             </div>
                         </div>
-                        <div class="game-date">${formatDate(game.date)}</div>
+                        <div class="scoring-bar">
+                            <div class="${winnerId === team1.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
+                            <div class="${winnerId === team2.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                        </div>
                     </div>
+                    <div class="game-date">${formatDate(game.date)}</div>
                 </div>`;
         }).join('');
 
-        document.querySelectorAll('.game-wrapper').forEach(item => {
+        document.querySelectorAll('.game-item').forEach(item => {
             item.addEventListener('click', () => showGameDetails(item.dataset.gameId, false, item.dataset.gameDate));
         });
     } catch (error) {
@@ -328,7 +324,6 @@ async function loadRecentGames() {
         gamesList.innerHTML = '<div class="error">Could not load recent games. See console for details.</div>';
     }
 }
-
 
 function loadSeasonInfo(seasonData) {
     const currentWeekSpan = document.getElementById('current-week');
