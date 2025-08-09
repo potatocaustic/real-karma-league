@@ -71,6 +71,7 @@ async function fetchAllData(seasonId) {
     });
     allTeams = (await Promise.all(teamPromises)).filter(t => t !== null);
     
+    // Filter out the placeholder document from both collections
     allGamesCache = [
         ...gamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })), 
         ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() }))
@@ -161,6 +162,9 @@ function setupWeekSelector() {
     if (initialButton) initialButton.classList.add('active');
 }
 
+/**
+ * [MODIFIED] Contains new HTML generation for live status icon and winner indicators.
+ */
 function displayWeek(week) {
     document.getElementById('games-title').textContent = `${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
     const gamesContent = document.getElementById('games-content');
@@ -207,7 +211,7 @@ function displayWeek(week) {
 
             if (isLive) {
                 cardClass = 'live';
-                statusHTML = `Live <span class="pulsing-red-dot">🔴</span>`;
+                statusHTML = `<span class="live-indicator"></span>LIVE`;
                 const team1Total = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
                 const team2Total = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
                 team1ScoreHTML = `<div class="score-container"><div class="team-score">${formatInThousands(team1Total)}</div></div>`;
@@ -217,8 +221,9 @@ function displayWeek(week) {
                 statusHTML = 'Final';
                 const winnerId = game.winner;
                 
-                const team1Indicator = winnerId === team1.id ? '<span class="winner-indicator">▼</span>' : '';
-                const team2Indicator = winnerId === team2.id ? '<span class="winner-indicator">▲</span>' : '';
+                // Use an empty span with a class for the CSS triangle
+                const team1Indicator = winnerId === team1.id ? '<span class="winner-indicator"></span>' : '';
+                const team2Indicator = winnerId === team2.id ? '<span class="winner-indicator"></span>' : '';
 
                 team1ScoreHTML = `<div class="score-container">${team1Indicator}<div class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</div></div>`;
                 team2ScoreHTML = `<div class="score-container">${team2Indicator}<div class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</div></div>`;
@@ -243,7 +248,7 @@ function displayWeek(week) {
                     <div class="game-teams">
                         <div class="team ${isCompleted && game.winner === team1.id ? 'winner' : ''}">
                             <div class="team-left">
-                                <img src="../icons/${team1.id}.webp" alt="${escapeHTML(team1.team_name)}" class="team-logo">
+                                <img src="../icons/${team1.id}.webp" alt="${escapeHTML(team1.team_name)}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
                                     <div class="team-name">${escapeHTML(team1.team_name)}</div>
                                     <div class="team-record">${team1Record}</div>
@@ -253,7 +258,7 @@ function displayWeek(week) {
                         </div>
                         <div class="team ${isCompleted && game.winner === team2.id ? 'winner' : ''}">
                             <div class="team-left">
-                                <img src="../icons/${team2.id}.webp" alt="${escapeHTML(team2.team_name)}" class="team-logo">
+                                <img src="../icons/${team2.id}.webp" alt="${escapeHTML(team2.team_name)}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
                                     <div class="team-name">${escapeHTML(team2.team_name)}</div>
                                     <div class="team-record">${team2Record}</div>
