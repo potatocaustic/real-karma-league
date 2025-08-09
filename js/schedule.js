@@ -77,25 +77,17 @@ async function fetchAllData(seasonId) {
 }
 
 // --- NEW CORE LOGIC & RENDERING ---
-
-/**
- * Iterates through all weeks to calculate team records at the start of each week.
- * This enables showing historical records on game cards.
- */
 function calculateHistoricalRecords() {
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
     const teamRecordsByWeek = {};
 
-    // Initialize records for all teams
     allTeams.forEach(team => {
         teamRecordsByWeek[team.id] = { wins: 0, losses: 0 };
     });
 
     for (const week of weekOrder) {
-        // Store the records *before* this week's games are counted
         historicalRecords[week] = { ...Object.fromEntries(Object.entries(teamRecordsByWeek).map(([id, rec]) => [id, `${rec.wins}-${rec.losses}`])) };
 
-        // Now, update records with this week's completed games
         const gamesThisWeek = allGamesCache.filter(g => g.week === week && g.completed === 'TRUE');
         gamesThisWeek.forEach(game => {
             const winnerId = game.winner;
@@ -111,10 +103,6 @@ function calculateHistoricalRecords() {
     }
 }
 
-/**
- * Determines which week to display on initial page load.
- * Defaults to the first week with incomplete games, or the last week if all are complete.
- */
 function determineInitialWeek() {
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))].sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
@@ -129,15 +117,10 @@ function determineInitialWeek() {
             break;
         }
     }
-
-    // If all games are complete, default to the last week. Otherwise, use the found target week.
+    
     currentWeek = targetWeek || allKnownWeeks[allKnownWeeks.length - 1] || '1';
 }
 
-/**
- * Sets up a real-time listener for live games.
- * When live data comes in, it updates a cache and re-renders the current week's view.
- */
 function listenForLiveGames() {
     const liveQuery = query(collection(db, getCollectionName('live_games')));
     onSnapshot(liveQuery, (snapshot) => {
@@ -145,7 +128,6 @@ function listenForLiveGames() {
         snapshot.forEach(doc => {
             liveGamesCache.set(doc.id, doc.data());
         });
-        // Re-render the currently viewed week to show live updates
         displayWeek(currentWeek);
     });
 }
@@ -172,7 +154,6 @@ function setupWeekSelector() {
         });
     });
     
-    // Set the initial active button based on the determined week
     const initialButton = weekButtonsContainer.querySelector(`[data-week="${currentWeek}"]`);
     if (initialButton) initialButton.classList.add('active');
 }
@@ -185,16 +166,18 @@ function displayWeek(week) {
     const weekGames = allGamesCache.filter(g => g.week === week);
     if (weekGames.length === 0) {
         gamesContent.innerHTML = '<div class="no-games">No games scheduled.</div>';
-        weekStandoutsSection.style.display = 'none';
+        if (weekStandoutsSection) weekStandoutsSection.style.display = 'none';
         return;
     }
 
     const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
-    if (allGamesInWeekCompleted && !isNaN(week)) {
-        calculateAndDisplayStandouts(week, weekGames);
-        weekStandoutsSection.style.display = 'block';
-    } else {
-        weekStandoutsSection.style.display = 'none';
+    if (weekStandoutsSection) {
+        if (allGamesInWeekCompleted && !isNaN(week)) {
+            calculateAndDisplayStandouts(week, weekGames);
+            weekStandoutsSection.style.display = 'block';
+        } else {
+            weekStandoutsSection.style.display = 'none';
+        }
     }
     
     const gamesByDate = weekGames.reduce((acc, game) => {
@@ -274,8 +257,13 @@ function displayWeek(week) {
     });
 }
 
+/**
+ * [REVISED] This function is now "hardened" to prevent crashes.
+ * It checks if each HTML element exists before trying to modify it.
+ */
 function calculateAndDisplayStandouts(week, completedGamesThisWeek) {
-    document.getElementById('standout-week-number').textContent = week;
+    const standoutWeekEl = document.getElementById('standout-week-number');
+    if (standoutWeekEl) standoutWeekEl.textContent = week;
 
     let bestTeam = { id: null, name: 'N/A', pct_diff: -Infinity, game: null };
     let worstTeam = { id: null, name: 'N/A', pct_diff: Infinity, game: null };
@@ -315,24 +303,32 @@ function calculateAndDisplayStandouts(week, completedGamesThisWeek) {
     });
     
     const bestTeamEl = document.getElementById('best-team-perf');
-    if (bestTeam.id) {
-        bestTeamEl.innerHTML = `<a href="team.html?id=${bestTeam.id}" class="team-link">${escapeHTML(bestTeam.name)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-positive">+${bestTeam.pct_diff.toFixed(1)}% vs median</span></a>`;
-    } else { bestTeamEl.textContent = 'Not enough data.'; }
+    if (bestTeamEl) {
+        if (bestTeam.id) {
+            bestTeamEl.innerHTML = `<a href="team.html?id=${bestTeam.id}" class="team-link">${escapeHTML(bestTeam.name)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-positive">+${bestTeam.pct_diff.toFixed(1)}% vs median</span></a>`;
+        } else { bestTeamEl.textContent = 'Not enough data.'; }
+    }
 
     const worstTeamEl = document.getElementById('worst-team-perf');
-    if (worstTeam.id && worstTeam.pct_diff !== Infinity) {
-       worstTeamEl.innerHTML = `<a href="team.html?id=${worstTeam.id}" class="team-link">${escapeHTML(worstTeam.name)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-negative">${worstTeam.pct_diff.toFixed(1)}% vs median</span></a>`;
-    } else { worstTeamEl.textContent = 'No team significantly below median.'; }
+    if (worstTeamEl) {
+        if (worstTeam.id && worstTeam.pct_diff !== Infinity) {
+           worstTeamEl.innerHTML = `<a href="team.html?id=${worstTeam.id}" class="team-link">${escapeHTML(worstTeam.name)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-negative">${worstTeam.pct_diff.toFixed(1)}% vs median</span></a>`;
+        } else { worstTeamEl.textContent = 'No team significantly below median.'; }
+    }
 
     const bestPlayerEl = document.getElementById('best-player-perf');
-    if (bestPlayer.handle) {
-       bestPlayerEl.innerHTML = `<a href="player.html?player=${encodeURIComponent(bestPlayer.handle)}" class="player-link">${escapeHTML(bestPlayer.handle)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-positive">Rank ${bestPlayer.rank}</span></a>`;
-    } else { bestPlayerEl.textContent = 'No ranked player data.'; }
+    if (bestPlayerEl) {
+        if (bestPlayer.handle) {
+           bestPlayerEl.innerHTML = `<a href="player.html?player=${encodeURIComponent(bestPlayer.handle)}" class="player-link">${escapeHTML(bestPlayer.handle)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-positive">Rank ${bestPlayer.rank}</span></a>`;
+        } else { bestPlayerEl.textContent = 'No ranked player data.'; }
+    }
     
     const worstPlayerEl = document.getElementById('worst-player-perf');
-    if (worstPlayer.handle) {
-        worstPlayerEl.innerHTML = `<a href="player.html?player=${encodeURIComponent(worstPlayer.handle)}" class="player-link">${escapeHTML(worstPlayer.handle)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span></a>`;
-    } else { worstPlayerEl.textContent = 'No ranked player data.'; }
+    if (worstPlayerEl) {
+        if (worstPlayer.handle) {
+            worstPlayerEl.innerHTML = `<a href="player.html?player=${encodeURIComponent(worstPlayer.handle)}" class="player-link">${escapeHTML(worstPlayer.handle)}</a>: <a href="#" onclick="return false;" class="standout-metric-link"><span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span></a>`;
+        } else { worstPlayerEl.textContent = 'No ranked player data.'; }
+    }
 }
 
 async function showGameDetails(gameId, isLive, gameDate = null) {
@@ -375,7 +371,6 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
         const winnerId = isLive ? null : gameData.winner;
         
-        // This now calls the imported function from main.js
         contentArea.innerHTML = `
             <div class="game-details-grid">
                 ${generateLineupTable(team1Lineups, team1, !isLive && winnerId === team1.id)}
@@ -398,16 +393,13 @@ async function initializePage() {
         await getActiveSeason();
         await fetchAllData(activeSeasonId);
 
-        // New setup steps
         calculateHistoricalRecords(); 
         determineInitialWeek();     
         listenForLiveGames();       
 
-        // Setup UI
         setupWeekSelector();
         displayWeek(currentWeek);
         
-        // Setup modal listeners
         document.getElementById('close-modal-btn').addEventListener('click', closeModal);
         window.addEventListener('click', (event) => {
             if (event.target == document.getElementById('game-modal')) closeModal();
