@@ -776,7 +776,17 @@
         .main-grid {
             grid-template-columns: 1fr;
         }
-
+        .games-list .game-status {
+            display: none;
+        }
+        .games-list .game-item {
+            grid-template-columns: 1fr;
+        }
+        .games-list .team {
+            /* Icon | Name (smaller) | Bar (more space) | Score */
+            grid-template-columns: 32px 120px 1fr 40px;
+            gap: 0.5rem; /* Slightly reduce the gap on mobile */
+        }
         .quick-nav {
             grid-template-columns: repeat(2, 1fr);
         }
