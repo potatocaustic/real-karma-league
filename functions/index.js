@@ -135,6 +135,12 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
             updateData.interval_minutes = interval;
         }
 
+        // When activating the system, set the sample timestamp to now.
+        // This prevents the sampler from running immediately upon activation.
+        if (status === 'active') {
+            updateData.last_sample_completed_at = FieldValue.serverTimestamp();
+        }
+
         if (gameDate) {
             updateData.active_game_date = gameDate;
             const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
