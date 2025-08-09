@@ -191,6 +191,14 @@ function loadLiveGames() {
             return;
         }
 
+        const allScores = snapshot.docs.map(doc => {
+            const game = doc.data();
+            const team1_total = game.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+            const team2_total = game.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+            return { team1_total, team2_total };
+        });
+        const maxScore = Math.max(...allScores.flatMap(g => [g.team1_total, g.team2_total]), 1);
+
         gamesList.innerHTML = snapshot.docs.map(gameDoc => {
             const game = gameDoc.data();
             const team1 = allTeams.find(t => t.id === game.team1_lineup[0]?.team_id);
@@ -200,14 +208,14 @@ function loadLiveGames() {
             const team1_total = game.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             const team2_total = game.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             
-            const totalScore = team1_total + team2_total;
-            const team1_pct = totalScore > 0 ? (team1_total / totalScore) * 100 : 50;
-            const team2_pct = totalScore > 0 ? (team2_total / totalScore) * 100 : 50;
-            
             const isTeam1Winning = team1_total >= team2_total;
+            const winnerClass = isTeam1Winning ? 'team1-winner' : 'team2-winner';
 
+            const team1_bar_width = (team1_total / maxScore) * 100;
+            const team2_bar_width = (team2_total / maxScore) * 100;
+            
             return `
-                <div class="game-item" data-game-id="${gameDoc.id}" data-is-live="true">
+                <div class="game-item ${winnerClass}" data-game-id="${gameDoc.id}" data-is-live="true">
                     <div class="matchup-container">
                         <div class="game-matchup">
                             <div class="team">
@@ -216,22 +224,21 @@ function loadLiveGames() {
                                     <span class="team-name">${team1.team_name}</span>
                                     <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
                                 </div>
-                                <span class="team-score">${formatInThousands(team1_total)}</span>
+                                <span class="team-score ${isTeam1Winning ? 'winner' : ''}">${formatInThousands(team1_total)}</span>
                             </div>
-                            <span class="vs">vs</span>
                             <div class="team">
                                 <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
                                     <span class="team-name">${team2.team_name}</span>
                                     <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
                                 </div>
-                                <span class="team-score">${formatInThousands(team2_total)}</span>
+                                <span class="team-score ${!isTeam1Winning ? 'winner' : ''}">${formatInThousands(team2_total)}</span>
                             </div>
                         </div>
-                        <div class="scoring-bar">
-                            <div class="${isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
-                            <div class="${!isTeam1Winning ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
-                        </div>
+                         <div class="scoring-bar">
+                             <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
+                             <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
+                         </div>
                     </div>
                     <div class="game-date" style="color: #dc3545; font-weight: bold;">
                         <span class="live-indicator"></span>LIVE
@@ -288,6 +295,9 @@ async function loadRecentGames() {
             return;
         }
 
+        const allScores = games.map(g => Math.max(g.team1_score || 0, g.team2_score || 0));
+        const maxScore = Math.max(...allScores, 1);
+
         gamesList.innerHTML = games.map(game => {
             const team1 = allTeams.find(t => t.id === game.team1_id);
             const team2 = allTeams.find(t => t.id === game.team2_id);
@@ -296,14 +306,17 @@ async function loadRecentGames() {
             const winnerId = game.winner;
             const team1_total = game.team1_score || 0;
             const team2_total = game.team2_score || 0;
-            const totalScore = team1_total + team2_total;
-            const team1_pct = totalScore > 0 ? (team1_total / totalScore) * 100 : 50;
-            const team2_pct = totalScore > 0 ? (team2_total / totalScore) * 100 : 50;
+
+            const isTeam1Winning = winnerId === team1.id;
+            const winnerClass = isTeam1Winning ? 'team1-winner' : 'team2-winner';
+
+            const team1_bar_width = (team1_total / maxScore) * 100;
+            const team2_bar_width = (team2_total / maxScore) * 100;
             
             return `
-                <div class="game-item" data-game-id="${game.id}" data-game-date="${game.date}">
+                <div class="game-item ${winnerClass}" data-game-id="${game.id}" data-game-date="${game.date}">
                     <div class="matchup-container">
-                        <div class="game-matchup">
+                         <div class="game-matchup">
                             <div class="team">
                                 <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
@@ -312,7 +325,6 @@ async function loadRecentGames() {
                                 </div>
                                 <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
                             </div>
-                            <span class="vs">vs</span>
                             <div class="team">
                                 <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
@@ -323,8 +335,8 @@ async function loadRecentGames() {
                             </div>
                         </div>
                         <div class="scoring-bar">
-                            <div class="${winnerId === team1.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team1_pct}%;"></div>
-                            <div class="${winnerId === team2.id ? 'scoring-bar-winner' : 'scoring-bar-loser'}" style="width: ${team2_pct}%;"></div>
+                            <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
+                            <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
                         </div>
                     </div>
                     <div class="game-date">${formatDate(game.date)}</div>
