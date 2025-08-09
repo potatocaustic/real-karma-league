@@ -329,6 +329,7 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     flex-direction: column; /* Stack teams */
     gap: 0.5rem;
     width: 100%;
+    align-items: flex-start; 
 }
 
 .team {
