@@ -216,32 +216,34 @@ function loadLiveGames() {
             
             return `
                 <div class="game-item ${winnerClass}" data-game-id="${gameDoc.id}" data-is-live="true">
-                    <div class="matchup-container">
-                        <div class="game-matchup">
-                            <div class="team">
-                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                <div class="team-info">
-                                    <span class="team-name">${team1.team_name}</span>
-                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                    <div class="game-content">
+                        <div class="matchup-container">
+                            <div class="game-matchup">
+                                <div class="team">
+                                    <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                    <div class="team-info">
+                                        <span class="team-name">${team1.team_name}</span>
+                                        <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                                    </div>
+                                    <span class="team-score ${isTeam1Winning ? 'winner' : ''}">${formatInThousands(team1_total)}</span>
                                 </div>
-                                <span class="team-score ${isTeam1Winning ? 'winner' : ''}">${formatInThousands(team1_total)}</span>
-                            </div>
-                            <div class="team">
-                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                <div class="team-info">
-                                    <span class="team-name">${team2.team_name}</span>
-                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                <div class="team">
+                                    <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                    <div class="team-info">
+                                        <span class="team-name">${team2.team_name}</span>
+                                        <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                    </div>
+                                    <span class="team-score ${!isTeam1Winning ? 'winner' : ''}">${formatInThousands(team2_total)}</span>
                                 </div>
-                                <span class="team-score ${!isTeam1Winning ? 'winner' : ''}">${formatInThousands(team2_total)}</span>
                             </div>
+                        </div>
+                        <div class="game-date" style="color: #dc3545; font-weight: bold;">
+                            <span class="live-indicator"></span>LIVE
                         </div>
                     </div>
                     <div class="scoring-bars-container">
                          <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
                          <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
-                    </div>
-                    <div class="game-date" style="color: #dc3545; font-weight: bold;">
-                        <span class="live-indicator"></span>LIVE
                     </div>
                 </div>`;
         }).join('');
@@ -315,31 +317,33 @@ async function loadRecentGames() {
             
             return `
                 <div class="game-item ${winnerClass}" data-game-id="${game.id}" data-game-date="${game.date}">
-                    <div class="matchup-container">
-                         <div class="game-matchup">
-                            <div class="team">
-                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                <div class="team-info">
-                                    <span class="team-name">${team1.team_name}</span>
-                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                    <div class="game-content">
+                        <div class="matchup-container">
+                             <div class="game-matchup">
+                                <div class="team">
+                                    <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                    <div class="team-info">
+                                        <span class="team-name">${team1.team_name}</span>
+                                        <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                                    </div>
+                                    <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
                                 </div>
-                                <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
-                            </div>
-                            <div class="team">
-                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                                <div class="team-info">
-                                    <span class="team-name">${team2.team_name}</span>
-                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                <div class="team">
+                                    <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                    <div class="team-info">
+                                        <span class="team-name">${team2.team_name}</span>
+                                        <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                    </div>
+                                    <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
                                 </div>
-                                <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
                             </div>
                         </div>
+                        <div class="game-date">${formatDate(game.date)}</div>
                     </div>
                     <div class="scoring-bars-container">
                         <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
                         <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
                     </div>
-                    <div class="game-date">${formatDate(game.date)}</div>
                 </div>`;
         }).join('');
 

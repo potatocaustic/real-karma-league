@@ -283,15 +283,15 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
 
 /* Corrected CSS for stacked matchup view with progress bar */
 .game-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr auto; /* 1fr for content, auto for date */
     align-items: center;
     padding: 1rem;
     border-bottom: 1px solid #ddd;
     transition: background-color 0.2s, border-color 0.3s;
     cursor: pointer;
     position: relative;
-    overflow: hidden; /* Prevent the bars from visually extending beyond the card */
+    overflow: hidden;
 }
 
 .game-item:hover {
@@ -302,6 +302,16 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     border-bottom: none;
 }
 
+.game-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-grow: 1;
+    position: relative;
+    z-index: 2;
+    padding-right: 1rem;
+}
+
 .game-date {
     color: #666;
     font-size: 0.8rem;
@@ -310,39 +320,35 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     transition: color 0.3s;
     display: flex;
     align-items: center;
-    padding-left: 1rem;
     position: relative;
-    z-index: 2; /* Ensure date is above the bar */
+    z-index: 2;
 }
 
 .matchup-container {
-    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem; /* Reduced gap for stacked view */
+    gap: 0.5rem;
     position: relative;
-    z-index: 2; /* Ensure matchup info is above the bars */
+    z-index: 2;
 }
 
 .game-matchup {
     display: flex;
-    flex-direction: column; /* Stack teams */
+    flex-direction: column;
     gap: 0.5rem;
     width: 100%;
-    align-items: flex-start; 
 }
 
 .team {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    width: 100%;
+    width: auto; /* Allow team info to shrink */
 }
 
 .team-info {
     display: flex;
     flex-direction: column;
-    flex: 1;
     min-width: 0;
     max-width: calc(100% - 70px);
 }
@@ -416,7 +422,7 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     top: 0;
     left: 0;
     height: 100%;
-    width: var(--bar-width, 0%); /* Use CSS variable to set width dynamically */
+    width: var(--bar-width, 0%);
     transition: width 0.5s ease-in-out;
     border-radius: 4px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
