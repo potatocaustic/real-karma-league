@@ -143,7 +143,7 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
   .dropdown { display: block; width: 100%; }
   .dropdown .dropbtn { width: 100%; padding: 0.8rem 1rem; }
   .dropdown .dropbtn:hover { background-color: #555; }
-  .dropdown-content { position: static; display: none; box-shadow: none; background-color: #4a4a4a; border-radius: 0; padding-top: 0; transform: none; left: auto; top: auto; }
+  .dropdown-content { display: none; position: static; box-shadow: none; background-color: #4a4a4a; border-radius: 0; padding-top: 0; transform: none; left: auto; top: auto; }
   .dropdown-content a { padding-left: 2.5rem; }
   .dropdown.active .dropdown-content { display: block; }
   .dropdown:hover .dropdown-content { display: none; }
@@ -279,4 +279,210 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
 }
 .dark-mode::-webkit-scrollbar-thumb:hover {
   background-color: #666;
+}
+
+/* New CSS for stacked matchup view with progress bar */
+
+.game-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+    transition: background-color 0.2s, border-color 0.3s;
+    cursor: pointer;
+    position: relative; /* Added for positioning of the bar */
+}
+
+.game-item:hover {
+    background-color: #f8f9fa;
+}
+
+.game-item:last-child {
+    border-bottom: none;
+}
+
+.game-date {
+    color: #666;
+    font-size: 0.8rem;
+    text-align: center;
+    min-width: 60px;
+    transition: color 0.3s;
+    display: flex;
+    align-items: center;
+    padding-left: 1rem;
+}
+
+.matchup-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative; /* Added for positioning the scores */
+}
+
+.game-matchup {
+    display: flex;
+    flex-direction: column; /* Stack teams */
+    gap: 0.5rem;
+    position: relative;
+    z-index: 2; /* Ensure team info is above the bar */
+}
+
+.team {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.team-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    max-width: calc(100% - 70px);
+}
+
+.team-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.team-record {
+    font-size: 0.8rem;
+    color: #666;
+    transition: color 0.3s;
+}
+
+.team-score {
+    font-weight: bold;
+    color: #333;
+    margin-left: auto;
+    min-width: 35px;
+    text-align: right;
+    flex-shrink: 0;
+    transition: color 0.3s;
+}
+
+.recent-games .team-score.winner {
+    color: #28a745;
+}
+
+.game-item .team-logo {
+    width: 28px;
+    height: 28px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.vs {
+    display: none; /* Hide the "vs" text */
+}
+
+/* Updated Scoring Bar Styles */
+.scoring-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 1;
+    overflow: visible; /* Allow bars to overflow container for full width effect */
+}
+
+.scoring-bar-team-1,
+.scoring-bar-team-2 {
+    height: 50%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+}
+
+.scoring-bar-team-1::before,
+.scoring-bar-team-2::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    transition: width 0.5s ease-in-out, background-color 0.3s;
+    z-index: 1;
+}
+
+.scoring-bar-team-1::before {
+    background-color: #28a745; /* Default winner color */
+}
+
+.scoring-bar-team-2::before {
+    background-color: #dc3545; /* Default loser color */
+}
+
+/* Winner/Loser color classes on the main container */
+.game-item.team1-winner .scoring-bar-team-1::before,
+.game-item.team2-winner .scoring-bar-team-2::before {
+    background-color: #28a745; /* Green for winner */
+}
+
+.game-item.team1-winner .scoring-bar-team-2::before,
+.game-item.team2-winner .scoring-bar-team-1::before {
+    background-color: #dc3545; /* Red for loser */
+}
+
+.live-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+/* Dark Mode Overrides for new styles */
+.dark-mode .game-item {
+    border-color: #333;
+}
+.dark-mode .game-item:hover {
+    background-color: #2c2c2c;
+}
+.dark-mode .scoring-bar-team-1::before,
+.dark-mode .scoring-bar-team-2::before {
+    opacity: 0.3; /* Make bars less intense in dark mode */
+}
+.dark-mode .game-item.team1-winner .scoring-bar-team-1::before,
+.dark-mode .game-item.team2-winner .scoring-bar-team-2::before {
+    background-color: #66bb6a; /* Lighter green for dark mode winner */
+}
+
+.dark-mode .game-item.team1-winner .scoring-bar-team-2::before,
+.dark-mode .game-item.team2-winner .scoring-bar-team-1::before {
+    background-color: #ef5350; /* Lighter red for dark mode loser */
+}
+
+/* Ensure text is readable over the bar */
+.dark-mode .team-name, .dark-mode .team-score {
+    color: #e0e0e0;
+}
+.dark-mode .team-record, .dark-mode .game-date {
+    color: #aaa;
+}
+
+@media (max-width: 768px) {
+    .game-date {
+        align-self: flex-end;
+    }
 }
