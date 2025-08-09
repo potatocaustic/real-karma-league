@@ -1,4 +1,5 @@
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup } from '../js/firebase-init.js';
+import { generateLineupTable } from './main.js';
 
 const USE_DEV_COLLECTIONS = true; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -217,6 +218,7 @@ function loadLiveGames() {
                                 <span class="team-name">${team1.team_name}</span>
                                 <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
                             </div>
+                            <div class="winner-indicator-placeholder"></div>
                             <div class="team-bar-container">
                                 <div class="team-bar ${isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team1_bar_percent}%;"></div>
                             </div>
@@ -228,6 +230,7 @@ function loadLiveGames() {
                                 <span class="team-name">${team2.team_name}</span>
                                 <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
                             </div>
+                            <div class="winner-indicator-placeholder"></div>
                             <div class="team-bar-container">
                                 <div class="team-bar ${!isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team2_bar_percent}%;"></div>
                             </div>
@@ -302,7 +305,9 @@ async function loadRecentGames() {
             const team1_bar_percent = (team1_total / maxScore) * 100;
             const team2_bar_percent = (team2_total / maxScore) * 100;
 
-            // MODIFIED for Request 2: Added 'completed' class to the game item
+            const team1_indicator = winnerId === team1.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
+            const team2_indicator = winnerId === team2.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
+
             return `
                 <div class="game-item completed" data-game-id="${game.id}" data-game-date="${game.date}">
                     <div class="game-matchup">
@@ -312,6 +317,7 @@ async function loadRecentGames() {
                                 <span class="team-name">${team1.team_name}</span>
                                 <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
                             </div>
+                            ${team1_indicator}
                             <div class="team-bar-container">
                                 <div class="team-bar ${winnerId === team1.id ? 'winner' : 'loser'}" style="width: ${team1_bar_percent}%;"></div>
                             </div>
@@ -323,6 +329,7 @@ async function loadRecentGames() {
                                 <span class="team-name">${team2.team_name}</span>
                                 <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
                             </div>
+                            ${team2_indicator}
                             <div class="team-bar-container">
                                 <div class="team-bar ${winnerId === team2.id ? 'winner' : 'loser'}" style="width: ${team2_bar_percent}%;"></div>
                             </div>
@@ -421,9 +428,6 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
         
         const displayDate = isLiveGame ? 'Live' : formatDateShort(game.date);
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${displayDate}`;
-
-        team1Lineups.sort((a, b) => (b.is_captain ? 1 : -1) || (b.final_score || 0) - (a.final_score || 0));
-        team2Lineups.sort((a, b) => (b.is_captain ? 1 : -1) || (b.final_score || 0) - (a.final_score || 0));
         
         contentArea.innerHTML = `
             <div class="game-details-grid">
@@ -434,44 +438,8 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
 
     } catch (error) {
         console.error("Error loading game details:", error);
-        contentArea.innerHTML = '<div class="error">Could not load game details.</div>';
+        contentArea.innerHTML = `<div class="error">Could not load game details.</div>`;
     }
-}
-
-function generateLineupTable(lineups, team, isWinner) {
-    if (!team) return '<div>Team data not found</div>';
-    const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
-    return `
-        <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-            <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'">
-                <div class="modal-team-info-wrapper">
-                    <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                    <h4>${team.team_name}</h4>
-                    <span class="modal-team-record">(${team.wins}-${team.losses})</span>
-                </div>
-            </div>
-            <div class="team-total">Total: ${Math.round(totalPoints).toLocaleString()}</div>
-            <table class="lineup-table">
-                <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
-                <tbody>
-                    ${lineups.map(p => {
-                        const isCaptain = p.is_captain === "TRUE" || p.is_captain === true;
-                        const baseScore = p.points_adjusted || 0;
-                        const finalScore = p.final_score || 0;
-                        const captainBonus = isCaptain ? finalScore - baseScore : 0;
-                        const captainBadge = isCaptain ? '<span class="captain-badge">C</span>' : '';
-                        return `
-                            <tr class="${isCaptain ? 'captain-row' : ''}">
-                                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a>${captainBadge}</td>
-                                <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
-                                <td class="rank-cell">${p.global_rank || '-'}</td>
-                            </tr>
-                        `
-                    }).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
 }
 
 function closeModal() {
