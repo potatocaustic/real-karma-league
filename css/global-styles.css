@@ -12,7 +12,7 @@ main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
 
 /* =================================== */
 /* Header, Navigation & Auth Status    */
-/* ================================== */
+/* =================================== */
 header { background-color: #333; color: #fff; padding: 1rem; text-align: center; position: relative; }
 header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
 .header-logo { width: 40px; height: 40px; object-fit: cover; }
@@ -39,6 +39,7 @@ nav ul li a:hover { color: #ccc; }
 .login-container { padding: 2rem; max-width: 450px; margin: 2rem auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); text-align: center; transition: background-color 0.3s, box-shadow 0.3s; }
 .login-container h2 { font-size: 2rem; margin-bottom: 1.5rem; }
 .form-group { margin-bottom: 1.5rem; text-align: left; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
 .form-group input { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; background-color: #fff; color: #333; }
 .login-btn { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 6px; cursor: pointer; transition: all 0.3s ease; font-weight: 500; font-size: 1rem; width: 100%; }
 .login-btn:hover { background-color: #0056b3; }
@@ -280,17 +281,15 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
   background-color: #666;
 }
 
-/* Corrected CSS for stacked matchup view with progress bar */
+/* Corrected CSS for stacked matchup view with perfect alignment */
 .game-item {
     position: relative;
     padding: 1rem;
     border-bottom: 1px solid #ddd;
-    transition: background-color 0.2s, border-color 0.3s;
     cursor: pointer;
     overflow: hidden;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 1rem;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
@@ -302,28 +301,43 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     border-bottom: none;
 }
 
-.game-content {
-    position: relative;
-    z-index: 2;
+/* New container for bars, positioned behind content */
+.scoring-bars {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    z-index: 1; /* Puts bars behind the content */
 }
 
-.game-date {
-    color: #666;
-    font-size: 0.8rem;
-    text-align: center;
-    min-width: 60px;
-    transition: color 0.3s;
-    display: flex;
-    align-items: center;
+/* Bar styles within the scoring-bars container */
+.scoring-bars div {
+    flex: 1; /* Divide space evenly */
     position: relative;
-    z-index: 2;
-    padding-left: 0; /* Remove previous padding */
+    overflow: hidden;
+}
+
+.scoring-bars div::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--bar-width, 0%);
+    transition: width 0.5s ease-in-out;
+    background-color: var(--bar-color);
 }
 
 .matchup-container {
+    flex-grow: 1; /* Takes up available space */
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    position: relative;
+    z-index: 2; /* Puts content above bars */
 }
 
 .game-matchup {
@@ -337,16 +351,14 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    width: auto;
 }
 
 .team-info {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    flex-grow: 1;
-    max-width: calc(100% - 70px);
     text-align: left;
+    flex-grow: 1; /* Allow info to take up space, pushing score right */
 }
 
 .team-name {
@@ -367,10 +379,13 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     font-weight: bold;
     color: #333;
     margin-left: auto;
-    min-width: 35px;
+    min-width: 45px; /* Give a fixed width for perfect vertical alignment */
     text-align: right;
     flex-shrink: 0;
     transition: color 0.3s;
+    position: relative;
+    padding-left: 0.5rem; /* Space between name and score */
+    z-index: 2; /* Keep score above background bars */
 }
 
 .recent-games .team-score.winner {
@@ -384,34 +399,31 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     flex-shrink: 0;
 }
 
-.vs {
-    display: none;
+.live-indicator {
+    display: flex;
+    align-items: center;
+    color: #dc3545;
+    font-weight: bold;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    position: relative;
+    z-index: 2; /* Keep indicator above bars */
 }
 
-/* Corrected Scoring Bar Styles */
-.game-item::before,
-.game-item::after {
+.live-indicator::before {
     content: '';
-    position: absolute;
-    left: 0;
-    height: 50%;
-    width: var(--bar-width, 0%);
-    transition: width 0.5s ease-in-out;
-    z-index: 1;
-    opacity: 0.5; /* Add opacity to make content readable */
-    border-radius: 4px;
+    width: 8px;
+    height: 8px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse-live 1.5s infinite;
 }
 
-.game-item::before {
-    top: 0;
-    background-color: var(--bar1-color, transparent);
-    width: var(--bar1-width, 0%);
-}
-
-.game-item::after {
-    bottom: 0;
-    background-color: var(--bar2-color, transparent);
-    width: var(--bar2-width, 0%);
+@keyframes pulse-live {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
 }
 
 /* Dark Mode Overrides for new styles */
@@ -421,17 +433,9 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
 .dark-mode .game-item:hover {
     background-color: #2c2c2c;
 }
-
-.dark-mode .game-item.team1-winner::before,
-.dark-mode .game-item.team2-winner::after {
-    background-color: #66bb6a;
+.dark-mode .scoring-bars div::before {
+    opacity: 0.5; /* Lighter bars in dark mode */
 }
-.dark-mode .game-item.team1-winner::after,
-.dark-mode .game-item.team2-winner::before {
-    background-color: #ef5350;
-}
-
-/* Ensure text is readable over the bar */
 .dark-mode .team-name, .dark-mode .team-score {
     color: #e0e0e0;
 }
@@ -439,8 +443,26 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     color: #aaa;
 }
 
+/* Final bar colors for dark mode */
+.dark-mode .game-item.team1-winner .scoring-bars div:nth-child(1)::before,
+.dark-mode .game-item.team2-winner .scoring-bars div:nth-child(2)::before {
+    background-color: #66bb6a;
+}
+.dark-mode .game-item.team1-winner .scoring-bars div:nth-child(2)::before,
+.dark-mode .game-item.team2-winner .scoring-bars div:nth-child(1)::before {
+    background-color: #ef5350;
+}
+
 @media (max-width: 768px) {
-    .game-date {
-        align-self: flex-end;
+    .game-item {
+        flex-wrap: wrap; /* Allow the game-date to wrap to the next line */
+        gap: 0.5rem;
+    }
+    .matchup-container {
+        flex-grow: 1;
+        width: 100%;
+    }
+    .live-indicator {
+        margin-left: auto; /* Push indicator to the right */
     }
 }
