@@ -375,6 +375,13 @@ main {
     background-color: #dc3545;
 }
 
+/* MODIFIED for Request 2: Add border to completed game winner's bar */
+.game-item.completed .team-bar.winner {
+    border: 2px solid #14532d; /* dark green */
+    box-sizing: border-box; /* Prevents border from adding to width */
+}
+
+
 /* Game Status (LIVE / Date) */
 .games-list .game-status {
     position: relative;
@@ -475,6 +482,11 @@ main {
     background-color: #ef5350;
 }
 
+/* MODIFIED for Request 2: Dark mode border for completed game winner's bar */
+.dark-mode .game-item.completed .team-bar.winner {
+    border-color: #bbf7d0; /* light green */
+}
+
 .dark-mode .games-list .team-record,
 .dark-mode .games-list .game-status {
     color: #aaa;
@@ -513,7 +525,6 @@ main {
         width: 40px;
         height: 40px;
     }
-    /* MODIFIED for Request 1: Reverted to a fixed grid to ensure alignment */
     .games-list .team {
         /* Icon | Team Info | Score Bar | Score */
         grid-template-columns: 48px 130px 1fr 45px;
@@ -564,6 +575,12 @@ main {
     .team-logo {
         width: 16px;
         height: 16px;
+    }
+
+    /* MODIFIED for Request 1: Increase icon size in standings on mobile */
+    .standings-preview .team-logo {
+        width: 32px;
+        height: 32px;
     }
 
     .games-list .team .team-logo {

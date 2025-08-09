@@ -302,8 +302,9 @@ async function loadRecentGames() {
             const team1_bar_percent = (team1_total / maxScore) * 100;
             const team2_bar_percent = (team2_total / maxScore) * 100;
 
+            // MODIFIED for Request 2: Added 'completed' class to the game item
             return `
-                <div class="game-item" data-game-id="${game.id}" data-game-date="${game.date}">
+                <div class="game-item completed" data-game-id="${game.id}" data-game-date="${game.date}">
                     <div class="game-matchup">
                         <div class="team">
                             <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -437,14 +438,6 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
     }
 }
 
-/**
- * Generates the HTML for a single team's breakdown in the modal.
- * MODIFIED for Request 2: Creates a new, centered header structure.
- * @param {Array} lineups - The array of player lineup objects.
- * @param {Object} team - The team's data object.
- * @param {boolean} isWinner - Whether this team is the winner.
- * @returns {string} The HTML string for the team breakdown.
- */
 function generateLineupTable(lineups, team, isWinner) {
     if (!team) return '<div>Team data not found</div>';
     const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
@@ -490,17 +483,10 @@ function closeModal() {
 
 // --- INITIALIZATION ---
 
-/**
- * Main function to initialize the page.
- * It first loads the reusable modal component and attaches its event listeners.
- * Then, it proceeds to fetch and display all the dynamic league data.
- */
 async function initializePage() {
     try {
-        // STEP 1: Fetch and inject the modal component.
         const placeholder = document.getElementById('modal-placeholder');
         if (!placeholder) {
-            // This is a critical failure, stop here.
             throw new Error("Fatal: Modal placeholder div not found in RKL-S8.html.");
         }
 
@@ -511,7 +497,6 @@ async function initializePage() {
         
         placeholder.innerHTML = await response.text();
         
-        // STEP 2: Attach listeners to the now-loaded modal.
         const closeModalBtn = document.getElementById('close-modal-btn');
         const gameModal = document.getElementById('game-modal');
 
@@ -523,11 +508,9 @@ async function initializePage() {
                 }
             });
         } else {
-            // This is a non-fatal error, but indicates the component is broken.
             console.warn("Modal component was loaded, but its internal elements (like the close button) were not found. Clicks inside the modal may not work correctly.");
         }
 
-        // STEP 3: Load the rest of the page data.
         const seasonData = await getActiveSeason();
         await fetchAllTeams(activeSeasonId);
 
@@ -537,7 +520,6 @@ async function initializePage() {
 
     } catch (error) {
         console.error("Failed to initialize page:", error);
-        // Display a user-friendly error message on the page.
         const mainContent = document.querySelector('main');
         if (mainContent) {
             mainContent.innerHTML = `<div class="error" style="padding: 2rem;">
