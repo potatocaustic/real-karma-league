@@ -215,10 +215,10 @@ function loadLiveGames() {
             const bar2Color = !isTeam1Winning ? '#28a745' : '#dc3545';
             
             return `
-                <div class="game-item ${isTeam1Winning ? 'team1-winner' : 'team2-winner'}" data-game-id="${gameDoc.id}" data-is-live="true" style="--bar1-width: ${team1_bar_width}%; --bar2-width: ${team2_bar_width}%;">
+                <div class="game-item ${isTeam1Winning ? 'team1-winner' : 'team2-winner'}" data-game-id="${gameDoc.id}" data-is-live="true">
                     <div class="scoring-bars">
-                        <div style="--bar-color: ${bar1Color}; --bar-width: var(--bar1-width);"></div>
-                        <div style="--bar-color: ${bar2Color}; --bar-width: var(--bar2-width);"></div>
+                        <div style="--bar-color: ${bar1Color}; --bar-width: ${team1_bar_width}%;"></div>
+                        <div style="--bar-color: ${bar2Color}; --bar-width: ${team2_bar_width}%;"></div>
                     </div>
                     <div class="matchup-container">
                         <div class="game-matchup">
@@ -314,10 +314,10 @@ async function loadRecentGames() {
             const bar2Color = winnerId === team2.id ? '#28a745' : '#dc3545';
             
             return `
-                <div class="game-item ${isTeam1Winning ? 'team1-winner' : 'team2-winner'}" data-game-id="${game.id}" data-game-date="${game.date}" style="--bar1-width: ${team1_bar_width}%; --bar2-width: ${team2_bar_width}%;">
+                <div class="game-item ${isTeam1Winning ? 'team1-winner' : 'team2-winner'}" data-game-id="${game.id}" data-game-date="${game.date}">
                     <div class="scoring-bars">
-                        <div style="--bar-color: ${bar1Color}; --bar-width: var(--bar1-width);"></div>
-                        <div style="--bar-color: ${bar2Color}; --bar-width: var(--bar2-width);"></div>
+                        <div style="--bar-color: ${bar1Color}; --bar-width: ${team1_bar_width}%;"></div>
+                        <div style="--bar-color: ${bar2Color}; --bar-width: ${team2_bar_width}%;"></div>
                     </div>
                     <div class="matchup-container">
                          <div class="game-matchup">

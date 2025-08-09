@@ -318,13 +318,13 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     flex: 1; /* Divide space evenly */
     position: relative;
     overflow: hidden;
+    height: 50%;
 }
 
 .scoring-bars div::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
     height: 100%;
     width: var(--bar-width, 0%);
     transition: width 0.5s ease-in-out;
@@ -408,6 +408,7 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     white-space: nowrap;
     position: relative;
     z-index: 2; /* Keep indicator above bars */
+    padding-left: 1rem;
 }
 
 .live-indicator::before {
