@@ -215,7 +215,7 @@ function loadLiveGames() {
             const team2_bar_width = (team2_total / maxScore) * 100;
             
             return `
-                <div class="game-item ${winnerClass}" data-game-id="${gameDoc.id}" data-is-live="true">
+                <div class="game-item ${winnerClass}" data-game-id="${gameDoc.id}" data-is-live="true" style="--bar1-width: ${team1_bar_width}%; --bar2-width: ${team2_bar_width}%; --bar1-color: ${isTeam1Winning ? '#28a745' : '#dc3545'}; --bar2-color: ${!isTeam1Winning ? '#28a745' : '#dc3545'};">
                     <div class="game-content">
                         <div class="matchup-container">
                             <div class="game-matchup">
@@ -240,10 +240,6 @@ function loadLiveGames() {
                         <div class="game-date" style="color: #dc3545; font-weight: bold;">
                             <span class="live-indicator"></span>LIVE
                         </div>
-                    </div>
-                    <div class="scoring-bars-container">
-                         <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
-                         <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
                     </div>
                 </div>`;
         }).join('');
@@ -316,7 +312,7 @@ async function loadRecentGames() {
             const team2_bar_width = (team2_total / maxScore) * 100;
             
             return `
-                <div class="game-item ${winnerClass}" data-game-id="${game.id}" data-game-date="${game.date}">
+                <div class="game-item ${winnerClass}" data-game-id="${game.id}" data-game-date="${game.date}" style="--bar1-width: ${team1_bar_width}%; --bar2-width: ${team2_bar_width}%; --bar1-color: ${winnerId === team1.id ? '#28a745' : '#dc3545'}; --bar2-color: ${winnerId === team2.id ? '#28a745' : '#dc3545'};">
                     <div class="game-content">
                         <div class="matchup-container">
                              <div class="game-matchup">
@@ -339,10 +335,6 @@ async function loadRecentGames() {
                             </div>
                         </div>
                         <div class="game-date">${formatDate(game.date)}</div>
-                    </div>
-                    <div class="scoring-bars-container">
-                        <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
-                        <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
                     </div>
                 </div>`;
         }).join('');
