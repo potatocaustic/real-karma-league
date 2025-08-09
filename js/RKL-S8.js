@@ -437,16 +437,24 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
     }
 }
 
+/**
+ * Generates the HTML for a single team's breakdown in the modal.
+ * MODIFIED for Request 2: Creates a new, centered header structure.
+ * @param {Array} lineups - The array of player lineup objects.
+ * @param {Object} team - The team's data object.
+ * @param {boolean} isWinner - Whether this team is the winner.
+ * @returns {string} The HTML string for the team breakdown.
+ */
 function generateLineupTable(lineups, team, isWinner) {
     if (!team) return '<div>Team data not found</div>';
     const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
     return `
         <div class="team-breakdown ${isWinner ? 'winner' : ''}">
-            <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'" style="cursor: pointer;">
-                <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                <div>
+            <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'">
+                <div class="modal-team-info-wrapper">
+                    <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                     <h4>${team.team_name}</h4>
-                    <div style="font-size: 0.9rem; opacity: 0.9;">(${team.wins}-${team.losses})</div>
+                    <span class="modal-team-record">(${team.wins}-${team.losses})</span>
                 </div>
             </div>
             <div class="team-total">Total: ${Math.round(totalPoints).toLocaleString()}</div>

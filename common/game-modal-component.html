@@ -87,17 +87,24 @@
         border-width: 2px;
     }
 
+    /* MODIFIED for Request 2: Centered header content */
     .modal-team-header {
         background-color: #333;
         color: white;
         padding: 1rem 1.5rem;
-        text-align: left;
         display: flex;
         align-items: center;
-        justify-content: flex-start;
+        justify-content: center; /* Horizontally center the content */
         gap: 1rem;
-        flex-direction: row;
         transition: background-color 0.3s;
+        cursor: pointer;
+    }
+
+    /* New wrapper for easier centering and alignment */
+    .modal-team-info-wrapper {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
     }
 
     .modal-team-header.winner {
@@ -109,10 +116,15 @@
         margin: 0;
         font-size: 1.3rem;
     }
+    
+    .modal-team-record {
+        font-size: 1rem;
+        opacity: 0.8;
+    }
 
     .modal-team-header .team-logo {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
         border-radius: 4px;
     }
 
@@ -241,8 +253,10 @@
         background-color: #2e7d32;
     }
 
+    /* MODIFIED for Request 3: Made 'Total' section distinct in dark mode */
     .dark-mode .team-total {
-        background-color: #333;
+        background-color: #2a2a2a;
+        border-top: 1px solid #444;
         border-bottom-color: #444;
     }
 

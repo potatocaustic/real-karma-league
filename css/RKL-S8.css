@@ -1,11 +1,3 @@
-.games-list .team {
-    outline: 2px solid red; /* Draws a red border around the entire 4-column row */
-}
-
-.games-list .team > * {
-    outline: 1px dashed blue; /* Draws a blue border around each individual item in the grid */
-}
-
 /* Page-specific styles for RKL-S8.html */
 main {
     padding: 2rem;
@@ -522,8 +514,8 @@ main {
         height: 40px;
     }
     .games-list .team {
-        /* Adjust grid to make space for larger icon and bar */
-        grid-template-columns: 48px 1fr 1fr 45px;
+        /* MODIFIED for Request 1: Team info column now sizes to content */
+        grid-template-columns: 48px auto 1fr 45px;
         gap: 1rem;
     }
 }
