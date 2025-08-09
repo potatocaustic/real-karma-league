@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Real Karma League S8</title>
-    <!-- Global styles and the page-specific stylesheet -->
+    <!-- Corrected stylesheet paths -->
     <link rel="stylesheet" href="../css/global-styles.css">
     <link rel="stylesheet" href="../css/RKL-S8.css">
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
@@ -129,24 +129,8 @@
         </div>
     </main>
 
-    <!-- 
-      MODAL CODE: The following is the self-contained code for the game details modal.
-      It has been placed here directly as requested. For other pages, you can use
-      the 'common/game-modal-component.html' file.
-    -->
-    <div id="game-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">Game Details</h3>
-                <button class="close-btn" id="close-modal-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="game-details-content-area">
-                    <div class="loading">Loading game details...</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- This div will be populated with the modal HTML by the script -->
+    <div id="modal-placeholder"></div>
 
     <footer>
         <p>@caustic on Real</p>
