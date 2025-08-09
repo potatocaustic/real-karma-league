@@ -988,8 +988,8 @@
 
             if (fmvpRow && fmvpRow.Player) {
                 const fmvpTeam = allTeamsData.find(t => t.team_name === fmvpRow.team_name);
-                const fmvpPlayerStats = allPlayersProcessed.find(p => p.player_handle === fmvpRow.Player);
-                topAwardsHTML += createAwardCard('Finals MVP', { name: fmvpRow.Player, detail: fmvpRow.team_name, detailLink: `team.html?id=${fmvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(fmvpRow.Player)}`, logoId: fmvpTeam?.team_id, stats: createPlayerStatsString(fmvpPlayerStats) });
+                const fmvpStatsString = 'REL Median: 1.128 | Med Rank: 76';
+                topAwardsHTML += createAwardCard('Finals MVP', { name: fmvpRow.Player, detail: fmvpRow.team_name, detailLink: `team.html?id=${fmvpTeam?.team_id}`, link: `player.html?player=${encodeURIComponent(fmvpRow.Player)}`, logoId: fmvpTeam?.team_id, stats: fmvpStatsString });
             } else {
                 topAwardsHTML += tbdCardHTML('Finals MVP');
             }
