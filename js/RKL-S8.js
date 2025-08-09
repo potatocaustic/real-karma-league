@@ -3,6 +3,7 @@ import { generateLineupTable } from './main.js';
 
 const USE_DEV_COLLECTIONS = true; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+let currentScoringStatus = null; // Tracks the current scoring status to prevent redundant re-renders.
 
 let activeSeasonId = '';
 let allTeams = []; // This will now store all teams with a seasonal record
@@ -149,18 +150,30 @@ function initializeGamesSection() {
     const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
 
     onSnapshot(statusRef, (statusSnap) => {
-        const statusData = statusSnap.exists() ? statusSnap.data() : { status: 'stopped' };
-        const status = statusData.status;
+        const newStatus = statusSnap.exists() ? statusSnap.data().status : 'stopped';
+
+        // Only react if the main 'status' field has actually changed.
+        // This ignores cosmetic updates from the sampler, eliminating flicker.
+        if (newStatus === currentScoringStatus) {
+            return; 
+        }
+
+        // Update the tracked status and proceed with UI changes.
+        currentScoringStatus = newStatus; 
+        
         const gamesList = document.getElementById('recent-games');
 
-        if (status === 'active' || status === 'paused') {
+        if (currentScoringStatus === 'active' || currentScoringStatus === 'paused') {
+            // This function is now only called when the status truly changes to live,
+            // not on every sampler update.
             loadLiveGames();
-        } else {
-            // When status is no longer live, reset the flag and load recent games
+        } else { // status is 'stopped'
+            // Clean up the live listener if it exists.
             if (liveGamesUnsubscribe) {
                 liveGamesUnsubscribe();
                 liveGamesUnsubscribe = null;
             }
+            // Reset the UI to show recent games.
             if (gamesList) {
                 gamesList.dataset.liveInitialized = 'false';
             }
