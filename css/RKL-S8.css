@@ -547,7 +547,7 @@ main {
     /* MODIFIED for Request 1: Added a 5th column for the indicator */
     .games-list .team {
         /* Icon | Team Info | Indicator | Score Bar | Score */
-        grid-template-columns: 48px 100px 20px 1fr 45px;
+        grid-template-columns: 48px 90px 20px 1fr 45px;
         gap: 1rem;
     }
     
