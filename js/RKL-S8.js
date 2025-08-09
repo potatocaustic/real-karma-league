@@ -51,11 +51,9 @@ async function fetchAllTeams(seasonId) {
     const teamsCollectionName = getCollectionName('v2_teams');
     const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
 
-    // New, more efficient query strategy
     const teamsQuery = query(collection(db, teamsCollectionName));
     const recordsQuery = query(collectionGroup(db, seasonalRecordsCollectionName));
     
-    // Fetch all teams and all seasonal records in parallel
     const [teamsSnap, recordsSnap] = await Promise.all([
         getDocs(teamsQuery),
         getDocs(recordsQuery)
@@ -66,7 +64,6 @@ async function fetchAllTeams(seasonId) {
         return;
     }
 
-    // Create a map for quick lookup of seasonal records for the active season
     const seasonalRecordsMap = new Map();
     recordsSnap.forEach(doc => {
         if (doc.id === seasonId) {
@@ -75,7 +72,6 @@ async function fetchAllTeams(seasonId) {
         }
     });
 
-    // Combine team and seasonal data efficiently
     const teams = teamsSnap.docs.map(teamDoc => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
         const seasonalRecord = seasonalRecordsMap.get(teamDoc.id);
@@ -292,8 +288,7 @@ async function loadRecentGames() {
             return;
         }
 
-        const allScores = games.map(g => Math.max(g.team1_score || 0, g.team2_score || 0));
-        const maxScore = Math.max(...allScores, 1);
+        const maxScore = Math.max(...games.flatMap(g => [g.team1_score || 0, g.team2_score || 0]), 1);
 
         gamesList.innerHTML = games.map(game => {
             const team1 = allTeams.find(t => t.id === game.team1_id);
@@ -304,14 +299,11 @@ async function loadRecentGames() {
             const team1_total = game.team1_score || 0;
             const team2_total = game.team2_score || 0;
 
-            const isTeam1Winning = winnerId === team1.id;
-            const winnerClass = isTeam1Winning ? 'team1-winner' : 'team2-winner';
+            const team1_bar_percent = (team1_total / maxScore) * 100;
+            const team2_bar_percent = (team2_total / maxScore) * 100;
 
-            const team1_bar_width = (team1_total / maxScore) * 100;
-            const team2_bar_width = (team2_total / maxScore) * 100;
-            
             return `
-                <div class="game-item ${winnerClass}" data-game-id="${game.id}" data-game-date="${game.date}" style="--bar1-width: ${team1_bar_width}%; --bar2-width: ${team2_bar_width}%; --bar1-color: ${winnerId === team1.id ? '#28a745' : '#dc3545'}; --bar2-color: ${winnerId === team2.id ? '#28a745' : '#dc3545'};">
+                <div class="game-item" data-game-id="${game.id}" data-game-date="${game.date}">
                     <div class="game-matchup">
                         <div class="team">
                             <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -319,7 +311,10 @@ async function loadRecentGames() {
                                 <span class="team-name">${team1.team_name}</span>
                                 <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
                             </div>
-                            <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</span>
+                            <div class="team-bar-container">
+                                <div class="team-bar ${winnerId === team1.id ? 'winner' : 'loser'}" style="width: ${team1_bar_percent}%;"></div>
+                            </div>
+                            <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(team1_total)}</span>
                         </div>
                         <div class="team">
                             <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -327,7 +322,10 @@ async function loadRecentGames() {
                                 <span class="team-name">${team2.team_name}</span>
                                 <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
                             </div>
-                            <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</span>
+                            <div class="team-bar-container">
+                                <div class="team-bar ${winnerId === team2.id ? 'winner' : 'loser'}" style="width: ${team2_bar_percent}%;"></div>
+                            </div>
+                            <span class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(team2_total)}</span>
                         </div>
                     </div>
                     <div class="game-status">
@@ -377,6 +375,11 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
     const contentArea = document.getElementById('game-details-content-area');
+
+    if (!modal || !modalTitle || !contentArea) {
+        console.error("Modal elements not found in the DOM.");
+        return;
+    }
 
     modal.style.display = 'block';
     contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
@@ -441,7 +444,10 @@ function generateLineupTable(lineups, team, isWinner) {
         <div class="team-breakdown ${isWinner ? 'winner' : ''}">
             <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'" style="cursor: pointer;">
                 <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                <div><h4>${team.team_name}</h4><div style="font-size: 0.9rem; opacity: 0.9;">(${team.wins}-${team.losses})</div></div>
+                <div>
+                    <h4>${team.team_name}</h4>
+                    <div style="font-size: 0.9rem; opacity: 0.9;">(${team.wins}-${team.losses})</div>
+                </div>
             </div>
             <div class="team-total">Total: ${Math.round(totalPoints).toLocaleString()}</div>
             <table class="lineup-table">
@@ -468,7 +474,10 @@ function generateLineupTable(lineups, team, isWinner) {
 }
 
 function closeModal() {
-    document.getElementById('game-modal').style.display = 'none';
+    const modal = document.getElementById('game-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }
 
 // --- INITIALIZATION ---
@@ -479,12 +488,14 @@ async function initializePage() {
         await fetchAllTeams(activeSeasonId);
 
         loadStandingsPreview();
-        initializeGamesSection(); // MODIFIED: This now controls the games section
+        initializeGamesSection();
         loadSeasonInfo(seasonData);
 
+        // MODIFIED: Attach event listeners directly since modal is in the HTML
         document.getElementById('close-modal-btn').addEventListener('click', closeModal);
         window.addEventListener('click', (event) => {
-            if (event.target == document.getElementById('game-modal')) {
+            const modal = document.getElementById('game-modal');
+            if (modal && event.target == modal) {
                 closeModal();
             }
         });
