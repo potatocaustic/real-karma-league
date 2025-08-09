@@ -183,10 +183,18 @@ function loadLiveGames() {
     const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
 
     liveGamesUnsubscribe = onSnapshot(liveGamesQuery, (snapshot) => {
+        const loadingDiv = gamesList.querySelector('.loading');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+
         if (snapshot.empty) {
             gamesList.innerHTML = '<div class="loading">No live games are currently active.</div>';
             return;
         }
+
+        const activeGameIds = new Set();
+        snapshot.docs.forEach(doc => activeGameIds.add(doc.id));
 
         const allScores = snapshot.docs.map(doc => {
             const game = doc.data();
@@ -196,11 +204,12 @@ function loadLiveGames() {
         });
         const maxScore = Math.max(...allScores.flatMap(g => [g.team1_total, g.team2_total]), 1);
 
-        gamesList.innerHTML = snapshot.docs.map(gameDoc => {
+        snapshot.docs.forEach(gameDoc => {
+            const gameId = gameDoc.id;
             const game = gameDoc.data();
             const team1 = allTeams.find(t => t.id === game.team1_lineup[0]?.team_id);
             const team2 = allTeams.find(t => t.id === game.team2_lineup[0]?.team_id);
-            if (!team1 || !team2) return '';
+            if (!team1 || !team2) return;
 
             const team1_total = game.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             const team2_total = game.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
@@ -208,43 +217,74 @@ function loadLiveGames() {
             const isTeam1Winning = team1_total >= team2_total;
             const team1_bar_percent = (team1_total / maxScore) * 100;
             const team2_bar_percent = (team2_total / maxScore) * 100;
-            
-            return `
-                <div class="game-item" data-game-id="${gameDoc.id}" data-is-live="true">
-                    <div class="game-matchup">
-                        <div class="team">
-                            <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-info">
-                                <span class="team-name">${team1.team_name}</span>
-                                <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
-                            </div>
-                            <div class="winner-indicator-placeholder"></div>
-                            <div class="team-bar-container">
-                                <div class="team-bar ${isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team1_bar_percent}%;"></div>
-                            </div>
-                            <span class="team-score">${formatInThousands(team1_total)}</span>
-                        </div>
-                        <div class="team">
-                            <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
-                            <div class="team-info">
-                                <span class="team-name">${team2.team_name}</span>
-                                <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
-                            </div>
-                            <div class="winner-indicator-placeholder"></div>
-                            <div class="team-bar-container">
-                                <div class="team-bar ${!isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team2_bar_percent}%;"></div>
-                            </div>
-                            <span class="team-score">${formatInThousands(team2_total)}</span>
-                        </div>
-                    </div>
-                    <div class="game-status live">
-                        <span class="live-indicator"></span>LIVE
-                    </div>
-                </div>`;
-        }).join('');
 
-        document.querySelectorAll('.game-item[data-is-live="true"]').forEach(item => {
-            item.addEventListener('click', () => showGameDetails(item.dataset.gameId, true));
+            let gameItem = gamesList.querySelector(`.game-item[data-game-id="${gameId}"]`);
+
+            if (gameItem) {
+                // UPDATE EXISTING GAME ITEM
+                const teamScores = gameItem.querySelectorAll('.team-score');
+                const teamBars = gameItem.querySelectorAll('.team-bar');
+
+                teamScores[0].textContent = formatInThousands(team1_total);
+                teamScores[1].textContent = formatInThousands(team2_total);
+                
+                teamBars[0].style.width = `${team1_bar_percent}%`;
+                teamBars[1].style.width = `${team2_bar_percent}%`;
+
+                teamBars[0].classList.toggle('winner', isTeam1Winning);
+                teamBars[0].classList.toggle('loser', !isTeam1Winning);
+                teamBars[1].classList.toggle('winner', !isTeam1Winning);
+                teamBars[1].classList.toggle('loser', isTeam1Winning);
+
+            } else {
+                // CREATE NEW GAME ITEM
+                const newGameHTML = `
+                    <div class="game-item" data-game-id="${gameId}" data-is-live="true">
+                        <div class="game-matchup">
+                            <div class="team">
+                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team1.team_name}</span>
+                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                                </div>
+                                <div class="winner-indicator-placeholder"></div>
+                                <div class="team-bar-container">
+                                    <div class="team-bar ${isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team1_bar_percent}%;"></div>
+                                </div>
+                                <span class="team-score">${formatInThousands(team1_total)}</span>
+                            </div>
+                            <div class="team">
+                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <div class="team-info">
+                                    <span class="team-name">${team2.team_name}</span>
+                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                </div>
+                                <div class="winner-indicator-placeholder"></div>
+                                <div class="team-bar-container">
+                                    <div class="team-bar ${!isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team2_bar_percent}%;"></div>
+                                </div>
+                                <span class="team-score">${formatInThousands(team2_total)}</span>
+                            </div>
+                        </div>
+                        <div class="game-status live">
+                            <span class="live-indicator"></span>LIVE
+                        </div>
+                    </div>`;
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = newGameHTML.trim();
+                gameItem = tempDiv.firstChild;
+
+                gameItem.addEventListener('click', () => showGameDetails(gameItem.dataset.gameId, true));
+                gamesList.appendChild(gameItem);
+            }
+        });
+        
+        // REMOVE games that are no longer live
+        gamesList.querySelectorAll('.game-item[data-is-live="true"]').forEach(item => {
+            if (!activeGameIds.has(item.dataset.gameId)) {
+                item.remove();
+            }
         });
 
     }, (error) => {
@@ -252,6 +292,7 @@ function loadLiveGames() {
         gamesList.innerHTML = '<div class="error">Could not load live games.</div>';
     });
 }
+
 
 async function loadRecentGames() {
     const gamesList = document.getElementById('recent-games');

@@ -256,6 +256,11 @@ main {
 ===================================================================
 */
 
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .recent-games {
     background-color: #fff;
     border-radius: 8px;
@@ -295,6 +300,7 @@ main {
     position: relative;
     overflow: hidden;
     cursor: pointer;
+    animation: fade-in 0.5s ease-in-out; /* Added for new items */
 }
 
 /* Matchup Container */
@@ -323,6 +329,7 @@ main {
 .games-list .team .team-score { 
     grid-column: 4; 
     text-align: right;
+    transition: color 0.3s ease; /* Added for smoother score color change */
 }
 
 .games-list .team-info {
@@ -366,7 +373,7 @@ main {
 .team-bar {
     height: 100%;
     border-radius: 4px;
-    transition: width 0.4s ease-out;
+    transition: width 0.4s ease-out, background-color 0.4s ease-out; /* Modified for smoother color change */
 }
 
 .team-bar.winner {
