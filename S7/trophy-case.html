@@ -981,7 +981,8 @@
             // Row 1: League Champions, Finals MVP, League MVP
             const champTeamData = allTeamsData.find(t => t.team_name === champRow?.team_name);
             if (champRow && champTeamData) {
-                topAwardsHTML += createAwardCard('🏆 League Champions 🏆', { name: champRow.team_name, detail: 'Season 7', link: `team.html?id=${champTeamData.team_id}`, logoId: champTeamData.team_id, stats: createTeamStatsString(champTeamData) });
+                const champStatsString = 'Record: 21-7 | PAM: 26,395 | Med Rank: 127';
+                topAwardsHTML += createAwardCard('🏆 League Champions 🏆', { name: champRow.team_name, detail: 'Season 7', link: `team.html?id=${champTeamData.team_id}`, logoId: champTeamData.team_id, stats: champStatsString });
             } else {
                 topAwardsHTML += tbdCardHTML('🏆 League Champions 🏆');
             }
