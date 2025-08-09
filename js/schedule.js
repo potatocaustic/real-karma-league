@@ -76,7 +76,7 @@ async function fetchAllData(seasonId) {
     allLineupsCache = [...lineupsSnap.docs.map(d => d.data()), ...postLineupsSnap.docs.map(d => d.data())];
 }
 
-// --- NEW CORE LOGIC & RENDERING ---
+// --- CORE LOGIC & RENDERING ---
 function calculateHistoricalRecords() {
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
     const teamRecordsByWeek = {};
@@ -158,6 +158,10 @@ function setupWeekSelector() {
     if (initialButton) initialButton.classList.add('active');
 }
 
+/**
+ * [REVISED] This function now correctly calculates and displays team records
+ * based on whether the game is completed or upcoming/live.
+ */
 function displayWeek(week) {
     document.getElementById('games-title').textContent = `${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
     const gamesContent = document.getElementById('games-content');
@@ -170,8 +174,8 @@ function displayWeek(week) {
         return;
     }
 
-    const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
     if (weekStandoutsSection) {
+        const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
         if (allGamesInWeekCompleted && !isNaN(week)) {
             calculateAndDisplayStandouts(week, weekGames);
             weekStandoutsSection.style.display = 'block';
@@ -199,8 +203,10 @@ function displayWeek(week) {
             let statusHTML = 'Upcoming';
             let team1ScoreHTML = '';
             let team2ScoreHTML = '';
-            let team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
-            let team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
+
+            // Get the record COMING INTO the week by default.
+            let team1Record = historicalRecords[week]?.[team1.id] || `${team1.wins || 0}-${team1.losses || 0}`;
+            let team2Record = historicalRecords[week]?.[team2.id] || `${team2.wins || 0}-${team2.losses || 0}`;
 
             if (isLive) {
                 cardClass = 'live';
@@ -215,8 +221,21 @@ function displayWeek(week) {
                 const winnerId = game.winner;
                 team1ScoreHTML = `<div class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</div>`;
                 team2ScoreHTML = `<div class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</div>`;
-                team1Record = historicalRecords[week]?.[team1.id] || team1Record;
-                team2Record = historicalRecords[week]?.[team2.id] || team2Record;
+                
+                // ** NEW LOGIC: Adjust the pre-week record to be a post-game record **
+                const preGameRecord1 = historicalRecords[week]?.[team1.id];
+                if (preGameRecord1) {
+                    let [wins, losses] = preGameRecord1.split('-').map(Number);
+                    game.winner === team1.id ? wins++ : losses++;
+                    team1Record = `${wins}-${losses}`;
+                }
+
+                const preGameRecord2 = historicalRecords[week]?.[team2.id];
+                if (preGameRecord2) {
+                    let [wins, losses] = preGameRecord2.split('-').map(Number);
+                    game.winner === team2.id ? wins++ : losses++;
+                    team2Record = `${wins}-${losses}`;
+                }
             }
             
             return `
@@ -257,10 +276,6 @@ function displayWeek(week) {
     });
 }
 
-/**
- * [REVISED] This function is now "hardened" to prevent crashes.
- * It checks if each HTML element exists before trying to modify it.
- */
 function calculateAndDisplayStandouts(week, completedGamesThisWeek) {
     const standoutWeekEl = document.getElementById('standout-week-number');
     if (standoutWeekEl) standoutWeekEl.textContent = week;
