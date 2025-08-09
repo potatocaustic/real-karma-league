@@ -15,7 +15,7 @@
             }
         })();
     </script>
- <style>
+<style>
     /* Page-specific styles for schedule.html */
     .week-selector { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 2rem; text-align: center; transition: background-color 0.3s, box-shadow 0.3s; }
     .week-buttons { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
@@ -31,14 +31,14 @@
     .standout-item { background-color: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
     .standout-item h5 { font-size: 1rem; color: #333; margin-bottom: 0.75rem; border-bottom: 1px solid #eee; padding-bottom: 0.75rem; }
     .standout-item p { font-size: 0.9rem; color: #555; line-height: 1.5; flex-grow: 1; }
-    .standout-item p .player-link, .standout-item p .team-link { font-weight: 500; color: #007bff; text-decoration: none; }
     
     .games-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); overflow: hidden; }
     .games-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; }
     .games-header h3 { color: white; margin: 0; font-size: 1.4rem; }
+    .games-by-date { padding: 1rem; } /* Provides padding for the inner content */
     .date-section { margin-bottom: 2rem; }
     .date-header { background-color: #f8f9fa; padding: 1rem; border-left: 4px solid #007bff; margin-bottom: 1rem; font-weight: bold; font-size: 1.1rem; color: #333; }
-    .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; padding: 1.5rem; }
+    .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
     .game-card { background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; }
     .game-card.completed { border-left: 4px solid #28a745; cursor: pointer; }
     .game-card.upcoming { border-left: 4px solid #ffc107; }
@@ -46,19 +46,17 @@
     .game-teams { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
     .team { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; }
     .team.winner { font-weight: bold; color: #28a745; }
-    .team-left { display: flex; align-items: center; gap: 0.75rem; }
+    .team-left { display: flex; align-items: center; gap: 0.5rem; }
     
-    /* MODIFIED: Increased logo size */
+    /* MODIFIED: Icon is larger, but text sizes are reverted */
     .team-logo { width: 40px; height: 40px; }
-    .team-name { font-size: 1.1rem; font-weight: 500; }
-    .team-record { font-size: 0.85rem; color: #666; }
+    .team-name { font-size: 1rem; font-weight: 500; }
+    .team-record { font-size: 0.8rem; color: #666; }
     
-    /* ADDED: Styles for score and winner indicator alignment */
     .score-container { display: flex; align-items: center; gap: 0.75rem; }
-    .team-score { font-weight: bold; color: #333; font-size: 1.3rem; }
+    .team-score { font-weight: bold; color: #333; font-size: 1.2rem; }
     .team-score.winner { color: #28a745; }
 
-    /* ADDED: CSS Triangle for winner indicator */
     .winner-indicator {
         width: 0; height: 0;
         border-top: 6px solid transparent;
@@ -70,7 +68,6 @@
     .game-status.completed { color: #28a745; font-weight: 500; }
     .game-status.upcoming { color: #ffc107; font-weight: 500; }
 
-    /* MODIFIED: New live status styling */
     .game-status.live { color: #dc3545; font-weight: bold; display: flex; align-items: center; justify-content: center; }
     .live-indicator {
         width: 8px; height: 8px;
@@ -96,7 +93,6 @@
     .dark-mode .week-standouts-section h4 { color: #8ab4f8; }
     .dark-mode .standout-item h5 { color: #e0e0e0; border-bottom-color: #333; }
     .dark-mode .standout-item p { color: #ccc; }
-    .dark-mode .standout-item p .player-link, .dark-mode .standout-item p .team-link { color: #8ab4f8; }
     .dark-mode .date-header { background-color: #2c2c2c; color: #f5f5f5; }
     .dark-mode .game-card { background-color: #2c2c2c; border-color: #444; }
     .dark-mode .game-card.completed { border-left-color: #66bb6a; }
