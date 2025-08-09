@@ -170,7 +170,6 @@ function initializeGamesSection() {
     });
 }
 
-// REPLACE the existing loadLiveGames function in RKL-S8.js with this one:
 function loadLiveGames() {
     const gamesList = document.getElementById('recent-games');
     const gamesHeader = document.getElementById('games-header-title');
@@ -210,13 +209,11 @@ function loadLiveGames() {
             const team2_total = game.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             
             const isTeam1Winning = team1_total >= team2_total;
-            const winnerClass = isTeam1Winning ? 'team1-winner' : 'team2-winner';
-
-            const team1_bar_width = (team1_total / maxScore) * 100;
-            const team2_bar_width = (team2_total / maxScore) * 100;
+            const team1_bar_percent = (team1_total / maxScore) * 100;
+            const team2_bar_percent = (team2_total / maxScore) * 100;
             
             return `
-                <div class="game-item ${winnerClass}" data-game-id="${gameDoc.id}" data-is-live="true" style="--bar1-width: ${team1_bar_width}%; --bar2-width: ${team2_bar_width}%; --bar1-color: ${isTeam1Winning ? '#28a745' : '#dc3545'}; --bar2-color: ${!isTeam1Winning ? '#28a745' : '#dc3545'};">
+                <div class="game-item" data-game-id="${gameDoc.id}" data-is-live="true">
                     <div class="game-matchup">
                         <div class="team">
                             <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -224,7 +221,10 @@ function loadLiveGames() {
                                 <span class="team-name">${team1.team_name}</span>
                                 <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
                             </div>
-                            <span class="team-score ${isTeam1Winning ? 'winner' : ''}">${formatInThousands(team1_total)}</span>
+                            <div class="team-bar-container">
+                                <div class="team-bar ${isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team1_bar_percent}%;"></div>
+                            </div>
+                            <span class="team-score">${formatInThousands(team1_total)}</span>
                         </div>
                         <div class="team">
                             <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -232,7 +232,10 @@ function loadLiveGames() {
                                 <span class="team-name">${team2.team_name}</span>
                                 <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
                             </div>
-                            <span class="team-score ${!isTeam1Winning ? 'winner' : ''}">${formatInThousands(team2_total)}</span>
+                            <div class="team-bar-container">
+                                <div class="team-bar ${!isTeam1Winning ? 'winner' : 'loser'}" style="width: ${team2_bar_percent}%;"></div>
+                            </div>
+                            <span class="team-score">${formatInThousands(team2_total)}</span>
                         </div>
                     </div>
                     <div class="game-status live">
@@ -251,7 +254,6 @@ function loadLiveGames() {
     });
 }
 
-// REPLACE the existing loadRecentGames function in RKL-S8.js with this one:
 async function loadRecentGames() {
     const gamesList = document.getElementById('recent-games');
     const gamesHeader = document.getElementById('games-header-title');
