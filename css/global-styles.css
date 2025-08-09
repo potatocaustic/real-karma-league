@@ -281,8 +281,7 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
   background-color: #666;
 }
 
-/* New CSS for stacked matchup view with progress bar */
-
+/* Corrected CSS for stacked matchup view with progress bar */
 .game-item {
     display: flex;
     justify-content: space-between;
@@ -291,7 +290,8 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     border-bottom: 1px solid #ddd;
     transition: background-color 0.2s, border-color 0.3s;
     cursor: pointer;
-    position: relative; /* Added for positioning of the bar */
+    position: relative;
+    overflow: hidden; /* Prevent the bars from visually extending beyond the card */
 }
 
 .game-item:hover {
@@ -311,22 +311,24 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     display: flex;
     align-items: center;
     padding-left: 1rem;
+    position: relative;
+    z-index: 2; /* Ensure date is above the bar */
 }
 
 .matchup-container {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    position: relative; /* Added for positioning the scores */
+    gap: 0.5rem; /* Reduced gap for stacked view */
+    position: relative;
+    z-index: 2; /* Ensure matchup info is above the bars */
 }
 
 .game-matchup {
     display: flex;
     flex-direction: column; /* Stack teams */
     gap: 0.5rem;
-    position: relative;
-    z-index: 2; /* Ensure team info is above the bar */
+    width: 100%;
 }
 
 .team {
@@ -383,8 +385,8 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     display: none; /* Hide the "vs" text */
 }
 
-/* Updated Scoring Bar Styles */
-.scoring-bar {
+/* Corrected Scoring Bar Styles */
+.scoring-bars-container {
     position: absolute;
     top: 0;
     left: 0;
@@ -392,21 +394,18 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     height: 100%;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
     z-index: 1;
-    overflow: visible; /* Allow bars to overflow container for full width effect */
+    padding: 1rem 0; /* Add padding to match the game-item content and visually separate bars */
 }
 
 .scoring-bar-team-1,
 .scoring-bar-team-2 {
-    height: 50%;
+    flex: 1; /* Make bars equal height */
     position: relative;
+    background-color: rgba(233, 236, 239, 0.5); /* Semi-transparent background */
+    border-radius: 4px;
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    padding: 0 1rem;
 }
-
 .scoring-bar-team-1::before,
 .scoring-bar-team-2::before {
     content: '';
@@ -414,24 +413,14 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     top: 0;
     left: 0;
     height: 100%;
-    transition: width 0.5s ease-in-out, background-color 0.3s;
-    z-index: 1;
+    transition: width 0.5s ease-in-out;
+    border-radius: 4px;
 }
 
-.scoring-bar-team-1::before {
-    background-color: #28a745; /* Default winner color */
-}
-
-.scoring-bar-team-2::before {
-    background-color: #dc3545; /* Default loser color */
-}
-
-/* Winner/Loser color classes on the main container */
 .game-item.team1-winner .scoring-bar-team-1::before,
 .game-item.team2-winner .scoring-bar-team-2::before {
     background-color: #28a745; /* Green for winner */
 }
-
 .game-item.team1-winner .scoring-bar-team-2::before,
 .game-item.team2-winner .scoring-bar-team-1::before {
     background-color: #dc3545; /* Red for loser */
@@ -459,9 +448,8 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
 .dark-mode .game-item:hover {
     background-color: #2c2c2c;
 }
-.dark-mode .scoring-bar-team-1::before,
-.dark-mode .scoring-bar-team-2::before {
-    opacity: 0.3; /* Make bars less intense in dark mode */
+.dark-mode .scoring-bar-team-1, .dark-mode .scoring-bar-team-2 {
+    background-color: rgba(44, 44, 44, 0.5);
 }
 .dark-mode .game-item.team1-winner .scoring-bar-team-1::before,
 .dark-mode .game-item.team2-winner .scoring-bar-team-2::before {
