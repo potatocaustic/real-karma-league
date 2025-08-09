@@ -377,7 +377,7 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
     const contentArea = document.getElementById('game-details-content-area');
 
     if (!modal || !modalTitle || !contentArea) {
-        console.error("Modal elements not found in the DOM.");
+        console.error("Modal elements not found. Was the modal component loaded correctly?");
         return;
     }
 
@@ -482,8 +482,44 @@ function closeModal() {
 
 // --- INITIALIZATION ---
 
+/**
+ * Main function to initialize the page.
+ * It first loads the reusable modal component and attaches its event listeners.
+ * Then, it proceeds to fetch and display all the dynamic league data.
+ */
 async function initializePage() {
     try {
+        // STEP 1: Fetch and inject the modal component.
+        const placeholder = document.getElementById('modal-placeholder');
+        if (!placeholder) {
+            // This is a critical failure, stop here.
+            throw new Error("Fatal: Modal placeholder div not found in RKL-S8.html.");
+        }
+
+        const response = await fetch('../common/game-modal-component.html');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch modal component: ${response.status} ${response.statusText}`);
+        }
+        
+        placeholder.innerHTML = await response.text();
+        
+        // STEP 2: Attach listeners to the now-loaded modal.
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const gameModal = document.getElementById('game-modal');
+
+        if (closeModalBtn && gameModal) {
+            closeModalBtn.addEventListener('click', closeModal);
+            gameModal.addEventListener('click', (event) => {
+                if (event.target === gameModal) {
+                    closeModal();
+                }
+            });
+        } else {
+            // This is a non-fatal error, but indicates the component is broken.
+            console.warn("Modal component was loaded, but its internal elements (like the close button) were not found. Clicks inside the modal may not work correctly.");
+        }
+
+        // STEP 3: Load the rest of the page data.
         const seasonData = await getActiveSeason();
         await fetchAllTeams(activeSeasonId);
 
@@ -491,18 +527,17 @@ async function initializePage() {
         initializeGamesSection();
         loadSeasonInfo(seasonData);
 
-        // MODIFIED: Attach event listeners directly since modal is in the HTML
-        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
-        window.addEventListener('click', (event) => {
-            const modal = document.getElementById('game-modal');
-            if (modal && event.target == modal) {
-                closeModal();
-            }
-        });
-
     } catch (error) {
         console.error("Failed to initialize page:", error);
-        document.querySelector('main').innerHTML = `<p style="text-align:center; color: red;">Error: Could not load league data. ${error.message}</p>`;
+        // Display a user-friendly error message on the page.
+        const mainContent = document.querySelector('main');
+        if (mainContent) {
+            mainContent.innerHTML = `<div class="error" style="padding: 2rem;">
+                <h3>Oops! Something went wrong.</h3>
+                <p>Could not load all page components. Please try refreshing the page.</p>
+                <p style="font-size:0.8em; color: #666; margin-top: 1rem;">Error details: ${error.message}</p>
+            </div>`;
+        }
     }
 }
 
