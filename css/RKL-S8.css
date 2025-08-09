@@ -513,9 +513,10 @@ main {
         width: 40px;
         height: 40px;
     }
+    /* MODIFIED for Request 1: Reverted to a fixed grid to ensure alignment */
     .games-list .team {
-        /* MODIFIED for Request 1: Team info column now sizes to content */
-        grid-template-columns: 48px auto 1fr 45px;
+        /* Icon | Team Info | Score Bar | Score */
+        grid-template-columns: 48px 130px 1fr 45px;
         gap: 1rem;
     }
 }
