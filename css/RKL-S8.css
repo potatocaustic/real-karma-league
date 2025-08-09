@@ -261,6 +261,16 @@ main {
     to { opacity: 1; }
 }
 
+/* NEW: Added fade-out animation */
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.game-item.fade-out {
+    animation: fade-out 0.4s ease-out forwards;
+}
+
 .recent-games {
     background-color: #fff;
     border-radius: 8px;
@@ -300,7 +310,7 @@ main {
     position: relative;
     overflow: hidden;
     cursor: pointer;
-    animation: fade-in 0.5s ease-in-out; /* Added for new items */
+    animation: fade-in 0.5s ease-in-out; 
 }
 
 /* Matchup Container */
@@ -315,7 +325,6 @@ main {
 /* Single Team Row Grid */
 .games-list .team {
     display: grid;
-    /* This grid is for mobile-first, desktop overrides below */
     grid-template-columns: 32px 80px 1fr 40px; 
     align-items: center;
     gap: 0.5rem;
@@ -324,12 +333,11 @@ main {
 /* Item Placement in the Grid */
 .games-list .team .team-logo { grid-column: 1; }
 .games-list .team .team-info { grid-column: 2; }
-/* Columns 3 and 4 are for indicator and bar, defined in desktop styles */
 .games-list .team .team-bar-container { grid-column: 3; }
 .games-list .team .team-score { 
     grid-column: 4; 
     text-align: right;
-    transition: color 0.3s ease; /* Added for smoother score color change */
+    transition: color 0.3s ease;
 }
 
 .games-list .team-info {
@@ -373,7 +381,7 @@ main {
 .team-bar {
     height: 100%;
     border-radius: 4px;
-    transition: width 0.4s ease-out, background-color 0.4s ease-out; /* Modified for smoother color change */
+    transition: width 0.4s ease-out, background-color 0.4s ease-out;
 }
 
 .team-bar.winner {
@@ -388,7 +396,6 @@ main {
     box-sizing: border-box; 
 }
 
-/* MODIFIED for Request 1: Winner Indicator Styles */
 .winner-indicator {
     width: 0;
     height: 0;
@@ -508,7 +515,6 @@ main {
     border-color: #bbf7d0; /* light green */
 }
 
-/* MODIFIED for Request 1: Dark mode winner indicator */
 .dark-mode .winner-indicator {
     border-left-color: #66bb6a;
 }
@@ -551,14 +557,11 @@ main {
         width: 40px;
         height: 40px;
     }
-    /* MODIFIED for Request 1: Added a 5th column for the indicator */
     .games-list .team {
-        /* Icon | Team Info | Indicator | Score Bar | Score */
         grid-template-columns: 48px 90px 20px 1fr 45px;
         gap: 1rem;
     }
     
-    /* Reassign grid columns for desktop */
     .games-list .team .team-logo { grid-column: 1; }
     .games-list .team .team-info { grid-column: 2; }
     .games-list .team .winner-indicator,

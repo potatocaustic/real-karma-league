@@ -149,16 +149,21 @@ function initializeGamesSection() {
     const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
 
     onSnapshot(statusRef, (statusSnap) => {
-        if (liveGamesUnsubscribe) {
-            liveGamesUnsubscribe();
-            liveGamesUnsubscribe = null;
-        }
-
-        const status = statusSnap.exists() ? statusSnap.data().status : 'stopped';
+        const statusData = statusSnap.exists() ? statusSnap.data() : { status: 'stopped' };
+        const status = statusData.status;
+        const gamesList = document.getElementById('recent-games');
 
         if (status === 'active' || status === 'paused') {
             loadLiveGames();
         } else {
+            // When status is no longer live, reset the flag and load recent games
+            if (liveGamesUnsubscribe) {
+                liveGamesUnsubscribe();
+                liveGamesUnsubscribe = null;
+            }
+            if (gamesList) {
+                gamesList.dataset.liveInitialized = 'false';
+            }
             loadRecentGames();
         }
     }, (error) => {
@@ -172,6 +177,12 @@ function loadLiveGames() {
     const gamesHeader = document.getElementById('games-header-title');
     if (!gamesList || !gamesHeader) return;
 
+    // Guard against re-initialization to prevent flashing
+    if (gamesList.dataset.liveInitialized === 'true') {
+        return;
+    }
+    gamesList.dataset.liveInitialized = 'true';
+
     gamesHeader.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24" style="vertical-align: -6px; margin-right: 8px;">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
@@ -184,18 +195,24 @@ function loadLiveGames() {
 
     liveGamesUnsubscribe = onSnapshot(liveGamesQuery, (snapshot) => {
         const loadingDiv = gamesList.querySelector('.loading');
-        if (loadingDiv) {
-            loadingDiv.remove();
-        }
+        if (loadingDiv) loadingDiv.remove();
 
+        // Handle the case where no games are active
         if (snapshot.empty) {
-            gamesList.innerHTML = '<div class="loading">No live games are currently active.</div>';
+            gamesList.querySelectorAll('.game-item').forEach(item => item.remove());
+            if (!gamesList.querySelector('.no-games-message')) {
+                const noGamesDiv = document.createElement('div');
+                noGamesDiv.className = 'loading no-games-message';
+                noGamesDiv.textContent = 'No live games are currently active.';
+                gamesList.appendChild(noGamesDiv);
+            }
             return;
         }
 
-        const activeGameIds = new Set();
-        snapshot.docs.forEach(doc => activeGameIds.add(doc.id));
+        const noGamesMessage = gamesList.querySelector('.no-games-message');
+        if (noGamesMessage) noGamesMessage.remove();
 
+        const activeGameIds = new Set(snapshot.docs.map(doc => doc.id));
         const allScores = snapshot.docs.map(doc => {
             const game = doc.data();
             const team1_total = game.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
@@ -220,8 +237,7 @@ function loadLiveGames() {
 
             let gameItem = gamesList.querySelector(`.game-item[data-game-id="${gameId}"]`);
 
-            if (gameItem) {
-                // UPDATE EXISTING GAME ITEM
+            if (gameItem) { // UPDATE EXISTING
                 const teamScores = gameItem.querySelectorAll('.team-score');
                 const teamBars = gameItem.querySelectorAll('.team-bar');
 
@@ -235,10 +251,9 @@ function loadLiveGames() {
                 teamBars[0].classList.toggle('loser', !isTeam1Winning);
                 teamBars[1].classList.toggle('winner', !isTeam1Winning);
                 teamBars[1].classList.toggle('loser', isTeam1Winning);
-
-            } else {
-                // CREATE NEW GAME ITEM
-                const newGameHTML = `
+            } else { // CREATE NEW
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = `
                     <div class="game-item" data-game-id="${gameId}" data-is-live="true">
                         <div class="game-matchup">
                             <div class="team">
@@ -269,21 +284,18 @@ function loadLiveGames() {
                         <div class="game-status live">
                             <span class="live-indicator"></span>LIVE
                         </div>
-                    </div>`;
-                
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = newGameHTML.trim();
+                    </div>`.trim();
                 gameItem = tempDiv.firstChild;
-
                 gameItem.addEventListener('click', () => showGameDetails(gameItem.dataset.gameId, true));
                 gamesList.appendChild(gameItem);
             }
         });
         
-        // REMOVE games that are no longer live
+        // REMOVE games that are no longer live with a fade-out effect
         gamesList.querySelectorAll('.game-item[data-is-live="true"]').forEach(item => {
             if (!activeGameIds.has(item.dataset.gameId)) {
-                item.remove();
+                item.classList.add('fade-out');
+                item.addEventListener('animationend', () => item.remove(), { once: true });
             }
         });
 
@@ -292,7 +304,6 @@ function loadLiveGames() {
         gamesList.innerHTML = '<div class="error">Could not load live games.</div>';
     });
 }
-
 
 async function loadRecentGames() {
     const gamesList = document.getElementById('recent-games');
