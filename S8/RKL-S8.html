@@ -327,7 +327,8 @@
     /* 3. Single Team Row (.team) with 4-Column Grid */
     .games-list .team {
         display: grid;
-        grid-template-columns: 28px auto 1fr 45px;
+        /* UPDATED: Changed 'auto' to '120px' to fix alignment and visibility */
+        grid-template-columns: 28px 120px 1fr 45px;
         align-items: center;
         gap: 0.75rem;
     }
