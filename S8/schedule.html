@@ -56,8 +56,15 @@
         .team-logo { width: 32px; height: 32px; }
         .team-name { font-size: 1rem; font-weight: 500; }
         .team-record { font-size: 0.8rem; color: #666; }
+
+        /* [MODIFIED] Grouped score and winner indicator for better alignment */
+        .score-container { display: flex; align-items: center; gap: 0.5rem; }
         .team-score { font-weight: bold; color: #333; font-size: 1.2rem; }
         .team-score.winner { color: #28a745; }
+        
+        /* [ADDED] Green triangle for winning team */
+        .winner-indicator { color: #28a745; font-size: 0.9em; line-height: 1; }
+        
         .game-status { text-align: center; margin-top: 0.5rem; font-size: 0.9rem; color: #666; }
         .game-status.completed { color: #28a745; font-weight: 500; }
         .game-status.upcoming { color: #ffc107; font-weight: 500; }
@@ -83,6 +90,7 @@
         .dark-mode .game-card.live { border-left-color: #ef5350; }
         .dark-mode .team-score { color: #e0e0e0; }
         .dark-mode .team.winner, .dark-mode .team-score.winner { color: #66bb6a; }
+        .dark-mode .winner-indicator { color: #66bb6a; }
 
         @media (max-width: 768px) {
             .games-grid, .standouts-grid { grid-template-columns: 1fr; }

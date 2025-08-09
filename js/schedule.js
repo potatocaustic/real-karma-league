@@ -71,7 +71,10 @@ async function fetchAllData(seasonId) {
     });
     allTeams = (await Promise.all(teamPromises)).filter(t => t !== null);
     
-    allGamesCache = [...gamesSnap.docs.map(d => ({ id: d.id, ...d.data() })), ...postGamesSnap.docs.map(d => ({ id: d.id, ...d.data() }))];
+    allGamesCache = [
+        ...gamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })), 
+        ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() }))
+    ];
     dailyScoresCache = dailyScoresSnap.docs.map(d => d.data());
     allLineupsCache = [...lineupsSnap.docs.map(d => d.data()), ...postLineupsSnap.docs.map(d => d.data())];
 }
@@ -158,10 +161,6 @@ function setupWeekSelector() {
     if (initialButton) initialButton.classList.add('active');
 }
 
-/**
- * [REVISED] This function now correctly calculates and displays team records
- * based on whether the game is completed or upcoming/live.
- */
 function displayWeek(week) {
     document.getElementById('games-title').textContent = `${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
     const gamesContent = document.getElementById('games-content');
@@ -203,8 +202,6 @@ function displayWeek(week) {
             let statusHTML = 'Upcoming';
             let team1ScoreHTML = '';
             let team2ScoreHTML = '';
-
-            // Get the record COMING INTO the week by default.
             let team1Record = historicalRecords[week]?.[team1.id] || `${team1.wins || 0}-${team1.losses || 0}`;
             let team2Record = historicalRecords[week]?.[team2.id] || `${team2.wins || 0}-${team2.losses || 0}`;
 
@@ -213,16 +210,19 @@ function displayWeek(week) {
                 statusHTML = `Live <span class="pulsing-red-dot">🔴</span>`;
                 const team1Total = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
                 const team2Total = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
-                team1ScoreHTML = `<div class="team-score">${formatInThousands(team1Total)}</div>`;
-                team2ScoreHTML = `<div class="team-score">${formatInThousands(team2Total)}</div>`;
+                team1ScoreHTML = `<div class="score-container"><div class="team-score">${formatInThousands(team1Total)}</div></div>`;
+                team2ScoreHTML = `<div class="score-container"><div class="team-score">${formatInThousands(team2Total)}</div></div>`;
             } else if (isCompleted) {
                 cardClass = 'completed';
                 statusHTML = 'Final';
                 const winnerId = game.winner;
-                team1ScoreHTML = `<div class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</div>`;
-                team2ScoreHTML = `<div class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</div>`;
                 
-                // ** NEW LOGIC: Adjust the pre-week record to be a post-game record **
+                const team1Indicator = winnerId === team1.id ? '<span class="winner-indicator">▼</span>' : '';
+                const team2Indicator = winnerId === team2.id ? '<span class="winner-indicator">▲</span>' : '';
+
+                team1ScoreHTML = `<div class="score-container">${team1Indicator}<div class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</div></div>`;
+                team2ScoreHTML = `<div class="score-container">${team2Indicator}<div class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</div></div>`;
+                
                 const preGameRecord1 = historicalRecords[week]?.[team1.id];
                 if (preGameRecord1) {
                     let [wins, losses] = preGameRecord1.split('-').map(Number);
@@ -410,15 +410,21 @@ async function initializePage() {
 
         calculateHistoricalRecords(); 
         determineInitialWeek();     
+        
+        // Defer DOM rendering to prevent race conditions
+        setTimeout(() => {
+            setupWeekSelector();
+            displayWeek(currentWeek);
+            
+            // Attach modal listeners after the modal is in the DOM
+            document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+            window.addEventListener('click', (event) => {
+                if (event.target.id === 'game-modal') closeModal();
+            });
+        }, 0);
+
         listenForLiveGames();       
 
-        setupWeekSelector();
-        displayWeek(currentWeek);
-        
-        document.getElementById('close-modal-btn').addEventListener('click', closeModal);
-        window.addEventListener('click', (event) => {
-            if (event.target == document.getElementById('game-modal')) closeModal();
-        });
     } catch (error) {
         console.error("Failed to initialize page:", error);
         document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${error.message}</div>`;
