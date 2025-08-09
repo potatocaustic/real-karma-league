@@ -237,8 +237,8 @@ function loadLiveGames() {
                         </div>
                     </div>
                     <div class="scoring-bars-container">
-                         <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"><span style="width: var(--bar-width);"></span></div>
-                         <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"><span style="width: var(--bar-width);"></span></div>
+                         <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
+                         <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
                     </div>
                     <div class="game-date" style="color: #dc3545; font-weight: bold;">
                         <span class="live-indicator"></span>LIVE
@@ -336,8 +336,8 @@ async function loadRecentGames() {
                         </div>
                     </div>
                     <div class="scoring-bars-container">
-                        <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"><span style="width: var(--bar-width);"></span></div>
-                        <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"><span style="width: var(--bar-width);"></span></div>
+                        <div class="scoring-bar-team-1" style="--bar-width: ${team1_bar_width}%;"></div>
+                        <div class="scoring-bar-team-2" style="--bar-width: ${team2_bar_width}%;"></div>
                     </div>
                     <div class="game-date">${formatDate(game.date)}</div>
                 </div>`;

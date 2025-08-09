@@ -395,17 +395,19 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     display: flex;
     flex-direction: column;
     z-index: 1;
-    padding: 1rem 0; /* Add padding to match the game-item content and visually separate bars */
+    padding: 1rem;
+    gap: 0.5rem;
 }
 
 .scoring-bar-team-1,
 .scoring-bar-team-2 {
-    flex: 1; /* Make bars equal height */
+    flex: 1;
     position: relative;
-    background-color: rgba(233, 236, 239, 0.5); /* Semi-transparent background */
+    background-color: rgba(233, 236, 239, 0.5); /* Faded background for the track */
     border-radius: 4px;
     overflow: hidden;
 }
+
 .scoring-bar-team-1::before,
 .scoring-bar-team-2::before {
     content: '';
@@ -413,8 +415,10 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     top: 0;
     left: 0;
     height: 100%;
+    width: var(--bar-width, 0%); /* Use CSS variable to set width dynamically */
     transition: width 0.5s ease-in-out;
     border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .game-item.team1-winner .scoring-bar-team-1::before,
@@ -452,12 +456,12 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     background-color: rgba(44, 44, 44, 0.5);
 }
 .dark-mode .game-item.team1-winner .scoring-bar-team-1::before,
-.dark-mode .game-item.team2-winner .scoring-bar-team-2::before {
+.dark-mode .dark-mode .game-item.team2-winner .scoring-bar-team-2::before {
     background-color: #66bb6a; /* Lighter green for dark mode winner */
 }
 
 .dark-mode .game-item.team1-winner .scoring-bar-team-2::before,
-.dark-mode .game-item.team2-winner .scoring-bar-team-1::before {
+.dark-mode .dark-mode .game-item.team2-winner .scoring-bar-team-1::before {
     background-color: #ef5350; /* Lighter red for dark mode loser */
 }
 
