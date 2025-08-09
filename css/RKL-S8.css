@@ -318,6 +318,7 @@ main {
 /* Item Placement in the Grid */
 .games-list .team .team-logo { grid-column: 1; }
 .games-list .team .team-info { grid-column: 2; }
+/* Columns 3 and 4 are for indicator and bar, defined in desktop styles */
 .games-list .team .team-bar-container { grid-column: 3; }
 .games-list .team .team-score { 
     grid-column: 4; 
@@ -375,10 +376,24 @@ main {
     background-color: #dc3545;
 }
 
-/* MODIFIED for Request 2: Add border to completed game winner's bar */
 .game-item.completed .team-bar.winner {
     border: 2px solid #14532d; /* dark green */
-    box-sizing: border-box; /* Prevents border from adding to width */
+    box-sizing: border-box; 
+}
+
+/* MODIFIED for Request 1: Winner Indicator Styles */
+.winner-indicator {
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 10px solid #28a745;
+    justify-self: center;
+    display: none; /* Hidden on mobile by default */
+}
+
+.winner-indicator-placeholder {
+    display: none; /* Hidden on mobile by default */
 }
 
 
@@ -482,9 +497,13 @@ main {
     background-color: #ef5350;
 }
 
-/* MODIFIED for Request 2: Dark mode border for completed game winner's bar */
 .dark-mode .game-item.completed .team-bar.winner {
     border-color: #bbf7d0; /* light green */
+}
+
+/* MODIFIED for Request 1: Dark mode winner indicator */
+.dark-mode .winner-indicator {
+    border-left-color: #66bb6a;
 }
 
 .dark-mode .games-list .team-record,
@@ -525,11 +544,20 @@ main {
         width: 40px;
         height: 40px;
     }
+    /* MODIFIED for Request 1: Added a 5th column for the indicator */
     .games-list .team {
-        /* Icon | Team Info | Score Bar | Score */
-        grid-template-columns: 48px 130px 1fr 45px;
+        /* Icon | Team Info | Indicator | Score Bar | Score */
+        grid-template-columns: 48px 130px 20px 1fr 45px;
         gap: 1rem;
     }
+    
+    /* Reassign grid columns for desktop */
+    .games-list .team .team-logo { grid-column: 1; }
+    .games-list .team .team-info { grid-column: 2; }
+    .games-list .team .winner-indicator,
+    .games-list .team .winner-indicator-placeholder { grid-column: 3; display: block; }
+    .games-list .team .team-bar-container { grid-column: 4; }
+    .games-list .team .team-score { grid-column: 5; }
 }
 
 @media (max-width: 768px) {
@@ -577,7 +605,6 @@ main {
         height: 16px;
     }
 
-    /* MODIFIED for Request 1: Increase icon size in standings on mobile */
     .standings-preview .team-logo {
         width: 32px;
         height: 32px;
