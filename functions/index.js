@@ -189,7 +189,7 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
             return null;
         }
 
-        // --- Sampling Logic (Unchanged, but now runs dynamically) ---
+        // --- Sampling Logic ---
         const sampledPlayers = [];
         const usedIndices = new Set();
         while (sampledPlayers.length < 3 && usedIndices.size < allStarters.length) {
@@ -200,21 +200,47 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
             }
         }
         
-        let changesDetected = 0;
+        // --- MODIFIED: Track karma and rank changes separately ---
+        let karmaChangesDetected = 0;
+        let rankChangesDetected = 0;
         let apiRequests = 0;
         const sampleResults = [];
+
         for (const player of sampledPlayers) {
             const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
             await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1001) + 500)); // Randomized delay
+            
             try {
                 const response = await fetch(workerUrl);
                 apiRequests++;
                 const data = await response.json();
+
+                // Fetch new karma and rank values
                 const newRawScore = parseFloat(data?.stats?.karmaDelta || 0);
+                const newGlobalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
+
+                // Get old karma and rank values from the player document
                 const oldRawScore = player.points_raw || 0;
-                const hasChanged = newRawScore !== oldRawScore;
-                if (hasChanged) changesDetected++;
-                sampleResults.push({ handle: player.player_handle, oldScore: oldRawScore, newScore: newRawScore, changed: hasChanged });
+                const oldGlobalRank = player.global_rank || -1;
+
+                // Check for changes in both metrics
+                const karmaHasChanged = newRawScore !== oldRawScore;
+                const rankHasChanged = newGlobalRank !== oldGlobalRank;
+
+                if (karmaHasChanged) karmaChangesDetected++;
+                if (rankHasChanged) rankChangesDetected++;
+                
+                // --- MODIFIED: Log more detailed sample results ---
+                sampleResults.push({ 
+                    handle: player.player_handle, 
+                    oldScore: oldRawScore, 
+                    newScore: newRawScore, 
+                    karmaChanged: karmaHasChanged,
+                    oldRank: oldGlobalRank,
+                    newRank: newGlobalRank,
+                    rankChanged: rankHasChanged
+                });
+
             } catch (error) { console.error(`Sampler failed to fetch karma for ${player.player_id}`, error); }
         }
 
@@ -227,11 +253,12 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
         const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
         await usageRef.set({ api_requests_sample: FieldValue.increment(apiRequests) }, { merge: true });
 
-        if (changesDetected >= 2) {
-            console.log(`Sampler detected ${changesDetected} changes. Triggering full update.`);
+        // --- MODIFIED: Update trigger condition ---
+        if (karmaChangesDetected >= 2 || rankChangesDetected >= 2) {
+            console.log(`Sampler detected changes (Karma: ${karmaChangesDetected}, Rank: ${rankChangesDetected}). Triggering full update.`);
             await performFullUpdate();
         } else {
-            console.log(`Sampler detected only ${changesDetected} changes. No update triggered.`);
+            console.log(`Sampler detected insufficient changes (Karma: ${karmaChangesDetected}, Rank: ${rankChangesDetected}). No update triggered.`);
         }
     } else {
         // Not time to run yet, exit quietly.
