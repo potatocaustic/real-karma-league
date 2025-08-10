@@ -746,13 +746,17 @@ exports.processCompletedExhibitionGame = onDocumentUpdated(`${getCollectionName(
     return null;
 });
 
+// functions/index.js
+
 exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+        // CORRECTED SYNTAX
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     const { seasonId, dates } = request.data;
     if (!seasonId || !dates) {
-        throw new functions.https.HttpsError('invalid-argument', 'Missing seasonId or dates.');
+        // CORRECTED SYNTAX
+        throw new HttpsError('invalid-argument', 'Missing seasonId or dates.');
     }
 
     console.log(`Generating postseason schedule for ${seasonId}`);
@@ -772,7 +776,8 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         const westConf = teamRecords.filter(t => t.conference === 'Western' && t.postseed).sort((a, b) => a.postseed - b.postseed);
 
         if (eastConf.length < 10 || westConf.length < 10) {
-            throw new functions.https.HttpsError('failed-precondition', 'Not all teams have a final postseed. Ensure the regular season is complete.');
+            // CORRECTED SYNTAX
+            throw new HttpsError('failed-precondition', 'Not all teams have a final postseed. Ensure the regular season is complete.');
         }
 
         const batch = db.batch();
@@ -845,7 +850,8 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
 
     } catch (error) {
         console.error("Error generating postseason schedule:", error);
-        throw new functions.https.HttpsError('internal', `Failed to generate schedule: ${error.message}`);
+        // CORRECTED SYNTAX
+        throw new HttpsError('internal', `Failed to generate schedule: ${error.message}`);
     }
 });
 
