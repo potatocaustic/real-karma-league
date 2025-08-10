@@ -11,47 +11,60 @@ admin.initializeApp({
 const db = admin.firestore();
 
 /**
- * Recursively deletes documents and subcollections in batches, updating progress.
- * @param {admin.firestore.Firestore} db The Firestore database instance.
- * @param {string} collectionPath The path of the collection to delete.
- * @param {number} batchSize The number of documents per batch.
- * @param {object} progress An object to track deleted count vs. total.
- * @param {string} progressLineHeader The header text for the progress line.
+ * Recursively counts all documents in a collection and its subcollections.
+ * @param {string} collectionPath The path of the collection to count.
+ * @returns {Promise<number>} The total number of documents.
  */
-async function deleteCollectionRecursive(db, collectionPath, batchSize, progress, progressLineHeader) {
+async function countDocsRecursive(collectionPath) {
+    let count = 0;
     const collectionRef = db.collection(collectionPath);
-    const query = collectionRef.orderBy('__name__').limit(batchSize);
+    const snapshot = await collectionRef.get();
+    count += snapshot.size;
 
-    const snapshot = await query.get();
-
-    // When there are no documents left, the recursion stops.
-    if (snapshot.empty) {
-        return;
-    }
-
-    const batch = db.batch();
     for (const doc of snapshot.docs) {
-        // Recursively delete subcollections first.
         const subcollections = await doc.ref.listCollections();
         for (const subcollection of subcollections) {
-            // Note: Progress for subcollections is part of the parent's total.
-            // This avoids overly complex and nested progress bars.
-            await deleteCollectionRecursive(db, `${doc.ref.path}/${subcollection.id}`, batchSize, null, null);
+            count += await countDocsRecursive(subcollection.path);
         }
-        batch.delete(doc.ref);
     }
-    await batch.commit();
+    return count;
+}
 
-    // Update and display progress only for top-level collections.
-    if (progress) {
+
+/**
+ * Deletes a collection and all its subcollections, updating a shared progress object.
+ * @param {string} collectionPath The path of the collection to delete.
+ * @param {object} progress A shared object to track { deleted, total }.
+ * @param {string} progressLineHeader The header text for the progress line.
+ */
+async function deleteCollectionWithProgress(collectionPath, progress, progressLineHeader) {
+    const collectionRef = db.collection(collectionPath);
+    const query = collectionRef.orderBy('__name__').limit(500);
+
+    while (true) {
+        const snapshot = await query.get();
+        if (snapshot.empty) {
+            break; // No more documents in this collection
+        }
+
+        // Recursively delete subcollections of documents in the current batch
+        for (const doc of snapshot.docs) {
+            const subcollections = await doc.ref.listCollections();
+            for (const subcollection of subcollections) {
+                await deleteCollectionWithProgress(subcollection.path, progress, progressLineHeader);
+            }
+        }
+
+        // Delete the documents in the current batch
+        const batch = db.batch();
+        snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+
+        // Update progress
         progress.deleted += snapshot.size;
-        const percentage = progress.total === 0 ? 100 : Math.round((progress.deleted / progress.total) * 100);
-        // Use carriage return '\r' to overwrite the line, creating a dynamic progress bar.
+        const percentage = Math.min(100, progress.total === 0 ? 100 : Math.round((progress.deleted / progress.total) * 100));
         process.stdout.write(`\r${progressLineHeader}${percentage}%`);
     }
-
-    // Recurse on the same collection to process the next batch.
-    await deleteCollectionRecursive(db, collectionPath, batchSize, progress, progressLineHeader);
 }
 
 
@@ -90,10 +103,13 @@ async function cleanupDevEnvironment() {
     for (let i = 0; i < totalToDelete; i++) {
         const collectionId = collectionsToDelete[i];
         try {
-            const collectionRef = db.collection(collectionId);
-            const countSnapshot = await collectionRef.count().get();
-            const totalDocs = countSnapshot.data().count;
             const progressLineHeader = `[${i + 1}/${totalToDelete}] Deleting '${collectionId}'... `;
+
+            // 1. Get total count first
+            process.stdout.write(`\r${progressLineHeader}Calculating total documents...`);
+            const totalDocs = await countDocsRecursive(collectionId);
+            // Clear the "calculating" line
+            process.stdout.write(`\r${' '.repeat(progressLineHeader.length + 30)}\r`);
 
             if (totalDocs === 0) {
                 console.log(`${progressLineHeader}100% (empty)`);
@@ -106,11 +122,11 @@ async function cleanupDevEnvironment() {
             // Initial print for the progress bar
             process.stdout.write(`${progressLineHeader}0%`);
 
-            await deleteCollectionRecursive(db, collectionId, 500, progress, progressLineHeader);
+            // 2. Start deletion
+            await deleteCollectionWithProgress(collectionId, progress, progressLineHeader);
             
-            // Clear the progress line and print the final success message
-            process.stdout.write(`\r${' '.repeat(progressLineHeader.length + 5)}\r`); // Clear the line
-            console.log(`${progressLineHeader}100%`);
+            // Final print
+            process.stdout.write(`\r${progressLineHeader}100%\n`);
             console.log(`✅ Successfully deleted collection: '${collectionId}'`);
 
         } catch (error) {
