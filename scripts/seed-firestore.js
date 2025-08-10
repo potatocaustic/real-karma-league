@@ -15,9 +15,9 @@ const SPREADSHEET_ID = "1D1YUw9931ikPLihip3tn7ynkoJGFUHxtogfrq_Hz3P0";
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
 const SEASON_ID = "S7";
 const SEASON_NUM = "7";
-const USE_DEV_COLLECTIONS = true; // <--- NEW: Flag to control environment
+const USE_DEV_COLLECTIONS = true; // Flag to control environment
 
-// --- NEW: Helper to switch between dev/prod collections ---
+// --- Helper to switch between dev/prod collections ---
 const getCollectionName = (baseName) => {
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 };
@@ -53,7 +53,7 @@ function parseNumber(value) {
     return isNaN(num) ? 0 : num;
 }
 
-// --- NEW: Ranking function from index.js ---
+// --- Ranking function from index.js ---
 function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0, excludeZeroes = false) {
     const rankedMap = new Map();
     let eligiblePlayers = players.filter(p => {
@@ -127,16 +127,16 @@ async function seedDatabase() {
         lineupsData,
         postLineupsData,
         draftPicksData,
-        transactionsData // <--- NEW: Fetch transaction log
+        transactionsData
     ] = await Promise.all([
         fetchSheetData("Players"),
         fetchSheetData("Teams"),
-        fetchSheetData("Schedule"), // Fetch all games first
+        fetchSheetData("Schedule"),
         fetchSheetData("Post_Schedule").then(data => data.filter(g => g.completed === 'TRUE')),
         fetchSheetData("Lineups"),
         fetchSheetData("Post_Lineups"),
         fetchSheetData("Draft_Capital"),
-        fetchSheetData("Transaction_Log") // <--- NEW
+        fetchSheetData("Transaction_Log")
     ]);
     console.log("All raw data fetched.");
 
@@ -356,7 +356,7 @@ async function seedDatabase() {
 
     allTeamCalculatedStats.forEach(t => teamSeasonalStats.set(t.teamId, t));
 
-    // --- NEW: Calculate Player Ranks ---
+    // --- Calculate Player Ranks ---
     console.log("Calculating player stat rankings...");
     const allPlayerStatsWithId = Array.from(playerSeasonalStats.entries()).map(([player_id, stats]) => ({ player_id, ...stats }));
     const regSeasonGpMinimum = completedScheduleData.length >= 60 ? 3 : 0;
@@ -456,7 +456,7 @@ async function seedDatabase() {
     }
     console.log(`Prepared ${playersData.length} players and their ranked seasonal stats for seeding.`);
 
-    // --- NEW: Calculate and set Season Summary Data ---
+    // Calculate and set Season Summary Data
     const seasonRef = db.collection(getCollectionName("seasons")).doc(SEASON_ID);
     const season_gs = scheduleData.length;
     const season_gp = completedScheduleData.length;
@@ -525,6 +525,19 @@ async function seedDatabase() {
     }
     console.log(`Prepared ${draftPicksData.length} draft picks for seeding.`);
 
+    // --- MODIFIED: Create placeholder documents for intermediate collections FIRST ---
+    console.log("Creating placeholder documents for intermediate collections...");
+    const intermediateCollections = ['daily_averages', 'daily_scores', 'post_daily_averages', 'post_daily_scores'];
+    for (const baseCollName of intermediateCollections) {
+        const collName = getCollectionName(baseCollName);
+        const docRef = db.doc(`${collName}/season_${SEASON_NUM}`);
+        const description = `${baseCollName.replace(/_/g, ' ')} for Season ${SEASON_NUM}`;
+        batch.set(docRef, { description: description });
+        writeCount++;
+        await commitBatchIfNeeded();
+    }
+
+
     // Seed Intermediate Collections
     const seedIntermediate = async (map, baseCollName) => {
         const collName = getCollectionName(baseCollName);
@@ -561,7 +574,7 @@ async function seedDatabase() {
     await seedScores(postDailyScores, 'post_daily_scores');
     console.log(`Prepared ${dailyScores.length + postDailyScores.length} daily team score documents.`);
 
-    // --- NEW: Seed Leaderboards and Awards ---
+    // --- Seed Leaderboards and Awards ---
     console.log("Seeding leaderboards and awards...");
 
     // Regular Season Leaderboards
