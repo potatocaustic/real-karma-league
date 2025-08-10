@@ -496,8 +496,8 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
         
         contentArea.innerHTML = `
             <div class="game-details-grid">
-                ${generateLineupTable(team1Lineups, team1, !isLiveGame && game.winner === team1.id)}
-                ${generateLineupTable(team2Lineups, team2, !isLiveGame && game.winner === team2.id)}
+                ${generateLineupTable(team1Lineups, team1, !isLiveGame && game.winner === team1.id, isLiveGame)}
+                ${generateLineupTable(team2Lineups, team2, !isLiveGame && game.winner === team2.id, isLiveGame)}
             </div>
         `;
 

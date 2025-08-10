@@ -130,10 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {boolean} isWinner - Whether this team is the winner.
  * @returns {string} The HTML string for the team breakdown.
  */
-export function generateLineupTable(lineups, team, isWinner) {
+export function generateLineupTable(lineups, team, isWinner, isLive = false) {
     if (!team) return '<div>Team data not found</div>';
     const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
     const winnerCheck = isWinner ? '✅ ' : '';
+    
+    // Add the live indicator only if the isLive flag is true
+    const liveIndicator = isLive ? '<span class="live-indicator-modal"></span>' : '';
 
     // Sorting logic: captain first, then by points
     const captain = lineups.find(p => p.is_captain === "TRUE" || p.is_captain === true);
@@ -150,7 +153,7 @@ export function generateLineupTable(lineups, team, isWinner) {
                     <span class="modal-team-record">(${team.wins}-${team.losses})</span>
                 </div>
             </div>
-            <div class="team-total">${winnerCheck}Total: ${Math.round(totalPoints).toLocaleString()}</div>
+            <div class="team-total">${winnerCheck}Total: ${Math.round(totalPoints).toLocaleString()}${liveIndicator}</div>
             <table class="lineup-table">
                 <thead><tr><th>Player</th><th>Points</th><th>Rank</th></tr></thead>
                 <tbody>

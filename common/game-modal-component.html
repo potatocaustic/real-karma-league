@@ -225,6 +225,28 @@
         text-align: center;
         color: #666;
     }
+    .team-total {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .live-indicator-modal {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        background-color: #dc3545;
+        border-radius: 50%;
+        margin-left: 8px;
+        vertical-align: middle;
+        animation: pulse-live 1.5s infinite;
+    }
+
+    @keyframes pulse-live {
+        0% { opacity: 1; }
+        50% { opacity: 0.4; }
+        100% { opacity: 1; }
+    }
 
     /*
     ===================================================================
