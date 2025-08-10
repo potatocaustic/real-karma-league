@@ -45,18 +45,24 @@ function calculateGeometricMean(numbers) {
     return Math.pow(product, 1 / nonZeroNumbers.length);
 }
 
-function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0, excludeZeroes = false) {
+function getRanks(items, idField, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0, excludeZeroes = false) {
     const rankedMap = new Map();
-    let eligiblePlayers = players.filter(p => {
-        const gamesPlayedField = primaryStat.startsWith('post_') ? 'post_games_played' : 'games_played';
-        return (p[gamesPlayedField] || 0) >= gpMinimum;
-    });
+    let eligibleItems = [...items]; // Create a mutable copy
 
-    if (excludeZeroes) {
-        eligiblePlayers = eligiblePlayers.filter(p => (p[primaryStat] || 0) !== 0);
+    // The games played filter should only apply if gpMinimum is specified.
+    if (gpMinimum > 0) {
+        eligibleItems = items.filter(p => {
+            const gamesPlayedField = primaryStat.startsWith('post_') ? 'post_games_played' : 'games_played';
+            return (p[gamesPlayedField] || 0) >= gpMinimum;
+        });
     }
 
-    eligiblePlayers.sort((a, b) => {
+
+    if (excludeZeroes) {
+        eligibleItems = eligibleItems.filter(p => (p[primaryStat] || 0) !== 0);
+    }
+
+    eligibleItems.sort((a, b) => {
         const aPrimary = a[primaryStat] || 0;
         const bPrimary = b[primaryStat] || 0;
         const primaryCompare = isAscending ? aPrimary - bPrimary : bPrimary - aPrimary;
@@ -70,8 +76,8 @@ function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = fal
         return 0;
     });
 
-    eligiblePlayers.forEach((player, index) => {
-        rankedMap.set(player.player_id, index + 1);
+    eligibleItems.forEach((item, index) => {
+        rankedMap.set(item[idField], index + 1);
     });
     return rankedMap;
 }
@@ -84,12 +90,13 @@ async function simulateSeason() {
     // 1. FETCH TEAMS AND PLAYERS
     process.stdout.write("[1/9] Fetching teams and players...");
     const teamsSnap = await db.collection(getCollectionName("v2_teams")).get();
+    // MODIFIED: Use team_id consistently
     const allTeams = teamsSnap.docs
-        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .map(doc => ({ team_id: doc.id, ...doc.data() }))
         .filter(team => team.conference === 'Eastern' || team.conference === 'Western');
 
     const playersSnap = await db.collection(getCollectionName("v2_players")).get();
-    const allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const allPlayers = playersSnap.docs.map(doc => ({ player_id: doc.id, ...doc.data() }));
 
     if (allTeams.length < 2) {
         console.error("Not enough valid conference teams found to generate a schedule. Aborting.");
@@ -111,8 +118,9 @@ async function simulateSeason() {
             const team2Index = Math.floor(Math.random() * teamsToSchedule.length);
             const [team2] = teamsToSchedule.splice(team2Index, 1);
             const formattedDate = `${gameDate.getMonth() + 1}/${gameDate.getDate()}/${gameDate.getFullYear()}`;
-            const gameId = `${formattedDate}-${team1.id}-${team2.id}`.replace(/\//g, "-");
-            schedule.push({ id: gameId, week: String(week), date: formattedDate, team1_id: team1.id, team2_id: team2.id, completed: 'FALSE', team1_score: 0, team2_score: 0, winner: '' });
+            // MODIFIED: Use team_id consistently
+            const gameId = `${formattedDate}-${team1.team_id}-${team2.team_id}`.replace(/\//g, "-");
+            schedule.push({ id: gameId, week: String(week), date: formattedDate, team1_id: team1.team_id, team2_id: team2.team_id, completed: 'FALSE', team1_score: 0, team2_score: 0, winner: '' });
         }
         gameDate.setDate(gameDate.getDate() + 7);
     }
@@ -131,7 +139,8 @@ async function simulateSeason() {
             teamPlayers.forEach((player, index) => {
                 const points_adjusted = Math.floor(Math.random() * 150000);
                 const global_rank = Math.floor(Math.random() * 3000) + 1;
-                allLineups.push({ id: `${game.id}-${player.id}`, game_id: game.id, player_id: player.id, player_handle: player.player_handle, team_id: teamId, date: game.date, week: game.week, started: 'TRUE', is_captain: index === 0 ? 'TRUE' : 'FALSE', points_adjusted, global_rank, raw_score: points_adjusted });
+                // MODIFIED: Use player_id consistently
+                allLineups.push({ id: `${game.id}-${player.player_id}`, game_id: game.id, player_id: player.player_id, player_handle: player.player_handle, team_id: teamId, date: game.date, week: game.week, started: 'TRUE', is_captain: index === 0 ? 'TRUE' : 'FALSE', points_adjusted, global_rank, raw_score: points_adjusted });
             });
         });
     }
@@ -225,7 +234,8 @@ async function simulateSeason() {
     }
 
     const teamSeasonalStats = new Map();
-    allTeams.forEach(t => teamSeasonalStats.set(t.id, { id: t.id, conference: t.conference, wins: 0, losses: 0, pam: 0, apPAM_total: 0, apPAM_count: 0, ranks: [] }));
+    // MODIFIED: Use team_id consistently
+    allTeams.forEach(t => teamSeasonalStats.set(t.team_id, { team_id: t.team_id, conference: t.conference, wins: 0, losses: 0, pam: 0, apPAM_total: 0, apPAM_count: 0, ranks: [] }));
     schedule.forEach(g => {
         teamSeasonalStats.get(g.winner).wins++;
         const loserId = g.team1_id === g.winner ? g.team2_id : g.team1_id;
@@ -255,24 +265,32 @@ async function simulateSeason() {
     process.stdout.write("[7/9] Calculating all player and team ranks...");
     const allPlayerStatsWithId = Array.from(playerSeasonalStats.entries()).map(([player_id, stats]) => ({ player_id, ...stats }));
     const allTeamCalculatedStats = Array.from(teamSeasonalStats.values());
+    
     const playerRankings = {
-        total_points: getRanks(allPlayerStatsWithId, 'total_points'), rel_mean: getRanks(allPlayerStatsWithId, 'rel_mean', null, false, 3),
-        rel_median: getRanks(allPlayerStatsWithId, 'rel_median', null, false, 3), GEM: getRanks(allPlayerStatsWithId, 'GEM', null, true, 3),
-        WAR: getRanks(allPlayerStatsWithId, 'WAR'), medrank: getRanks(allPlayerStatsWithId, 'medrank', null, true, 3),
-        meanrank: getRanks(allPlayerStatsWithId, 'meanrank', null, true, 3), aag_mean: getRanks(allPlayerStatsWithId, 'aag_mean', 'aag_mean_pct'),
-        aag_median: getRanks(allPlayerStatsWithId, 'aag_median', 'aag_median_pct'), t100: getRanks(allPlayerStatsWithId, 't100', 't100_pct'),
-        t50: getRanks(allPlayerStatsWithId, 't50', 't50_pct'),
+        total_points: getRanks(allPlayerStatsWithId, 'player_id', 'total_points'),
+        rel_mean: getRanks(allPlayerStatsWithId, 'player_id', 'rel_mean', null, false, 3),
+        rel_median: getRanks(allPlayerStatsWithId, 'player_id', 'rel_median', null, false, 3),
+        GEM: getRanks(allPlayerStatsWithId, 'player_id', 'GEM', null, true, 3),
+        WAR: getRanks(allPlayerStatsWithId, 'player_id', 'WAR'),
+        medrank: getRanks(allPlayerStatsWithId, 'player_id', 'medrank', null, true, 3),
+        meanrank: getRanks(allPlayerStatsWithId, 'player_id', 'meanrank', null, true, 3),
+        aag_mean: getRanks(allPlayerStatsWithId, 'player_id', 'aag_mean', 'aag_mean_pct'),
+        aag_median: getRanks(allPlayerStatsWithId, 'player_id', 'aag_median', 'aag_median_pct'),
+        t100: getRanks(allPlayerStatsWithId, 'player_id', 't100', 't100_pct'),
+        t50: getRanks(allPlayerStatsWithId, 'player_id', 't50', 't50_pct'),
     };
     for (const [playerId, stats] of playerSeasonalStats.entries()) {
         for (const key in playerRankings) stats[`${key}_rank`] = playerRankings[key].get(playerId) || null;
     }
+    
+    // MODIFIED: Use team_id consistently
     const teamRankings = {
-        msr_rank: getRanks(allTeamCalculatedStats, 'med_starter_rank', null, true),
-        pam_rank: getRanks(allTeamCalculatedStats, 'pam', null, false)
+        msr_rank: getRanks(allTeamCalculatedStats, 'team_id', 'med_starter_rank', null, true),
+        pam_rank: getRanks(allTeamCalculatedStats, 'team_id', 'pam', null, false)
     };
     for (const stats of teamSeasonalStats.values()) {
-        stats.msr_rank = teamRankings.msr_rank.get(stats.id);
-        stats.pam_rank = teamRankings.pam_rank.get(stats.id);
+        stats.msr_rank = teamRankings.msr_rank.get(stats.team_id) || null;
+        stats.pam_rank = teamRankings.pam_rank.get(stats.team_id) || null;
     }
     console.log(" Done.");
 
@@ -294,7 +312,7 @@ async function simulateSeason() {
             await batch.commit();
             batch = db.batch();
             writeCount = 0;
-            process.stdout.write('.'); // Progress indicator
+            process.stdout.write('.');
         }
     };
 
@@ -302,7 +320,6 @@ async function simulateSeason() {
     for (const game of schedule) { batch.set(seasonRef.collection(getCollectionName("games")).doc(game.id), game); writeCount++; await commitBatchIfNeeded(); }
     for (const lineup of allLineups) { batch.set(seasonRef.collection(getCollectionName("lineups")).doc(lineup.id), lineup); writeCount++; await commitBatchIfNeeded(); }
     
-    // Create and write intermediate collection placeholders and data
     const intermediateCollections = ['daily_averages', 'daily_scores'];
     for (const baseCollName of intermediateCollections) {
         batch.set(db.doc(`${getCollectionName(baseCollName)}/season_${SEASON_NUM}`), { description: `Simulation data for ${baseCollName}` });
@@ -315,11 +332,9 @@ async function simulateSeason() {
     }
     for (const score of dailyScores) { batch.set(db.doc(`${getCollectionName('daily_scores')}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_daily_scores`)}/${score.docId}`), score.data); writeCount++; await commitBatchIfNeeded(); }
     
-    // Write Seasonal Stats
     for (const [playerId, stats] of playerSeasonalStats.entries()) { batch.set(db.doc(`${getCollectionName('v2_players')}/${playerId}/${getCollectionName('seasonal_stats')}/${SEASON_ID}`), stats); writeCount++; await commitBatchIfNeeded(); }
     for (const [teamId, stats] of teamSeasonalStats.entries()) { batch.set(db.doc(`${getCollectionName('v2_teams')}/${teamId}/${getCollectionName('seasonal_records')}/${SEASON_ID}`), stats); writeCount++; await commitBatchIfNeeded(); }
     
-    // Write Leaderboards (with placeholders)
     const leaderboardCollRef = db.collection(getCollectionName('leaderboards'));
     batch.set(leaderboardCollRef.doc('single_game_karma'), { description: "Regular season single game karma leaderboard." }, { merge: true });
     batch.set(leaderboardCollRef.doc('single_game_rank'), { description: "Regular season single game rank leaderboard." }, { merge: true });
@@ -328,7 +343,6 @@ async function simulateSeason() {
     batch.set(leaderboardCollRef.doc('single_game_karma').collection(SEASON_ID).doc('data'), { rankings: karmaLeaderboard });
     batch.set(leaderboardCollRef.doc('single_game_rank').collection(SEASON_ID).doc('data'), { rankings: rankLeaderboard });
     
-    // Write Awards (with placeholders)
     const awardsParentDocRef = db.doc(`${getCollectionName('awards')}/season_${SEASON_NUM}`);
     batch.set(awardsParentDocRef, { description: `Awards for Season ${SEASON_NUM}` });
     const awardsCollectionRef = awardsParentDocRef.collection(getCollectionName(`S${SEASON_NUM}_awards`));
@@ -336,11 +350,10 @@ async function simulateSeason() {
         batch.set(awardsCollectionRef.doc('best_performance_player'), { award_name: "Best Performance (Player)", player_id: bestPlayerPerf.player_id, player_handle: bestPlayerPerf.player_handle, team_id: bestPlayerPerf.team_id, date: bestPlayerPerf.date, value: bestPlayerPerf.pct_above_median });
     }
     if (bestTeamPerf) {
-        const teamName = allTeams.find(t => t.id === bestTeamPerf.team_id)?.team_name || 'Unknown';
+        const teamName = allTeams.find(t => t.team_id === bestTeamPerf.team_id)?.team_name || 'Unknown';
         batch.set(awardsCollectionRef.doc('best_performance_team'), { award_name: "Best Performance (Team)", team_id: bestTeamPerf.team_id, team_name: teamName, date: bestTeamPerf.date, value: bestTeamPerf.pct_above_median });
     }
 
-    // Write Season Summary
     const season_karma = Array.from(playerSeasonalStats.values()).reduce((sum, p) => sum + (p.total_points || 0), 0);
     batch.set(seasonRef, { season_name: `Season ${SEASON_NUM}`, status: "completed", gs: schedule.length, gp: schedule.length, season_karma: season_karma, season_trans: 0, current_week: "Season Complete" }, { merge: true });
 
