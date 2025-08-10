@@ -896,13 +896,9 @@
             direction: 'desc'
         };
 
-        /**
-         * CORRECTED: Fetches single-game leaderboard data from the correct subcollection path.
-         */
         async function fetchSingleGameLeaderboard(boardName) {
             const docRef = doc(db, getCollectionName('leaderboards'), boardName, SEASON_ID, 'data');
             const docSnap = await getDoc(docRef);
-            // The season is now validated by the path, so we no longer check the `seasonId` field.
             return docSnap.exists() ? (docSnap.data().rankings || []) : [];
         }
         
@@ -998,7 +994,8 @@
                 const teamFilterChecklistContainer = document.getElementById('team-filter-checklist');
                 teamFilterChecklistContainer.innerHTML = ''; 
 
-                const activeTeams = allTeamsData.filter(team => team.id && team.team_name && team.id.toUpperCase() !== 'FA' && team.id.toUpperCase() !== 'RETIRED' && team.id.toUpperCase() !== 'FREE_AGENT');
+                // --- MODIFIED: Filter for teams with a valid conference ---
+                const activeTeams = allTeamsData.filter(team => team.conference === 'Eastern' || team.conference === 'Western');
                 activeTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
 
                 const allTeamsLabel = document.createElement('label');
