@@ -1718,9 +1718,9 @@ async function performPlayerRankingUpdate() {
     await batch.commit();
     console.log(`Player ranking update complete for season ${seasonId}.`);
 }
-
 /**
  * Core logic to update single game performance leaderboards.
+ * This function now creates separate leaderboards for regular season and postseason.
  */
 async function performPerformanceRankingUpdate() {
     console.log("Starting single-performance leaderboard update...");
@@ -1731,39 +1731,72 @@ async function performPerformanceRankingUpdate() {
     }
     const seasonId = activeSeasonSnap.docs[0].id;
 
-    // --- FIXED QUERY LOGIC ---
-    // 1. Define the explicit paths to the season's subcollections.
+    // --- SEPARATE REGULAR AND POSTSEASON DATA FETCHING ---
     const lineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('lineups'));
     const postLineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_lineups'));
 
-    // 2. Fetch from both collections simultaneously.
     const [lineupsSnap, postLineupsSnap] = await Promise.all([
         lineupsRef.get(),
         postLineupsRef.get()
     ]);
 
-    // 3. Combine the results into a single array.
-    const allPerformances = [...lineupsSnap.docs, ...postLineupsSnap.docs].map(d => d.data());
-    // --- END OF FIX ---
-
-    const karmaLeaderboard = [...allPerformances]
-        .sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0))
-        .slice(0, 250);
-
-    const rankLeaderboard = [...allPerformances]
-        .filter(p => (p.global_rank || 0) > 0)
-        .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
-        .slice(0, 250);
-
     const batch = db.batch();
-    const leaderboardsCollection = getCollectionName('leaderboards');
 
-    batch.set(db.doc(`${leaderboardsCollection}/single_game_karma`), { seasonId, rankings: karmaLeaderboard });
-    batch.set(db.doc(`${leaderboardsCollection}/single_game_rank`), { seasonId, rankings: rankLeaderboard });
+    // --- PROCESS AND WRITE REGULAR SEASON LEADERBOARDS ---
+    if (!lineupsSnap.empty) {
+        const regularSeasonPerformances = lineupsSnap.docs.map(d => d.data());
+
+        const karmaLeaderboard = [...regularSeasonPerformances]
+            .sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0))
+            .slice(0, 250);
+
+        const rankLeaderboard = [...regularSeasonPerformances]
+            .filter(p => (p.global_rank || 0) > 0)
+            .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
+            .slice(0, 250);
+
+        const leaderboardsCollection = getCollectionName('leaderboards');
+        const karmaLeaderboardRef = db.collection(leaderboardsCollection).doc('single_game_karma').collection(seasonId).doc('data');
+        const rankLeaderboardRef = db.collection(leaderboardsCollection).doc('single_game_rank').collection(seasonId).doc('data');
+
+        batch.set(karmaLeaderboardRef, { rankings: karmaLeaderboard });
+        batch.set(rankLeaderboardRef, { rankings: rankLeaderboard });
+
+        console.log(`Regular season single-performance leaderboards updated for season ${seasonId}.`);
+    } else {
+        console.log(`No regular season performances found for season ${seasonId}. Skipping regular season leaderboard update.`);
+    }
+
+
+    // --- PROCESS AND WRITE POSTSEASON LEADERBOARDS ---
+    if (!postLineupsSnap.empty) {
+        const postseasonPerformances = postLineupsSnap.docs.map(d => d.data());
+
+        const postKarmaLeaderboard = [...postseasonPerformances]
+            .sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0))
+            .slice(0, 250);
+
+        const postRankLeaderboard = [...postseasonPerformances]
+            .filter(p => (p.global_rank || 0) > 0)
+            .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
+            .slice(0, 250);
+
+        const postLeaderboardsCollection = getCollectionName('post_leaderboards');
+        const postKarmaLeaderboardRef = db.collection(postLeaderboardsCollection).doc('post_single_game_karma').collection(seasonId).doc('data');
+        const postRankLeaderboardRef = db.collection(postLeaderboardsCollection).doc('post_single_game_rank').collection(seasonId).doc('data');
+
+        batch.set(postKarmaLeaderboardRef, { rankings: postKarmaLeaderboard });
+        batch.set(postRankLeaderboardRef, { rankings: postRankLeaderboard });
+
+        console.log(`Postseason single-performance leaderboards updated for season ${seasonId}.`);
+    } else {
+        console.log(`No postseason performances found for season ${seasonId}. Skipping postseason leaderboard update.`);
+    }
 
     await batch.commit();
-    console.log("Single-performance leaderboard update complete.");
+    console.log("Single-performance leaderboard update process complete.");
 }
+
 
 /**
  * Scheduled function to update player ranks daily.

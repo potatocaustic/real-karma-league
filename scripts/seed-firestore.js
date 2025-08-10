@@ -10,10 +10,18 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
+// --- CONFIGURATION ---
 const SPREADSHEET_ID = "1D1YUw9931ikPLihip3tn7ynkoJGFUHxtogfrq_Hz3P0";
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
 const SEASON_ID = "S7";
 const SEASON_NUM = "7";
+const USE_DEV_COLLECTIONS = true; // <--- NEW: Flag to control environment
+
+// --- NEW: Helper to switch between dev/prod collections ---
+const getCollectionName = (baseName) => {
+    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+};
+
 
 // --- Helper Functions from Cloud Functions ---
 function calculateMedian(numbers) {
@@ -24,6 +32,12 @@ function calculateMedian(numbers) {
         return (sorted[middleIndex - 1] + sorted[middleIndex]) / 2;
     }
     return sorted[middleIndex];
+}
+
+function calculateMean(numbers) {
+    if (!numbers || numbers.length === 0) return 0;
+    const sum = numbers.reduce((acc, val) => acc + val, 0);
+    return sum / numbers.length;
 }
 
 function calculateGeometricMean(numbers) {
@@ -38,6 +52,39 @@ function parseNumber(value) {
     const num = parseFloat(String(value).replace(/,/g, ''));
     return isNaN(num) ? 0 : num;
 }
+
+// --- NEW: Ranking function from index.js ---
+function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0, excludeZeroes = false) {
+    const rankedMap = new Map();
+    let eligiblePlayers = players.filter(p => {
+        const gamesPlayedField = primaryStat.startsWith('post_') ? 'post_games_played' : 'games_played';
+        return (p[gamesPlayedField] || 0) >= gpMinimum;
+    });
+
+    if (excludeZeroes) {
+        eligiblePlayers = eligiblePlayers.filter(p => (p[primaryStat] || 0) !== 0);
+    }
+
+    eligiblePlayers.sort((a, b) => {
+        const aPrimary = a[primaryStat] || 0;
+        const bPrimary = b[primaryStat] || 0;
+        const primaryCompare = isAscending ? aPrimary - bPrimary : bPrimary - aPrimary;
+        if (primaryCompare !== 0) return primaryCompare;
+
+        if (tiebreakerStat) {
+            const aSecondary = a[tiebreakerStat] || 0;
+            const bSecondary = b[tiebreakerStat] || 0;
+            return bSecondary - aSecondary;
+        }
+        return 0;
+    });
+
+    eligiblePlayers.forEach((player, index) => {
+        rankedMap.set(player.player_id, index + 1);
+    });
+    return rankedMap;
+}
+
 
 // --- Data Fetching and Parsing ---
 async function fetchSheetData(sheetName) {
@@ -79,17 +126,21 @@ async function seedDatabase() {
         postScheduleData,
         lineupsData,
         postLineupsData,
-        draftPicksData
+        draftPicksData,
+        transactionsData // <--- NEW: Fetch transaction log
     ] = await Promise.all([
         fetchSheetData("Players"),
         fetchSheetData("Teams"),
-        fetchSheetData("Schedule").then(data => data.filter(g => g.completed === 'TRUE')),
+        fetchSheetData("Schedule"), // Fetch all games first
         fetchSheetData("Post_Schedule").then(data => data.filter(g => g.completed === 'TRUE')),
         fetchSheetData("Lineups"),
         fetchSheetData("Post_Lineups"),
-        fetchSheetData("Draft_Capital")
+        fetchSheetData("Draft_Capital"),
+        fetchSheetData("Transaction_Log") // <--- NEW
     ]);
     console.log("All raw data fetched.");
+
+    const completedScheduleData = scheduleData.filter(g => g.completed === 'TRUE');
 
     [...lineupsData, ...postLineupsData].forEach(l => {
         l.points_adjusted = parseNumber(l.points_adjusted);
@@ -167,7 +218,7 @@ async function seedDatabase() {
         }
     };
     console.log("Calculating daily team scores...");
-    processTeamScores(scheduleData, dailyScores);
+    processTeamScores(completedScheduleData, dailyScores);
     processTeamScores(postScheduleData, postDailyScores);
 
     // --- 3. AGGREGATE SEASONAL STATS ---
@@ -207,6 +258,10 @@ async function seedDatabase() {
                 stats[statKey('medrank')] = calculateMedian(stats[statKey('ranks')] || []);
                 stats[statKey('meanrank')] = calculateMean(stats[statKey('ranks')] || []);
                 stats[statKey('GEM')] = calculateGeometricMean(stats[statKey('ranks')] || []);
+                stats[statKey('t100')] = (stats[statKey('ranks')] || []).filter(r => r > 0 && r <= 100).length;
+                stats[statKey('t50')] = (stats[statKey('ranks')] || []).filter(r => r > 0 && r <= 50).length;
+                stats[statKey('t100_pct')] = stats[statKey('t100')] / stats[statKey('games_played')];
+                stats[statKey('t50_pct')] = stats[statKey('t50')] / stats[statKey('games_played')];
                 delete stats[statKey('ranks')];
             }
         }
@@ -268,7 +323,7 @@ async function seedDatabase() {
     };
 
     console.log("Aggregating team seasonal stats...");
-    aggregateTeamStats(scheduleData, dailyScores, lineupsData, false);
+    aggregateTeamStats(completedScheduleData, dailyScores, lineupsData, false);
     aggregateTeamStats(postScheduleData, postDailyScores, postLineupsData, true);
 
     const allTeamCalculatedStats = Array.from(teamSeasonalStats.entries()).map(([teamId, stats]) => ({ teamId, ...stats }));
@@ -301,10 +356,47 @@ async function seedDatabase() {
 
     allTeamCalculatedStats.forEach(t => teamSeasonalStats.set(t.teamId, t));
 
-    // --- 4. SEED DATABASE ---
+    // --- NEW: Calculate Player Ranks ---
+    console.log("Calculating player stat rankings...");
+    const allPlayerStatsWithId = Array.from(playerSeasonalStats.entries()).map(([player_id, stats]) => ({ player_id, ...stats }));
+    const regSeasonGpMinimum = completedScheduleData.length >= 60 ? 3 : 0;
+    const postSeasonGpMinimum = 0;
+    const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
 
-    // NEW: Batching helper function
-    const BATCH_SIZE = 400; // Keep well under the 500 limit
+    const leaderboards = {
+        total_points: getRanks(allPlayerStatsWithId, 'total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
+        rel_mean: getRanks(allPlayerStatsWithId, 'rel_mean', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
+        rel_median: getRanks(allPlayerStatsWithId, 'rel_median', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
+        GEM: getRanks(allPlayerStatsWithId, 'GEM', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
+        WAR: getRanks(allPlayerStatsWithId, 'WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
+        medrank: getRanks(allPlayerStatsWithId, 'medrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
+        meanrank: getRanks(allPlayerStatsWithId, 'meanrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
+        aag_mean: getRanks(allPlayerStatsWithId, 'aag_mean', 'aag_mean_pct'),
+        aag_median: getRanks(allPlayerStatsWithId, 'aag_median', 'aag_median_pct'),
+        t100: getRanks(allPlayerStatsWithId, 't100', 't100_pct'),
+        t50: getRanks(allPlayerStatsWithId, 't50', 't50_pct'),
+        post_total_points: getRanks(allPlayerStatsWithId, 'post_total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
+        post_rel_mean: getRanks(allPlayerStatsWithId, 'post_rel_mean', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
+        post_rel_median: getRanks(allPlayerStatsWithId, 'post_rel_median', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
+        post_GEM: getRanks(allPlayerStatsWithId, 'post_GEM', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
+        post_WAR: getRanks(allPlayerStatsWithId, 'post_WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
+        post_medrank: getRanks(allPlayerStatsWithId, 'post_medrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
+        post_meanrank: getRanks(allPlayerStatsWithId, 'post_meanrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
+        post_aag_mean: getRanks(allPlayerStatsWithId, 'post_aag_mean', 'post_aag_mean_pct'),
+        post_aag_median: getRanks(allPlayerStatsWithId, 'post_aag_median', 'post_aag_median_pct'),
+        post_t100: getRanks(allPlayerStatsWithId, 'post_t100', 'post_t100_pct'),
+        post_t50: getRanks(allPlayerStatsWithId, 'post_t50', 'post_t50_pct'),
+    };
+
+    for (const [playerId, stats] of playerSeasonalStats.entries()) {
+        for (const key in leaderboards) {
+            stats[`${key}_rank`] = leaderboards[key].get(playerId) || null;
+        }
+    }
+
+
+    // --- 4. SEED DATABASE ---
+    const BATCH_SIZE = 400;
     let batch = db.batch();
     let writeCount = 0;
 
@@ -319,7 +411,7 @@ async function seedDatabase() {
 
     // Seed Teams and Seasonal Records
     for (const team of teamsData) {
-        const teamDocRef = db.collection("v2_teams_dev").doc(team.team_id);
+        const teamDocRef = db.collection(getCollectionName("v2_teams")).doc(team.team_id);
         const staticData = {
             team_id: team.team_id,
             conference: team.conference,
@@ -333,16 +425,16 @@ async function seedDatabase() {
         seasonalData.team_name = team.team_name;
         delete seasonalData.teamId;
 
-        const seasonRecordRef = teamDocRef.collection("seasonal_records_dev").doc(SEASON_ID);
+        const seasonRecordRef = teamDocRef.collection(getCollectionName("seasonal_records")).doc(SEASON_ID);
         batch.set(seasonRecordRef, seasonalData, { merge: true });
         writeCount++;
         await commitBatchIfNeeded();
     }
     console.log(`Prepared ${teamsData.length} teams and their seasonal stats for seeding.`);
 
-    // Seed Players and Seasonal Stats
+    // Seed Players and Seasonal Stats (Now with Ranks)
     for (const player of playersData) {
-        const playerDocRef = db.collection("v2_players_dev").doc(player.player_id);
+        const playerDocRef = db.collection(getCollectionName("v2_players")).doc(player.player_id);
         const staticData = {
             player_handle: player.player_handle,
             player_status: player.player_status,
@@ -356,23 +448,38 @@ async function seedDatabase() {
             seasonalData.rookie = player.rookie || '0';
             seasonalData.all_star = player.all_star || '0';
 
-            const seasonStatsRef = playerDocRef.collection("seasonal_stats_dev").doc(SEASON_ID);
+            const seasonStatsRef = playerDocRef.collection(getCollectionName("seasonal_stats")).doc(SEASON_ID);
             batch.set(seasonStatsRef, seasonalData);
             writeCount++;
         }
         await commitBatchIfNeeded();
     }
-    console.log(`Prepared ${playersData.length} players and their seasonal stats for seeding.`);
+    console.log(`Prepared ${playersData.length} players and their ranked seasonal stats for seeding.`);
 
-    const seasonRef = db.collection("seasons_dev").doc(SEASON_ID);
-    batch.set(seasonRef, { season_name: `Season ${SEASON_NUM}`, status: "active" });
+    // --- NEW: Calculate and set Season Summary Data ---
+    const seasonRef = db.collection(getCollectionName("seasons")).doc(SEASON_ID);
+    const season_gs = scheduleData.length;
+    const season_gp = completedScheduleData.length;
+    const season_karma = allPlayerStatsWithId.reduce((sum, p) => sum + (p.total_points || 0) + (p.post_total_points || 0), 0);
+    const season_trans = new Set(transactionsData.map(t => t.transaction_id).filter(Boolean)).size;
+
+    batch.set(seasonRef, {
+        season_name: `Season ${SEASON_NUM}`,
+        status: "completed", // Historical seasons are completed
+        gs: season_gs,
+        gp: season_gp,
+        season_karma: season_karma,
+        season_trans: season_trans,
+        current_week: "Season Complete"
+    }, { merge: true });
     writeCount++;
-    console.log(`Prepared parent document for season ${SEASON_ID}.`);
+    console.log(`Prepared parent document for season ${SEASON_ID} with summary stats.`);
+
 
     // Seed Games
     for (const game of [...scheduleData, ...postScheduleData]) {
         const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
-        const collectionName = scheduleData.includes(game) ? "games_dev" : "post_games_dev";
+        const collectionName = scheduleData.includes(game) ? getCollectionName("games") : getCollectionName("post_games");
         batch.set(seasonRef.collection(collectionName).doc(gameId), game);
         writeCount++;
         await commitBatchIfNeeded();
@@ -399,7 +506,7 @@ async function seedDatabase() {
         const teams = [lineup.team_id, opponentId].sort();
         const gameId = `${date}-${teams[0]}-${teams[1]}`;
         const lineupId = `${gameId}-${lineup.player_id}`;
-        const collectionName = lineupsData.includes(lineup) ? "lineups_dev" : "post_lineups_dev";
+        const collectionName = lineupsData.includes(lineup) ? getCollectionName("lineups") : getCollectionName("post_lineups");
         lineup.game_id = gameId;
 
         batch.set(seasonRef.collection(collectionName).doc(lineupId), lineup);
@@ -411,7 +518,7 @@ async function seedDatabase() {
     // Seed Draft Picks
     for (const pick of draftPicksData) {
         if (pick.pick_id) {
-            batch.set(db.collection("draftPicks_dev").doc(pick.pick_id), pick);
+            batch.set(db.collection(getCollectionName("draftPicks")).doc(pick.pick_id), pick);
             writeCount++;
             await commitBatchIfNeeded();
         }
@@ -419,7 +526,8 @@ async function seedDatabase() {
     console.log(`Prepared ${draftPicksData.length} draft picks for seeding.`);
 
     // Seed Intermediate Collections
-    const seedIntermediate = async (map, collName) => {
+    const seedIntermediate = async (map, baseCollName) => {
+        const collName = getCollectionName(baseCollName);
         for (const [date, data] of map.entries()) {
             if (!date || typeof date !== 'string' || !date.includes('/')) {
                 console.warn(`Skipping invalid or empty date key found in source data for collection: ${collName}`);
@@ -431,7 +539,7 @@ async function seedDatabase() {
                 continue;
             }
             const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-            const docRef = db.doc(`${collName}_dev/season_${SEASON_NUM}/S${SEASON_NUM}_${collName}_dev/${yyyymmdd}`);
+            const docRef = db.doc(`${collName}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_${baseCollName}`)}/${yyyymmdd}`);
             batch.set(docRef, data);
             writeCount++;
             await commitBatchIfNeeded();
@@ -441,17 +549,61 @@ async function seedDatabase() {
     await seedIntermediate(postDailyAveragesMap, 'post_daily_averages');
     console.log(`Prepared ${dailyAveragesMap.size + postDailyAveragesMap.size} daily average documents.`);
 
-    for (const s of dailyScores) {
-        batch.set(db.doc(`daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_daily_scores_dev/${s.docId}`), s.data);
-        writeCount++;
-        await commitBatchIfNeeded();
-    }
-    for (const s of postDailyScores) {
-        batch.set(db.doc(`post_daily_scores_dev/season_${SEASON_NUM}/S${SEASON_NUM}_post_daily_scores_dev/${s.docId}`), s.data);
-        writeCount++;
-        await commitBatchIfNeeded();
-    }
+    const seedScores = async (scores, baseCollName) => {
+        const collName = getCollectionName(baseCollName);
+        for (const s of scores) {
+            batch.set(db.doc(`${collName}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_${baseCollName}`)}/${s.docId}`), s.data);
+            writeCount++;
+            await commitBatchIfNeeded();
+        }
+    };
+    await seedScores(dailyScores, 'daily_scores');
+    await seedScores(postDailyScores, 'post_daily_scores');
     console.log(`Prepared ${dailyScores.length + postDailyScores.length} daily team score documents.`);
+
+    // --- NEW: Seed Leaderboards and Awards ---
+    console.log("Seeding leaderboards and awards...");
+
+    // Regular Season Leaderboards
+    const karmaLeaderboard = [...lineupsData].sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0)).slice(0, 250);
+    const rankLeaderboard = [...lineupsData].filter(p => (p.global_rank || 0) > 0).sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999)).slice(0, 250);
+    const karmaRef = db.collection(getCollectionName('leaderboards')).doc('single_game_karma').collection(SEASON_ID).doc('data');
+    const rankRef = db.collection(getCollectionName('leaderboards')).doc('single_game_rank').collection(SEASON_ID).doc('data');
+    batch.set(karmaRef, { rankings: karmaLeaderboard });
+    batch.set(rankRef, { rankings: rankLeaderboard });
+    writeCount += 2;
+
+    // Postseason Leaderboards
+    const postKarmaLeaderboard = [...postLineupsData].sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0)).slice(0, 250);
+    const postRankLeaderboard = [...postLineupsData].filter(p => (p.global_rank || 0) > 0).sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999)).slice(0, 250);
+    const postKarmaRef = db.collection(getCollectionName('post_leaderboards')).doc('post_single_game_karma').collection(SEASON_ID).doc('data');
+    const postRankRef = db.collection(getCollectionName('post_leaderboards')).doc('post_single_game_rank').collection(SEASON_ID).doc('data');
+    batch.set(postKarmaRef, { rankings: postKarmaLeaderboard });
+    batch.set(postRankRef, { rankings: postRankLeaderboard });
+    writeCount += 2;
+
+    // Awards
+    const awardsCollectionRef = db.collection(getCollectionName('awards')).doc(`season_${SEASON_NUM}`).collection(getCollectionName(`S${SEASON_NUM}_awards`));
+    const bestPlayerPerf = [...lineupsData, ...postLineupsData].sort((a, b) => (b.pct_above_median || 0) - (a.pct_above_median || 0))[0];
+    if (bestPlayerPerf) {
+        batch.set(awardsCollectionRef.doc('best_performance_player'), {
+            award_name: "Best Performance (Player)", player_id: bestPlayerPerf.player_id, player_handle: bestPlayerPerf.player_handle,
+            team_id: bestPlayerPerf.team_id, date: bestPlayerPerf.date, value: bestPlayerPerf.pct_above_median
+        });
+        writeCount++;
+    }
+    const allDailyScoresData = [...dailyScores, ...postDailyScores].map(s => s.data);
+    const bestTeamPerf = allDailyScoresData.sort((a, b) => (b.pct_above_median || 0) - (a.pct_above_median || 0))[0];
+    if (bestTeamPerf) {
+        const teamName = teamsData.find(t => t.team_id === bestTeamPerf.team_id)?.team_name || 'Unknown';
+        batch.set(awardsCollectionRef.doc('best_performance_team'), {
+            award_name: "Best Performance (Team)", team_id: bestTeamPerf.team_id, team_name: teamName,
+            date: bestTeamPerf.date, value: bestTeamPerf.pct_above_median
+        });
+        writeCount++;
+    }
+    await commitBatchIfNeeded();
+
 
     // Commit any remaining writes
     if (writeCount > 0) {
