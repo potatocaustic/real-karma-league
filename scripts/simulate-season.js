@@ -68,7 +68,7 @@ async function simulateSeason() {
     const teamsSnap = await db.collection(getCollectionName("v2_teams")).get();
     const allTeams = teamsSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
-        .filter(team => team.conference === 'Eastern' || team.conference === 'Western'); // <--- MODIFIED: Filter for valid conference teams
+        .filter(team => team.conference === 'Eastern' || team.conference === 'Western');
 
     const playersSnap = await db.collection(getCollectionName("v2_players")).get();
     const allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -82,11 +82,10 @@ async function simulateSeason() {
     // 2. GENERATE A 15-WEEK SCHEDULE
     console.log("Generating 15-week regular season schedule...");
     const schedule = [];
-    let gameDate = new Date(); // Start from today
-    gameDate.setDate(gameDate.getDate() - (gameDate.getDay() + 6) % 7); // Start on a Monday
+    let gameDate = new Date();
+    gameDate.setDate(gameDate.getDate() - (gameDate.getDay() + 6) % 7);
 
     for (let week = 1; week <= 15; week++) {
-        // Simple random matchups for simulation purposes
         let teamsToSchedule = [...allTeams];
         while (teamsToSchedule.length >= 2) {
             const team1Index = Math.floor(Math.random() * teamsToSchedule.length);
@@ -104,13 +103,12 @@ async function simulateSeason() {
                 date: formattedDate,
                 team1_id: team1.id,
                 team2_id: team2.id,
-                completed: 'FALSE', // Initially not completed
+                completed: 'FALSE',
                 team1_score: 0,
                 team2_score: 0,
                 winner: ''
             });
         }
-        // Advance to the next week
         gameDate.setDate(gameDate.getDate() + 7);
     }
     console.log(`Generated ${schedule.length} games.`);
@@ -119,17 +117,14 @@ async function simulateSeason() {
     console.log("Simulating games and generating lineup data...");
     const allLineups = [];
     for (const game of schedule) {
-        // Simulate team scores
         game.team1_score = Math.floor(Math.random() * 500000) + 100000;
         game.team2_score = Math.floor(Math.random() * 500000) + 100000;
         game.winner = game.team1_score > game.team2_score ? game.team1_id : game.team2_id;
-        game.completed = 'TRUE'; // Mark as completed for the final write
+        game.completed = 'TRUE';
 
-        // Simulate lineups for each team
         [game.team1_id, game.team2_id].forEach(teamId => {
-            const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId).slice(0, 6); // Assume 6 starters
+            const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId).slice(0, 5);
             teamPlayers.forEach((player, index) => {
-                // Simulate player scores
                 const points_adjusted = Math.floor(Math.random() * 150000);
                 const global_rank = Math.floor(Math.random() * 3000) + 1;
                 const lineupId = `${game.id}-${player.id}`;
@@ -143,10 +138,10 @@ async function simulateSeason() {
                     date: game.date,
                     week: game.week,
                     started: 'TRUE',
-                    is_captain: index === 0 ? 'TRUE' : 'FALSE', // Designate first player as captain
+                    is_captain: index === 0 ? 'TRUE' : 'FALSE',
                     points_adjusted,
                     global_rank,
-                    raw_score: points_adjusted, // For simplicity, raw = adjusted
+                    raw_score: points_adjusted,
                 });
             });
         });
@@ -154,7 +149,8 @@ async function simulateSeason() {
 
     // 4. WRITE ALL SIMULATED DATA TO FIRESTORE
     console.log("Writing simulated data to Firestore...");
-    const batch = db.batch();
+    // MODIFIED: Changed 'const' to 'let' to allow reassignment
+    let batch = db.batch();
     const BATCH_SIZE = 400;
     let writeCount = 0;
 
@@ -162,7 +158,7 @@ async function simulateSeason() {
         if (writeCount >= BATCH_SIZE) {
             console.log(`Committing batch of ${writeCount} writes...`);
             await batch.commit();
-            batch = db.batch();
+            batch = db.batch(); // This line caused the error
             writeCount = 0;
         }
     };
@@ -183,7 +179,6 @@ async function simulateSeason() {
         await commitBatchIfNeeded();
     }
 
-    // Commit any remaining writes
     if (writeCount > 0) {
         console.log(`Committing final batch of ${writeCount} writes...`);
         await batch.commit();
