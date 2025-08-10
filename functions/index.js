@@ -862,7 +862,12 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
 
     try {
         const batch = db.batch();
-        const awardsCollectionRef = db.collection(`${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
+        
+        // MODIFIED: Create placeholder parent document for the season's awards
+        const awardsParentDocRef = db.doc(`${getCollectionName('awards')}/season_${seasonNumber}`);
+        batch.set(awardsParentDocRef, { description: `Awards for Season ${seasonNumber}` }, { merge: true });
+
+        const awardsCollectionRef = awardsParentDocRef.collection(getCollectionName(`S${seasonNumber}_awards`));
 
         const lineupsRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('lineups')}`);
         const bestPlayerQuery = lineupsRef.orderBy('pct_above_median', 'desc').limit(1);

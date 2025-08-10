@@ -574,7 +574,7 @@ async function seedDatabase() {
     await seedScores(postDailyScores, 'post_daily_scores');
     console.log(`Prepared ${dailyScores.length + postDailyScores.length} daily team score documents.`);
 
-    // --- MODIFIED: Create placeholder documents for leaderboard collections ---
+    // Create placeholder documents for leaderboard collections
     console.log("Creating placeholder documents for leaderboard collections...");
     const leaderboardCollections = {
         'leaderboards': ['single_game_karma', 'single_game_rank'],
@@ -594,6 +594,13 @@ async function seedDatabase() {
 
     // --- Seed Leaderboards and Awards ---
     console.log("Seeding leaderboards and awards...");
+
+    // MODIFIED: Add placeholder for awards parent document
+    const awardsParentDocRef = db.doc(`${getCollectionName('awards')}/season_${SEASON_NUM}`);
+    batch.set(awardsParentDocRef, { description: `Awards for Season ${SEASON_NUM}` });
+    writeCount++;
+    await commitBatchIfNeeded();
+
 
     // Regular Season Leaderboards
     const karmaLeaderboard = [...lineupsData].sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0)).slice(0, 250);
