@@ -896,16 +896,16 @@
             direction: 'desc'
         };
 
+        /**
+         * CORRECTED: Fetches single-game leaderboard data from the correct subcollection path.
+         */
         async function fetchSingleGameLeaderboard(boardName) {
-            const docRef = doc(db, getCollectionName('leaderboards'), boardName);
+            const docRef = doc(db, getCollectionName('leaderboards'), boardName, SEASON_ID, 'data');
             const docSnap = await getDoc(docRef);
-            return docSnap.exists() && docSnap.data().seasonId === SEASON_ID ? (docSnap.data().rankings || []) : [];
+            // The season is now validated by the path, so we no longer check the `seasonId` field.
+            return docSnap.exists() ? (docSnap.data().rankings || []) : [];
         }
         
-        /**
-         * NEW FUNCTION to correctly fetch team data including the team_name
-         * from the seasonal_records subcollection.
-         */
         async function fetchTeamsData(seasonId) {
             const teamsCollectionName = getCollectionName('v2_teams');
             const teamsSnap = await getDocs(collection(db, teamsCollectionName));
@@ -916,14 +916,13 @@
                 const seasonalRecordSnap = await getDoc(seasonalRecordRef);
 
                 if (seasonalRecordSnap.exists()) {
-                    // Merge the main team data with the seasonal record (which has team_name)
                     return { 
                         id: teamDoc.id, 
                         ...teamData, 
                         ...seasonalRecordSnap.data() 
                     };
                 }
-                return { id: teamDoc.id, ...teamData, team_name: teamDoc.id }; // Fallback
+                return { id: teamDoc.id, ...teamData, team_name: teamDoc.id };
             });
 
             return Promise.all(teamsDataPromises);
@@ -971,13 +970,15 @@
             try {
                 const [playerStats, teams, singleGameKarma, singleGameRank] = await Promise.all([
                     fetchAllPlayerStats(SEASON_ID),
-                    fetchTeamsData(SEASON_ID), // <-- Use the new function here
+                    fetchTeamsData(SEASON_ID),
                     fetchSingleGameLeaderboard('single_game_karma'),
                     fetchSingleGameLeaderboard('single_game_rank')
                 ]);
 
                 console.log(`[DEBUG] Fetched ${playerStats.length} player stat records.`);
                 console.log(`[DEBUG] Fetched ${teams.length} team records.`);
+                console.log(`[DEBUG] Fetched ${singleGameKarma.length} single-game karma records.`);
+                console.log(`[DEBUG] Fetched ${singleGameRank.length} single-game rank records.`);
                 
                 if (!playerStats || !teams) {
                     throw new Error("Failed to load critical player or team data.");
@@ -1158,6 +1159,15 @@
         function displayLeaderboard() {
             const categoryConfig = categories[currentCategory];
             if (!categoryConfig) return;
+
+            const allOption = document.querySelector('#show-count option[value="all"]');
+            if (allOption) {
+                if (currentCategory === 'single_game_karma' || currentCategory === 'single_game_rank') {
+                    allOption.textContent = 'All Games';
+                } else {
+                    allOption.textContent = 'All Players';
+                }
+            }
 
             const showCount = document.getElementById('show-count').value;
             const leaderboardTable = document.getElementById('leaderboardTable');
