@@ -47,9 +47,8 @@ function calculateGeometricMean(numbers) {
 
 function getRanks(items, idField, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0, excludeZeroes = false) {
     const rankedMap = new Map();
-    let eligibleItems = [...items]; // Create a mutable copy
+    let eligibleItems = [...items]; 
 
-    // The games played filter should only apply if gpMinimum is specified.
     if (gpMinimum > 0) {
         eligibleItems = items.filter(p => {
             const gamesPlayedField = primaryStat.startsWith('post_') ? 'post_games_played' : 'games_played';
@@ -90,10 +89,21 @@ async function simulateSeason() {
     // 1. FETCH TEAMS AND PLAYERS
     process.stdout.write("[1/9] Fetching teams and players...");
     const teamsSnap = await db.collection(getCollectionName("v2_teams")).get();
-    // MODIFIED: Use team_id consistently
     const allTeams = teamsSnap.docs
         .map(doc => ({ team_id: doc.id, ...doc.data() }))
         .filter(team => team.conference === 'Eastern' || team.conference === 'Western');
+
+    // MODIFIED: Fetch team names from the previous season to ensure they are carried over.
+    const previousSeasonId = `S${parseInt(SEASON_NUM) - 1}`;
+    for (const team of allTeams) {
+        const prevRecordRef = db.doc(`${getCollectionName('v2_teams')}/${team.team_id}/${getCollectionName('seasonal_records')}/${previousSeasonId}`);
+        const prevRecordSnap = await prevRecordRef.get();
+        if (prevRecordSnap.exists()) {
+            team.team_name = prevRecordSnap.data().team_name;
+        } else {
+            team.team_name = "Unknown Team"; // Fallback in case previous season data is missing
+        }
+    }
 
     const playersSnap = await db.collection(getCollectionName("v2_players")).get();
     const allPlayers = playersSnap.docs.map(doc => ({ player_id: doc.id, ...doc.data() }));
@@ -118,7 +128,6 @@ async function simulateSeason() {
             const team2Index = Math.floor(Math.random() * teamsToSchedule.length);
             const [team2] = teamsToSchedule.splice(team2Index, 1);
             const formattedDate = `${gameDate.getMonth() + 1}/${gameDate.getDate()}/${gameDate.getFullYear()}`;
-            // MODIFIED: Use team_id consistently
             const gameId = `${formattedDate}-${team1.team_id}-${team2.team_id}`.replace(/\//g, "-");
             schedule.push({ id: gameId, week: String(week), date: formattedDate, team1_id: team1.team_id, team2_id: team2.team_id, completed: 'FALSE', team1_score: 0, team2_score: 0, winner: '' });
         }
@@ -139,7 +148,6 @@ async function simulateSeason() {
             teamPlayers.forEach((player, index) => {
                 const points_adjusted = Math.floor(Math.random() * 150000);
                 const global_rank = Math.floor(Math.random() * 3000) + 1;
-                // MODIFIED: Use player_id consistently
                 allLineups.push({ id: `${game.id}-${player.player_id}`, game_id: game.id, player_id: player.player_id, player_handle: player.player_handle, team_id: teamId, date: game.date, week: game.week, started: 'TRUE', is_captain: index === 0 ? 'TRUE' : 'FALSE', points_adjusted, global_rank, raw_score: points_adjusted });
             });
         });
@@ -234,8 +242,8 @@ async function simulateSeason() {
     }
 
     const teamSeasonalStats = new Map();
-    // MODIFIED: Use team_id consistently
-    allTeams.forEach(t => teamSeasonalStats.set(t.team_id, { team_id: t.team_id, conference: t.conference, wins: 0, losses: 0, pam: 0, apPAM_total: 0, apPAM_count: 0, ranks: [] }));
+    // MODIFIED: Carry the team_name into the seasonal stats object.
+    allTeams.forEach(t => teamSeasonalStats.set(t.team_id, { team_id: t.team_id, team_name: t.team_name, conference: t.conference, wins: 0, losses: 0, pam: 0, apPAM_total: 0, apPAM_count: 0, ranks: [] }));
     schedule.forEach(g => {
         teamSeasonalStats.get(g.winner).wins++;
         const loserId = g.team1_id === g.winner ? g.team2_id : g.team1_id;
@@ -283,7 +291,6 @@ async function simulateSeason() {
         for (const key in playerRankings) stats[`${key}_rank`] = playerRankings[key].get(playerId) || null;
     }
     
-    // MODIFIED: Use team_id consistently
     const teamRankings = {
         msr_rank: getRanks(allTeamCalculatedStats, 'team_id', 'med_starter_rank', null, true),
         pam_rank: getRanks(allTeamCalculatedStats, 'team_id', 'pam', null, false)
@@ -354,8 +361,17 @@ async function simulateSeason() {
         batch.set(awardsCollectionRef.doc('best_performance_team'), { award_name: "Best Performance (Team)", team_id: bestTeamPerf.team_id, team_name: teamName, date: bestTeamPerf.date, value: bestTeamPerf.pct_above_median });
     }
 
+    // MODIFIED: Set status to 'active' and current_week to 'Season Complete'
     const season_karma = Array.from(playerSeasonalStats.values()).reduce((sum, p) => sum + (p.total_points || 0), 0);
-    batch.set(seasonRef, { season_name: `Season ${SEASON_NUM}`, status: "completed", gs: schedule.length, gp: schedule.length, season_karma: season_karma, season_trans: 0, current_week: "Season Complete" }, { merge: true });
+    batch.set(seasonRef, {
+        season_name: `Season ${SEASON_NUM}`,
+        status: "active",
+        gs: schedule.length,
+        gp: schedule.length,
+        season_karma: season_karma,
+        season_trans: 0,
+        current_week: "Season Complete"
+    }, { merge: true });
 
     if (writeCount > 0) await batch.commit();
     console.log(" Done.");
