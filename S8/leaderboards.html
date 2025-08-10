@@ -616,7 +616,7 @@
             <span class="moon-icon">🌙</span>
         </button>
         <h1>
-            <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
             <span class="header-text">Real Karma League</span>
         </h1>
         <nav>
@@ -907,29 +907,45 @@
             return docSnap.exists() && docSnap.data().seasonId === SEASON_ID ? (docSnap.data().rankings || []) : [];
         }
         
+        /**
+         * Fetches all player and stat data using an efficient collectionGroup query.
+         * NOTE: This requires a `season_id` field (e.g., "S8") in each seasonal_stats document
+         * and a corresponding Firestore rule to allow the collectionGroup query.
+         */
         async function fetchAllPlayerStats(seasonId) {
-            const playersCollectionName = getCollectionName('v2_players');
-            const playersQuery = query(collection(db, playersCollectionName), where('player_status', '==', 'ACTIVE'));
-            const playersSnap = await getDocs(playersQuery);
+            // Step 1: Fetch all active player data in one query.
+            const playersQuery = query(collection(db, getCollectionName('v2_players')), where('player_status', '==', 'ACTIVE'));
+            
+            // Step 2: Fetch all relevant seasonal stats in a single, efficient collectionGroup query.
+            const statsQuery = query(
+                collectionGroup(db, getCollectionName('seasonal_stats')),
+                where('season_id', '==', seasonId)
+            );
 
-            const allStats = [];
+            const [playersSnap, statsSnap] = await Promise.all([
+                getDocs(playersQuery),
+                getDocs(statsQuery)
+            ]);
 
-            for (const playerDoc of playersSnap.docs) {
-                const playerId = playerDoc.id;
-                const playerData = playerDoc.data();
-                
-                const statDocRef = doc(db, playersCollectionName, playerId, getCollectionName('seasonal_stats'), seasonId);
-                const statDocSnap = await getDoc(statDocRef);
+            // Step 3: Create a lookup map for player data for fast merging.
+            const playersMap = new Map(playersSnap.docs.map(d => [d.id, d.data()]));
 
-                if (statDocSnap.exists()) {
-                    allStats.push({
+            // Step 4: Merge the two datasets.
+            const mergedData = statsSnap.docs.map(statDoc => {
+                const playerId = statDoc.ref.parent.parent.id;
+                const playerData = playersMap.get(playerId);
+
+                if (playerData) {
+                    return {
                         id: playerId,
-                        ...playerData,
-                        ...statDocSnap.data()
-                    });
+                        ...playerData, // player_handle, current_team_id, etc.
+                        ...statDoc.data() // All S8 stats (GEM, WAR, ranks, etc.)
+                    };
                 }
-            }
-            return allStats;
+                return null; // Should not happen if data is clean
+            }).filter(p => p !== null); // Filter out any nulls
+
+            return mergedData;
         }
 
         async function loadData() {
@@ -1245,13 +1261,13 @@
                     isAllStar = item.all_star === '1';
                 }
                 
-                const teamLogoSrc = (teamId && teamId !== 'FA' && teamId !== 'N/A') ? `icons/${encodeURIComponent(teamId)}.webp` : 'icons/FA.webp';
+                const teamLogoSrc = (teamId && teamId !== 'FA' && teamId !== 'N/A') ? `../icons/${encodeURIComponent(teamId)}.webp` : '../icons/FA.webp';
                 const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
                 const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
                 
                 let rowCells = `<td class="rank-cell">${getRankIndicator(rankValue)}</td>
                     <td class="player-cell">
-                      <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                      <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
                       <div>
                         <div class="player-name">
                           <a href="player.html?player=${encodeURIComponent(playerHandle || '')}">
