@@ -525,7 +525,7 @@ async function seedDatabase() {
     }
     console.log(`Prepared ${draftPicksData.length} draft picks for seeding.`);
 
-    // --- MODIFIED: Create placeholder documents for intermediate collections FIRST ---
+    // Create placeholder documents for intermediate collections FIRST
     console.log("Creating placeholder documents for intermediate collections...");
     const intermediateCollections = ['daily_averages', 'daily_scores', 'post_daily_averages', 'post_daily_scores'];
     for (const baseCollName of intermediateCollections) {
@@ -573,6 +573,24 @@ async function seedDatabase() {
     await seedScores(dailyScores, 'daily_scores');
     await seedScores(postDailyScores, 'post_daily_scores');
     console.log(`Prepared ${dailyScores.length + postDailyScores.length} daily team score documents.`);
+
+    // --- MODIFIED: Create placeholder documents for leaderboard collections ---
+    console.log("Creating placeholder documents for leaderboard collections...");
+    const leaderboardCollections = {
+        'leaderboards': ['single_game_karma', 'single_game_rank'],
+        'post_leaderboards': ['post_single_game_karma', 'post_single_game_rank']
+    };
+
+    for (const [baseColl, docs] of Object.entries(leaderboardCollections)) {
+        for (const docId of docs) {
+            const docRef = db.collection(getCollectionName(baseColl)).doc(docId);
+            const description = `${docId.replace(/_/g, ' ')} leaderboard`;
+            batch.set(docRef, { description: description });
+            writeCount++;
+            await commitBatchIfNeeded();
+        }
+    }
+
 
     // --- Seed Leaderboards and Awards ---
     console.log("Seeding leaderboards and awards...");

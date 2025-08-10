@@ -1643,84 +1643,9 @@ function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = fal
 
 
 /**
- * Core logic to update player ranks for an entire season.
- */
-async function performPlayerRankingUpdate() {
-    console.log("Starting player ranking update...");
-    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
-    if (activeSeasonSnap.empty) {
-        console.log("No active season found. Aborting player ranking update.");
-        return;
-    }
-
-    const activeSeasonDoc = activeSeasonSnap.docs[0];
-    const seasonId = activeSeasonDoc.id;
-    const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
-    const regSeasonGpMinimum = seasonGamesPlayed >= 60 ? 3 : 0;
-    const postSeasonGpMinimum = 0; // No GP minimum for postseason
-
-    const playersSnap = await db.collection(getCollectionName('v2_players')).get();
-    const playerStatPromises = playersSnap.docs.map(playerDoc =>
-        playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
-    );
-    const playerStatsDocs = await Promise.all(playerStatPromises);
-
-    const allPlayerStats = playerStatsDocs
-        .filter(doc => doc.exists)
-        .map(doc => {
-            const pathParts = doc.ref.path.split('/');
-            return {
-                player_id: pathParts[1],
-                ...doc.data()
-            };
-        });
-
-    // List of base stat names that should not rank zero values
-    const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
-
-    const leaderboards = {
-        // Regular Season Ranks
-        total_points: getRanks(allPlayerStats, 'total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
-        rel_mean: getRanks(allPlayerStats, 'rel_mean', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
-        rel_median: getRanks(allPlayerStats, 'rel_median', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
-        GEM: getRanks(allPlayerStats, 'GEM', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
-        WAR: getRanks(allPlayerStats, 'WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
-        medrank: getRanks(allPlayerStats, 'medrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
-        meanrank: getRanks(allPlayerStats, 'meanrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
-        aag_mean: getRanks(allPlayerStats, 'aag_mean', 'aag_mean_pct'),
-        aag_median: getRanks(allPlayerStats, 'aag_median', 'aag_median_pct'),
-        t100: getRanks(allPlayerStats, 't100', 't100_pct'),
-        t50: getRanks(allPlayerStats, 't50', 't50_pct'),
-        // Postseason Ranks
-        post_total_points: getRanks(allPlayerStats, 'post_total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
-        post_rel_mean: getRanks(allPlayerStats, 'post_rel_mean', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
-        post_rel_median: getRanks(allPlayerStats, 'post_rel_median', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
-        post_GEM: getRanks(allPlayerStats, 'post_GEM', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
-        post_WAR: getRanks(allPlayerStats, 'post_WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
-        post_medrank: getRanks(allPlayerStats, 'post_medrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
-        post_meanrank: getRanks(allPlayerStats, 'post_meanrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
-        post_aag_mean: getRanks(allPlayerStats, 'post_aag_mean', 'post_aag_mean_pct'),
-        post_aag_median: getRanks(allPlayerStats, 'post_aag_median', 'post_aag_median_pct'),
-        post_t100: getRanks(allPlayerStats, 'post_t100', 'post_t100_pct'),
-        post_t50: getRanks(allPlayerStats, 'post_t50', 'post_t50_pct'),
-    };
-
-    const batch = db.batch();
-    allPlayerStats.forEach(player => {
-        const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(player.player_id).collection(getCollectionName('seasonal_stats')).doc(seasonId);
-        const ranksUpdate = {};
-        for (const key in leaderboards) {
-            ranksUpdate[`${key}_rank`] = leaderboards[key].get(player.player_id) || null;
-        }
-        batch.update(playerStatsRef, ranksUpdate);
-    });
-
-    await batch.commit();
-    console.log(`Player ranking update complete for season ${seasonId}.`);
-}
-/**
  * Core logic to update single game performance leaderboards.
- * This function now creates separate leaderboards for regular season and postseason.
+ * This function now creates separate leaderboards for regular season and postseason,
+ * and ensures parent documents have placeholder fields.
  */
 async function performPerformanceRankingUpdate() {
     console.log("Starting single-performance leaderboard update...");
@@ -1756,8 +1681,16 @@ async function performPerformanceRankingUpdate() {
             .slice(0, 250);
 
         const leaderboardsCollection = getCollectionName('leaderboards');
-        const karmaLeaderboardRef = db.collection(leaderboardsCollection).doc('single_game_karma').collection(seasonId).doc('data');
-        const rankLeaderboardRef = db.collection(leaderboardsCollection).doc('single_game_rank').collection(seasonId).doc('data');
+
+        // MODIFIED: Create placeholder parent documents
+        const karmaDocRef = db.collection(leaderboardsCollection).doc('single_game_karma');
+        const rankDocRef = db.collection(leaderboardsCollection).doc('single_game_rank');
+        batch.set(karmaDocRef, { description: "Regular season single game karma leaderboard." }, { merge: true });
+        batch.set(rankDocRef, { description: "Regular season single game rank leaderboard." }, { merge: true });
+
+
+        const karmaLeaderboardRef = karmaDocRef.collection(seasonId).doc('data');
+        const rankLeaderboardRef = rankDocRef.collection(seasonId).doc('data');
 
         batch.set(karmaLeaderboardRef, { rankings: karmaLeaderboard });
         batch.set(rankLeaderboardRef, { rankings: rankLeaderboard });
@@ -1782,8 +1715,15 @@ async function performPerformanceRankingUpdate() {
             .slice(0, 250);
 
         const postLeaderboardsCollection = getCollectionName('post_leaderboards');
-        const postKarmaLeaderboardRef = db.collection(postLeaderboardsCollection).doc('post_single_game_karma').collection(seasonId).doc('data');
-        const postRankLeaderboardRef = db.collection(postLeaderboardsCollection).doc('post_single_game_rank').collection(seasonId).doc('data');
+
+        // MODIFIED: Create placeholder parent documents
+        const postKarmaDocRef = db.collection(postLeaderboardsCollection).doc('post_single_game_karma');
+        const postRankDocRef = db.collection(postLeaderboardsCollection).doc('post_single_game_rank');
+        batch.set(postKarmaDocRef, { description: "Postseason single game karma leaderboard." }, { merge: true });
+        batch.set(postRankDocRef, { description: "Postseason single game rank leaderboard." }, { merge: true });
+
+        const postKarmaLeaderboardRef = postKarmaDocRef.collection(seasonId).doc('data');
+        const postRankLeaderboardRef = postRankDocRef.collection(seasonId).doc('data');
 
         batch.set(postKarmaLeaderboardRef, { rankings: postKarmaLeaderboard });
         batch.set(postRankLeaderboardRef, { rankings: postRankLeaderboard });

@@ -127,7 +127,7 @@ async function simulateSeason() {
 
         // Simulate lineups for each team
         [game.team1_id, game.team2_id].forEach(teamId => {
-            const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId).slice(0, 5); // Assume 5 starters
+            const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId).slice(0, 6); // Assume 6 starters
             teamPlayers.forEach((player, index) => {
                 // Simulate player scores
                 const points_adjusted = Math.floor(Math.random() * 150000);
