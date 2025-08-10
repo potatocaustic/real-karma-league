@@ -105,6 +105,7 @@ async function updateTeamCache(seasonId) {
 
     allTeams = (await Promise.all(teamPromises)).filter(Boolean);
 }
+
 function populatePostseasonDates() {
     const rounds = {
         'Play-In': 2, 'Round 1': 3, 'Round 2': 3, 'Conf Finals': 5, 'Finals': 7
@@ -114,7 +115,8 @@ function populatePostseasonDates() {
     for (const [round, count] of Object.entries(rounds)) {
         html += `<details class="round-details"><summary class="round-summary">${round}</summary><div class="round-date-inputs">`;
         for (let i = 1; i <= count; i++) {
-            html += `<div class="form-group-admin" style="margin-bottom: 0.5rem;"><label for="date-${round.replace(' ', '-')}-${i}">Game ${i} Date</label><input type="date" id="date-${round.replace(' ', '-')}-${i}"></div>`;
+            // MODIFIED: Added data-round-name="${round}" to the input tag
+            html += `<div class="form-group-admin" style="margin-bottom: 0.5rem;"><label for="date-${round.replace(' ', '-')}-${i}">Game ${i} Date</label><input type="date" id="date-${round.replace(' ', '-')}-${i}" data-round-name="${round}"></div>`;
         }
         html += `</div></details>`;
     }
@@ -290,6 +292,7 @@ async function handleDeleteGame(e) {
     }
 }
 
+
 async function handleGeneratePostseason() {
     generatePostseasonBtn.disabled = true;
     generatePostseasonBtn.textContent = 'Generating...';
@@ -299,8 +302,9 @@ async function handleGeneratePostseason() {
     };
 
     document.querySelectorAll('#postseason-dates-container input[type="date"]').forEach(input => {
-        const idParts = input.id.split('-');
-        const roundName = idParts[1] === 'Conf' ? 'Conf Finals' : idParts[1];
+        // MODIFIED: Reads the round name directly from the data attribute
+        const roundName = input.dataset.roundName;
+        
         if (dates[roundName] && input.value) {
             const [year, month, day] = input.value.split('-');
             dates[roundName].push(`${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`);
