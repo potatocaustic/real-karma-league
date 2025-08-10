@@ -907,43 +907,43 @@
             return docSnap.exists() && docSnap.data().seasonId === SEASON_ID ? (docSnap.data().rankings || []) : [];
         }
         
-        /**
-         * Fetches all player and stat data using an efficient collectionGroup query.
-         * NOTE: This requires a `season_id` field (e.g., "S8") in each seasonal_stats document
-         * and a corresponding Firestore rule to allow the collectionGroup query.
-         */
         async function fetchAllPlayerStats(seasonId) {
-            // Step 1: Fetch all active player data in one query.
+            // Step 1: Fetch all active player data.
             const playersQuery = query(collection(db, getCollectionName('v2_players')), where('player_status', '==', 'ACTIVE'));
             
-            // Step 2: Fetch all relevant seasonal stats in a single, efficient collectionGroup query.
-            const statsQuery = query(
-                collectionGroup(db, getCollectionName('seasonal_stats')),
-                where('season_id', '==', seasonId)
-            );
+            // Step 2: Fetch all seasonal stats using a collectionGroup query.
+            // This is more efficient but requires client-side filtering by doc ID.
+            const statsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
 
             const [playersSnap, statsSnap] = await Promise.all([
                 getDocs(playersQuery),
                 getDocs(statsQuery)
             ]);
 
-            // Step 3: Create a lookup map for player data for fast merging.
-            const playersMap = new Map(playersSnap.docs.map(d => [d.id, d.data()]));
+            // Step 3: Filter the stats for the correct season (S8) and create a lookup map.
+            const statsMap = new Map();
+            statsSnap.docs.forEach(statDoc => {
+                if (statDoc.id === seasonId) {
+                    const playerId = statDoc.ref.parent.parent.id;
+                    statsMap.set(playerId, statDoc.data());
+                }
+            });
 
-            // Step 4: Merge the two datasets.
-            const mergedData = statsSnap.docs.map(statDoc => {
-                const playerId = statDoc.ref.parent.parent.id;
-                const playerData = playersMap.get(playerId);
+            // Step 4: Merge player data with their seasonal stats.
+            const mergedData = playersSnap.docs.map(playerDoc => {
+                const playerId = playerDoc.id;
+                const playerData = playerDoc.data();
+                const playerStats = statsMap.get(playerId);
 
-                if (playerData) {
+                if (playerStats) {
                     return {
                         id: playerId,
-                        ...playerData, // player_handle, current_team_id, etc.
-                        ...statDoc.data() // All S8 stats (GEM, WAR, ranks, etc.)
+                        ...playerData,
+                        ...playerStats
                     };
                 }
-                return null; // Should not happen if data is clean
-            }).filter(p => p !== null); // Filter out any nulls
+                return null;
+            }).filter(p => p !== null);
 
             return mergedData;
         }
@@ -960,6 +960,12 @@
                     fetchSingleGameLeaderboard('single_game_rank')
                 ]);
 
+                // --- DEBUGGING LOGS ---
+                console.log(`[DEBUG] Fetched ${playerStats.length} player stat records.`);
+                console.log(`[DEBUG] Fetched ${teams.length} team records.`);
+                console.log(`[DEBUG] Fetched ${singleGameKarma.length} single-game karma records.`);
+                console.log(`[DEBUG] Fetched ${singleGameRank.length} single-game rank records.`);
+                
                 if (!playerStats || !teams) {
                     throw new Error("Failed to load critical player or team data.");
                 }
@@ -967,6 +973,8 @@
                 allTeamsData = teams;
                 allPlayersData = playerStats;
                 
+                console.log("[DEBUG] Final merged player data:", allPlayersData);
+
                 allGamePerformancesData = {
                     single_game_karma: singleGameKarma.map((p, i) => ({ ...p, rank: i + 1 })),
                     single_game_rank: singleGameRank.map((p, i) => ({ ...p, rank: i + 1 }))
