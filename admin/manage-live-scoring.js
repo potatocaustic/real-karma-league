@@ -234,11 +234,30 @@ window.addEventListener('load', () => {
 
                 if (last_sample_results && last_sample_results.length > 0) {
                     logContainer.innerHTML = last_sample_results.map(res => {
-                        const changeIndicator = res.changed ? '✓' : '✗';
-                        // Use explicit, high-contrast colors
-                        const color = res.changed ? '#28a745' : '#555'; // Green for changed, dark gray for no change
-                        const fontWeight = res.changed ? 'bold' : 'normal'; // Make changes bold
-                        return `<p style="color: ${color}; font-weight: ${fontWeight}; margin-bottom: 0.25rem;">[${changeIndicator}] ${res.handle}: ${res.oldScore.toFixed(2)} → ${res.newScore.toFixed(2)}</p>`;
+                        // Check if either karma or rank has changed to determine the overall status.
+                        const overallChange = res.karmaChanged || res.rankChanged;
+                        const changeIndicator = overallChange ? '✓' : '✗';
+                        const color = overallChange ? '#28a745' : '#555'; // Green for changed, dark gray for no change
+
+                        // Format the karma string, making it bold if it changed.
+                        let karmaString = `Karma: ${res.oldScore.toFixed(2)} → ${res.newScore.toFixed(2)}`;
+                        if (res.karmaChanged) {
+                            karmaString = `<strong>${karmaString}</strong>`;
+                        }
+
+                        // Format the rank string, making it bold if it changed.
+                        let rankString = `Rank: ${res.oldRank} → ${res.newRank}`;
+                        if (res.rankChanged) {
+                            rankString = `<strong>${rankString}</strong>`;
+                        }
+
+                        // Return the combined, formatted string for the log entry.
+                        return `<p style="color: ${color}; margin-bottom: 0.25rem; line-height: 1.5;">
+                                    <span style="font-weight: bold;">[${changeIndicator}] ${res.handle}:</span>
+                                    <span style="margin-left: 8px;">${karmaString}</span>
+                                    <span style="margin-left: 8px;">|</span>
+                                    <span style="margin-left: 8px;">${rankString}</span>
+                                </p>`;
                     }).join('');
                 }
                 
