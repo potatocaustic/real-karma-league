@@ -842,7 +842,7 @@
                 ],
                 defaultSortField: 'aag_median_rank', defaultSortDescending: false, dataSourceType: 'players'
             },
-             t100_finishes: {
+            t100_finishes: {
                 title: 'T100 Finishes Leaders',
                 subtitle: 'Ties broken by % of Games in T100',
                 cols: [
@@ -896,23 +896,41 @@
             direction: 'desc'
         };
 
-        async function fetchCollection(collectionName) {
-            const snapshot = await getDocs(collection(db, collectionName));
-            return snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-        }
-
         async function fetchSingleGameLeaderboard(boardName) {
             const docRef = doc(db, getCollectionName('leaderboards'), boardName);
             const docSnap = await getDoc(docRef);
             return docSnap.exists() && docSnap.data().seasonId === SEASON_ID ? (docSnap.data().rankings || []) : [];
         }
         
-        async function fetchAllPlayerStats(seasonId) {
-            // Step 1: Fetch all active player data.
-            const playersQuery = query(collection(db, getCollectionName('v2_players')), where('player_status', '==', 'ACTIVE'));
+        /**
+         * NEW FUNCTION to correctly fetch team data including the team_name
+         * from the seasonal_records subcollection.
+         */
+        async function fetchTeamsData(seasonId) {
+            const teamsCollectionName = getCollectionName('v2_teams');
+            const teamsSnap = await getDocs(collection(db, teamsCollectionName));
             
-            // Step 2: Fetch all seasonal stats using a collectionGroup query.
-            // This is more efficient but requires client-side filtering by doc ID.
+            const teamsDataPromises = teamsSnap.docs.map(async (teamDoc) => {
+                const teamData = teamDoc.data();
+                const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, getCollectionName('seasonal_records'), seasonId);
+                const seasonalRecordSnap = await getDoc(seasonalRecordRef);
+
+                if (seasonalRecordSnap.exists()) {
+                    // Merge the main team data with the seasonal record (which has team_name)
+                    return { 
+                        id: teamDoc.id, 
+                        ...teamData, 
+                        ...seasonalRecordSnap.data() 
+                    };
+                }
+                return { id: teamDoc.id, ...teamData, team_name: teamDoc.id }; // Fallback
+            });
+
+            return Promise.all(teamsDataPromises);
+        }
+        
+        async function fetchAllPlayerStats(seasonId) {
+            const playersQuery = query(collection(db, getCollectionName('v2_players')), where('player_status', '==', 'ACTIVE'));
             const statsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
 
             const [playersSnap, statsSnap] = await Promise.all([
@@ -920,7 +938,6 @@
                 getDocs(statsQuery)
             ]);
 
-            // Step 3: Filter the stats for the correct season (S8) and create a lookup map.
             const statsMap = new Map();
             statsSnap.docs.forEach(statDoc => {
                 if (statDoc.id === seasonId) {
@@ -929,7 +946,6 @@
                 }
             });
 
-            // Step 4: Merge player data with their seasonal stats.
             const mergedData = playersSnap.docs.map(playerDoc => {
                 const playerId = playerDoc.id;
                 const playerData = playerDoc.data();
@@ -955,16 +971,13 @@
             try {
                 const [playerStats, teams, singleGameKarma, singleGameRank] = await Promise.all([
                     fetchAllPlayerStats(SEASON_ID),
-                    fetchCollection(getCollectionName('v2_teams')),
+                    fetchTeamsData(SEASON_ID), // <-- Use the new function here
                     fetchSingleGameLeaderboard('single_game_karma'),
                     fetchSingleGameLeaderboard('single_game_rank')
                 ]);
 
-                // --- DEBUGGING LOGS ---
                 console.log(`[DEBUG] Fetched ${playerStats.length} player stat records.`);
                 console.log(`[DEBUG] Fetched ${teams.length} team records.`);
-                console.log(`[DEBUG] Fetched ${singleGameKarma.length} single-game karma records.`);
-                console.log(`[DEBUG] Fetched ${singleGameRank.length} single-game rank records.`);
                 
                 if (!playerStats || !teams) {
                     throw new Error("Failed to load critical player or team data.");
@@ -973,6 +986,7 @@
                 allTeamsData = teams;
                 allPlayersData = playerStats;
                 
+                console.log("[DEBUG] Final team data (check for team_name):", allTeamsData);
                 console.log("[DEBUG] Final merged player data:", allPlayersData);
 
                 allGamePerformancesData = {
@@ -1191,7 +1205,7 @@
             let filteredData = [...sourceData];
             const minGames = parseInt(minGamesInput.value) || 0;
             if (categoryConfig.hasMinGamesFilter && minGames > 0) {
-                 filteredData = filteredData.filter(p => (p.games_played || 0) >= minGames);
+                filteredData = filteredData.filter(p => (p.games_played || 0) >= minGames);
             } else if (currentCategory === 'war') {
                 filteredData = filteredData.filter(p => (p.games_played || 0) >= 1);
             }
@@ -1200,8 +1214,8 @@
             const selectedTeamValues = Array.from(selectedTeamCheckboxes).map(cb => cb.value);
             if (!selectedTeamValues.includes('all') && selectedTeamValues.length > 0) {
                 if (categoryConfig.dataSourceType === 'single_game') {
-                     const playerTeamMap = new Map(allPlayersData.map(p => [p.player_handle, p.current_team_id]));
-                     filteredData = filteredData.filter(game => selectedTeamValues.includes(playerTeamMap.get(game.player_handle)));
+                    const playerTeamMap = new Map(allPlayersData.map(p => [p.player_handle, p.current_team_id]));
+                    filteredData = filteredData.filter(game => selectedTeamValues.includes(playerTeamMap.get(game.player_handle)));
                 } else {
                     filteredData = filteredData.filter(player => selectedTeamValues.includes(player.current_team_id));
                 }
@@ -1275,15 +1289,15 @@
                 
                 let rowCells = `<td class="rank-cell">${getRankIndicator(rankValue)}</td>
                     <td class="player-cell">
-                      <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
-                      <div>
+                    <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
+                    <div>
                         <div class="player-name">
-                          <a href="player.html?player=${encodeURIComponent(playerHandle || '')}">
+                        <a href="player.html?player=${encodeURIComponent(playerHandle || '')}">
                             <span class="player-name-text">${playerHandle || 'N/A'}</span>${rookieBadge}${allStarBadge}
-                          </a>
+                        </a>
                         </div>
                         <div class="team-name">${getTeamName(teamId)}</div>
-                      </div>
+                    </div>
                     </td>`;
 
                 for (let i = 2; i < categoryConfig.cols.length; i++) {
@@ -1313,7 +1327,7 @@
                 currentCategory = 'total_points';
                 categorySelect.value = currentCategory;
             }
-             sessionStorage.setItem('selectedLeaderboardCategory', currentCategory);
+            sessionStorage.setItem('selectedLeaderboardCategory', currentCategory);
 
             categorySelect.addEventListener('change', function () {
                 currentCategory = this.value;
@@ -1336,6 +1350,9 @@
 
             loadData();
         }
+
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
 
         document.addEventListener('DOMContentLoaded', initializePage);
     </script>
