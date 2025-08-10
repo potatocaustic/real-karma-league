@@ -52,6 +52,9 @@ async function deleteQueryBatch(db, query, resolve) {
     }
     await batch.commit();
 
+    // MODIFIED: Add a dot to show progress for each deleted batch.
+    process.stdout.write('.');
+
     // Recurse on the next process tick, to avoid hitting stack limits for large collections
     process.nextTick(() => {
         deleteQueryBatch(db, query, resolve);
@@ -88,15 +91,21 @@ async function cleanupDevEnvironment() {
         return;
     }
 
-    console.log("The following collections will be deleted:", collectionsToDelete);
     console.log("---");
 
-    for (const collectionId of collectionsToDelete) {
+    // MODIFIED: Add a loop with a counter for progress tracking.
+    const totalToDelete = collectionsToDelete.length;
+    for (let i = 0; i < totalToDelete; i++) {
+        const collectionId = collectionsToDelete[i];
         try {
-            console.log(`Starting deletion of '${collectionId}'...`);
+            // Print which collection is being deleted.
+            process.stdout.write(`[${i + 1}/${totalToDelete}] Deleting '${collectionId}'... `);
             await deleteCollection(db, collectionId, 500);
+            // Print a new line after all the dots from the batch deletions.
+            process.stdout.write('\n');
             console.log(`✅ Successfully deleted collection: '${collectionId}'`);
         } catch (error) {
+            process.stdout.write('\n'); // Ensure error message is on a new line
             console.error(`❌ Error deleting collection '${collectionId}':`, error);
         }
     }

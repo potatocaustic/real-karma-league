@@ -79,8 +79,10 @@ function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = fal
 // --- Main Simulation Function ---
 async function simulateSeason() {
     console.log(`Starting regular season simulation for ${SEASON_ID}...`);
+    console.log("---");
 
-    // 1. FETCH TEAMS AND PLAYERS FOR THE NEW SEASON
+    // 1. FETCH TEAMS AND PLAYERS
+    process.stdout.write("[1/8] Fetching teams and players...");
     const teamsSnap = await db.collection(getCollectionName("v2_teams")).get();
     const allTeams = teamsSnap.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
@@ -93,10 +95,10 @@ async function simulateSeason() {
         console.error("Not enough valid conference teams found to generate a schedule. Aborting.");
         return;
     }
-    console.log(`Found ${allTeams.length} valid conference teams and ${allPlayers.length} players.`);
+    console.log(` Done. Found ${allTeams.length} teams and ${allPlayers.length} players.`);
 
-    // 2. GENERATE A 15-WEEK SCHEDULE
-    console.log("Generating 15-week regular season schedule...");
+    // 2. GENERATE SCHEDULE
+    process.stdout.write("[2/8] Generating 15-week regular season schedule...");
     const schedule = [];
     let gameDate = new Date();
     gameDate.setDate(gameDate.getDate() - (gameDate.getDay() + 6) % 7);
@@ -106,122 +108,85 @@ async function simulateSeason() {
         while (teamsToSchedule.length >= 2) {
             const team1Index = Math.floor(Math.random() * teamsToSchedule.length);
             const [team1] = teamsToSchedule.splice(team1Index, 1);
-
             const team2Index = Math.floor(Math.random() * teamsToSchedule.length);
             const [team2] = teamsToSchedule.splice(team2Index, 1);
-
             const formattedDate = `${gameDate.getMonth() + 1}/${gameDate.getDate()}/${gameDate.getFullYear()}`;
             const gameId = `${formattedDate}-${team1.id}-${team2.id}`.replace(/\//g, "-");
-
-            schedule.push({
-                id: gameId,
-                week: String(week),
-                date: formattedDate,
-                team1_id: team1.id,
-                team2_id: team2.id,
-                completed: 'FALSE',
-                team1_score: 0,
-                team2_score: 0,
-                winner: ''
-            });
+            schedule.push({ id: gameId, week: String(week), date: formattedDate, team1_id: team1.id, team2_id: team2.id, completed: 'FALSE', team1_score: 0, team2_score: 0, winner: '' });
         }
         gameDate.setDate(gameDate.getDate() + 7);
     }
-    console.log(`Generated ${schedule.length} games.`);
+    console.log(` Done. Generated ${schedule.length} games.`);
 
-    // 3. SIMULATE GAMES AND GENERATE LINEUP DATA
-    console.log("Simulating games and generating lineup data...");
+    // 3. SIMULATE GAMES AND LINEUPS
+    process.stdout.write("[3/8] Simulating game results and generating lineup data...");
     const allLineups = [];
     for (const game of schedule) {
         game.team1_score = Math.floor(Math.random() * 500000) + 100000;
         game.team2_score = Math.floor(Math.random() * 500000) + 100000;
         game.winner = game.team1_score > game.team2_score ? game.team1_id : game.team2_id;
         game.completed = 'TRUE';
-
         [game.team1_id, game.team2_id].forEach(teamId => {
             const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId).slice(0, 5);
             teamPlayers.forEach((player, index) => {
                 const points_adjusted = Math.floor(Math.random() * 150000);
                 const global_rank = Math.floor(Math.random() * 3000) + 1;
-                const lineupId = `${game.id}-${player.id}`;
-
-                allLineups.push({
-                    id: lineupId,
-                    game_id: game.id,
-                    player_id: player.id,
-                    player_handle: player.player_handle,
-                    team_id: teamId,
-                    date: game.date,
-                    week: game.week,
-                    started: 'TRUE',
-                    is_captain: index === 0 ? 'TRUE' : 'FALSE',
-                    points_adjusted,
-                    global_rank,
-                    raw_score: points_adjusted,
-                });
+                allLineups.push({ id: `${game.id}-${player.id}`, game_id: game.id, player_id: player.id, player_handle: player.player_handle, team_id: teamId, date: game.date, week: game.week, started: 'TRUE', is_captain: index === 0 ? 'TRUE' : 'FALSE', points_adjusted, global_rank, raw_score: points_adjusted });
             });
         });
     }
+    console.log(" Done.");
 
-    // --- NEW: START OF CALCULATION CASCADE ---
-    console.log("--- Starting manual calculation cascade ---");
-
-    // 4. CALCULATE DAILY AVERAGES AND ENHANCE LINEUPS
+    // 4. CALCULATE DAILY AVERAGES
+    process.stdout.write("[4/8] Calculating daily averages and enhancing lineups...");
     const dailyAveragesMap = new Map();
     const lineupsByDate = new Map();
     allLineups.forEach(l => {
         if (!lineupsByDate.has(l.date)) lineupsByDate.set(l.date, []);
         lineupsByDate.get(l.date).push(l);
     });
-
     for (const [date, dailyLineups] of lineupsByDate.entries()) {
         const scores = dailyLineups.map(l => l.points_adjusted);
         const mean = calculateMean(scores);
         const median = calculateMedian(scores);
         const replacement = median * 0.9;
         const win = median * 0.92;
-        const week = dailyLineups[0]?.week || '';
-        dailyAveragesMap.set(date, { date, week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win });
-
+        dailyAveragesMap.set(date, { date, week: dailyLineups[0]?.week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win });
         dailyLineups.forEach(l => {
             const points = l.points_adjusted;
-            const aboveMean = points - mean;
-            const aboveMedian = points - median;
-            l.above_mean = aboveMean;
-            l.AboveAvg = aboveMean > 0 ? 1 : 0;
-            l.pct_above_mean = mean ? aboveMean / mean : 0;
-            l.above_median = aboveMedian;
-            l.AboveMed = aboveMedian > 0 ? 1 : 0;
-            l.pct_above_median = median ? aboveMedian / median : 0;
+            l.above_mean = points - mean;
+            l.AboveAvg = l.above_mean > 0 ? 1 : 0;
+            l.pct_above_mean = mean ? l.above_mean / mean : 0;
+            l.above_median = points - median;
+            l.AboveMed = l.above_median > 0 ? 1 : 0;
+            l.pct_above_median = median ? l.above_median / median : 0;
             l.SingleGameWar = win ? (points - replacement) / win : 0;
         });
     }
-    console.log("Step 4: Calculated daily averages and enhanced lineup data.");
+    console.log(" Done.");
 
     // 5. CALCULATE DAILY TEAM SCORES
+    process.stdout.write("[5/8] Calculating daily team scores...");
     const dailyScores = [];
     const gamesByDate = new Map();
     schedule.forEach(g => {
         if (!gamesByDate.has(g.date)) gamesByDate.set(g.date, []);
         gamesByDate.get(g.date).push(g);
     });
-
     for (const [date, games] of gamesByDate.entries()) {
         const teamScores = games.flatMap(g => [g.team1_score, g.team2_score]);
         const teamMedian = calculateMedian(teamScores);
         games.forEach(g => {
             [{ id: g.team1_id, score: g.team1_score }, { id: g.team2_id, score: g.team2_score }].forEach(team => {
                 const pam = team.score - teamMedian;
-                dailyScores.push({
-                    docId: `${team.id}-${g.id}`,
-                    data: { week: g.week, team_id: team.id, date: g.date, score: team.score, daily_median: teamMedian, above_median: pam > 0 ? 1 : 0, points_above_median: pam, pct_above_median: teamMedian ? pam / teamMedian : 0 }
-                });
+                dailyScores.push({ docId: `${team.id}-${g.id}`, data: { week: g.week, team_id: team.id, date: g.date, score: team.score, daily_median: teamMedian, above_median: pam > 0 ? 1 : 0, points_above_median: pam, pct_above_median: teamMedian ? pam / teamMedian : 0 } });
             });
         });
     }
-    console.log("Step 5: Calculated daily team scores.");
+    console.log(" Done.");
 
-    // 6. AGGREGATE SEASONAL STATS FOR PLAYERS AND TEAMS
+    // 6. AGGREGATE SEASONAL STATS
+    process.stdout.write("[6/8] Aggregating seasonal stats for players and teams...");
     const playerSeasonalStats = new Map();
     allLineups.forEach(l => {
         if (!playerSeasonalStats.has(l.player_id)) playerSeasonalStats.set(l.player_id, {});
@@ -284,33 +249,23 @@ async function simulateSeason() {
         stats.sortscore = stats.wpct + (stats.pam * 0.00000001);
         stats.MaxPotWins = 15 - stats.losses;
     }
-    console.log("Step 6: Aggregated seasonal stats for players and teams.");
+    console.log(" Done.");
 
     // 7. CALCULATE RANKS
+    process.stdout.write("[7/8] Calculating all player and team ranks...");
     const allPlayerStatsWithId = Array.from(playerSeasonalStats.entries()).map(([player_id, stats]) => ({ player_id, ...stats }));
     const allTeamCalculatedStats = Array.from(teamSeasonalStats.entries()).map(([teamId, stats]) => ({ teamId, ...stats }));
-    
-    // Player Ranks
     const playerRankings = {
-        total_points: getRanks(allPlayerStatsWithId, 'total_points'),
-        rel_mean: getRanks(allPlayerStatsWithId, 'rel_mean', null, false, 3),
-        rel_median: getRanks(allPlayerStatsWithId, 'rel_median', null, false, 3),
-        GEM: getRanks(allPlayerStatsWithId, 'GEM', null, true, 3),
-        WAR: getRanks(allPlayerStatsWithId, 'WAR'),
-        medrank: getRanks(allPlayerStatsWithId, 'medrank', null, true, 3),
-        meanrank: getRanks(allPlayerStatsWithId, 'meanrank', null, true, 3),
-        aag_mean: getRanks(allPlayerStatsWithId, 'aag_mean', 'aag_mean_pct'),
-        aag_median: getRanks(allPlayerStatsWithId, 'aag_median', 'aag_median_pct'),
-        t100: getRanks(allPlayerStatsWithId, 't100', 't100_pct'),
+        total_points: getRanks(allPlayerStatsWithId, 'total_points'), rel_mean: getRanks(allPlayerStatsWithId, 'rel_mean', null, false, 3),
+        rel_median: getRanks(allPlayerStatsWithId, 'rel_median', null, false, 3), GEM: getRanks(allPlayerStatsWithId, 'GEM', null, true, 3),
+        WAR: getRanks(allPlayerStatsWithId, 'WAR'), medrank: getRanks(allPlayerStatsWithId, 'medrank', null, true, 3),
+        meanrank: getRanks(allPlayerStatsWithId, 'meanrank', null, true, 3), aag_mean: getRanks(allPlayerStatsWithId, 'aag_mean', 'aag_mean_pct'),
+        aag_median: getRanks(allPlayerStatsWithId, 'aag_median', 'aag_median_pct'), t100: getRanks(allPlayerStatsWithId, 't100', 't100_pct'),
         t50: getRanks(allPlayerStatsWithId, 't50', 't50_pct'),
     };
     for (const [playerId, stats] of playerSeasonalStats.entries()) {
-        for (const key in playerRankings) {
-            stats[`${key}_rank`] = playerRankings[key].get(playerId) || null;
-        }
+        for (const key in playerRankings) stats[`${key}_rank`] = playerRankings[key].get(playerId) || null;
     }
-
-    // Team Ranks
     const teamRankings = {
         msr_rank: getRanks(allTeamCalculatedStats, 'med_starter_rank', null, true),
         pam_rank: getRanks(allTeamCalculatedStats, 'pam', null, false)
@@ -319,52 +274,43 @@ async function simulateSeason() {
         stats.msr_rank = teamRankings.msr_rank.get(stats.id);
         stats.pam_rank = teamRankings.pam_rank.get(stats.id);
     }
-    console.log("Step 7: Calculated all player and team ranks.");
+    console.log(" Done.");
 
-    // 8. WRITE ALL CALCULATED DATA TO FIRESTORE
-    console.log("--- Writing all calculated data to Firestore ---");
+    // 8. WRITE ALL DATA TO FIRESTORE
+    process.stdout.write("[8/8] Writing all calculated data to Firestore...");
     let batch = db.batch();
     const BATCH_SIZE = 400;
     let writeCount = 0;
-
     const commitBatchIfNeeded = async () => {
         if (writeCount >= BATCH_SIZE) {
-            console.log(`Committing batch of ${writeCount} writes...`);
             await batch.commit();
             batch = db.batch();
             writeCount = 0;
+            process.stdout.write('.'); // Progress indicator
         }
     };
 
-    // Write Games, Lineups, Daily Averages, Daily Scores
     const seasonRef = db.collection(getCollectionName("seasons")).doc(SEASON_ID);
-    for (const game of schedule) batch.set(seasonRef.collection(getCollectionName("games")).doc(game.id), game);
-    for (const lineup of allLineups) batch.set(seasonRef.collection(getCollectionName("lineups")).doc(lineup.id), lineup);
+    for (const game of schedule) { batch.set(seasonRef.collection(getCollectionName("games")).doc(game.id), game); writeCount++; await commitBatchIfNeeded(); }
+    for (const lineup of allLineups) { batch.set(seasonRef.collection(getCollectionName("lineups")).doc(lineup.id), lineup); writeCount++; await commitBatchIfNeeded(); }
     for (const [date, data] of dailyAveragesMap.entries()) {
         const yyyymmdd = new Date(date).toISOString().split('T')[0];
         batch.set(db.doc(`${getCollectionName('daily_averages')}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_daily_averages`)}/${yyyymmdd}`), data);
+        writeCount++; await commitBatchIfNeeded();
     }
-    for (const score of dailyScores) batch.set(db.doc(`${getCollectionName('daily_scores')}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_daily_scores`)}/${score.docId}`), score.data);
-
-    // Write Seasonal Stats
-    for (const [playerId, stats] of playerSeasonalStats.entries()) batch.set(db.doc(`${getCollectionName('v2_players')}/${playerId}/${getCollectionName('seasonal_stats')}/${SEASON_ID}`), stats);
-    for (const [teamId, stats] of teamSeasonalStats.entries()) batch.set(db.doc(`${getCollectionName('v2_teams')}/${teamId}/${getCollectionName('seasonal_records')}/${SEASON_ID}`), stats);
-    
-    // Write Leaderboards
+    for (const score of dailyScores) { batch.set(db.doc(`${getCollectionName('daily_scores')}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_daily_scores`)}/${score.docId}`), score.data); writeCount++; await commitBatchIfNeeded(); }
+    for (const [playerId, stats] of playerSeasonalStats.entries()) { batch.set(db.doc(`${getCollectionName('v2_players')}/${playerId}/${getCollectionName('seasonal_stats')}/${SEASON_ID}`), stats); writeCount++; await commitBatchIfNeeded(); }
+    for (const [teamId, stats] of teamSeasonalStats.entries()) { batch.set(db.doc(`${getCollectionName('v2_teams')}/${teamId}/${getCollectionName('seasonal_records')}/${SEASON_ID}`), stats); writeCount++; await commitBatchIfNeeded(); }
     const karmaLeaderboard = [...allLineups].sort((a, b) => (b.points_adjusted || 0) - (a.points_adjusted || 0)).slice(0, 250);
     const rankLeaderboard = [...allLineups].filter(p => (p.global_rank || 0) > 0).sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999)).slice(0, 250);
     batch.set(db.doc(`${getCollectionName('leaderboards')}/single_game_karma/${SEASON_ID}/data`), { rankings: karmaLeaderboard });
     batch.set(db.doc(`${getCollectionName('leaderboards')}/single_game_rank/${SEASON_ID}/data`), { rankings: rankLeaderboard });
-    
-    // Write Season Summary
     const season_karma = Array.from(playerSeasonalStats.values()).reduce((sum, p) => sum + (p.total_points || 0), 0);
-    batch.set(seasonRef, {
-        season_name: `Season ${SEASON_NUM}`, status: "completed", gs: schedule.length, gp: schedule.length,
-        season_karma: season_karma, season_trans: 0, current_week: "Season Complete"
-    }, { merge: true });
+    batch.set(seasonRef, { season_name: `Season ${SEASON_NUM}`, status: "completed", gs: schedule.length, gp: schedule.length, season_karma: season_karma, season_trans: 0, current_week: "Season Complete" }, { merge: true });
 
-    // Commit all writes
-    await batch.commit();
+    if (writeCount > 0) await batch.commit();
+    console.log(" Done.");
+    console.log("---");
     console.log("✅ Simulation and all calculations complete!");
 }
 
