@@ -29,24 +29,19 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-
     match /draftPicks/{doc=**} {
       allow read: if true;
       allow write: if isAdmin(); 
     }
-
     match /live_games/{gameId} {
         allow read: if true;
         allow write: if isAdmin();
     }
-    // Updated rule for transactions: read is public, write is for the initial document,
-    // and new rule for season-specific subcollections.
     match /transactions/{transactionId} {
       allow read: if true;
       allow create: if isAdmin();
       allow update, delete: if false; // Original doc is meant to be moved, not edited
     }
-    // New rule for season-specific transactions subcollection
     match /transactions/seasons/{seasonId}/{transactionId} {
       allow read: if true;
       allow write: if isAdmin();
@@ -67,7 +62,6 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdmin();
     }
-
     match /live_scoring_status/{doc=**} {
         allow read: if true;
         allow write: if isAdmin();
@@ -92,10 +86,22 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-    // --- ADDED: Rule for collectionGroup on seasonal_records ---
+
+    // --- NEWLY ADDED RULE for single-game leaderboards ---
+    match /leaderboards/{doc=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+    
+    // --- NEWLY ADDED RULE for collectionGroup on seasonal_stats ---
+    match /{path=**}/seasonal_stats/{recordId} {
+        allow read: if true;
+    }
+
     match /{path=**}/seasonal_records/{recordId} {
         allow read: if true;
     }
+    
     // =======================================================
     // V2 DEVELOPMENT RULES (_dev)
     // =======================================================
@@ -116,14 +122,11 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdminDev();
     }
-    // Updated rule for transactions: read is public, write is for the initial document,
-    // and new rule for season-specific subcollections.
     match /transactions_dev/{transactionId} {
       allow read: if true;
       allow create: if isAdminDev();
       allow update, delete: if false;
     }
-    // New rule for season-specific transactions subcollection
     match /transactions_dev/seasons/{seasonId}/{transactionId} {
       allow read: if true;
       allow write: if isAdminDev();
@@ -172,7 +175,18 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdminDev();
     }
-    // --- ADDED: Rule for collectionGroup on seasonal_records_dev ---
+    
+    // --- NEWLY ADDED RULE for _dev single-game leaderboards ---
+    match /leaderboards_dev/{doc=**} {
+        allow read: if true;
+        allow write: if isAdminDev();
+    }
+
+    // --- NEWLY ADDED RULE for _dev collectionGroup on seasonal_stats ---
+    match /{path=**}/seasonal_stats_dev/{recordId} {
+        allow read: if true;
+    }
+
     match /{path=**}/seasonal_records_dev/{recordId} {
         allow read: if true;
     }
@@ -180,44 +194,38 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdminDev();
     }
+    
     // =======================================================
     // ADMIN-ONLY & LEGACY RULES (Unchanged)
     // =======================================================
-
-    // == Rules for NEW Statistics Collections (Admin-Only) ==
-    match /daily_averages/{doc=**} {
-      allow read, write: if isAdmin();
-    }
-    match /post_daily_averages/{doc=**} {
-      allow read, write: if isAdmin();
-    }
-    match /daily_scores/{doc=**} {
-      allow read, write: if isAdmin();
-    }
-    match /post_daily_scores/{doc=**} {
-      allow read, write: if isAdmin();
-    }
-
-    // == Rules for Live S7 Site (Public Read, Admin Write) ==
+    
     match /admins/{doc} {
       allow read, write: if false;
     }
-    match /players/{doc} { allow read: if true;
-      allow write: if false; }
-    match /teams/{doc} { allow read: if true; allow write: if false;
+    match /players/{doc} { 
+      allow read: if true;
+      allow write: if false;
+    }
+    match /teams/{doc} { 
+      allow read: if true; 
+      allow write: if false;
     }
     match /schedule/{doc} {
       allow read: if true;
       allow write: if false;
     }
-    match /post_schedule/{doc} { allow read: if true; allow write: if false;
+    match /post_schedule/{doc} { 
+      allow read: if true; 
+      allow write: if false;
     }
-    match /weekly_averages/{doc} { allow read: if true; allow write: if false;
+    match /weekly_averages/{doc} { 
+      allow read: if true; 
+      allow write: if false;
     }
-    match /transaction_log/{doc} { allow read: if true; allow write: if false;
+    match /transaction_log/{doc} { 
+      allow read: if true; 
+      allow write: if false;
     }
-
-    // Legacy Lineups (to be replaced by seasons/{seasonId}/lineups)
     match /lineups/{doc} {
       allow read: if true;
       allow write: if isAdmin();
@@ -226,16 +234,10 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdmin();
     }
-     match /draftPicks/{doc} {
-      allow read: if true;
-      allow write: if isAdmin(); // Admins can now edit picks
-    }
     match /tradeblocks/{doc} {
       allow read: if true;
       allow write: if request.auth.uid == resource.data.gm_uid || isAdmin() || isAdminDev();
     }
-
-    // These 'new_' collections will eventually be deprecated.
     match /new_players/{doc=**} {
       allow read, write: if isAdmin();
     }
