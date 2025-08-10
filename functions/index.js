@@ -565,6 +565,7 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     for (const teamDoc of teamsSnap.docs) {
         const recordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(seasonId);
 
+        // MODIFIED: Fetch the team name from the previous active season's record.
         const activeRecordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(activeSeasonId);
         const activeRecordSnap = await activeRecordRef.get();
         const teamName = activeRecordSnap.exists ? activeRecordSnap.data().team_name : "Name Not Found";
@@ -572,7 +573,8 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
         batch.set(recordRef, {
             apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
             playoffs: 0, post_losses: 0, post_med_starter_rank: 0, post_msr_rank: 0, post_pam: 0, post_pam_rank: 0, post_wins: 0, postseed: 0, sortscore: 0,
-            wins: 0, wpct: 0, total_transactions: 0, team_name: teamName
+            wins: 0, wpct: 0, total_transactions: 0,
+            team_name: teamName // MODIFIED: Set the fetched team name here.
         });
     }
     console.log(`Prepared empty seasonal_records for ${teamsSnap.size} teams.`);
