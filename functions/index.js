@@ -1936,11 +1936,12 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
         return;
     }
 
+    // --- CORRECTED ADVANCEMENT RULES ---
     const advancementRules = {
         "W7vW8": { winnerTo: "W2vW7", winnerField: "team2_id", loserTo: "W8thSeedGame", loserField: "team1_id" },
         "E7vE8": { winnerTo: "E2vE7", winnerField: "team2_id", loserTo: "E8thSeedGame", loserField: "team1_id" },
-        "W9vW10": { loserTo: "W8thSeedGame", loserField: "team2_id" },
-        "E9vE10": { loserTo: "E8thSeedGame", loserField: "team2_id" },
+        "W9vW10": { winnerTo: "W8thSeedGame", winnerField: "team2_id", loserTo: null }, // Winner advances
+        "E9vE10": { winnerTo: "E8thSeedGame", winnerField: "team2_id", loserTo: null }, // Winner advances
         "W8thSeedGame": { winnerTo: "W1vW8", winnerField: "team2_id" },
         "E8thSeedGame": { winnerTo: "E1vE8", winnerField: "team2_id" },
         "E1vE8": { winnerTo: "E-R2-T", winnerField: "team1_id" },
@@ -1973,9 +1974,14 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
             const winnerId = game.winner;
             const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
             
+            // --- NEW: SEEDING LOGIC ---
             let winnerSeed = '';
             if (game.series_id.includes('7v8')) winnerSeed = '7';
             else if (game.series_id.includes('8thSeedGame')) winnerSeed = '8';
+            else if (game.series_id.includes('9v10')) {
+                 // The 9/10 winner doesn't get a seed; they just advance to the next game
+                 winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
+            }
             
             // Update winner's next series if it exists
             if (rule.winnerTo) {
@@ -1991,15 +1997,21 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
 
             // Update loser's next series (if applicable)
             if (rule.loserTo) {
+                const loserSeed = loserId === game.team1_id ? game.team1_seed : game.team2_seed;
+                const loserSeedField = rule.loserField.replace('_id', '_seed');
                 const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.loserTo).get();
-                loserNextSeriesSnap.forEach(doc => batch.update(doc.ref, { [rule.loserField]: loserId }));
-                console.log(`Moving loser ${loserId} from ${game.series_id} to ${rule.loserTo}.`);
+                loserNextSeriesSnap.forEach(doc => batch.update(doc.ref, { 
+                    [rule.loserField]: loserId,
+                    [loserSeedField]: loserSeed
+                }));
+                console.log(`Moving loser ${loserId} (seed ${loserSeed}) from ${game.series_id} to ${rule.loserTo}.`);
                 shouldCommit = true;
             }
         }
         // Handle multi-game series advancement
         else if (game.week !== 'Play-In' && game.series_winner) {
             const winnerId = game.series_winner;
+            // --- NEW: SEEDING LOGIC ---
             const winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
             const winnerSeedField = rule.winnerField.replace('_id', '_seed');
 
