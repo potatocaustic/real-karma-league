@@ -468,7 +468,7 @@
     <script src="../js/main.js" type="module"></script>
     <script type="module">
         import { db } from '/js/firebase-init.js';
-        import { collection, getDocs, query, where, collectionGroup } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+        import { collection, getDocs, query, where, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
 
         // --- CONFIGURATION ---
         const SEASON_ID = "S8";
@@ -483,39 +483,37 @@
         async function fetchAllData() {
             const container = document.getElementById('bracket-container');
             try {
-                // 1. Fetch all teams and their S8 records concurrently
+                // 1. Fetch all teams with a valid conference
                 const teamsQuery = query(collection(db, getCollectionName('v2_teams')), where('conference', 'in', ['Eastern', 'Western']));
                 const teamsSnap = await getDocs(teamsQuery);
                 
-                const teamRecordPromises = teamsSnap.docs.map(teamDoc => {
-                    const teamData = teamDoc.data();
-                    const recordRef = collection(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'));
-                    const seasonRecordQuery = query(recordRef, where('team_name', '!=', null)); // A trick to query a specific doc ID 'S8' in a subcollection
-                    return getDocs(seasonRecordQuery).then(recordSnap => {
-                         const season8Record = recordSnap.docs.find(doc => doc.id === SEASON_ID);
-                         if (season8Record) {
-                            return {
-                                id: teamDoc.id,
-                                ...teamData,
-                                ...season8Record.data()
-                            };
-                         }
-                         return null;
-                    });
+                // 2. For each team, fetch their specific S8 seasonal record
+                const teamRecordPromises = teamsSnap.docs.map(async (teamDoc) => {
+                    const teamData = { id: teamDoc.id, ...teamDoc.data() };
+                    const recordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), SEASON_ID);
+                    const recordSnap = await getDoc(recordRef);
+                    
+                    if (recordSnap.exists()) {
+                        return {
+                            ...teamData,
+                            ...recordSnap.data()
+                        };
+                    }
+                    return teamData; // Return team data even if record is missing
                 });
                 
-                const teamsWithRecords = (await Promise.all(teamRecordPromises)).filter(Boolean);
+                const teamsWithRecords = await Promise.all(teamRecordPromises);
                 teamsWithRecords.forEach(team => allTeamsMap.set(team.id, team));
 
-                // 2. Fetch all postseason games for S8
+                // 3. Fetch all postseason games for S8
                 const postGamesQuery = collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('post_games'));
                 const postGamesSnap = await getDocs(postGamesQuery);
 
-                // 3. Process games into a series map
+                // 4. Process games into a series map, ensuring we have one entry per series_id
                 postGamesSnap.forEach(doc => {
                     const gameData = doc.data();
                     // Since all games in a series have the same win counts, we can just overwrite.
-                    // This ensures we always have the latest state.
+                    // This ensures we always have the latest state for the series.
                     seriesMap.set(gameData.series_id, gameData);
                 });
 
