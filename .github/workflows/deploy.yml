@@ -1,0 +1,37 @@
+# .github/workflows/deploy.yml
+
+name: Deploy to Firebase
+
+# This workflow runs whenever you push code to your 'main' branch
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest # Use a standard virtual machine
+    steps:
+      # 1. Check out your code from the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js, which is required to run Firebase CLI
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Match the version in your package.json
+
+      # 3. Install the dependencies for your functions
+      - name: Install dependencies
+        run: cd functions && npm install
+
+      # 4. Deploy to Firebase
+      - name: Deploy to Firebase
+        uses: w9jds/firebase-action@master
+        with:
+          # The command to run. This deploys ONLY your functions.
+          args: deploy --only functions
+        env:
+          # Use the secret token you created earlier
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
