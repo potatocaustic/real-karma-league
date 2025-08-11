@@ -6,8 +6,9 @@ const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` 
 let currentScoringStatus = null; // Tracks the current scoring status to prevent redundant re-renders.
 
 let activeSeasonId = '';
-let allTeams = []; // This will now store all teams with a seasonal record
-let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
+let allTeams = []; 
+let allGamesCache = [];
+let liveGamesUnsubscribe = null;
 
 // --- UTILITY FUNCTIONS ---
 
@@ -61,49 +62,25 @@ async function getActiveSeason() {
     return seasonDoc.data();
 }
 
-async function fetchAllTeams(seasonId) {
+async function fetchAllGames(seasonId) {
     if (!seasonId) {
-        console.error("fetchAllTeams was called without a seasonId.");
+        console.error("fetchAllGames was called without a seasonId.");
         return;
     }
-    const teamsCollectionName = getCollectionName('v2_teams');
-    const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
+    const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
+    const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
 
-    const teamsQuery = query(collection(db, teamsCollectionName));
-    const recordsQuery = query(collectionGroup(db, seasonalRecordsCollectionName));
-    
-    const [teamsSnap, recordsSnap] = await Promise.all([
-        getDocs(teamsQuery),
-        getDocs(recordsQuery)
+    const [gamesSnap, postGamesSnap] = await Promise.all([
+        getDocs(gamesRef),
+        getDocs(postGamesRef),
     ]);
-    
-    if (teamsSnap.empty) {
-        console.error(`No documents found in the '${teamsCollectionName}' collection.`);
-        return;
-    }
 
-    const seasonalRecordsMap = new Map();
-    recordsSnap.forEach(doc => {
-        if (doc.id === seasonId) {
-            const teamId = doc.ref.parent.parent.id;
-            seasonalRecordsMap.set(teamId, doc.data());
-        }
-    });
-
-    const teams = teamsSnap.docs.map(teamDoc => {
-        const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonalRecord = seasonalRecordsMap.get(teamDoc.id);
-
-        if (seasonalRecord) {
-            return { ...teamData, ...seasonalRecord };
-        }
-        return null;
-    });
-
-    allTeams = teams.filter(t => t !== null);
-    console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
+    allGamesCache = [
+        ...gamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })),
+        ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() }))
+    ];
+    console.log(`Successfully cached ${allGamesCache.length} total games.`);
 }
-
 // --- DOM MANIPULATION & RENDERING ---
 
 function loadStandingsPreview() {
@@ -581,9 +558,10 @@ async function initializePage() {
 
         const seasonData = await getActiveSeason();
         await fetchAllTeams(activeSeasonId);
+        await fetchAllGames(activeSeasonId); // ADD THIS LINE
 
         loadStandingsPreview();
-        initializeGamesSection(seasonData); 
+        initializeGamesSection(seasonData);
         loadSeasonInfo(seasonData);
 
     } catch (error) {
