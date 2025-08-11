@@ -65,18 +65,18 @@ function getPostseasonGameLabel(seriesName) {
         'E9vE10': 'East Play-In Stage 1',
         'W8thSeedGame': 'West Play-In Stage 2',
         'E8thSeedGame': 'East Play-In Stage 2',
-        'W1vW8': `West Round 1 ${gameNumberString}`,
-        'W4vW5': `West Round 1 ${gameNumberString}`,
-        'W3vW6': `West Round 1 ${gameNumberString}`,
-        'W2vW7': `West Round 1 ${gameNumberString}`,
-        'E1vE8': `East Round 1 ${gameNumberString}`,
-        'E4vE5': `East Round 1 ${gameNumberString}`,
-        'E3vE6': `East Round 1 ${gameNumberString}`,
-        'E2vE7': `East Round 1 ${gameNumberString}`,
-        'W-R2-T': `West Round 2 ${gameNumberString}`,
-        'W-R2-B': `West Round 2 ${gameNumberString}`,
-        'E-R2-T': `East Round 2 ${gameNumberString}`,
-        'E-R2-B': `East Round 2 ${gameNumberString}`,
+        'W1vW8': `West Round 1 - ${gameNumberString}`,
+        'W4vW5': `West Round 1 - ${gameNumberString}`,
+        'W3vW6': `West Round 1 - ${gameNumberString}`,
+        'W2vW7': `West Round 1 - ${gameNumberString}`,
+        'E1vE8': `East Round 1 - ${gameNumberString}`,
+        'E4vE5': `East Round 1 - ${gameNumberString}`,
+        'E3vE6': `East Round 1 - ${gameNumberString}`,
+        'E2vE7': `East Round 1 - ${gameNumberString}`,
+        'W-R2-T': `West Round 2 - ${gameNumberString}`,
+        'W-R2-B': `West Round 2 - ${gameNumberString}`,
+        'E-R2-T': `East Round 2 - ${gameNumberString}`,
+        'E-R2-B': `East Round 2 - ${gameNumberString}`,
         'WCF': `WCF ${gameNumberString}`,
         'ECF': `ECF ${gameNumberString}`,
         'Finals': `RKL Finals ${gameNumberString}`,
@@ -187,18 +187,16 @@ function listenForLiveGames() {
 }
 
 /**
- * Hides postseason weeks where all games are TBD vs TBD.
+ * [MODIFIED] Adds a trophy emoji to the 'Finals' week button.
  */
 function setupWeekSelector() {
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))];
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
     allKnownWeeks.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
-    // Filter out weeks that shouldn't be visible yet.
     const visibleWeeks = allKnownWeeks.filter(week => {
-        if (!isPostseason(week)) return true; // Always show regular season weeks.
+        if (!isPostseason(week)) return true;
         const weekGames = allGamesCache.filter(g => g.week === week);
-        // A week is visible if at least one game has at least one non-TBD team.
         return weekGames.some(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
     });
 
@@ -206,7 +204,15 @@ function setupWeekSelector() {
     weekButtonsContainer.innerHTML = visibleWeeks.map(week => {
         const weekGames = allGamesCache.filter(g => g.week === week);
         const isCompleted = weekGames.length > 0 && weekGames.every(g => g.completed === 'TRUE');
-        return `<div class="week-btn ${isCompleted ? 'completed' : ''}" data-week="${week}">${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`}</div>`;
+        
+        let buttonText;
+        if (week === 'Finals') {
+            buttonText = `🏆 ${escapeHTML(week)}`;
+        } else {
+            buttonText = isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`;
+        }
+
+        return `<div class="week-btn ${isCompleted ? 'completed' : ''}" data-week="${week}">${buttonText}</div>`;
     }).join('');
 
     const buttons = weekButtonsContainer.querySelectorAll('.week-btn');
@@ -224,7 +230,7 @@ function setupWeekSelector() {
 }
 
 /**
- * Handles all display logic for a given week, including postseason specifics.
+ * [MODIFIED] Adds a trophy emoji to the date header for 'Finals' week.
  */
 function displayWeek(week) {
     document.getElementById('games-title').textContent = `${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
@@ -233,7 +239,6 @@ function displayWeek(week) {
     
     const isWeekPostseason = isPostseason(week);
 
-    // Filter games for the current week. For postseason, also filter out games that are fully TBD.
     let weekGames = allGamesCache.filter(g => g.week === week);
     if (isWeekPostseason) {
         weekGames = weekGames.filter(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
@@ -247,7 +252,7 @@ function displayWeek(week) {
 
     if (weekStandoutsSection) {
         const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
-        if (allGamesInWeekCompleted && !isWeekPostseason) { // Standouts only for regular season
+        if (allGamesInWeekCompleted && !isWeekPostseason) {
             calculateAndDisplayStandouts(week, weekGames);
             weekStandoutsSection.style.display = 'block';
         } else {
@@ -275,21 +280,16 @@ function displayWeek(week) {
             let team1ScoreHTML = '';
             let team2ScoreHTML = '';
 
-            // --- Postseason Overrides ---
             let team1NameHTML = escapeHTML(team1.team_name);
             let team2NameHTML = escapeHTML(team2.team_name);
             let team1Record, team2Record;
 
             if (isWeekPostseason) {
-                // Requirement 1: Add seed to name
                 if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
                 if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
-
-                // Requirement 2: Show series record
                 team1Record = `${game.team1_wins || 0} - ${game.team2_wins || 0}`;
                 team2Record = `${game.team2_wins || 0} - ${game.team1_wins || 0}`;
             } else {
-                // Default regular season record
                 team1Record = historicalRecords[week]?.[team1.id] || `${team1.wins || 0}-${team1.losses || 0}`;
                 team2Record = historicalRecords[week]?.[team2.id] || `${team2.wins || 0}-${team2.losses || 0}`;
             }
@@ -312,7 +312,6 @@ function displayWeek(week) {
                 team1ScoreHTML = `<div class="score-container">${team1Indicator}<div class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</div></div>`;
                 team2ScoreHTML = `<div class="score-container">${team2Indicator}<div class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</div></div>`;
                 
-                // Update regular season record post-game (this won't show for postseason)
                 if (!isWeekPostseason) {
                     const preGameRecord1 = historicalRecords[week]?.[team1.id];
                     if (preGameRecord1) {
@@ -329,7 +328,6 @@ function displayWeek(week) {
                 }
             }
             
-            // Requirement 4: Prepend label to status
             let statusPrefix = isWeekPostseason ? getPostseasonGameLabel(game.series_name) : '';
             const finalStatusText = statusPrefix ? `${statusPrefix} - ${statusText}` : statusText;
             const statusIndicator = isLive ? `<span class="live-indicator"></span>` : '';
@@ -362,7 +360,9 @@ function displayWeek(week) {
                     <div class="game-status ${cardClass}">${statusHTML}</div>
                 </div>`;
         }).join('');
-        return `<div class="date-section"><div class="date-header">${formatDate(date)}</div><div class="games-grid">${dateGamesHTML}</div></div>`;
+        
+        const dateHeaderPrefix = week === 'Finals' ? '🏆 ' : '';
+        return `<div class="date-section"><div class="date-header">${dateHeaderPrefix}${formatDate(date)}</div><div class="games-grid">${dateGamesHTML}</div></div>`;
     }).join('');
 
     document.querySelectorAll('.game-card.completed, .game-card.live').forEach(card => {
