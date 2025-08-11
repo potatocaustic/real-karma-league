@@ -395,8 +395,8 @@ async function loadRecentGames(seasonData) {
             if (gameIsPostseason) {
                 if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
                 if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
-                team1Record = `${game.team1_wins || 0}-${game.team2_wins || 0} in series`;
-                team2Record = `${game.team2_wins || 0}-${game.team1_wins || 0} in series`;
+                team1Record = `${game.team1_wins || 0}-${game.team2_wins || 0}`;
+                team2Record = `${game.team2_wins || 0}-${game.team1_wins || 0}`;
             } else {
                 team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
                 team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
@@ -515,46 +515,51 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
     contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
 
     try {
-        const gameCollectionPath = isLiveGame 
-            ? getCollectionName('live_games') 
-            : `${getCollectionName('seasons')}/${activeSeasonId}/${getCollectionName('games')}`;
-
-        const gameRef = doc(db, gameCollectionPath, gameId);
-        const gameSnap = await getDoc(gameRef);
-        if (!gameSnap.exists()) throw new Error("Game not found");
-        const game = gameSnap.data();
-
-        let team1Lineups, team2Lineups;
-
+        let gameData, team1Lineups, team2Lineups, team1, team2;
+        
         if (isLiveGame) {
-            team1Lineups = game.team1_lineup || [];
-            team2Lineups = game.team2_lineup || [];
-        } else {
-            const lineupsCollectionName = getCollectionName('lineups');
-            const lineupsQuery = query(
-                collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName),
-                where('date', '==', gameDate)
-            );
-            const lineupsSnapshot = await getDocs(lineupsQuery);
-            const allLineupsForDate = lineupsSnapshot.docs.map(d => d.data());
+            // Live game logic remains the same
+            const gameRef = doc(db, getCollectionName('live_games'), gameId);
+            const gameSnap = await getDoc(gameRef);
+            if (!gameSnap.exists()) throw new Error("Live game data not found.");
             
-            team1Lineups = allLineupsForDate.filter(l => l.team_id === game.team1_id && l.started === "TRUE");
-            team2Lineups = allLineupsForDate.filter(l => l.team_id === game.team2_id && l.started === "TRUE");
+            gameData = gameSnap.data();
+            team1 = allTeams.find(t => t.id === gameData.team1_lineup[0]?.team_id);
+            team2 = allTeams.find(t => t.id === gameData.team2_lineup[0]?.team_id);
+            team1Lineups = gameData.team1_lineup || [];
+            team2Lineups = gameData.team2_lineup || [];
+            modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - Live`;
+
+        } else {
+            // --- CORRECTED LOGIC FOR COMPLETED GAMES ---
+            gameData = allGamesCache.find(g => g.id === gameId);
+            if (!gameData) {
+                throw new Error("Game not found in cache.");
+            }
+
+            const gameIsPostseason = isPostseasonWeek(gameData.week);
+            const lineupsCollectionName = gameIsPostseason 
+                ? getCollectionName('post_lineups') 
+                : getCollectionName('lineups');
+            
+            // Use a more precise query for lineups using the game's unique ID
+            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
+            const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
+            const lineupsSnap = await getDocs(lineupsQuery);
+            const allLineupsForGame = lineupsSnap.docs.map(d => d.data());
+
+            team1 = allTeams.find(t => t.id === gameData.team1_id);
+            team2 = allTeams.find(t => t.id === gameData.team2_id);
+            team1Lineups = allLineupsForGame.filter(l => l.team_id === team1.id && l.started === "TRUE");
+            team2Lineups = allLineupsForGame.filter(l => l.team_id === team2.id && l.started === "TRUE");
+            modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(gameDate)}`;
         }
 
-        const team1Id = isLiveGame ? game.team1_lineup[0]?.team_id : game.team1_id;
-        const team2Id = isLiveGame ? game.team2_lineup[0]?.team_id : game.team2_id;
-
-        const team1 = allTeams.find(t => t.id === team1Id);
-        const team2 = allTeams.find(t => t.id === team2Id);
-        
-        const displayDate = isLiveGame ? 'Live' : formatDateShort(game.date);
-        modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${displayDate}`;
-        
+        const winnerId = isLiveGame ? null : gameData.winner;
         contentArea.innerHTML = `
             <div class="game-details-grid">
-                ${generateLineupTable(team1Lineups, team1, !isLiveGame && game.winner === team1.id, isLiveGame)}
-                ${generateLineupTable(team2Lineups, team2, !isLiveGame && game.winner === team2.id, isLiveGame)}
+                ${generateLineupTable(team1Lineups, team1, !isLiveGame && winnerId === team1.id, isLiveGame)}
+                ${generateLineupTable(team2Lineups, team2, !isLiveGame && winnerId === team2.id, isLiveGame)}
             </div>
         `;
 
