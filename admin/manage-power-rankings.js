@@ -279,6 +279,20 @@ async function handleFormSubmit(e) {
         const rankingsCollectionPath = `${getCollectionName('power_rankings')}/${seasonDocName}/v${versionToSave}`;
         const rankingsCollectionRef = collection(db, rankingsCollectionPath);
 
+        const teamRecordsMap = new Map();
+        const seasonalRecordsPromises = allTeams.map(team => {
+            const recordRef = doc(db, getCollectionName("v2_teams"), team.id, getCollectionName("seasonal_records"), currentSeasonId);
+            return getDoc(recordRef);
+        });
+        const seasonalRecordsSnaps = await Promise.all(seasonalRecordsPromises);
+        seasonalRecordsSnaps.forEach(snap => {
+            if (snap.exists()) {
+                const teamId = snap.ref.parent.parent.id;
+                teamRecordsMap.set(teamId, snap.data());
+            }
+        });
+        // --- END NEW ---
+
         const ranksToWrite = [];
         let error = false;
         rankingsBody.querySelectorAll('tr').forEach(row => {
@@ -306,6 +320,7 @@ async function handleFormSubmit(e) {
             const team = allTeams.find(t => t.id === item.teamId);
             const previous_rank = prevRankingsMap.get(item.teamId) || null;
             const change = previous_rank !== null ? previous_rank - item.rank : null;
+            const teamRecord = teamRecordsMap.get(item.teamId) || { wins: 0, losses: 0 };
 
             const docRef = doc(rankingsCollectionRef, item.teamId);
             batch.set(docRef, {
@@ -315,17 +330,19 @@ async function handleFormSubmit(e) {
                 previous_rank: previous_rank,
                 change: change,
                 version: versionToSave,
-                season: currentSeasonId
+                season: currentSeasonId,
+                // --- NEW FIELDS ---
+                power_wins: teamRecord.wins || 0,
+                power_losses: teamRecord.losses || 0
             });
         }
         
-        // --- NEW: Update the latest_version field on the parent season document ---
         const seasonDocRef = doc(db, getCollectionName('power_rankings'), seasonDocName);
         const versionLabel = `v${versionToSave}`;
         
         batch.set(seasonDocRef, { 
             latest_version: versionLabel,
-        }, { merge: true }); // Use merge:true to create or update without overwriting other fields
+        }, { merge: true });
 
         await batch.commit();
         alert(`Power Rankings ${versionLabel} saved successfully!`);
