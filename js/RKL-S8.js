@@ -6,21 +6,11 @@ const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` 
 let currentScoringStatus = null; // Tracks the current scoring status to prevent redundant re-renders.
 
 let activeSeasonId = '';
-let allTeams = []; 
-let allGamesCache = [];
-let liveGamesUnsubscribe = null;
+let allTeams = [];
+let allGamesCache = []; // Caches all games for the season
+let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
 
 // --- UTILITY FUNCTIONS ---
-
-function escapeHTML(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
 function formatInThousands(value) {
     const num = parseFloat(value);
     if (isNaN(num)) return '-';
@@ -42,12 +32,21 @@ function formatDateShort(dateString) {
     const year = String(date.getFullYear()).slice(-2);
     return `${month}/${day}/${year}`;
 }
+
 function isPostseasonWeek(weekString) {
     if (!weekString) return false;
-    // If the week string can't be parsed into a number (e.g., "Round 1", "Finals"),
-    // then we know it's a postseason week.
     return isNaN(parseInt(weekString, 10));
 }
+
+function escapeHTML(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 
 // --- DATA FETCHING FUNCTIONS ---
 
@@ -62,6 +61,49 @@ async function getActiveSeason() {
     return seasonDoc.data();
 }
 
+async function fetchAllTeams(seasonId) {
+    if (!seasonId) {
+        console.error("fetchAllTeams was called without a seasonId.");
+        return;
+    }
+    const teamsCollectionName = getCollectionName('v2_teams');
+    const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
+
+    const teamsQuery = query(collection(db, teamsCollectionName));
+    const recordsQuery = query(collectionGroup(db, seasonalRecordsCollectionName));
+    
+    const [teamsSnap, recordsSnap] = await Promise.all([
+        getDocs(teamsQuery),
+        getDocs(recordsQuery)
+    ]);
+    
+    if (teamsSnap.empty) {
+        console.error(`No documents found in the '${teamsCollectionName}' collection.`);
+        return;
+    }
+
+    const seasonalRecordsMap = new Map();
+    recordsSnap.forEach(doc => {
+        if (doc.id === seasonId) {
+            const teamId = doc.ref.parent.parent.id;
+            seasonalRecordsMap.set(teamId, doc.data());
+        }
+    });
+
+    const teams = teamsSnap.docs.map(teamDoc => {
+        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        const seasonalRecord = seasonalRecordsMap.get(teamDoc.id);
+
+        if (seasonalRecord) {
+            return { ...teamData, ...seasonalRecord };
+        }
+        return null;
+    });
+
+    allTeams = teams.filter(t => t !== null);
+    console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
+}
+
 async function fetchAllGames(seasonId) {
     if (!seasonId) {
         console.error("fetchAllGames was called without a seasonId.");
@@ -72,7 +114,7 @@ async function fetchAllGames(seasonId) {
 
     const [gamesSnap, postGamesSnap] = await Promise.all([
         getDocs(gamesRef),
-        getDocs(postGamesRef),
+        getDocs(postGamesSnap),
     ]);
 
     allGamesCache = [
@@ -81,6 +123,8 @@ async function fetchAllGames(seasonId) {
     ];
     console.log(`Successfully cached ${allGamesCache.length} total games.`);
 }
+
+
 // --- DOM MANIPULATION & RENDERING ---
 
 function loadStandingsPreview() {
@@ -139,7 +183,7 @@ function loadStandingsPreview() {
     renderTable(westernTeams, 'western-standings');
 }
 
-function initializeGamesSection(seasonData) { 
+function initializeGamesSection(seasonData) {
     const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
     const gamesList = document.getElementById('recent-games');
 
@@ -147,14 +191,14 @@ function initializeGamesSection(seasonData) {
         const newStatus = statusSnap.exists() ? statusSnap.data().status : 'stopped';
 
         if (newStatus === currentScoringStatus) {
-            return;
+            return; 
         }
 
-        currentScoringStatus = newStatus;
-
+        currentScoringStatus = newStatus; 
+        
         if (currentScoringStatus === 'active' || currentScoringStatus === 'paused') {
             loadLiveGames();
-        } else { 
+        } else { // status is 'stopped'
             if (liveGamesUnsubscribe) {
                 liveGamesUnsubscribe();
                 liveGamesUnsubscribe = null;
@@ -287,7 +331,6 @@ function loadLiveGames() {
             }
         });
         
-        // REMOVE games that are no longer live with a fade-out effect
         gamesList.querySelectorAll('.game-item[data-is-live="true"]').forEach(item => {
             if (!activeGameIds.has(item.dataset.gameId)) {
                 item.classList.add('fade-out');
@@ -311,7 +354,6 @@ async function loadRecentGames(seasonData) {
     try {
         const isPostseason = isPostseasonWeek(seasonData?.current_week);
         
-        // **UPDATED**: Changed "Playoff" to "Postseason"
         gamesHeader.textContent = isPostseason ? 'Recent Postseason Games' : 'Recent Games';
 
         const collectionToQuery = isPostseason ? getCollectionName('post_games') : getCollectionName('games');
@@ -319,6 +361,7 @@ async function loadRecentGames(seasonData) {
         let mostRecentSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1)));
 
         if (mostRecentSnapshot.empty && isPostseason) {
+            console.log("No completed postseason games found, showing final regular season games instead.");
             const fallbackQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1));
             mostRecentSnapshot = await getDocs(fallbackQuery);
         }
@@ -341,12 +384,14 @@ async function loadRecentGames(seasonData) {
             const team2 = allTeams.find(t => t.id === game.team2_id);
             if (!team1 || !team2) return '';
 
-            // **NEW**: Logic to handle postseason display for names and records
             let team1NameHTML = escapeHTML(team1.team_name);
             let team2NameHTML = escapeHTML(team2.team_name);
             let team1Record, team2Record;
+            
+            // Re-check if the game being rendered is postseason, using its own week property
+            const gameIsPostseason = isPostseasonWeek(game.week);
 
-            if (isPostseason) {
+            if (gameIsPostseason) {
                 if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
                 if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
                 team1Record = `${game.team1_wins || 0}-${game.team2_wins || 0} in series`;
@@ -422,7 +467,6 @@ function loadSeasonInfo(seasonData) {
     if (isPostseason) {
         playoffBtnContainer.style.display = 'block';
 
-        // **NEW**: Calculate remaining teams based on incomplete postseason games
         const incompletePostseasonGames = allGamesCache.filter(g =>
             isPostseasonWeek(g.week) && g.completed !== 'TRUE'
         );
@@ -558,7 +602,7 @@ async function initializePage() {
 
         const seasonData = await getActiveSeason();
         await fetchAllTeams(activeSeasonId);
-        await fetchAllGames(activeSeasonId); // ADD THIS LINE
+        await fetchAllGames(activeSeasonId);
 
         loadStandingsPreview();
         initializeGamesSection(seasonData);
