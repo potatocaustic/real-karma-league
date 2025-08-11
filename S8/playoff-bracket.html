@@ -514,8 +514,15 @@
                 teamsWithRecords.forEach(team => allTeamsMap.set(team.id, team));
 
                 // 3. Fetch all postseason games for S8
-                const seasonDocRef = doc(db, getCollectionName('seasons'), SEASON_ID); // Create a reference to the 'S8' document
-                const postGamesQuery = collection(seasonDocRef, getCollectionName('post_games')); // Get the subcollection from the document reference
+                const seasonDocRef = doc(db, getCollectionName('seasons'), SEASON_ID);
+
+                // --- TEMPORARY DEBUGGING ---
+                console.log("--- DEBUGGING PLAYOFF BRACKET ---");
+                console.log("Is 'seasonDocRef' a valid object?", seasonDocRef);
+                console.log("Collection name being used:", getCollectionName('post_games'));
+                // --- END DEBUGGING ---
+
+                const postGamesQuery = collection(seasonDocRef, getCollectionName('post_games')); // This is line 531
                 const postGamesSnap = await getDocs(postGamesQuery);
 
                 // 4. Process games into a series map, ensuring we have one entry per series_id
