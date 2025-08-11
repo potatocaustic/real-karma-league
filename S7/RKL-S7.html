@@ -66,14 +66,21 @@
             transition: background-color 0.3s, box-shadow 0.3s;
         }
 
-            .season-info .champion-display {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                gap: 0.75rem;
-                font-size: 1.2rem;
-                font-weight: bold;
-            }
+        .season-info .champion-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap; /* Added for better responsiveness */
+            gap: 0.75rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .season-info .champion-team {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem; /* Gap between team logo and name */
+        }
 
                 .season-info .champion-display img {
                     width: 32px;
@@ -852,6 +859,10 @@
                     font-size: 1rem;
                     line-height: 1.2;
                 }
+            .season-info .champion-display {
+                flex-direction: column;
+                gap: 0.5rem;
+            }            
         }
     </style>
 </head>
@@ -1473,7 +1484,7 @@
                 const finalsWinnerId = getSeriesWinner('FINALS');
                 if (finalsWinnerId) {
                     const winnerData = allTeams.find(t => t.team_id === finalsWinnerId);
-                    statsHTML += `<p class="champion-display">🏆 League Champion: <img src="icons/${winnerData.team_id}.webp" onerror="this.style.display='none'"/> ${winnerData.team_name} 🏆</p>`;
+                    statsHTML += `<div class="champion-display"><span class="champion-label">🏆 League Champion:</span><span class="champion-team"><img src="icons/${winnerData.team_id}.webp" onerror="this.style.display='none'"/> ${winnerData.team_name}</span><span class="champion-trophy">🏆</span></div>`;
                 } else {
                     const teamsRemaining = calculateTeamsRemaining();
                     statsHTML += `<p><strong>${teamsRemaining}</strong> Postseason Teams Remaining</p>`;
