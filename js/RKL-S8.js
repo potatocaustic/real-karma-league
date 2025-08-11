@@ -31,7 +31,12 @@ function formatDateShort(dateString) {
     const year = String(date.getFullYear()).slice(-2);
     return `${month}/${day}/${year}`;
 }
-
+function isPostseasonWeek(weekString) {
+    if (!weekString) return false;
+    // If the week string can't be parsed into a number (e.g., "Round 1", "Finals"),
+    // then we know it's a postseason week.
+    return isNaN(parseInt(weekString, 10));
+}
 // --- DATA FETCHING FUNCTIONS ---
 
 async function getActiveSeason() {
@@ -152,32 +157,24 @@ function initializeGamesSection() {
     onSnapshot(statusRef, (statusSnap) => {
         const newStatus = statusSnap.exists() ? statusSnap.data().status : 'stopped';
 
-        // Only react if the main 'status' field has actually changed.
-        // This ignores cosmetic updates from the sampler, eliminating flicker.
         if (newStatus === currentScoringStatus) {
             return; 
         }
-
-        // Update the tracked status and proceed with UI changes.
         currentScoringStatus = newStatus; 
         
         const gamesList = document.getElementById('recent-games');
 
         if (currentScoringStatus === 'active' || currentScoringStatus === 'paused') {
-            // This function is now only called when the status truly changes to live,
-            // not on every sampler update.
             loadLiveGames();
         } else { // status is 'stopped'
-            // Clean up the live listener if it exists.
             if (liveGamesUnsubscribe) {
                 liveGamesUnsubscribe();
                 liveGamesUnsubscribe = null;
             }
-            // Reset the UI to show recent games.
             if (gamesList) {
                 gamesList.dataset.liveInitialized = 'false';
             }
-            loadRecentGames();
+            loadRecentGames(seasonData);
         }
     }, (error) => {
         console.error("Error listening to scoring status, defaulting to recent games:", error);
@@ -416,32 +413,46 @@ async function loadRecentGames() {
     }
 }
 
+// REPLACE the old loadSeasonInfo function with this one
 function loadSeasonInfo(seasonData) {
     const currentWeekSpan = document.getElementById('current-week');
     const seasonStatsContainer = document.getElementById('season-stats');
-    if (!currentWeekSpan || !seasonStatsContainer) return;
+    const playoffBtnContainer = document.getElementById('playoff-button-container');
 
-    currentWeekSpan.textContent = `Week ${seasonData.current_week || '1'}`;
+    if (!currentWeekSpan || !seasonStatsContainer || !playoffBtnContainer) return;
 
-    if (seasonData.status === 'postseason') {
-        currentWeekSpan.textContent = seasonData.current_stage || 'Postseason';
-        document.getElementById('playoff-button-container').style.display = 'block';
+    const currentWeek = seasonData.current_week || '1';
+    const isPostseason = isPostseasonWeek(currentWeek);
+
+    // Conditionally display "Week"
+    currentWeekSpan.textContent = isPostseason ? currentWeek : `Week ${currentWeek}`;
+
+    // Conditionally show playoff button and update stats text
+    if (isPostseason) {
+        playoffBtnContainer.style.display = 'block';
+        // You can customize this text further if needed
+        seasonStatsContainer.innerHTML = `
+            <p><strong>The Postseason is underway!</strong></p>
+            <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
+            <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
+        `;
+    } else {
+        playoffBtnContainer.style.display = 'none';
+        seasonStatsContainer.innerHTML = `
+            <p><strong>${seasonData.gp || 0} of ${seasonData.gs || 0}</strong> regular season games complete</p>
+            <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
+            <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
+        `;
     }
+
+    // This logic for a completed season can remain
     if (seasonData.status === 'completed') {
         const winnerInfo = allTeams.find(t => t.id === seasonData.champion_id);
         if (winnerInfo) {
             currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.webp" onerror="this.style.display='none'"/> ${winnerInfo.team_name} 🏆</p>`;
-        } else {
-            currentWeekSpan.parentElement.innerHTML = `<p><strong>Season Complete!</strong></p>`;
         }
-        document.getElementById('playoff-button-container').style.display = 'block';
+        playoffBtnContainer.style.display = 'block';
     }
-
-    seasonStatsContainer.innerHTML = `
-        <p><strong>${seasonData.gp || 0} of ${seasonData.gs || 0}</strong> regular season games complete</p>
-        <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
-        <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
-    `;
 }
 
 async function showGameDetails(gameId, isLiveGame, gameDate = null) {
@@ -548,7 +559,7 @@ async function initializePage() {
         await fetchAllTeams(activeSeasonId);
 
         loadStandingsPreview();
-        initializeGamesSection();
+        initializeGamesSection(seasonData); 
         loadSeasonInfo(seasonData);
 
     } catch (error) {
