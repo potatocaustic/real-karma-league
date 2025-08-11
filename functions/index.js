@@ -661,11 +661,11 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
 
 exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     const { seasonNumber } = request.data;
     if (!seasonNumber) {
-        throw new functions.https.HttpsError('invalid-argument', 'A seasonNumber must be provided.');
+        throw new HttpsError('invalid-argument', 'A seasonNumber must be provided.');
     }
 
     const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
@@ -679,12 +679,12 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
     const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10);
 
     if (seasonNumber >= activeSeasonNum) {
-        throw new functions.https.HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current active season (S${activeSeasonNum}).`);
+        throw new HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current active season (S${activeSeasonNum}).`);
     }
 
     const seasonDoc = await db.doc(`${getCollectionName('seasons')}/S${seasonNumber}`).get();
     if (seasonDoc.exists) {
-        throw new functions.https.HttpsError('already-exists', `Season S${seasonNumber} already exists in the database.`);
+        throw new HttpsError('already-exists', `Season S${seasonNumber} already exists in the database.`);
     }
 
     try {
@@ -705,7 +705,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         return { success: true, message: `Successfully created historical data structure for Season ${seasonNumber}.` };
     } catch (error) {
         console.error("Error creating historical season:", error);
-        throw new functions.https.HttpsError('internal', `Failed to create historical season: ${error.message}`);
+        throw new HttpsError('internal', `Failed to create historical season: ${error.message}`);
     }
 });
 
@@ -746,16 +746,12 @@ exports.processCompletedExhibitionGame = onDocumentUpdated(`${getCollectionName(
     return null;
 });
 
-// functions/index.js
-
 exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
-        // CORRECTED SYNTAX
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     const { seasonId, dates } = request.data;
     if (!seasonId || !dates) {
-        // CORRECTED SYNTAX
         throw new HttpsError('invalid-argument', 'Missing seasonId or dates.');
     }
 
@@ -776,7 +772,6 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         const westConf = teamRecords.filter(t => t.conference === 'Western' && t.postseed).sort((a, b) => a.postseed - b.postseed);
 
         if (eastConf.length < 10 || westConf.length < 10) {
-            // CORRECTED SYNTAX
             throw new HttpsError('failed-precondition', 'Not all teams have a final postseed. Ensure the regular season is complete.');
         }
 
@@ -787,21 +782,32 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         existingGamesSnap.forEach(doc => batch.delete(doc.ref));
         console.log(`Cleared ${existingGamesSnap.size} existing postseason games.`);
 
-        const TBD_TEAM = { id: 'TBD', team_name: 'TBD' };
-        const dateValidators = {
-            'Play-In': 2, 'Round 1': 3, 'Round 2': 3, 'Conf Finals': 5, 'Finals': 7
-        };
+        const TBD_TEAM = { id: 'TBD', team_name: 'TBD', postseed: '' };
 
         const createSeries = (week, seriesName, numGames, team1, team2, dateArray) => {
             if (!dateArray || dateArray.length < numGames) {
                 throw new Error(`Not enough dates provided for ${week} (${seriesName}). Expected ${numGames}, got ${dateArray?.length || 0}.`);
             }
+            const series_id = seriesName;
+
             for (let i = 0; i < numGames; i++) {
                 const gameDate = dateArray[i];
                 const gameData = {
-                    week, series_name: `${seriesName} Game ${i + 1}`, date: gameDate,
-                    team1_id: team1.id, team2_id: team2.id,
-                    completed: 'FALSE', team1_score: 0, team2_score: 0, winner: ''
+                    week, 
+                    series_name: `${seriesName} Game ${i + 1}`, 
+                    date: gameDate,
+                    team1_id: team1.id, 
+                    team2_id: team2.id,
+                    team1_seed: team1.postseed || '',
+                    team2_seed: team2.postseed || '',
+                    completed: 'FALSE', 
+                    team1_score: 0, 
+                    team2_score: 0, 
+                    winner: '',
+                    series_id: series_id,
+                    team1_wins: 0,
+                    team2_wins: 0,
+                    series_winner: ''
                 };
 
                 const formattedDateForId = gameDate.replace(/\//g, "-");
@@ -813,8 +819,6 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         };
 
         console.log("Generating Play-In games...");
-        if (dates['Play-In'].length < dateValidators['Play-In']) throw new Error("Not enough dates for Play-In tournament.");
-
         createSeries('Play-In', 'E7vE8', 1, eastConf[6], eastConf[7], [dates['Play-In'][0]]);
         createSeries('Play-In', 'W7vW8', 1, westConf[6], westConf[7], [dates['Play-In'][0]]);
         createSeries('Play-In', 'E9vE10', 1, eastConf[8], eastConf[9], [dates['Play-In'][0]]);
@@ -830,13 +834,13 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         createSeries('Round 1', 'W1vW8', 3, westConf[0], TBD_TEAM, dates['Round 1']);
         createSeries('Round 1', 'W4vW5', 3, westConf[3], westConf[4], dates['Round 1']);
         createSeries('Round 1', 'W3vW6', 3, westConf[2], westConf[5], dates['Round 1']);
-        createSeries('Round 1', 'W2vE7', 3, westConf[1], TBD_TEAM, dates['Round 1']);
+        createSeries('Round 1', 'W2vW7', 3, westConf[1], TBD_TEAM, dates['Round 1']);
 
         console.log("Generating Round 2 schedule...");
-        createSeries('Round 2', 'E-Semi1', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
-        createSeries('Round 2', 'E-Semi2', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
-        createSeries('Round 2', 'W-Semi1', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
-        createSeries('Round 2', 'W-Semi2', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+        createSeries('Round 2', 'E-R2-T', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+        createSeries('Round 2', 'E-R2-B', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+        createSeries('Round 2', 'W-R2-T', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
+        createSeries('Round 2', 'W-R2-B', 3, TBD_TEAM, TBD_TEAM, dates['Round 2']);
 
         console.log("Generating Conference Finals schedule...");
         createSeries('Conf Finals', 'ECF', 5, TBD_TEAM, TBD_TEAM, dates['Conf Finals']);
@@ -850,7 +854,6 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
 
     } catch (error) {
         console.error("Error generating postseason schedule:", error);
-        // CORRECTED SYNTAX
         throw new HttpsError('internal', `Failed to generate schedule: ${error.message}`);
     }
 });
@@ -858,11 +861,11 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
 
 exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
-        throw new functions.https.HttpsError('unauthenticated', 'The function must be called while authenticated.');
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     const { seasonId } = request.data;
     if (!seasonId) {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a "seasonId" argument.');
+        throw new HttpsError('invalid-argument', 'The function must be called with a "seasonId" argument.');
     }
 
     console.log(`Calculating performance awards for season: ${seasonId}`);
@@ -1465,14 +1468,56 @@ async function processCompletedGame(event) {
     console.log(`V2: Processing completed game ${gameId} in season ${seasonId}`);
 
     const gameDate = after.date;
+    const batch = db.batch();
 
-    // --- FIX #1: Robustly check for other incomplete games ---
+    const isPostseason = !/^\d+$/.test(after.week) && after.week !== "All-Star" && after.week !== "Relegation";
+
+    // --- MODIFIED: Postseason Series Win Tracking Logic ---
+    if (isPostseason) {
+        const winnerId = after.winner;
+        if (winnerId) {
+            let newTeam1Wins = after.team1_wins || 0;
+            let newTeam2Wins = after.team2_wins || 0;
+            let seriesWinner = after.series_winner || '';
+
+            if (winnerId === after.team1_id) {
+                newTeam1Wins++;
+            } else if (winnerId === after.team2_id) {
+                newTeam2Wins++;
+            }
+            
+            // Determine if the series is over
+            if (after.week !== 'Play-In') {
+                const winConditions = { 'Round 1': 2, 'Round 2': 2, 'Conf Finals': 3, 'Finals': 4 };
+                const winsNeeded = winConditions[after.week];
+
+                if (newTeam1Wins === winsNeeded) {
+                    seriesWinner = after.team1_id;
+                } else if (newTeam2Wins === winsNeeded) {
+                    seriesWinner = after.team2_id;
+                }
+            }
+
+            // Update all games in the same series
+            const seriesGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('series_id', '==', after.series_id);
+            const seriesGamesSnap = await seriesGamesQuery.get();
+            
+            seriesGamesSnap.forEach(doc => {
+                batch.update(doc.ref, {
+                    team1_wins: newTeam1Wins,
+                    team2_wins: newTeam2Wins,
+                    series_winner: seriesWinner
+                });
+            });
+        }
+    }
+    // --- END MODIFICATION ---
+
     const regGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).get();
     const postGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).get();
 
     const [regGamesSnap, postGamesSnap] = await Promise.all([regGamesQuery, postGamesQuery]);
     
-    // Combine results and store them in a variable for reuse
     const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
 
     const incompleteGames = allGamesForDate.filter(doc => {
@@ -1481,14 +1526,13 @@ async function processCompletedGame(event) {
     
     if (incompleteGames.length > 0) {
         console.log(`Not all games for ${gameDate} are complete. Deferring calculations. Incomplete count: ${incompleteGames.length}`);
+        await batch.commit(); // Commit the series win updates even if calculations are deferred
         return null;
     }
     
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 
-    const batch = db.batch();
     const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
-    const isPostseason = !/^\d+$/.test(after.week) && after.week !== "All-Star" && after.week !== "Relegation";
     const averagesColl = isPostseason ? 'post_daily_averages' : 'daily_averages';
     const scoresColl = isPostseason ? 'post_daily_scores' : 'daily_scores';
     const lineupsColl = isPostseason ? 'post_lineups' : 'lineups';
@@ -1499,7 +1543,10 @@ async function processCompletedGame(event) {
     }
 
     const lineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsColl)).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
-    if (lineupsSnap.empty) return null;
+    if (lineupsSnap.empty) {
+        await batch.commit();
+        return null;
+    }
 
     const scores = lineupsSnap.docs.map(d => d.data().points_adjusted || 0);
     const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
@@ -1556,7 +1603,6 @@ async function processCompletedGame(event) {
         lineupsByPlayer.get(lineupData.player_id).push(enhancedData);
     });
 
-    // --- FIX #2: Remove re-declaration of variables. Use 'allGamesForDate' from above. ---
     const teamScores = allGamesForDate.flatMap(d => [d.data().team1_score, d.data().team2_score]);
     const teamMedian = calculateMedian(teamScores);
 
@@ -1871,6 +1917,138 @@ exports.updateCurrentWeek = onSchedule({
         return null;
     }
 });
+
+// ===================================================================
+// NEW POSTSEASON ADVANCEMENT LOGIC
+// ===================================================================
+
+exports.updatePlayoffBracket = onSchedule({
+    schedule: "30 3 * * *", // Runs at 3:30 AM Central Time daily
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running daily job to update playoff bracket...");
+
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+    if (activeSeasonSnap.empty) {
+        console.log("No active season found. Exiting bracket update.");
+        return null;
+    }
+    const seasonId = activeSeasonSnap.docs[0].id;
+    const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
+
+    // Check if postseason has even started
+    const anyPostGameSnap = await postGamesRef.limit(1).get();
+    if (anyPostGameSnap.empty) {
+        console.log(`No postseason games found for ${seasonId}. Exiting bracket update.`);
+        return null;
+    }
+
+    // Get yesterday's date in M/D/YYYY format
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
+
+    const gamesPlayedYesterdaySnap = await postGamesRef.where('date', '==', yesterdayStr).get();
+    if (gamesPlayedYesterdaySnap.empty) {
+        console.log(`No postseason games were played on ${yesterdayStr}. Exiting bracket update.`);
+        return null;
+    }
+
+    console.log(`Processing ${gamesPlayedYesterdaySnap.size} games from ${yesterdayStr} for bracket advancement.`);
+
+    const advancementRules = {
+        "W7vW8": { winnerTo: "W2vW7", winnerField: "team2_id", loserTo: "W8thSeedGame", loserField: "team1_id" },
+        "E7vE8": { winnerTo: "E2vE7", winnerField: "team2_id", loserTo: "E8thSeedGame", loserField: "team1_id" },
+        "W8thSeedGame": { winnerTo: "W1vW8", winnerField: "team2_id" },
+        "E8thSeedGame": { winnerTo: "E1vE8", winnerField: "team2_id" },
+        "E1vE8": { winnerTo: "E-R2-T", winnerField: "team1_id" },
+        "W1vW8": { winnerTo: "W-R2-T", winnerField: "team1_id" },
+        "E4vE5": { winnerTo: "E-R2-T", winnerField: "team2_id" },
+        "W4vW5": { winnerTo: "W-R2-T", winnerField: "team2_id" },
+        "E2vE7": { winnerTo: "E-R2-B", winnerField: "team2_id" },
+        "W2vW7": { winnerTo: "W-R2-B", winnerField: "team2_id" },
+        "E3vE6": { winnerTo: "E-R2-B", winnerField: "team1_id" },
+        "W3vW6": { winnerTo: "W-R2-B", winnerField: "team1_id" },
+        "E-R2-T": { winnerTo: "ECF", winnerField: "team1_id" },
+        "W-R2-T": { winnerTo: "WCF", winnerField: "team1_id" },
+        "E-R2-B": { winnerTo: "ECF", winnerField: "team2_id" },
+        "W-R2-B": { winnerTo: "WCF", winnerField: "team2_id" },
+        "ECF": { winnerTo: "Finals", winnerField: "team2_id" },
+        "WCF": { winnerTo: "Finals", winnerField: "team1_id" },
+    };
+
+    for (const gameDoc of gamesPlayedYesterdaySnap.docs) {
+        const game = gameDoc.data();
+        const rule = advancementRules[game.series_id];
+        
+        if (!rule) continue;
+
+        const batch = db.batch();
+        let shouldCommit = false;
+
+        // Handle single-game Play-In advancement
+        if (game.week === 'Play-In' && game.completed === 'TRUE' && game.winner) {
+            const winnerId = game.winner;
+            const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
+            
+            // MODIFIED: Handle special Play-In seeding
+            let winnerSeed = '';
+            if (game.series_id.includes('7v8')) winnerSeed = '7';
+            else if (game.series_id.includes('8thSeedGame')) winnerSeed = '8';
+            const winnerSeedField = rule.winnerField.replace('_id', '_seed');
+
+            // Update winner's next series
+            const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.winnerTo).get();
+            winnerNextSeriesSnap.forEach(doc => batch.update(doc.ref, { 
+                [rule.winnerField]: winnerId,
+                [winnerSeedField]: winnerSeed
+            }));
+            console.log(`Advancing winner ${winnerId} (seed ${winnerSeed}) from ${game.series_id} to ${rule.winnerTo}.`);
+            shouldCommit = true;
+
+            // Update loser's next series (if applicable)
+            if (rule.loserTo) {
+                const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.loserTo).get();
+                loserNextSeriesSnap.forEach(doc => batch.update(doc.ref, { [rule.loserField]: loserId }));
+                console.log(`Moving loser ${loserId} from ${game.series_id} to ${rule.loserTo}.`);
+            }
+        }
+        // Handle multi-game series advancement
+        else if (game.week !== 'Play-In' && game.series_winner) {
+            const winnerId = game.series_winner;
+            const winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
+            const winnerSeedField = rule.winnerField.replace('_id', '_seed');
+
+
+            // Delete remaining incomplete games in the series
+            const incompleteGamesSnap = await postGamesRef.where('series_id', '==', game.series_id).where('completed', '==', 'FALSE').get();
+            if (!incompleteGamesSnap.empty) {
+                console.log(`Series ${game.series_id} won by ${winnerId}. Deleting ${incompleteGamesSnap.size} incomplete games.`);
+                incompleteGamesSnap.forEach(doc => batch.delete(doc.ref));
+                shouldCommit = true;
+            }
+
+            // Update winner's next series
+            const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.winnerTo).get();
+            if (!winnerNextSeriesSnap.empty) {
+                console.log(`Advancing series winner ${winnerId} (seed ${winnerSeed}) from ${game.series_id} to ${rule.winnerTo}.`);
+                winnerNextSeriesSnap.forEach(doc => batch.update(doc.ref, { 
+                    [rule.winnerField]: winnerId,
+                    [winnerSeedField]: winnerSeed
+                }));
+                shouldCommit = true;
+            }
+        }
+
+        if (shouldCommit) {
+            await batch.commit();
+        }
+    }
+
+    console.log("Playoff bracket update job finished.");
+    return null;
+});
+
 
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
