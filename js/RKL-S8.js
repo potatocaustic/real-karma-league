@@ -516,9 +516,9 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
 
     try {
         let gameData, team1Lineups, team2Lineups, team1, team2;
-        
+        let isPostseason = false;
+
         if (isLiveGame) {
-            // Live game logic remains the same
             const gameRef = doc(db, getCollectionName('live_games'), gameId);
             const gameSnap = await getDoc(gameRef);
             if (!gameSnap.exists()) throw new Error("Live game data not found.");
@@ -529,20 +529,17 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
             team1Lineups = gameData.team1_lineup || [];
             team2Lineups = gameData.team2_lineup || [];
             modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - Live`;
-
         } else {
-            // --- CORRECTED LOGIC FOR COMPLETED GAMES ---
             gameData = allGamesCache.find(g => g.id === gameId);
             if (!gameData) {
                 throw new Error("Game not found in cache.");
             }
 
-            const gameIsPostseason = isPostseasonWeek(gameData.week);
-            const lineupsCollectionName = gameIsPostseason 
+            isPostseason = isPostseasonWeek(gameData.week);
+            const lineupsCollectionName = isPostseason 
                 ? getCollectionName('post_lineups') 
                 : getCollectionName('lineups');
             
-            // Use a more precise query for lineups using the game's unique ID
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
@@ -555,11 +552,31 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
             modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(gameDate)}`;
         }
 
+        // Create team objects specifically for the modal
+        let team1ForModal = team1;
+        let team2ForModal = team2;
+
+        // If it's a completed postseason game, overwrite the records
+        if (isPostseason && !isLiveGame) {
+            team1ForModal = {
+                ...team1,
+                wins: gameData.team1_wins || 0,
+                losses: gameData.team2_wins || 0,
+            };
+            team2ForModal = {
+                ...team2,
+                wins: gameData.team2_wins || 0,
+                losses: gameData.team1_wins || 0,
+            };
+        }
+
         const winnerId = isLiveGame ? null : gameData.winner;
+        
+        // Pass the modified team objects to the rendering function
         contentArea.innerHTML = `
             <div class="game-details-grid">
-                ${generateLineupTable(team1Lineups, team1, !isLiveGame && winnerId === team1.id, isLiveGame)}
-                ${generateLineupTable(team2Lineups, team2, !isLiveGame && winnerId === team2.id, isLiveGame)}
+                ${generateLineupTable(team1Lineups, team1ForModal, !isLiveGame && winnerId === team1.id, isLiveGame)}
+                ${generateLineupTable(team2Lineups, team2ForModal, !isLiveGame && winnerId === team2.id, isLiveGame)}
             </div>
         `;
 
