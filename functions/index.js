@@ -1918,47 +1918,29 @@ exports.updateCurrentWeek = onSchedule({
     }
 });
 
-// ===================================================================
-// NEW POSTSEASON ADVANCEMENT LOGIC
-// ===================================================================
+/**
+ * ===================================================================
+ * REFACTORED & NEW POSTSEASON ADVANCEMENT LOGIC
+ * ===================================================================
+ */
 
-exports.updatePlayoffBracket = onSchedule({
-    schedule: "30 3 * * *", // Runs at 3:30 AM Central Time daily
-    timeZone: "America/Chicago",
-}, async (event) => {
-    console.log("Running daily job to update playoff bracket...");
-
-    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
-    if (activeSeasonSnap.empty) {
-        console.log("No active season found. Exiting bracket update.");
-        return null;
+/**
+ * Core logic for advancing teams in the playoff bracket.
+ * This function is now shared between the scheduled job and the on-demand test function.
+ * @param {Array<admin.firestore.QueryDocumentSnapshot>} gamesToProcess - An array of game document snapshots to process for advancement.
+ * @param {admin.firestore.CollectionReference} postGamesRef - A reference to the postseason games collection.
+ */
+async function advanceBracket(gamesToProcess, postGamesRef) {
+    if (gamesToProcess.length === 0) {
+        console.log("advanceBracket: No games to process.");
+        return;
     }
-    const seasonId = activeSeasonSnap.docs[0].id;
-    const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
-
-    // Check if postseason has even started
-    const anyPostGameSnap = await postGamesRef.limit(1).get();
-    if (anyPostGameSnap.empty) {
-        console.log(`No postseason games found for ${seasonId}. Exiting bracket update.`);
-        return null;
-    }
-
-    // Get yesterday's date in M/D/YYYY format
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
-
-    const gamesPlayedYesterdaySnap = await postGamesRef.where('date', '==', yesterdayStr).get();
-    if (gamesPlayedYesterdaySnap.empty) {
-        console.log(`No postseason games were played on ${yesterdayStr}. Exiting bracket update.`);
-        return null;
-    }
-
-    console.log(`Processing ${gamesPlayedYesterdaySnap.size} games from ${yesterdayStr} for bracket advancement.`);
 
     const advancementRules = {
         "W7vW8": { winnerTo: "W2vW7", winnerField: "team2_id", loserTo: "W8thSeedGame", loserField: "team1_id" },
         "E7vE8": { winnerTo: "E2vE7", winnerField: "team2_id", loserTo: "E8thSeedGame", loserField: "team1_id" },
+        "W9vW10": { loserTo: "W8thSeedGame", loserField: "team2_id" },
+        "E9vE10": { loserTo: "E8thSeedGame", loserField: "team2_id" },
         "W8thSeedGame": { winnerTo: "W1vW8", winnerField: "team2_id" },
         "E8thSeedGame": { winnerTo: "E1vE8", winnerField: "team2_id" },
         "E1vE8": { winnerTo: "E-R2-T", winnerField: "team1_id" },
@@ -1977,7 +1959,7 @@ exports.updatePlayoffBracket = onSchedule({
         "WCF": { winnerTo: "Finals", winnerField: "team1_id" },
     };
 
-    for (const gameDoc of gamesPlayedYesterdaySnap.docs) {
+    for (const gameDoc of gamesToProcess) {
         const game = gameDoc.data();
         const rule = advancementRules[game.series_id];
         
@@ -1991,26 +1973,28 @@ exports.updatePlayoffBracket = onSchedule({
             const winnerId = game.winner;
             const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
             
-            // MODIFIED: Handle special Play-In seeding
             let winnerSeed = '';
             if (game.series_id.includes('7v8')) winnerSeed = '7';
             else if (game.series_id.includes('8thSeedGame')) winnerSeed = '8';
-            const winnerSeedField = rule.winnerField.replace('_id', '_seed');
-
-            // Update winner's next series
-            const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.winnerTo).get();
-            winnerNextSeriesSnap.forEach(doc => batch.update(doc.ref, { 
-                [rule.winnerField]: winnerId,
-                [winnerSeedField]: winnerSeed
-            }));
-            console.log(`Advancing winner ${winnerId} (seed ${winnerSeed}) from ${game.series_id} to ${rule.winnerTo}.`);
-            shouldCommit = true;
+            
+            // Update winner's next series if it exists
+            if (rule.winnerTo) {
+                const winnerSeedField = rule.winnerField.replace('_id', '_seed');
+                const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.winnerTo).get();
+                winnerNextSeriesSnap.forEach(doc => batch.update(doc.ref, { 
+                    [rule.winnerField]: winnerId,
+                    [winnerSeedField]: winnerSeed
+                }));
+                console.log(`Advancing winner ${winnerId} (seed ${winnerSeed}) from ${game.series_id} to ${rule.winnerTo}.`);
+                shouldCommit = true;
+            }
 
             // Update loser's next series (if applicable)
             if (rule.loserTo) {
                 const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.loserTo).get();
                 loserNextSeriesSnap.forEach(doc => batch.update(doc.ref, { [rule.loserField]: loserId }));
                 console.log(`Moving loser ${loserId} from ${game.series_id} to ${rule.loserTo}.`);
+                shouldCommit = true;
             }
         }
         // Handle multi-game series advancement
@@ -2018,7 +2002,6 @@ exports.updatePlayoffBracket = onSchedule({
             const winnerId = game.series_winner;
             const winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
             const winnerSeedField = rule.winnerField.replace('_id', '_seed');
-
 
             // Delete remaining incomplete games in the series
             const incompleteGamesSnap = await postGamesRef.where('series_id', '==', game.series_id).where('completed', '==', 'FALSE').get();
@@ -2044,9 +2027,82 @@ exports.updatePlayoffBracket = onSchedule({
             await batch.commit();
         }
     }
+}
+
+/**
+ * Scheduled function that runs daily to update the playoff bracket based on yesterday's games.
+ */
+exports.updatePlayoffBracket = onSchedule({
+    schedule: "30 3 * * *", // Runs at 3:30 AM Central Time daily
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running daily job to update playoff bracket...");
+
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+    if (activeSeasonSnap.empty) {
+        console.log("No active season found. Exiting bracket update.");
+        return null;
+    }
+    const seasonId = activeSeasonSnap.docs[0].id;
+    const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
+
+    // Get yesterday's date in M/D/YYYY format
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
+
+    const gamesPlayedYesterdaySnap = await postGamesRef.where('date', '==', yesterdayStr).where('completed', '==', 'TRUE').get();
+    if (gamesPlayedYesterdaySnap.empty) {
+        console.log(`No completed postseason games were played on ${yesterdayStr}. Exiting bracket update.`);
+        return null;
+    }
+
+    console.log(`Processing ${gamesPlayedYesterdaySnap.size} games from ${yesterdayStr} for bracket advancement.`);
+    await advanceBracket(gamesPlayedYesterdaySnap.docs, postGamesRef);
 
     console.log("Playoff bracket update job finished.");
     return null;
+});
+
+/**
+ * On-demand test function to update the playoff bracket based on the most recent day of completed games.
+ */
+exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    console.log("Running ON-DEMAND job to update playoff bracket for testing.");
+
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+    if (activeSeasonSnap.empty) {
+        throw new HttpsError('failed-precondition', 'No active season found.');
+    }
+    const seasonId = activeSeasonSnap.docs[0].id;
+    const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
+
+    // Find the most recent date among completed postseason games
+    const mostRecentGameQuery = postGamesRef.where('completed', '==', 'TRUE').orderBy('date', 'desc').limit(1);
+    const mostRecentGameSnap = await mostRecentGameQuery.get();
+
+    if (mostRecentGameSnap.empty) {
+        return { success: true, message: "No completed postseason games found to process." };
+    }
+    const mostRecentDate = mostRecentGameSnap.docs[0].data().date;
+    console.log(`Found most recent completed game date: ${mostRecentDate}`);
+
+    // Get all completed games from that most recent date
+    const gamesToProcessSnap = await postGamesRef.where('date', '==', mostRecentDate).where('completed', '==', 'TRUE').get();
+
+    console.log(`Processing ${gamesToProcessSnap.size} games from ${mostRecentDate} for bracket advancement.`);
+    await advanceBracket(gamesToProcessSnap.docs, postGamesRef);
+
+    console.log("On-demand playoff bracket update job finished.");
+    return { success: true, message: `Processed ${gamesToProcessSnap.size} games from ${mostRecentDate}.` };
 });
 
 
