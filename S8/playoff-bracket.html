@@ -489,25 +489,26 @@
                 
                 // 2. For each team, fetch their specific S8 seasonal record
                 const teamRecordPromises = teamsSnap.docs.map(async (teamDoc) => {
-                    const teamData = { id: teamDoc.id, ...teamDoc.data() };
-
-                    // --- START: CORRECTED CODE ---
-                    // First, create a reference to the specific team document
-                    const teamDocRef = doc(db, getCollectionName('v2_teams'), teamDoc.id);
-
-                    // Now, create a reference to the specific seasonal record document WITHIN that team's subcollection
-                    const recordRef = doc(teamDocRef, getCollectionName('seasonal_records'), SEASON_ID);
-                    // --- END: CORRECTED CODE ---
-
-                    const recordSnap = await getDoc(recordRef);
-                    
-                    if (recordSnap.exists()) {
-                        return {
-                            ...teamData,
-                            ...recordSnap.data()
-                        };
+                    try {
+                        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+                        const teamDocRef = doc(db, getCollectionName('v2_teams'), teamDoc.id);
+                        const recordRef = doc(teamDocRef, getCollectionName('seasonal_records'), SEASON_ID);
+                        const recordSnap = await getDoc(recordRef);
+                        
+                        if (recordSnap.exists()) {
+                            return {
+                                ...teamData,
+                                ...recordSnap.data()
+                            };
+                        }
+                        return teamData;
+                    } catch (error) {
+                        // THIS IS THE NEW DEBUGGING CODE
+                        console.error(`!!!!!! FAILED to fetch record for team: ${teamDoc.id} !!!!!!`);
+                        console.error("The error was:", error);
+                        // Return a default object so Promise.all doesn't crash
+                        return { id: teamDoc.id, ...teamDoc.data(), error: true };
                     }
-                    return teamData; // Return team data even if record is missing
                 });
                 
                 const teamsWithRecords = await Promise.all(teamRecordPromises);
