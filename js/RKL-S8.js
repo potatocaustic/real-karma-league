@@ -324,28 +324,15 @@ async function loadRecentGames(seasonData) {
     try {
         const isPostseason = isPostseasonWeek(seasonData?.current_week);
         
-        // 1. Determine which collection to query
+        // **UPDATED**: Changed "Playoff" to "Postseason"
+        gamesHeader.textContent = isPostseason ? 'Recent Postseason Games' : 'Recent Games';
+
         const collectionToQuery = isPostseason ? getCollectionName('post_games') : getCollectionName('games');
-        gamesHeader.textContent = isPostseason ? 'Recent Playoff Games' : 'Recent Games';
+        
+        let mostRecentSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1)));
 
-        // 2. Find the most recent completed game in the determined collection
-        const mostRecentQuery = query(
-            collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery),
-            where('completed', '==', 'TRUE'),
-            orderBy('date', 'desc'),
-            limit(1)
-        );
-        let mostRecentSnapshot = await getDocs(mostRecentQuery);
-
-        // 3. Fallback for the start of the postseason
         if (mostRecentSnapshot.empty && isPostseason) {
-            console.log("No completed postseason games found, showing final regular season games instead.");
-            const fallbackQuery = query(
-                collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')),
-                where('completed', '==', 'TRUE'),
-                orderBy('date', 'desc'),
-                limit(1)
-            );
+            const fallbackQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1));
             mostRecentSnapshot = await getDocs(fallbackQuery);
         }
 
@@ -355,15 +342,9 @@ async function loadRecentGames(seasonData) {
         }
 
         const mostRecentDate = mostRecentSnapshot.docs[0].data().date;
-        const finalCollectionToQuery = mostRecentSnapshot.docs[0].ref.parent.id; // Get the actual parent collection ID
+        const finalCollectionToQuery = mostRecentSnapshot.docs[0].ref.parent.id;
 
-        const gamesOnDateQuery = query(
-            collection(db, getCollectionName('seasons'), activeSeasonId, finalCollectionToQuery),
-            where('date', '==', mostRecentDate),
-            where('completed', '==', 'TRUE')
-        );
-
-        const gamesSnapshot = await getDocs(gamesOnDateQuery);
+        const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, finalCollectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         const maxScore = Math.max(...games.flatMap(g => [g.team1_score || 0, g.team2_score || 0]), 1);
@@ -373,13 +354,26 @@ async function loadRecentGames(seasonData) {
             const team2 = allTeams.find(t => t.id === game.team2_id);
             if (!team1 || !team2) return '';
 
+            // **NEW**: Logic to handle postseason display for names and records
+            let team1NameHTML = escapeHTML(team1.team_name);
+            let team2NameHTML = escapeHTML(team2.team_name);
+            let team1Record, team2Record;
+
+            if (isPostseason) {
+                if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
+                if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
+                team1Record = `${game.team1_wins || 0}-${game.team2_wins || 0} in series`;
+                team2Record = `${game.team2_wins || 0}-${game.team1_wins || 0} in series`;
+            } else {
+                team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
+                team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
+            }
+
             const winnerId = game.winner;
             const team1_total = game.team1_score || 0;
             const team2_total = game.team2_score || 0;
-
             const team1_bar_percent = (team1_total / maxScore) * 100;
             const team2_bar_percent = (team2_total / maxScore) * 100;
-
             const team1_indicator = winnerId === team1.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
             const team2_indicator = winnerId === team2.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
 
@@ -389,8 +383,8 @@ async function loadRecentGames(seasonData) {
                         <div class="team">
                             <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
                             <div class="team-info">
-                                <span class="team-name">${team1.team_name}</span>
-                                <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                                <span class="team-name">${team1NameHTML}</span>
+                                <span class="team-record">${team1Record}</span>
                             </div>
                             ${team1_indicator}
                             <div class="team-bar-container">
@@ -401,8 +395,8 @@ async function loadRecentGames(seasonData) {
                         <div class="team">
                             <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
                             <div class="team-info">
-                                <span class="team-name">${team2.team_name}</span>
-                                <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                <span class="team-name">${team2NameHTML}</span>
+                                <span class="team-record">${team2Record}</span>
                             </div>
                             ${team2_indicator}
                             <div class="team-bar-container">
@@ -436,15 +430,17 @@ function loadSeasonInfo(seasonData) {
     const currentWeek = seasonData.current_week || '1';
     const isPostseason = isPostseasonWeek(currentWeek);
 
-    // Conditionally display "Week"
     currentWeekSpan.textContent = isPostseason ? currentWeek : `Week ${currentWeek}`;
 
-    // Conditionally show playoff button and update stats text
     if (isPostseason) {
         playoffBtnContainer.style.display = 'block';
-        // You can customize this text further if needed
+
+        // **NEW**: Calculate teams not yet eliminated
+        const remainingTeams = allTeams.filter(team => team.elim !== 1 && team.elim !== '1' && team.postseed > 0).length;
+
+        // **UPDATED**: Display the dynamic "teams remaining" count
         seasonStatsContainer.innerHTML = `
-            <p><strong>The Postseason is underway!</strong></p>
+            <p><strong>${remainingTeams} teams remaining</strong> in the hunt for the title</p>
             <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
             <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
         `;
@@ -457,7 +453,6 @@ function loadSeasonInfo(seasonData) {
         `;
     }
 
-    // This logic for a completed season can remain
     if (seasonData.status === 'completed') {
         const winnerInfo = allTeams.find(t => t.id === seasonData.champion_id);
         if (winnerInfo) {
