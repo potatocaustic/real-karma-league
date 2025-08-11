@@ -1936,13 +1936,8 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
         return;
     }
 
+    // Advancement rules are now ONLY for regular playoff series, not the Play-In.
     const advancementRules = {
-        "W7vW8": { winnerTo: "W2vW7", winnerField: "team2_id", loserTo: "W8thSeedGame", loserField: "team1_id" },
-        "E7vE8": { winnerTo: "E2vE7", winnerField: "team2_id", loserTo: "E8thSeedGame", loserField: "team1_id" },
-        "W9vW10": { winnerTo: "W8thSeedGame", winnerField: "team2_id" },
-        "E9vE10": { winnerTo: "E8thSeedGame", winnerField: "team2_id" },
-        "W8thSeedGame": { winnerTo: "W1vW8", winnerField: "team2_id" },
-        "E8thSeedGame": { winnerTo: "E1vE8", winnerField: "team2_id" },
         "E1vE8": { winnerTo: "E-R2-T", winnerField: "team1_id" },
         "W1vW8": { winnerTo: "W-R2-T", winnerField: "team1_id" },
         "E4vE5": { winnerTo: "E-R2-T", winnerField: "team2_id" },
@@ -1961,63 +1956,79 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
 
     for (const gameDoc of gamesToProcess) {
         const game = gameDoc.data();
-        const rule = advancementRules[game.series_id];
+        const winnerId = game.winner;
         
-        if (!rule) continue;
+        if (!winnerId || game.completed !== 'TRUE') continue;
 
         const batch = db.batch();
         let shouldCommit = false;
+        
+        // --- EXPLICIT LOGIC FOR PLAY-IN TOURNAMENT ---
 
-        const winnerId = game.winner;
-        const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
-
-        // --- WINNER ADVANCEMENT LOGIC ---
-        if (rule.winnerTo && winnerId) {
-            // Default behavior: The winner carries their current seed forward.
-            let winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
-
-            // --- CORRECTED: OVERRIDE seed for special Play-In cases ---
-            if (game.series_id.includes('7v8')) {
-                winnerSeed = '7'; // Winner of 7v8 game BECOMES the 7 seed.
-            } else if (game.series_id.includes('8thSeedGame')) {
-                winnerSeed = '8'; // Winner of the final 8th seed game BECOMES the 8 seed.
-            }
-
-            const winnerSeedField = rule.winnerField.replace('_id', '_seed');
-            const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.winnerTo).get();
-            
-            winnerNextSeriesSnap.forEach(doc => {
-                batch.update(doc.ref, { 
-                    [rule.winnerField]: winnerId,
-                    [winnerSeedField]: winnerSeed || ''
-                });
-            });
-            console.log(`Advancing winner ${winnerId} (seed ${winnerSeed}) from ${game.series_id} to ${rule.winnerTo}.`);
-            shouldCommit = true;
-        }
-
-        // --- LOSER ADVANCEMENT LOGIC (Play-In Only) ---
-        if (rule.loserTo && loserId) {
-            // Loser always carries their original seed to the next play-in game.
+        if (game.series_id.includes('7v8')) {
+            const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
             const loserSeed = loserId === game.team1_id ? game.team1_seed : game.team2_seed;
-            const loserSeedField = rule.loserField.replace('_id', '_seed');
-            const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.loserTo).get();
-            
-            loserNextSeriesSnap.forEach(doc => {
-                batch.update(doc.ref, { 
-                    [rule.loserField]: loserId,
-                    [loserSeedField]: loserSeed || ''
-                });
-            });
-            console.log(`Moving loser ${loserId} (seed ${loserSeed}) from ${game.series_id} to ${rule.loserTo}.`);
-            shouldCommit = true;
-        }
+            const conference = game.series_id.startsWith('W') ? 'W' : 'E';
 
-        // --- MULTI-GAME SERIES COMPLETION LOGIC ---
-        if (game.week !== 'Play-In' && game.series_winner) {
-            const incompleteGamesSnap = await postGamesRef.where('series_id', '==', game.series_id).where('completed', '==', 'FALSE').get();
-            if (!incompleteGamesSnap.empty) {
-                console.log(`Series ${game.series_id} won by ${game.series_winner}. Deleting ${incompleteGamesSnap.size} incomplete games.`);
+            // Winner advances to Round 1 as the #7 seed
+            const winnerNextSeriesId = `${conference}2v${conference}7`;
+            const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', winnerNextSeriesId).get();
+            winnerNextSeriesSnap.forEach(doc => {
+                batch.update(doc.ref, { team2_id: winnerId, team2_seed: '7' });
+            });
+            console.log(`Advancing ${winnerId} from ${game.series_id} to ${winnerNextSeriesId} as the #7 seed.`);
+            
+            // Loser advances to the 8th Seed Game with their original seed
+            const loserNextSeriesId = `${conference}8thSeedGame`;
+            const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', loserNextSeriesId).get();
+            loserNextSeriesSnap.forEach(doc => {
+                batch.update(doc.ref, { team1_id: loserId, team1_seed: loserSeed });
+            });
+            console.log(`Moving ${loserId} from ${game.series_id} to ${loserNextSeriesId} with seed ${loserSeed}.`);
+            shouldCommit = true;
+
+        } else if (game.series_id.includes('9v10')) {
+            const winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
+            const conference = game.series_id.startsWith('W') ? 'W' : 'E';
+            
+            // Winner advances to the 8th Seed Game with their original seed
+            const winnerNextSeriesId = `${conference}8thSeedGame`;
+            const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', winnerNextSeriesId).get();
+            winnerNextSeriesSnap.forEach(doc => {
+                batch.update(doc.ref, { team2_id: winnerId, team2_seed: winnerSeed });
+            });
+            console.log(`Advancing ${winnerId} from ${game.series_id} to ${winnerNextSeriesId} with seed ${winnerSeed}.`);
+            shouldCommit = true;
+
+        } else if (game.series_id.includes('8thSeedGame')) {
+            const conference = game.series_id.startsWith('W') ? 'W' : 'E';
+
+            // Winner advances to Round 1 as the #8 seed
+            const winnerNextSeriesId = `${conference}1v${conference}8`;
+            const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', winnerNextSeriesId).get();
+            winnerNextSeriesSnap.forEach(doc => {
+                batch.update(doc.ref, { team2_id: winnerId, team2_seed: '8' });
+            });
+            console.log(`Advancing ${winnerId} from ${game.series_id} to ${winnerNextSeriesId} as the #8 seed.`);
+            shouldCommit = true;
+
+        // --- EXPLICIT LOGIC FOR REGULAR PLAYOFF SERIES ---
+        } else if (game.week !== 'Play-In' && game.series_winner) {
+            const rule = advancementRules[game.series_id];
+            if (rule && rule.winnerTo) {
+                const winnerSeed = game.series_winner === game.team1_id ? game.team1_seed : game.team2_seed;
+                const winnerSeedField = rule.winnerField.replace('_id', '_seed');
+                const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.winnerTo).get();
+                
+                winnerNextSeriesSnap.forEach(doc => {
+                    batch.update(doc.ref, {
+                        [rule.winnerField]: game.series_winner,
+                        [winnerSeedField]: winnerSeed || ''
+                    });
+                });
+                console.log(`Advancing series winner ${game.series_winner} (seed ${winnerSeed}) from ${game.series_id} to ${rule.winnerTo}.`);
+
+                const incompleteGamesSnap = await postGamesRef.where('series_id', '==', game.series_id).where('completed', '==', 'FALSE').get();
                 incompleteGamesSnap.forEach(doc => batch.delete(doc.ref));
                 shouldCommit = true;
             }
