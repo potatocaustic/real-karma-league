@@ -1973,15 +1973,14 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
 
         // --- WINNER ADVANCEMENT LOGIC ---
         if (rule.winnerTo && winnerId) {
-            let winnerSeed;
-            // Determine the winner's seed based on the game they just won
+            // Default behavior: The winner carries their current seed forward.
+            let winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
+
+            // --- CORRECTED: OVERRIDE seed for special Play-In cases ---
             if (game.series_id.includes('7v8')) {
-                winnerSeed = '7';
+                winnerSeed = '7'; // Winner of 7v8 game BECOMES the 7 seed.
             } else if (game.series_id.includes('8thSeedGame')) {
-                winnerSeed = '8';
-            } else {
-                // For all other games (9v10, Round 1, etc.), the winner carries their original seed
-                winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
+                winnerSeed = '8'; // Winner of the final 8th seed game BECOMES the 8 seed.
             }
 
             const winnerSeedField = rule.winnerField.replace('_id', '_seed');
@@ -1990,7 +1989,7 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
             winnerNextSeriesSnap.forEach(doc => {
                 batch.update(doc.ref, { 
                     [rule.winnerField]: winnerId,
-                    [winnerSeedField]: winnerSeed || '' // Use the calculated seed, fallback to empty string
+                    [winnerSeedField]: winnerSeed || ''
                 });
             });
             console.log(`Advancing winner ${winnerId} (seed ${winnerSeed}) from ${game.series_id} to ${rule.winnerTo}.`);
@@ -1999,7 +1998,7 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
 
         // --- LOSER ADVANCEMENT LOGIC (Play-In Only) ---
         if (rule.loserTo && loserId) {
-            // Loser always carries their original seed
+            // Loser always carries their original seed to the next play-in game.
             const loserSeed = loserId === game.team1_id ? game.team1_seed : game.team2_seed;
             const loserSeedField = rule.loserField.replace('_id', '_seed');
             const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.loserTo).get();
@@ -2007,7 +2006,7 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
             loserNextSeriesSnap.forEach(doc => {
                 batch.update(doc.ref, { 
                     [rule.loserField]: loserId,
-                    [loserSeedField]: loserSeed || '' // Use the original seed, fallback to empty string
+                    [loserSeedField]: loserSeed || ''
                 });
             });
             console.log(`Moving loser ${loserId} (seed ${loserSeed}) from ${game.series_id} to ${rule.loserTo}.`);
@@ -2016,7 +2015,6 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
 
         // --- MULTI-GAME SERIES COMPLETION LOGIC ---
         if (game.week !== 'Play-In' && game.series_winner) {
-            // Delete remaining incomplete games in the series if a winner is declared
             const incompleteGamesSnap = await postGamesRef.where('series_id', '==', game.series_id).where('completed', '==', 'FALSE').get();
             if (!incompleteGamesSnap.empty) {
                 console.log(`Series ${game.series_id} won by ${game.series_winner}. Deleting ${incompleteGamesSnap.size} incomplete games.`);
