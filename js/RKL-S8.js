@@ -152,22 +152,22 @@ function loadStandingsPreview() {
     renderTable(westernTeams, 'western-standings');
 }
 
-function initializeGamesSection() {
+function initializeGamesSection(seasonData) { 
     const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+    const gamesList = document.getElementById('recent-games');
 
     onSnapshot(statusRef, (statusSnap) => {
         const newStatus = statusSnap.exists() ? statusSnap.data().status : 'stopped';
 
         if (newStatus === currentScoringStatus) {
-            return; 
+            return;
         }
-        currentScoringStatus = newStatus; 
-        
-        const gamesList = document.getElementById('recent-games');
+
+        currentScoringStatus = newStatus;
 
         if (currentScoringStatus === 'active' || currentScoringStatus === 'paused') {
             loadLiveGames();
-        } else { // status is 'stopped'
+        } else { 
             if (liveGamesUnsubscribe) {
                 liveGamesUnsubscribe();
                 liveGamesUnsubscribe = null;
@@ -179,7 +179,7 @@ function initializeGamesSection() {
         }
     }, (error) => {
         console.error("Error listening to scoring status, defaulting to recent games:", error);
-        loadRecentGames();
+        loadRecentGames(seasonData);
     });
 }
 
