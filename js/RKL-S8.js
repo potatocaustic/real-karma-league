@@ -37,6 +37,7 @@ function isPostseasonWeek(weekString) {
     // then we know it's a postseason week.
     return isNaN(parseInt(weekString, 10));
 }
+
 // --- DATA FETCHING FUNCTIONS ---
 
 async function getActiveSeason() {
@@ -187,7 +188,6 @@ function loadLiveGames() {
     const gamesHeader = document.getElementById('games-header-title');
     if (!gamesList || !gamesHeader) return;
 
-    // Guard against re-initialization to prevent flashing
     if (gamesList.dataset.liveInitialized === 'true') {
         return;
     }
@@ -207,7 +207,6 @@ function loadLiveGames() {
         const loadingDiv = gamesList.querySelector('.loading');
         if (loadingDiv) loadingDiv.remove();
 
-        // Handle the case where no games are active
         if (snapshot.empty) {
             gamesList.querySelectorAll('.game-item').forEach(item => item.remove());
             if (!gamesList.querySelector('.no-games-message')) {
@@ -315,43 +314,57 @@ function loadLiveGames() {
     });
 }
 
-async function loadRecentGames() {
+async function loadRecentGames(seasonData) {
     const gamesList = document.getElementById('recent-games');
     const gamesHeader = document.getElementById('games-header-title');
     if (!gamesList || !gamesHeader) return;
 
-    gamesHeader.textContent = 'Recent Games';
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        const gamesCollectionName = getCollectionName('games');
+        const isPostseason = isPostseasonWeek(seasonData?.current_week);
+        
+        // 1. Determine which collection to query
+        const collectionToQuery = isPostseason ? getCollectionName('post_games') : getCollectionName('games');
+        gamesHeader.textContent = isPostseason ? 'Recent Playoff Games' : 'Recent Games';
 
+        // 2. Find the most recent completed game in the determined collection
         const mostRecentQuery = query(
-            collection(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName),
+            collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery),
             where('completed', '==', 'TRUE'),
             orderBy('date', 'desc'),
             limit(1)
         );
-        const mostRecentSnapshot = await getDocs(mostRecentQuery);
+        let mostRecentSnapshot = await getDocs(mostRecentQuery);
+
+        // 3. Fallback for the start of the postseason
+        if (mostRecentSnapshot.empty && isPostseason) {
+            console.log("No completed postseason games found, showing final regular season games instead.");
+            const fallbackQuery = query(
+                collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')),
+                where('completed', '==', 'TRUE'),
+                orderBy('date', 'desc'),
+                limit(1)
+            );
+            mostRecentSnapshot = await getDocs(fallbackQuery);
+        }
+
         if (mostRecentSnapshot.empty) {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
+
         const mostRecentDate = mostRecentSnapshot.docs[0].data().date;
+        const finalCollectionToQuery = mostRecentSnapshot.docs[0].ref.parent.id; // Get the actual parent collection ID
 
         const gamesOnDateQuery = query(
-            collection(db, getCollectionName('seasons'), activeSeasonId, gamesCollectionName),
+            collection(db, getCollectionName('seasons'), activeSeasonId, finalCollectionToQuery),
             where('date', '==', mostRecentDate),
             where('completed', '==', 'TRUE')
         );
 
         const gamesSnapshot = await getDocs(gamesOnDateQuery);
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        if (games.length === 0) {
-            gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
-            return;
-        }
 
         const maxScore = Math.max(...games.flatMap(g => [g.team1_score || 0, g.team2_score || 0]), 1);
 
@@ -413,7 +426,6 @@ async function loadRecentGames() {
     }
 }
 
-// REPLACE the old loadSeasonInfo function with this one
 function loadSeasonInfo(seasonData) {
     const currentWeekSpan = document.getElementById('current-week');
     const seasonStatsContainer = document.getElementById('season-stats');
