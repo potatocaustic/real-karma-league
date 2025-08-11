@@ -490,7 +490,15 @@
                 // 2. For each team, fetch their specific S8 seasonal record
                 const teamRecordPromises = teamsSnap.docs.map(async (teamDoc) => {
                     const teamData = { id: teamDoc.id, ...teamDoc.data() };
-                    const recordRef = doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), SEASON_ID);
+
+                    // --- START: CORRECTED CODE ---
+                    // First, create a reference to the specific team document
+                    const teamDocRef = doc(db, getCollectionName('v2_teams'), teamDoc.id);
+
+                    // Now, create a reference to the specific seasonal record document WITHIN that team's subcollection
+                    const recordRef = doc(teamDocRef, getCollectionName('seasonal_records'), SEASON_ID);
+                    // --- END: CORRECTED CODE ---
+
                     const recordSnap = await getDoc(recordRef);
                     
                     if (recordSnap.exists()) {
