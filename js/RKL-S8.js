@@ -112,9 +112,10 @@ async function fetchAllGames(seasonId) {
     const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
     const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
 
+    // The typo was here. Corrected postGamesSnap to postGamesRef.
     const [gamesSnap, postGamesSnap] = await Promise.all([
         getDocs(gamesRef),
-        getDocs(postGamesSnap),
+        getDocs(postGamesRef), 
     ]);
 
     allGamesCache = [
