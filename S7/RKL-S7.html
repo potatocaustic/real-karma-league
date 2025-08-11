@@ -1484,7 +1484,7 @@
                 const finalsWinnerId = getSeriesWinner('FINALS');
                 if (finalsWinnerId) {
                     const winnerData = allTeams.find(t => t.team_id === finalsWinnerId);
-                    statsHTML += `<div class="champion-display"><span class="champion-label">🏆 League Champion:</span><span class="champion-team"><img src="icons/${winnerData.team_id}.webp" onerror="this.style.display='none'"/> ${winnerData.team_name}</span><span class="champion-trophy">🏆</span></div>`;
+                    statsHTML += `<div class="champion-display"><span class="champion-label">🏆 League Champion:</span><span class="champion-team"><img src="icons/${winnerData.team_id}.webp" onerror="this.style.display='none'"/> ${winnerData.team_name} <span class="champion-trophy">🏆</span></span></div>`;
                 } else {
                     const teamsRemaining = calculateTeamsRemaining();
                     statsHTML += `<p><strong>${teamsRemaining}</strong> Postseason Teams Remaining</p>`;
