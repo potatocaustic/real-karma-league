@@ -10,6 +10,16 @@ let allTeams = []; // This will now store all teams with a seasonal record
 let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
 
 // --- UTILITY FUNCTIONS ---
+
+function escapeHTML(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 function formatInThousands(value) {
     const num = parseFloat(value);
     if (isNaN(num)) return '-';
@@ -435,12 +445,19 @@ function loadSeasonInfo(seasonData) {
     if (isPostseason) {
         playoffBtnContainer.style.display = 'block';
 
-        // **NEW**: Calculate teams not yet eliminated
-        const remainingTeams = allTeams.filter(team => team.elim !== 1 && team.elim !== '1' && team.postseed > 0).length;
+        // **NEW**: Calculate remaining teams based on incomplete postseason games
+        const incompletePostseasonGames = allGamesCache.filter(g =>
+            isPostseasonWeek(g.week) && g.completed !== 'TRUE'
+        );
+        const remainingTeamIds = new Set(
+            incompletePostseasonGames
+                .flatMap(g => [g.team1_id, g.team2_id])
+                .filter(id => id !== 'TBD')
+        );
+        const remainingCount = remainingTeamIds.size;
 
-        // **UPDATED**: Display the dynamic "teams remaining" count
         seasonStatsContainer.innerHTML = `
-            <p><strong>${remainingTeams} teams remaining</strong> in the hunt for the title</p>
+            <p><strong>${remainingCount} teams remaining</strong> in the hunt for the title</p>
             <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
             <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
         `;
