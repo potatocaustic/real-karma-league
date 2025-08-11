@@ -1,3 +1,7 @@
 .vercel
 node_modules/
 serviceAccountKey.json
+/.firebase
+*.log
+Thumbs.db
+.vscode/
