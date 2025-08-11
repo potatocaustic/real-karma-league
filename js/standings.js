@@ -7,11 +7,10 @@ const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` 
 // --- GLOBAL STATE ---
 let activeSeasonId = '';
 let allTeamsData = [];
-let powerRankingsData = [];
+let allPowerRankingsData = {}; // Key: "v1", Value: [team, team, ...]
+let latestPRVersion = null;
 let currentView = 'conferences'; // 'conferences', 'fullLeague', or 'powerRankings'
-let latestPRVersion = null; // To store the latest version string, e.g., "v4"
 
-// --- NEW: State for managing table sorting ---
 const sortState = {
     Eastern: { column: 'postseed', direction: 'asc' },
     Western: { column: 'postseed', direction: 'asc' },
@@ -28,13 +27,11 @@ const standingsPageTitle = document.getElementById('standingsPageTitle');
 const pageDescription = document.getElementById('pageDescription');
 const playoffLegend = document.querySelector('.playoff-legend');
 const playoffBracketBtn = document.querySelector('button[onclick*="playoff-bracket.html"]');
+const prVersionSelect = document.getElementById('pr-version-select');
 
 
 // --- DATA FETCHING ---
 
-/**
- * Finds the currently active season ID.
- */
 async function getActiveSeason() {
     const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
     const seasonsSnapshot = await getDocs(seasonsQuery);
@@ -42,9 +39,6 @@ async function getActiveSeason() {
     activeSeasonId = seasonsSnapshot.docs[0].id;
 }
 
-/**
- * Fetches all teams and their corresponding seasonal records, merging them into one array.
- */
 async function fetchAllTeamsAndRecords() {
     const teamsCollectionName = getCollectionName('v2_teams');
     const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
@@ -63,58 +57,51 @@ async function fetchAllTeamsAndRecords() {
     allTeamsData = teams.filter(t => t !== null);
 }
 
-/**
- * Fetches the most recent power rankings by first reading the 'latest_version'
- * field from the season document.
- */
-async function fetchLatestPowerRankings() {
+async function fetchAllPowerRankings() {
     const seasonDocName = `season_${activeSeasonId.replace('S', '')}`;
     const seasonDocRef = doc(db, getCollectionName('power_rankings'), seasonDocName);
     const seasonDocSnap = await getDoc(seasonDocRef);
 
     if (!seasonDocSnap.exists() || !seasonDocSnap.data().latest_version) {
         console.warn(`No 'latest_version' field found for ${seasonDocName}.`);
-        powerRankingsData = [];
         return;
     }
 
-    latestPRVersion = seasonDocSnap.data().latest_version; // Store the version string globally
+    latestPRVersion = seasonDocSnap.data().latest_version;
+    const latestVersionNumber = parseInt(latestPRVersion.replace('v', ''), 10);
 
-    const prCollectionRef = collection(db, getCollectionName('power_rankings'), seasonDocName, latestPRVersion);
-    const prSnapshot = await getDocs(prCollectionRef);
+    if (isNaN(latestVersionNumber)) return;
 
-    if (prSnapshot.empty) {
-        console.warn(`No power rankings documents found in ${seasonDocName}/${latestPRVersion}.`);
-        powerRankingsData = [];
-        return;
-    }
-    
-    const prDocsData = prSnapshot.docs.map(doc => doc.data());
-
-    // Update header with the dynamic label
-    const prHeader = document.querySelector('#powerRankingsViewContainer .conference-header h3');
-    if (prHeader) {
-        const versionNumber = parseInt(latestPRVersion.replace('v', ''), 10);
-        const label = versionNumber === 0 ? 'v0 (Preseason)' : `v${versionNumber} (Week ${versionNumber * 3})`;
-        prHeader.textContent = `Power Rankings: ${label}`;
+    const fetchPromises = [];
+    for (let i = 0; i <= latestVersionNumber; i++) {
+        const versionString = `v${i}`;
+        const prCollectionRef = collection(db, getCollectionName('power_rankings'), seasonDocName, versionString);
+        fetchPromises.push(getDocs(prCollectionRef));
     }
 
-    // Combine power ranking data with team records
-    powerRankingsData = prDocsData
-        .map(prTeam => {
-            const teamRecord = allTeamsData.find(t => t.id === prTeam.team_id);
-            return teamRecord ? { ...prTeam, ...teamRecord } : null;
-        })
-        .filter(t => t !== null)
-        .sort((a, b) => (a.rank || 99) - (b.rank || 99));
+    const allSnapshots = await Promise.all(fetchPromises);
+
+    allSnapshots.forEach((snapshot, index) => {
+        if (!snapshot.empty) {
+            const versionString = `v${index}`;
+            const prDocsData = snapshot.docs.map(doc => doc.data());
+            
+            const combinedData = prDocsData
+                .map(prTeam => {
+                    const teamRecord = allTeamsData.find(t => t.id === prTeam.team_id);
+                    return teamRecord ? { ...prTeam, ...teamRecord } : null;
+                })
+                .filter(t => t !== null)
+                .sort((a, b) => (a.rank || 99) - (b.rank || 99));
+            
+            allPowerRankingsData[versionString] = combinedData;
+        }
+    });
 }
 
 
 // --- RENDERING LOGIC ---
 
-/**
- * Renders all standings tables based on the current sort state.
- */
 function renderStandings() {
     const sortFunction = (tableType) => (a, b) => {
         const { column, direction } = sortState[tableType];
@@ -125,7 +112,7 @@ function renderStandings() {
             case 'record':
                 valA = (a.wins || 0) / ((a.wins || 0) + (a.losses || 0) || 1);
                 valB = (b.wins || 0) / ((b.wins || 0) + (b.losses || 0) || 1);
-                if (valA === valB) return (b.pam || 0) - (a.pam || 0); // Tiebreaker
+                if (valA === valB) return (b.pam || 0) - (a.pam || 0);
                 break;
             case 'pam':
                 valA = a.pam || 0;
@@ -163,7 +150,6 @@ function renderStandings() {
 function generateStandingsRows(teams, isFullLeague = false) {
     if (!teams || teams.length === 0) return '<tr><td colspan="5">No teams to display.</td></tr>';
     return teams.map((team, index) => {
-        // The rank displayed is always the postseed for conferences, or a generated index for full league
         const rank = isFullLeague ? index + 1 : team.postseed;
         const clinchBadge = getClinchBadge(team);
         return `
@@ -183,16 +169,24 @@ function generateStandingsRows(teams, isFullLeague = false) {
     }).join('');
 }
 
-/**
- * Renders the power rankings table.
- */
-function renderPowerRankings() {
+function renderPowerRankings(version) {
     const tableBody = document.getElementById('power-rankings-standings');
-    if (!powerRankingsData || powerRankingsData.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="loading">No power rankings available.</td></tr>';
+    const versionData = allPowerRankingsData[version];
+
+    if (!versionData || versionData.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="loading">No power rankings available for this version.</td></tr>';
+        document.getElementById('powerRankingsSummary').innerHTML = '';
         return;
     }
-    tableBody.innerHTML = powerRankingsData.map(team => {
+
+    const versionNumber = parseInt(version.replace('v', ''), 10);
+    const label = versionNumber === 0 ? 'v0 (Preseason)' : `v${versionNumber} (After Week ${versionNumber * 3})`;
+    const prHeader = document.querySelector('#powerRankingsViewContainer .conference-header h3');
+    if (prHeader) {
+        prHeader.textContent = `Power Rankings: ${label}`;
+    }
+
+    tableBody.innerHTML = versionData.map(team => {
         const clinchBadge = getClinchBadge(team);
         return `
             <tr>
@@ -204,21 +198,24 @@ function renderPowerRankings() {
                         ${clinchBadge}
                     </div>
                 </td>
-                <td class="record-cell">${team.wins || 0}-${team.losses || 0}</td>
+                <td class="record-cell">${team.power_wins || 0}-${team.power_losses || 0}</td>
                 <td class="rank-cell prev-rank-col">${team.previous_rank || '–'}</td>
                 <td class="record-cell">${getChangeIndicator(team.change)}</td>
             </tr>`;
     }).join('');
     
-    renderPowerRankingsSummary();
+    renderPowerRankingsSummary(versionData);
 }
 
-function renderPowerRankingsSummary() {
+function renderPowerRankingsSummary(versionData) {
     const summaryContainer = document.getElementById('powerRankingsSummary');
-    if (!summaryContainer || !powerRankingsData || powerRankingsData.length === 0) return;
+    if (!summaryContainer || !versionData || versionData.length === 0) {
+        summaryContainer.innerHTML = '';
+        return;
+    }
 
-    const biggestRiser = powerRankingsData.reduce((prev, curr) => ((curr.change || 0) > (prev.change || 0) ? curr : prev), { change: -Infinity });
-    const biggestFaller = powerRankingsData.reduce((prev, curr) => ((curr.change || 0) < (prev.change || 0) ? curr : prev), { change: Infinity });
+    const biggestRiser = versionData.reduce((prev, curr) => ((curr.change || 0) > (prev.change || 0) ? curr : prev), { change: -Infinity });
+    const biggestFaller = versionData.reduce((prev, curr) => ((curr.change || 0) < (prev.change || 0) ? curr : prev), { change: Infinity });
 
     let summaryHTML = '';
     if (biggestRiser.change > 0) {
@@ -243,9 +240,6 @@ function renderPowerRankingsSummary() {
 
 // --- UI LOGIC & HELPERS ---
 
-/**
- * NEW: Handles clicks on table headers to update sort state and re-render.
- */
 function handleSort(tableType, column) {
     const currentSort = sortState[tableType];
     let newDirection;
@@ -258,11 +252,8 @@ function handleSort(tableType, column) {
     sortState[tableType] = { column, direction: newDirection };
     renderStandings();
 }
-window.handleSort = handleSort; // Expose to global scope for onclick attributes in HTML
+window.handleSort = handleSort;
 
-/**
- * NEW: Updates the sort indicator arrows in the table headers.
- */
 function updateSortIndicators() {
     ['Eastern', 'Western', 'FullLeague'].forEach(tableType => {
         let tableId;
@@ -286,7 +277,6 @@ function updateSortIndicators() {
         });
     });
 }
-
 
 function switchView(view) {
     currentView = view;
@@ -317,10 +307,34 @@ function switchView(view) {
     }
 }
 
+function setupPowerRankingsSelector() {
+    const versions = Object.keys(allPowerRankingsData).sort((a, b) => {
+        return parseInt(a.replace('v', '')) - parseInt(b.replace('v', ''));
+    });
+
+    if (versions.length <= 1) {
+        prVersionSelect.parentElement.style.display = 'none';
+        return;
+    }
+
+    prVersionSelect.parentElement.style.display = 'block';
+    prVersionSelect.innerHTML = versions.map(v => {
+        const versionNumber = parseInt(v.replace('v', ''), 10);
+        const label = versionNumber === 0 ? 'v0 (Preseason)' : `v${versionNumber} (After Week ${versionNumber * 3})`;
+        return `<option value="${v}">${label}</option>`;
+    }).join('');
+
+    prVersionSelect.value = latestPRVersion;
+
+    prVersionSelect.addEventListener('change', () => {
+        renderPowerRankings(prVersionSelect.value);
+    });
+}
+
 function getClinchBadge(team) {
-    if (team.playoffs === 1) return '<span class="clinch-badge clinch-playoff">x</span>';
-    if (team.playin === 1) return '<span class="clinch-badge clinch-playin">p</span>';
-    if (team.elim === 1) return '<span class="clinch-badge clinch-eliminated">e</span>';
+    if (team.playoffs === 1 || team.playoffs === "1") return '<span class="clinch-badge clinch-playoff">x</span>';
+    if (team.playin === 1 || team.playin === "1") return '<span class="clinch-badge clinch-playin">p</span>';
+    if (team.elim === 1 || team.elim === "1") return '<span class="clinch-badge clinch-eliminated">e</span>';
     return '';
 }
 
@@ -351,19 +365,21 @@ function getRankDisplay(rank) {
     return rank;
 }
 
+
 // --- INITIALIZATION ---
 
 async function initializePage() {
     try {
         await getActiveSeason();
         await fetchAllTeamsAndRecords();
-        await fetchLatestPowerRankings();
+        await fetchAllPowerRankings();
 
         renderStandings();
-        renderPowerRankings();
+        setupPowerRankingsSelector();
+        renderPowerRankings(latestPRVersion);
         
         if (playoffBracketBtn) {
-            playoffBracketBtn.style.display = 'none'; // Hide by default
+            playoffBracketBtn.style.display = 'none';
             if (latestPRVersion) {
                 const versionNum = parseInt(latestPRVersion.replace('v', ''), 10);
                 if (!isNaN(versionNum) && versionNum >= 4) {
@@ -372,8 +388,6 @@ async function initializePage() {
             }
         }
 
-
-        // Set up button listeners
         viewToggleButton1.addEventListener('click', () => {
             const targetView = currentView === 'conferences' ? 'fullLeague' : 'conferences';
             switchView(targetView);
@@ -383,7 +397,6 @@ async function initializePage() {
             switchView(targetView);
         });
         
-        // Default to conference view
         switchView('conferences');
 
     } catch (error) {
