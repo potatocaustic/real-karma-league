@@ -1843,6 +1843,13 @@ exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async 
  * It finds the earliest incomplete game and writes its week/round name
  * to the active season document.
  */
+/**
+ * Runs daily to determine the current week of the active season.
+ * It finds the earliest incomplete game and writes its week/round name
+ * to the active season document.
+ * * CORRECTED: This version handles the edge case where the regular season is complete
+ * but the postseason schedule has not yet been generated.
+ */
 exports.updateCurrentWeek = onSchedule({
     schedule: "every day 03:30",
     timeZone: "America/Chicago",
@@ -1851,9 +1858,7 @@ exports.updateCurrentWeek = onSchedule({
 
     try {
         const seasonsRef = db.collection(getCollectionName('seasons'));
-        // CORRECTED: Chained .where() and .limit() instead of using query()
         const activeSeasonQuery = seasonsRef.where("status", "==", "active").limit(1);
-        // CORRECTED: Used .get() to execute the query
         const activeSeasonSnap = await activeSeasonQuery.get();
 
         if (activeSeasonSnap.empty) {
@@ -1869,7 +1874,6 @@ exports.updateCurrentWeek = onSchedule({
 
         // 1. Check for the next incomplete regular season game
         const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
-        // CORRECTED: Rewrote this query with chained methods
         const incompleteGamesQuery = gamesRef
             .where('completed', '!=', 'TRUE')
             .orderBy('date', 'asc')
@@ -1882,7 +1886,6 @@ exports.updateCurrentWeek = onSchedule({
             // 2. If no regular season games are left, check the postseason
             console.log("No incomplete regular season games found. Checking postseason...");
             const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
-             // CORRECTED: Rewrote this query with chained methods
             const incompletePostGamesQuery = postGamesRef
                 .where('completed', '!=', 'TRUE')
                 .orderBy('date', 'asc')
@@ -1894,26 +1897,43 @@ exports.updateCurrentWeek = onSchedule({
             }
         }
 
+        // 3. Determine and write the final status based on what was found
         if (nextGameWeek !== null) {
             console.log(`The next game is in week/round: '${nextGameWeek}'. Updating season document.`);
             await activeSeasonDoc.ref.set({
-                current_week: String(nextGameWeek) // Ensure it's stored as a string
+                current_week: String(nextGameWeek)
             }, { merge: true });
-            console.log("Successfully updated the current week.");
         } else {
-            // 3. If no incomplete games are found anywhere, the season is over.
-            console.log("No incomplete games found in regular or postseason. Setting current week to 'Season Complete'.");
-            await activeSeasonDoc.ref.set({
-                current_week: "Season Complete"
-            }, { merge: true });
+            // --- NEW LOGIC ---
+            // No incomplete games were found. We must now determine if the season is
+            // truly over, or if we are just waiting for the postseason to be scheduled.
+
+            // Check if any postseason games (beyond a placeholder) have ever been generated.
+            const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
+            const allPostGamesSnap = await postGamesRef.limit(2).get(); // We only need to know if more than 1 doc exists.
+
+            if (allPostGamesSnap.size > 1) {
+                // More than a placeholder document exists. Since we already confirmed there are
+                // no *incomplete* postseason games, this means the postseason has run and is complete.
+                console.log("No incomplete games found anywhere. Postseason is complete. Setting current week to 'Season Complete'.");
+                await activeSeasonDoc.ref.set({
+                    current_week: "Season Complete"
+                }, { merge: true });
+            } else {
+                // The regular season is over, but a multi-game postseason schedule hasn't been generated yet.
+                // Set an intermediary status to avoid prematurely ending the season.
+                console.log("Regular season complete. Awaiting postseason schedule generation.");
+                await activeSeasonDoc.ref.set({
+                    current_week: "End of Regular Season"
+                }, { merge: true });
+            }
         }
 
+        console.log("Successfully updated the current week.");
         return null;
 
     } catch (error) {
         console.error("Error updating current week:", error);
-        // Throwing an error will cause the function to retry if configured,
-        // but for a daily job, logging is often sufficient.
         return null;
     }
 });
