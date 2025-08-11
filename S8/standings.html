@@ -71,6 +71,27 @@
         margin: 0;
       }
       
+      /* NEW STYLES FOR DROPDOWN */
+      .pr-version-selector-container {
+        margin-top: 1rem;
+        text-align: center;
+        color: #e0e0e0;
+      }
+      .pr-version-select {
+        padding: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        background-color: #fff;
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+      }
+      .dark-mode .pr-version-select {
+        background-color: #333;
+        color: #fff;
+        border-color: #555;
+      }
+      /* END NEW STYLES */
+
       .power-rankings-summary {
         padding: 0.8rem 1rem;
         text-align: center;
@@ -499,10 +520,15 @@
         </div>
       </div>
 
+      <!-- UPDATED POWER RANKINGS VIEW -->
       <div id="powerRankingsViewContainer" class="hidden">
         <div class="conference-section"> 
           <div class="conference-header">
-            <h3>Power Rankings</h3> 
+            <h3>Power Rankings</h3>
+            <div class="pr-version-selector-container">
+              <label for="pr-version-select">Select Version:</label>
+              <select id="pr-version-select" class="pr-version-select"></select>
+            </div>
           </div>
           <div id="powerRankingsSummary" class="power-rankings-summary">
             <div class="loading">Loading summary...</div>
