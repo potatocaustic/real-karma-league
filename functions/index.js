@@ -1626,19 +1626,15 @@ async function processCompletedGame(event) {
     let totalKarmaChangeForGame = 0;
 
     for (const [pid, newPlayerLineups] of lineupsByPlayer.entries()) {
-        const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(pid).collection(getCollectionName('seasonal_stats')).doc(seasonId);
+        // This calculates and updates the detailed seasonal stats for the player.
+        // This part remains necessary to keep individual player stats correct.
+        await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, fullDailyAveragesMap, newPlayerLineups);
 
-        const oldStatsSnap = await playerStatsRef.get();
-        const oldStats = oldStatsSnap.exists ? oldStatsSnap.data() : {};
-
-        const newStats = await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, fullDailyAveragesMap, newPlayerLineups);
-
-        if (newStats) {
-            const oldPoints = (oldStats.total_points || 0) + (oldStats.post_total_points || 0);
-            const newPoints = (newStats.total_points || 0) + (newStats.post_total_points || 0);
-            const karmaChange = newPoints - oldPoints;
-            totalKarmaChangeForGame += karmaChange;
-        }
+        // CORRECTED: Instead of comparing old and new totals, we directly sum the points
+        // from the lineups that were just processed for this game date. This is the
+        // actual karma change and avoids the bug entirely.
+        const pointsFromThisUpdate = newPlayerLineups.reduce((sum, lineup) => sum + (lineup.points_adjusted || 0), 0);
+        totalKarmaChangeForGame += pointsFromThisUpdate;
     }
 
     if (totalKarmaChangeForGame !== 0) {
