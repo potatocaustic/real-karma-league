@@ -447,6 +447,8 @@
     <main>
         <div class="page-header">
             <h2>Season 8 Playoff Picture</h2>
+            <button id="testBracketButton">Run Bracket Advancement Test</button>
+            <div id="testResult"></div>
         </div>
 
         <div id="play-in-container">
@@ -769,6 +771,29 @@
         }
 
         document.addEventListener('DOMContentLoaded', renderBracket);
+        import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+        import { functions } from '/js/firebase-init.js'; // Assuming 'functions' is exported from your init file
+
+        const testBracketButton = document.getElementById('testBracketButton');
+        const testResultDiv = document.getElementById('testResult');
+
+        testBracketButton.addEventListener('click', async () => {
+            console.log("Calling 'test_updatePlayoffBracket'...");
+            testResultDiv.textContent = 'Running test...';
+
+            // Get a reference to the callable function
+            const test_updatePlayoffBracket = httpsCallable(functions, 'test_updatePlayoffBracket');
+
+            try {
+                // Call the function and wait for the result
+                const result = await test_updatePlayoffBracket();
+                console.log("Function returned:", result.data);
+                testResultDiv.textContent = `Success! ${result.data.message}`;
+            } catch (error) {
+                console.error("Error calling function:", error);
+                testResultDiv.textContent = `Error: ${error.message}`;
+            }
+        });
     </script>
 </body>
 </html>
