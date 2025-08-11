@@ -39,56 +39,52 @@ const getTeamById = (teamId) => allTeams.find(t => t.id === teamId) || { team_na
 const escapeHTML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 
 /**
- * NEW: Checks if a given week is part of the postseason.
+ * Checks if a given week is part of the postseason.
  * @param {string} week The week identifier (e.g., '15', 'Play-In', 'Round 1').
  * @returns {boolean} True if the week is a postseason week.
  */
 const isPostseason = (week) => !/^\d+$/.test(week) && week !== "All-Star" && week !== "Relegation";
 
 /**
- * NEW: Generates a descriptive label for postseason games based on their series name.
+ * [CORRECTED] Generates a descriptive label for postseason games based on their series name.
+ * This version uses a map for more reliable matching.
  * @param {string} seriesName The full series name from the game document (e.g., "W1vW8 Game 1").
  * @returns {string} A formatted label for the game status line.
  */
 function getPostseasonGameLabel(seriesName) {
-    if (!seriesName) return '';
+    if (!seriesName) return seriesName;
 
-    // Extract "Game X" part to append at the end where needed.
     const gameNumberMatch = seriesName.match(/Game \d+$/);
-    const gameNumberString = gameNumberMatch ? ` ${gameNumberMatch[0]}` : '';
-    const baseSeriesId = seriesName.replace(/ Game \d+$/, '');
+    const gameNumberString = gameNumberMatch ? gameNumberMatch[0] : ''; // e.g., "Game 1"
+    const baseSeriesId = seriesName.replace(/ Game \d+$/, '').trim();
 
-    // Play-In Stage 1 (e.g., W7vW8, E9v10)
-    if (baseSeriesId.match(/^[WE](7v8|9v10)$/)) {
-        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
-        return `${conf} Play-In Stage 1`;
-    }
-    // Play-In Stage 2 (e.g., W8thSeedGame)
-    if (baseSeriesId.match(/^[WE]8thSeedGame$/)) {
-        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
-        return `${conf} Play-In Stage 2`;
-    }
-    // Round 1 (e.g., W1vW8, E4vE5)
-    if (baseSeriesId.match(/^[WE](1v8|4v5|3v6|2v7)$/)) {
-        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
-        return `${conf} Round 1${gameNumberString}`;
-    }
-    // Round 2 (e.g., W-R2-T, E-R2-B)
-    if (baseSeriesId.match(/^[WE]-R2-(T|B)$/)) {
-        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
-        return `${conf} Round 2${gameNumberString}`;
-    }
-    // Conference Finals
-    if (baseSeriesId === 'ECF' || baseSeriesId === 'WCF') {
-        return `${baseSeriesId}${gameNumberString}`;
-    }
-    // Finals
-    if (baseSeriesId === 'Finals') {
-        return `RKL Finals${gameNumberString}`;
-    }
-    
-    // Fallback for any other postseason games, just return the original name.
-    return seriesName;
+    const seriesTypeMap = {
+        'W7vW8': 'West Play-In Stage 1',
+        'E7vE8': 'East Play-In Stage 1',
+        'W9vW10': 'West Play-In Stage 1',
+        'E9vE10': 'East Play-In Stage 1',
+        'W8thSeedGame': 'West Play-In Stage 2',
+        'E8thSeedGame': 'East Play-In Stage 2',
+        'W1vW8': `West Round 1 ${gameNumberString}`,
+        'W4vW5': `West Round 1 ${gameNumberString}`,
+        'W3vW6': `West Round 1 ${gameNumberString}`,
+        'W2vW7': `West Round 1 ${gameNumberString}`,
+        'E1vE8': `East Round 1 ${gameNumberString}`,
+        'E4vE5': `East Round 1 ${gameNumberString}`,
+        'E3vE6': `East Round 1 ${gameNumberString}`,
+        'E2vE7': `East Round 1 ${gameNumberString}`,
+        'W-R2-T': `West Round 2 ${gameNumberString}`,
+        'W-R2-B': `West Round 2 ${gameNumberString}`,
+        'E-R2-T': `East Round 2 ${gameNumberString}`,
+        'E-R2-B': `East Round 2 ${gameNumberString}`,
+        'WCF': `WCF ${gameNumberString}`,
+        'ECF': `ECF ${gameNumberString}`,
+        'Finals': `RKL Finals ${gameNumberString}`,
+    };
+
+    const label = seriesTypeMap[baseSeriesId];
+
+    return label ? label.trim() : seriesName; // Return the original name if no match is found
 }
 
 
@@ -191,14 +187,14 @@ function listenForLiveGames() {
 }
 
 /**
- * [MODIFIED] Hides postseason weeks where all games are TBD vs TBD.
+ * Hides postseason weeks where all games are TBD vs TBD.
  */
 function setupWeekSelector() {
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))];
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
     allKnownWeeks.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
-    // NEW: Filter out weeks that shouldn't be visible yet.
+    // Filter out weeks that shouldn't be visible yet.
     const visibleWeeks = allKnownWeeks.filter(week => {
         if (!isPostseason(week)) return true; // Always show regular season weeks.
         const weekGames = allGamesCache.filter(g => g.week === week);
@@ -228,11 +224,7 @@ function setupWeekSelector() {
 }
 
 /**
- * [MODIFIED] Major overhaul to handle postseason display logic.
- * - Hides games where both teams are TBD.
- * - Displays team seeds next to names.
- * - Shows series record instead of season record.
- * - Adds a descriptive prefix to the game status label.
+ * Handles all display logic for a given week, including postseason specifics.
  */
 function displayWeek(week) {
     document.getElementById('games-title').textContent = `${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
