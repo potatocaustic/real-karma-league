@@ -38,6 +38,60 @@ const formatDateShort = (dateString) => {
 const getTeamById = (teamId) => allTeams.find(t => t.id === teamId) || { team_name: teamId, id: teamId };
 const escapeHTML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 
+/**
+ * NEW: Checks if a given week is part of the postseason.
+ * @param {string} week The week identifier (e.g., '15', 'Play-In', 'Round 1').
+ * @returns {boolean} True if the week is a postseason week.
+ */
+const isPostseason = (week) => !/^\d+$/.test(week) && week !== "All-Star" && week !== "Relegation";
+
+/**
+ * NEW: Generates a descriptive label for postseason games based on their series name.
+ * @param {string} seriesName The full series name from the game document (e.g., "W1vW8 Game 1").
+ * @returns {string} A formatted label for the game status line.
+ */
+function getPostseasonGameLabel(seriesName) {
+    if (!seriesName) return '';
+
+    // Extract "Game X" part to append at the end where needed.
+    const gameNumberMatch = seriesName.match(/Game \d+$/);
+    const gameNumberString = gameNumberMatch ? ` ${gameNumberMatch[0]}` : '';
+    const baseSeriesId = seriesName.replace(/ Game \d+$/, '');
+
+    // Play-In Stage 1 (e.g., W7vW8, E9v10)
+    if (baseSeriesId.match(/^[WE](7v8|9v10)$/)) {
+        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
+        return `${conf} Play-In Stage 1`;
+    }
+    // Play-In Stage 2 (e.g., W8thSeedGame)
+    if (baseSeriesId.match(/^[WE]8thSeedGame$/)) {
+        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
+        return `${conf} Play-In Stage 2`;
+    }
+    // Round 1 (e.g., W1vW8, E4vE5)
+    if (baseSeriesId.match(/^[WE](1v8|4v5|3v6|2v7)$/)) {
+        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
+        return `${conf} Round 1${gameNumberString}`;
+    }
+    // Round 2 (e.g., W-R2-T, E-R2-B)
+    if (baseSeriesId.match(/^[WE]-R2-(T|B)$/)) {
+        const conf = baseSeriesId.startsWith('W') ? 'West' : 'East';
+        return `${conf} Round 2${gameNumberString}`;
+    }
+    // Conference Finals
+    if (baseSeriesId === 'ECF' || baseSeriesId === 'WCF') {
+        return `${baseSeriesId}${gameNumberString}`;
+    }
+    // Finals
+    if (baseSeriesId === 'Finals') {
+        return `RKL Finals${gameNumberString}`;
+    }
+    
+    // Fallback for any other postseason games, just return the original name.
+    return seriesName;
+}
+
+
 // --- DATA FETCHING ---
 async function getActiveSeason() {
     const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
@@ -136,13 +190,24 @@ function listenForLiveGames() {
     });
 }
 
+/**
+ * [MODIFIED] Hides postseason weeks where all games are TBD vs TBD.
+ */
 function setupWeekSelector() {
-    const allWeeks = [...new Set(allGamesCache.map(g => g.week))];
+    const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))];
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
-    allWeeks.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+    allKnownWeeks.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+
+    // NEW: Filter out weeks that shouldn't be visible yet.
+    const visibleWeeks = allKnownWeeks.filter(week => {
+        if (!isPostseason(week)) return true; // Always show regular season weeks.
+        const weekGames = allGamesCache.filter(g => g.week === week);
+        // A week is visible if at least one game has at least one non-TBD team.
+        return weekGames.some(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
+    });
 
     const weekButtonsContainer = document.getElementById('week-buttons');
-    weekButtonsContainer.innerHTML = allWeeks.map(week => {
+    weekButtonsContainer.innerHTML = visibleWeeks.map(week => {
         const weekGames = allGamesCache.filter(g => g.week === week);
         const isCompleted = weekGames.length > 0 && weekGames.every(g => g.completed === 'TRUE');
         return `<div class="week-btn ${isCompleted ? 'completed' : ''}" data-week="${week}">${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`}</div>`;
@@ -163,23 +228,34 @@ function setupWeekSelector() {
 }
 
 /**
- * [MODIFIED] Contains new HTML generation for live status icon and winner indicators.
+ * [MODIFIED] Major overhaul to handle postseason display logic.
+ * - Hides games where both teams are TBD.
+ * - Displays team seeds next to names.
+ * - Shows series record instead of season record.
+ * - Adds a descriptive prefix to the game status label.
  */
 function displayWeek(week) {
     document.getElementById('games-title').textContent = `${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
     const gamesContent = document.getElementById('games-content');
     const weekStandoutsSection = document.getElementById('week-standouts-section');
     
-    const weekGames = allGamesCache.filter(g => g.week === week);
+    const isWeekPostseason = isPostseason(week);
+
+    // Filter games for the current week. For postseason, also filter out games that are fully TBD.
+    let weekGames = allGamesCache.filter(g => g.week === week);
+    if (isWeekPostseason) {
+        weekGames = weekGames.filter(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
+    }
+
     if (weekGames.length === 0) {
-        gamesContent.innerHTML = '<div class="no-games">No games scheduled.</div>';
+        gamesContent.innerHTML = '<div class="no-games">No games scheduled for this week.</div>';
         if (weekStandoutsSection) weekStandoutsSection.style.display = 'none';
         return;
     }
 
     if (weekStandoutsSection) {
         const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
-        if (allGamesInWeekCompleted && !isNaN(week)) {
+        if (allGamesInWeekCompleted && !isWeekPostseason) { // Standouts only for regular season
             calculateAndDisplayStandouts(week, weekGames);
             weekStandoutsSection.style.display = 'block';
         } else {
@@ -203,46 +279,70 @@ function displayWeek(week) {
             const isCompleted = game.completed === 'TRUE';
 
             let cardClass = 'upcoming';
-            let statusHTML = 'Upcoming';
+            let statusText = 'Upcoming';
             let team1ScoreHTML = '';
             let team2ScoreHTML = '';
-            let team1Record = historicalRecords[week]?.[team1.id] || `${team1.wins || 0}-${team1.losses || 0}`;
-            let team2Record = historicalRecords[week]?.[team2.id] || `${team2.wins || 0}-${team2.losses || 0}`;
+
+            // --- Postseason Overrides ---
+            let team1NameHTML = escapeHTML(team1.team_name);
+            let team2NameHTML = escapeHTML(team2.team_name);
+            let team1Record, team2Record;
+
+            if (isWeekPostseason) {
+                // Requirement 1: Add seed to name
+                if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
+                if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
+
+                // Requirement 2: Show series record
+                team1Record = `${game.team1_wins || 0} - ${game.team2_wins || 0}`;
+                team2Record = `${game.team2_wins || 0} - ${game.team1_wins || 0}`;
+            } else {
+                // Default regular season record
+                team1Record = historicalRecords[week]?.[team1.id] || `${team1.wins || 0}-${team1.losses || 0}`;
+                team2Record = historicalRecords[week]?.[team2.id] || `${team2.wins || 0}-${team2.losses || 0}`;
+            }
 
             if (isLive) {
                 cardClass = 'live';
-                statusHTML = `<span class="live-indicator"></span>LIVE`;
+                statusText = 'Live';
                 const team1Total = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
                 const team2Total = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
                 team1ScoreHTML = `<div class="score-container"><div class="team-score">${formatInThousands(team1Total)}</div></div>`;
                 team2ScoreHTML = `<div class="score-container"><div class="team-score">${formatInThousands(team2Total)}</div></div>`;
             } else if (isCompleted) {
                 cardClass = 'completed';
-                statusHTML = 'Final';
+                statusText = 'Final';
                 const winnerId = game.winner;
                 
-                // Use an empty span with a class for the CSS triangle
                 const team1Indicator = winnerId === team1.id ? '<span class="winner-indicator"></span>' : '';
                 const team2Indicator = winnerId === team2.id ? '<span class="winner-indicator"></span>' : '';
 
                 team1ScoreHTML = `<div class="score-container">${team1Indicator}<div class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</div></div>`;
                 team2ScoreHTML = `<div class="score-container">${team2Indicator}<div class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</div></div>`;
                 
-                const preGameRecord1 = historicalRecords[week]?.[team1.id];
-                if (preGameRecord1) {
-                    let [wins, losses] = preGameRecord1.split('-').map(Number);
-                    game.winner === team1.id ? wins++ : losses++;
-                    team1Record = `${wins}-${losses}`;
-                }
-
-                const preGameRecord2 = historicalRecords[week]?.[team2.id];
-                if (preGameRecord2) {
-                    let [wins, losses] = preGameRecord2.split('-').map(Number);
-                    game.winner === team2.id ? wins++ : losses++;
-                    team2Record = `${wins}-${losses}`;
+                // Update regular season record post-game (this won't show for postseason)
+                if (!isWeekPostseason) {
+                    const preGameRecord1 = historicalRecords[week]?.[team1.id];
+                    if (preGameRecord1) {
+                        let [wins, losses] = preGameRecord1.split('-').map(Number);
+                        game.winner === team1.id ? wins++ : losses++;
+                        team1Record = `${wins}-${losses}`;
+                    }
+                    const preGameRecord2 = historicalRecords[week]?.[team2.id];
+                    if (preGameRecord2) {
+                        let [wins, losses] = preGameRecord2.split('-').map(Number);
+                        game.winner === team2.id ? wins++ : losses++;
+                        team2Record = `${wins}-${losses}`;
+                    }
                 }
             }
             
+            // Requirement 4: Prepend label to status
+            let statusPrefix = isWeekPostseason ? getPostseasonGameLabel(game.series_name) : '';
+            const finalStatusText = statusPrefix ? `${statusPrefix} - ${statusText}` : statusText;
+            const statusIndicator = isLive ? `<span class="live-indicator"></span>` : '';
+            const statusHTML = `${statusIndicator}${finalStatusText}`;
+
             return `
                 <div class="game-card ${cardClass}" data-game-id="${game.id}" data-is-live="${isLive}" data-date="${game.date}">
                     <div class="game-teams">
@@ -250,7 +350,7 @@ function displayWeek(week) {
                             <div class="team-left">
                                 <img src="../icons/${team1.id}.webp" alt="${escapeHTML(team1.team_name)}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
-                                    <div class="team-name">${escapeHTML(team1.team_name)}</div>
+                                    <div class="team-name">${team1NameHTML}</div>
                                     <div class="team-record">${team1Record}</div>
                                 </div>
                             </div>
@@ -260,7 +360,7 @@ function displayWeek(week) {
                             <div class="team-left">
                                 <img src="../icons/${team2.id}.webp" alt="${escapeHTML(team2.team_name)}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
-                                    <div class="team-name">${escapeHTML(team2.team_name)}</div>
+                                    <div class="team-name">${team2NameHTML}</div>
                                     <div class="team-record">${team2Record}</div>
                                 </div>
                             </div>
@@ -360,7 +460,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
     try {
         let gameData, team1Lineups, team2Lineups, team1, team2;
-        const isPostseason = !/^\d+$/.test(currentWeek) && currentWeek !== "All-Star" && currentWeek !== "Relegation";
+        const isGamePostseason = isPostseason(currentWeek);
 
         if (isLive) {
             const liveGameData = liveGamesCache.get(gameId);
@@ -375,7 +475,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             gameData = allGamesCache.find(g => g.id === gameId);
             if (!gameData) throw new Error("Game not found in cache.");
             
-            const lineupsCollectionName = getCollectionName(isPostseason ? 'post_lineups' : 'lineups');
+            const lineupsCollectionName = getCollectionName(isGamePostseason ? 'post_lineups' : 'lineups');
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             
