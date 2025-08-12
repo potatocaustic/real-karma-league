@@ -151,7 +151,6 @@
             const awardsContainer = document.getElementById('awards-container');
             try {
                 // --- EFFICIENT DATA FETCHING ---
-                // Fetch awards, all team records for S8, and all player stats for S8 concurrently.
                 const awardsCollectionRef = collection(db, getCollectionName('awards'), `season_${SEASON_NUMBER}`, getCollectionName(`S${SEASON_NUMBER}_awards`));
                 const teamRecordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')));
                 const playerStatsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
@@ -162,7 +161,6 @@
                     getDocs(playerStatsQuery)
                 ]);
 
-                // Populate the team records cache for S8
                 teamRecordsSnap.docs.forEach(doc => {
                     if (doc.id === SEASON_ID) {
                         const teamId = doc.ref.parent.parent.id;
@@ -170,7 +168,6 @@
                     }
                 });
 
-                // Populate the player stats cache for S8
                 playerStatsSnap.docs.forEach(doc => {
                     if (doc.id === SEASON_ID) {
                         const playerId = doc.ref.parent.parent.id;
@@ -180,7 +177,6 @@
 
                 const awardsMap = new Map(awardsSnap.docs.map(doc => [doc.id, doc.data()]));
 
-                // --- BUILD ALL HTML BEFORE RENDERING ---
                 const topAwardsHTML = await renderTopAwards(awardsMap);
                 const allStarsHTML = `
                     <div class="all-stars-container">
@@ -195,7 +191,6 @@
                     </div>
                 `;
                 
-                // Set the innerHTML a single time with the complete layout
                 awardsContainer.innerHTML = topAwardsHTML + allStarsHTML + risingStarsHTML;
 
             } catch (error) {
@@ -280,6 +275,7 @@
                 const relMedian = stats?.rel_median?.toFixed(3) || 'N/A';
                 const war = stats?.WAR?.toFixed(2) || 'N/A';
                 const gem = stats?.GEM?.toFixed(2) || 'N/A';
+                const medRank = Math.round(stats?.medrank) || 'N/A';
                 const isAllStar = stats?.all_star === '1';
                 const isRookie = stats?.rookie === '1';
                 let badgesHTML = '';
@@ -291,6 +287,7 @@
                         <img src="../icons/${p.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
                         <div class="all-star-player-info">
                             <a href="player.html?player=${encodeURIComponent(p.player_handle)}">${p.player_handle} ${badgesHTML}</a>
+                            <div class="all-star-stats">Med Rank: ${medRank}</div>
                         </div>
                         <div class="all-star-stat">${relMedian}</div>
                         <div class="all-star-stat">${war}</div>
