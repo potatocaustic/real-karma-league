@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Season 7 Draft Capital</title>
+    <title>RKL Season 8 Draft Capital</title>
     <link rel="stylesheet" href="../css/global-styles.css">
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
@@ -426,8 +426,8 @@
       </div>
 
       <div class="quick-links-container">
-          <a href="draft-results.html" class="quick-link-btn">S7 Draft Results</a>
-          <a href="draft-lottery.html" class="quick-link-btn">S8 Lottery Odds</a>
+          <a href="draft-results.html" class="quick-link-btn">S8 Draft Results</a>
+          <a href="draft-lottery.html" class="quick-link-btn">S9 Lottery Odds</a>
       </div>
 
       <div class="season-tabs">
@@ -507,15 +507,27 @@
     </footer>
 
     <script src="../js/main.js" type="module"></script>
-    <script>
-      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4'; 
-      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
-      
+    <script type="module">
+      // Import functions from your firebase-init.js
+      import { 
+          db, 
+          collection, 
+          getDocs,
+          collectionGroup,
+          query,
+          where
+      } from '../js/firebase-init.js';
+
+      // --- Globals ---
       let currentSeason = 8;
       let currentView = 'table';
       let allDraftPicks = [];
       let allTeams = [];
       let allTransactionsLogData = [];
+
+      // --- Helper Functions ---
+      const USE_DEV_COLLECTIONS = true; // Set to false for production
+      const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
       function escapeHTML(str) {
         if (typeof str !== 'string') return str; 
@@ -526,57 +538,6 @@
                   .replace(/'/g, '&#039;');
       }
 
-      async function fetchSheetData(sheetName) {
-        try {
-          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
-          const csvText = await response.text();
-          return parseCSV(csvText);
-        } catch (error) {
-          console.error(`Error fetching ${sheetName}:`, error);
-          if (sheetName === 'Draft_Capital' || sheetName === 'Teams' || sheetName === 'Transaction_Log') {
-              const errorDisplay = document.getElementById('draft-table-body') || document.getElementById('team-view');
-              if (errorDisplay) {
-                  errorDisplay.innerHTML = `<div class="error">Failed to load critical data (${sheetName}). Please try refreshing the page. If the issue persists, the data source might be unavailable.</div>`;
-              }
-          }
-          return null;
-        }
-      }
-      
-      function parseCSV(csvText) {
-        const lines = csvText.trim().split('\n');
-        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
-        const data = [];
-        for (let i = 1; i < lines.length; i++) {
-            const values = [];
-            let currentVal = '';
-            let inQuotes = false;
-            for (let j = 0; j < lines[i].length; j++) {
-                const char = lines[i][j];
-                if (char === '"' && (j === 0 || lines[i][j-1] !== '\\')) { 
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    values.push(currentVal.replace(/^"|"$/g, '').trim());
-                    currentVal = '';
-                } else {
-                    currentVal += char;
-                }
-            }
-            values.push(currentVal.replace(/^"|"$/g, '').trim());
-
-            if (values.length === headers.length) {
-                const row = {};
-                headers.forEach((header, index) => {
-                    row[header] = values[index] || '';
-                });
-                data.push(row);
-            } else {
-                console.warn('Skipping mismatched CSV line:', lines[i], 'Expected', headers.length, 'got', values.length, 'values.');
-            }
-        }
-        return data;
-      }
-      
       function getTeamName(teamId) {
         if (!teamId) return 'N/A';
         const team = allTeams.find(t => t.team_id === teamId);
@@ -589,47 +550,79 @@
         const altText = escapeHTML(teamName);   
         return `<img src="icons/${encodeURIComponent(teamId)}.webp" alt="${altText}" class="team-logo" onerror="this.style.display='none'">`;
       }
-      
+
+      /**
+       * Parses a Firestore timestamp string into a YYYY-MM-DD format for URL parameters.
+       * @param {string} dateString - e.g., "August 11, 2025 at 1:08:59 PM UTC-5"
+       * @returns {string|null} - e.g., "2025-08-11" or null if invalid
+       */
+      function parseFirestoreDate(dateString) {
+          if (!dateString) return null;
+          try {
+              // The string can be parsed by the Date constructor if we remove the "at"
+              const parsableString = dateString.split(' at ')[0];
+              const dateObj = new Date(parsableString);
+              if (isNaN(dateObj)) return null;
+
+              const year = dateObj.getFullYear();
+              const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+              const day = String(dateObj.getDate()).padStart(2, '0');
+              
+              return `${year}-${month}-${day}`;
+          } catch (e) {
+              console.error("Error parsing date:", e);
+              return null;
+          }
+      }
+
+      // --- Data Loading from Firestore ---
       async function loadData() {
-        const [draftPicks, teams, transactionsLog] = await Promise.all([
-          fetchSheetData('Draft_Capital'),
-          fetchSheetData('Teams'),
-          fetchSheetData('Transaction_Log')
-        ]);
-        
-        if (!draftPicks || !teams || !transactionsLog) {
-          const errorMsg = '<tr><td colspan="4" class="error">Error loading critical data. Some information may be missing or incorrect. Please check the console for details.</td></tr>';
-          document.getElementById('draft-table-body').innerHTML = errorMsg; 
-          if (document.getElementById('team-view')) {
-              document.getElementById('team-view').innerHTML = '<div class="error">Error loading critical data.</div>';
-          }
-          if (!draftPicks) console.error("Failed to load Draft_Capital");
-          if (!teams) console.error("Failed to load Teams");
-          if (!transactionsLog) console.error("Failed to load Transaction_Log");
-          if(document.getElementById('pick-summary').querySelector('.loading')) {
+        try {
+            console.log("Loading data from Firestore...");
+
+            // 1. Fetch all Draft Picks
+            const draftPicksCol = collection(db, getCollectionName('draftPicks'));
+            const draftPicksSnap = await getDocs(draftPicksCol);
+            allDraftPicks = draftPicksSnap.docs.map(doc => doc.data());
+
+            // 2. Fetch all Team Names using a collectionGroup query
+            const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('__name__', '==', `S${currentSeason}`));
+            const teamRecordsSnap = await getDocs(query(collectionGroup(db, getCollectionName('seasonal_records'))));
+            allTeams = teamRecordsSnap.docs
+                .filter(doc => doc.id === `S${currentSeason}`) // Ensure we're only getting records for the active season (e.g., S8)
+                .map(doc => ({
+                    team_id: doc.ref.parent.parent.id, // The team_id is the ID of the parent document
+                    team_name: doc.data().team_name
+                }));
+            
+            // 3. Fetch Transaction Log for the current season
+            const transCol = collection(db, getCollectionName('transactions'), 'seasons', `S${currentSeason}`);
+            const transSnap = await getDocs(transCol);
+            allTransactionsLogData = transSnap.docs.map(doc => ({
+                transaction_id: doc.id,
+                ...doc.data()
+            })).sort((a, b) => {
+                const dateA = a.date ? new Date(a.date.split(' at ')[0]) : 0;
+                const dateB = b.date ? new Date(b.date.split(' at ')[0]) : 0;
+                return dateB - dateA;
+            });
+
+            console.log(`Loaded ${allDraftPicks.length} draft picks, ${allTeams.length} teams, and ${allTransactionsLogData.length} transactions.`);
+
+            setupFilters();
+            displayDraftBoard();
+
+        } catch (error) {
+            console.error("Error loading data from Firestore:", error);
+            const errorMsg = '<tr><td colspan="4" class="error">Error loading data from Firestore. Please check the console for details.</td></tr>';
+            document.getElementById('draft-table-body').innerHTML = errorMsg;
+            if(document.getElementById('pick-summary').querySelector('.loading')) {
               document.getElementById('pick-summary').innerHTML = '<div class="error" style="text-align:center;">Summary unavailable due to data loading error.</div>';
-          }
-          return;
+            }
         }
-        
-        allDraftPicks = draftPicks;
-        allTeams = teams;
-        allTransactionsLogData = transactionsLog.sort((a, b) => {
-            const dateA = new Date(a.date || 0);
-            const dateB = new Date(b.date || 0);
-            if (dateB.getTime() !== dateA.getTime()) return dateB - dateA; 
-            const weekA = parseInt(a.week || 0);
-            const weekB = parseInt(b.week || 0);
-            if (weekB !== weekA) return weekB - weekA; 
-            const idA = parseInt(String(a.transaction_id).replace(/\D/g,'') || 0);
-            const idB = parseInt(String(b.transaction_id).replace(/\D/g,'') || 0);
-            return idB - idA; 
-        });
-        
-        setupFilters();
-        displayDraftBoard();
       }
       
+      // --- UI and Filtering Logic (largely unchanged) ---
       function setupFilters() {
         const teamOptions = allTeams
           .filter(team => team.team_id && team.team_name && team.team_id !== "FA") 
@@ -650,6 +643,7 @@
         const statusFilter = document.getElementById('status-filter').value;
         
         return allDraftPicks.filter(pick => {
+          // Firestore stores season as a number, so we parse for safety
           if (parseInt(pick.season) !== currentSeason) return false;
           if (roundFilter !== 'all' && parseInt(pick.round) !== parseInt(roundFilter)) return false;
           if (ownerFilter !== 'all' && pick.current_owner !== ownerFilter) return false;
@@ -704,75 +698,53 @@
         
         const tableHTML = sortedPicks.map(pick => {
           const isPendingForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
-          let rowClass = '';
+          let rowClass = isPendingForfeiture ? 'forfeited-pick' : '';
           let tradeStatusText = '';
-          
-          let formattedPickDescription = pick.pick_description;
-          const descParts = (pick.pick_description || '').match(/^(S\d+)\s+([A-Z0-9]+)\s+(.+)$/i);
-          if (descParts && descParts.length === 4) {
-              const seasonInfo = descParts[1];
-              const teamIdInDesc = descParts[2];
-              const roundDetail = descParts[3];
-              const fullTeamName = getTeamName(teamIdInDesc); 
-              if (fullTeamName && fullTeamName !== teamIdInDesc) {
-                  formattedPickDescription = `${seasonInfo} ${fullTeamName} ${roundDetail}`;
-              }
-          }
+          let finalTradeStatusHTML = '';
+
+          const safePickDescription = escapeHTML(pick.pick_description);
+          const currentOwnerHTML = `<a href="team.html?id=${pick.current_owner}">${escapeHTML(getTeamName(pick.current_owner))}</a>`;
+          const originalTeamHTML = `<a href="team.html?id=${pick.original_team}">${escapeHTML(getTeamName(pick.original_team))}</a>`;
           
           if (isPendingForfeiture) {
             tradeStatusText = 'Pending Forfeiture';
-            rowClass = 'forfeited-pick';
+            finalTradeStatusHTML = escapeHTML(tradeStatusText);
           } else if (pick.current_owner !== pick.original_team) {
+            
+            // NEW: Firestore-based transaction lookup
             const relevantTransactions = (allTransactionsLogData || [])
-                .filter(t => t.draft_pick_id === pick.pick_id && 
-                             t.to_team === pick.current_owner && 
-                             t.transaction_type === 'TRADE');
+                .filter(t => t.type === 'TRADE' && t.involved_picks?.some(p => p.id === pick.pick_id && p.to === pick.current_owner));
             
             if (relevantTransactions.length > 0) {
-                const lastAcquisition = relevantTransactions[0]; 
-                const fromTeamId = lastAcquisition.from_team;
-                
+                const lastAcquisition = relevantTransactions[0]; // Already sorted by date
+                const pickInTrade = lastAcquisition.involved_picks.find(p => p.id === pick.pick_id);
+                const fromTeamId = pickInTrade.from;
+
                 if (fromTeamId === pick.original_team) {
                     tradeStatusText = `Acquired from ${getTeamName(pick.original_team)}`;
                 } else {
                     tradeStatusText = `Acquired via ${getTeamName(fromTeamId)}`;
                 }
+
+                // Create link to transaction
+                const formattedDate = parseFirestoreDate(lastAcquisition.date);
+                const teamFilters = lastAcquisition.involved_teams?.join(',');
+                if (formattedDate && teamFilters) {
+                     const transactionsLink = `transactions.html?type=TRADE&date=${formattedDate}&teamFilters=${teamFilters}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
+                     finalTradeStatusHTML = `<a href="${transactionsLink}" title="View transaction from ${lastAcquisition.date}">${escapeHTML(tradeStatusText)}</a>`;
+                } else {
+                    finalTradeStatusHTML = escapeHTML(tradeStatusText);
+                }
+
             } else {
+                // Fallback if transaction isn't found
                 tradeStatusText = `Acquired from ${getTeamName(pick.original_team)}`;
+                finalTradeStatusHTML = escapeHTML(tradeStatusText);
             }
+
           } else {
             tradeStatusText = 'Original Owner';
-          }
-          
-          const safeFormattedPickDescription = escapeHTML(formattedPickDescription);
-          // MODIFIED: Create clickable links for team names
-          const currentOwnerHTML = `<a href="team.html?id=${pick.current_owner}">${escapeHTML(getTeamName(pick.current_owner))}</a>`;
-          const originalTeamHTML = `<a href="team.html?id=${pick.original_team}">${escapeHTML(getTeamName(pick.original_team))}</a>`;
-          
-          let finalTradeStatusHTML = escapeHTML(tradeStatusText);
-          
-          if (!isPendingForfeiture && pick.current_owner === pick.original_team) {
-            finalTradeStatusHTML = `<span class="status-original">${finalTradeStatusHTML}</span>`;
-          }
-
-          if (pick.current_owner !== pick.original_team && !isPendingForfeiture && pick.notes) {
-              const citationRegex = /\b([A-Z]{2,4})\s*\/\s*([A-Z]{2,4})\s+(\d{1,2}\/\d{1,2}\/\d{4})\b/i;
-              const match = pick.notes.match(citationRegex);
-
-              if (match) {
-                  const team1ID = match[1].toUpperCase();
-                  const team2ID = match[2].toUpperCase();
-                  const dateStr = match[3]; 
-                  const dateParts = dateStr.split('/'); 
-                  
-                  const year = dateParts[2];
-                  const month = String(dateParts[0]).padStart(2, '0');
-                  const day = String(dateParts[1]).padStart(2, '0');
-                  const formattedDateForLink = `${year}-${month}-${day}`;
-                  
-                  const transactionsLink = `transactions.html?type=TRADE&date=${formattedDateForLink}&teamFilters=${team1ID},${team2ID}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
-                  finalTradeStatusHTML = `<a href="${transactionsLink}" title="View transaction: ${escapeHTML(pick.notes)}">${escapeHTML(tradeStatusText)}</a>`;
-              }
+            finalTradeStatusHTML = `<span class="status-original">${escapeHTML(tradeStatusText)}</span>`;
           }
           
           let originalTeamCellClasses = "owner-cell"; 
@@ -782,7 +754,7 @@
 
           return `
             <tr class="${rowClass}">
-              <td class="pick-description">${safeFormattedPickDescription}</td>
+              <td class="pick-description">${safePickDescription}</td>
               <td class="owner-cell"><div class="cell-content-flex">${getTeamLogoHTML(pick.current_owner)} ${currentOwnerHTML}</div></td>
               <td class="${originalTeamCellClasses}"><div class="cell-content-flex">${getTeamLogoHTML(pick.original_team)} ${originalTeamHTML}</div></td>
               <td>${finalTradeStatusHTML}</td>
@@ -805,9 +777,7 @@
         });
         
         const teamHTML = Object.entries(teamPicksMap)
-          .sort(([teamIdA], [teamIdB]) => { 
-              return getTeamName(teamIdA).localeCompare(getTeamName(teamIdB));
-          })
+          .sort(([teamIdA], [teamIdB]) => getTeamName(teamIdA).localeCompare(getTeamName(teamIdB)))
           .map(([teamId, picks]) => {
             if (picks.length === 0) return ''; 
             const team = allTeams.find(t => t.team_id === teamId);
@@ -818,21 +788,7 @@
               const roundA = parseInt(a.round);
               const roundB = parseInt(b.round);
               if (roundA !== roundB) return roundA - roundB;
-              
-              let descA = a.pick_description;
-              const partsA = (a.pick_description || '').match(/^(S\d+)\s+([A-Z0-9]+)\s+(.+)$/i);
-              if (partsA && partsA.length === 4) {
-                  const teamNameA = getTeamName(partsA[2]);
-                  if (teamNameA && teamNameA !== partsA[2]) descA = `${partsA[1]} ${teamNameA} ${partsA[3]}`;
-              }
-
-              let descB = b.pick_description;
-              const partsB = (b.pick_description || '').match(/^(S\d+)\s+([A-Z0-9]+)\s+(.+)$/i);
-              if (partsB && partsB.length === 4) {
-                  const teamNameB = getTeamName(partsB[2]);
-                  if (teamNameB && teamNameB !== partsB[2]) descB = `${partsB[1]} ${teamNameB} ${partsB[3]}`;
-              }
-              return descA.localeCompare(descB);
+              return (a.pick_description || '').localeCompare(b.pick_description || '');
             });
             
             return `
@@ -852,27 +808,13 @@
                     } else if (!isOwn) {
                         originText = `<div class="pick-origin">from ${escapeHTML(getTeamName(pick.original_team))}</div>`;
                     }
-
-                    let formattedPickDescInTeamView = pick.pick_description;
-                    const descParts = (pick.pick_description || '').match(/^(S\d+)\s+([A-Z0-9]+)\s+(.+)$/i);
-                    if (descParts && descParts.length === 4) {
-                        const teamIdInDesc = descParts[2];
-                        const fullTeamName = getTeamName(teamIdInDesc);
-                        if (fullTeamName && fullTeamName !== teamIdInDesc) {
-                            formattedPickDescInTeamView = `${descParts[1]} ${fullTeamName} ${descParts[3]}`;
-                        }
-                    }
-                    const safeFormattedPickDescInTeamView = escapeHTML(formattedPickDescInTeamView);
                     
                     let pickItemClass = isOwn && !isPendingForfeiture ? 'own' : 'acquired';
-                    if (isPendingForfeiture) {
-                        pickItemClass = 'forfeited-pick'; 
-                    }
-
+                    if (isPendingForfeiture) pickItemClass = 'forfeited-pick'; 
 
                     return `
                       <div class="pick-item ${pickItemClass}">
-                        ${safeFormattedPickDescInTeamView}
+                        ${escapeHTML(pick.pick_description)}
                         ${originText}
                       </div>
                     `;
@@ -886,14 +828,24 @@
           '<div class="error" style="grid-column: 1 / -1;">No teams hold picks for this season or matching current filters.</div>';
       }
       
+      // --- Page Listeners ---
       document.addEventListener('DOMContentLoaded', () => {
-        // This listener now only contains page-specific logic
         document.querySelectorAll('.season-tab').forEach(tab => {
           tab.addEventListener('click', () => {
+            const newSeason = parseInt(tab.dataset.season);
+            if (newSeason === currentSeason) return; // Don't reload if clicking the same season
+
             document.querySelectorAll('.season-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            currentSeason = parseInt(tab.dataset.season);
-            displayDraftBoard();
+            currentSeason = newSeason;
+
+            // Clear current data and show loading indicators before fetching new data
+            allTransactionsLogData = [];
+            document.getElementById('draft-table-body').innerHTML = '<tr><td colspan="4" class="loading">Loading draft picks...</td></tr>';
+            document.getElementById('pick-summary').innerHTML = '<div class="loading">Loading draft pick summary...</div>';
+            document.getElementById('team-view').innerHTML = '<div class="loading">Loading team ownership view...</div>';
+            
+            loadData(); // Reload data for the new season
           });
         });
         
@@ -926,6 +878,8 @@
                 initialFilterControlsElement.style.display = 'none';
             }
         }
+
+        // Initial data load for the default season
         loadData();
       });
     </script>
