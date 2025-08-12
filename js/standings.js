@@ -244,6 +244,16 @@ function renderPowerRankingsSummary(versionData) {
 
 // --- UI LOGIC & HELPERS ---
 
+/**
+ * Checks if a given week string represents a postseason round.
+ * @param {string} weekString The week value from a season or game document.
+ * @returns {boolean} True if it's a postseason week.
+ */
+function isPostseasonWeek(weekString) {
+    if (!weekString) return false;
+    return isNaN(parseInt(weekString, 10));
+}
+
 function handleSort(tableType, column) {
     const currentSort = sortState[tableType];
     let newDirection;
