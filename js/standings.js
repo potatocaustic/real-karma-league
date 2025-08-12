@@ -36,7 +36,9 @@ async function getActiveSeason() {
     const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
     const seasonsSnapshot = await getDocs(seasonsQuery);
     if (seasonsSnapshot.empty) throw new Error("No active season found.");
-    activeSeasonId = seasonsSnapshot.docs[0].id;
+    const seasonDoc = seasonsSnapshot.docs[0];
+    activeSeasonId = seasonDoc.id;
+    return seasonDoc.data();
 }
 
 async function fetchAllTeamsAndRecords() {
@@ -151,10 +153,12 @@ function generateStandingsRows(teams, isFullLeague = false) {
     if (!teams || teams.length === 0) return '<tr><td colspan="5">No teams to display.</td></tr>';
     return teams.map((team, index) => {
         const rank = isFullLeague ? index + 1 : team.postseed;
+        // NEW: Conditionally display colored badges or the plain rank number
+        const rankDisplay = isFullLeague ? rank : getPlayoffIndicator(rank);
         const clinchBadge = getClinchBadge(team);
         return `
             <tr class="${team.elim === 1 ? 'eliminated' : ''}">
-                <td class="rank-cell">${getPlayoffIndicator(rank)}</td>
+                <td class="rank-cell">${rankDisplay}</td>
                 <td>
                     <div class="team-cell" onclick="window.location.href='team.html?id=${team.id}'">
                         <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -370,22 +374,16 @@ function getRankDisplay(rank) {
 
 async function initializePage() {
     try {
-        await getActiveSeason();
+        const seasonData = await getActiveSeason(); // Captures season data
         await fetchAllTeamsAndRecords();
-        await fetchAllPowerRankings();
+        await fetchLatestPowerRankings();
 
         renderStandings();
-        setupPowerRankingsSelector();
-        renderPowerRankings(latestPRVersion);
+        renderPowerRankings();
         
         if (playoffBracketBtn) {
-            playoffBracketBtn.style.display = 'none';
-            if (latestPRVersion) {
-                const versionNum = parseInt(latestPRVersion.replace('v', ''), 10);
-                if (!isNaN(versionNum) && versionNum >= 4) {
-                    playoffBracketBtn.style.display = 'inline-block';
-                }
-            }
+            const isPostseason = isPostseasonWeek(seasonData.current_week);
+            playoffBracketBtn.style.display = isPostseason ? 'inline-block' : 'none';
         }
 
         viewToggleButton1.addEventListener('click', () => {
