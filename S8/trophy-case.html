@@ -258,18 +258,31 @@
                         };
                         break;
                     }
+                    // --- CORRECTED LOGIC FOR BEST PERFORMANCE (PLAYER) ---
                     case 'best_performance_player': {
+                        // Find the specific lineup document for the performance to get week, points, and game_id
                         const lineupsRef = collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups'));
-                        const q = query(lineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1));
-                        const lineupSnap = await getDocs(q);
+                        const postLineupsRef = collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('post_lineups'));
+                        
+                        // First, query regular season lineups
+                        let lineupSnap = await getDocs(query(lineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1)));
+                        
+                        // If not found, query postseason lineups as a fallback
+                        if (lineupSnap.empty) {
+                            lineupSnap = await getDocs(query(postLineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1)));
+                        }
+
                         const lineupData = lineupSnap.empty ? {} : lineupSnap.docs[0].data();
                         const gameCollection = lineupData.game_type === 'regular' ? getCollectionName('games') : getCollectionName('post_games');
+                        
                         cardData = {
                             name: awardData.player_handle,
                             detail: `Week ${lineupData.week || '?'} - ${Math.round(lineupData.points_adjusted || 0).toLocaleString()} Points`,
-                            nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`, logoId: awardData.team_id,
+                            nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`,
+                            logoId: awardData.team_id,
                             stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`,
-                            modalOnClick: `showGameDetails('${lineupData.game_id}', '${gameCollection}'); return false;`
+                            // The onclick now correctly uses the game_id found from the specific lineup document
+                            modalOnClick: lineupData.game_id ? `showGameDetails('${lineupData.game_id}', '${gameCollection}'); return false;` : `alert('Game data not found.'); return false;`
                         };
                         break;
                     }
@@ -356,6 +369,7 @@
             modalBody.innerHTML = '<div class="loading">Loading game details...</div>';
             
             try {
+                if(!gameId) throw new Error("Game ID is missing.");
                 const gameRef = doc(db, getCollectionName('seasons'), SEASON_ID, gameCollection, gameId);
                 const lineupsCollectionName = gameCollection === getCollectionName('games') ? getCollectionName('lineups') : getCollectionName('post_lineups');
                 const lineupsQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, lineupsCollectionName), where("game_id", "==", gameId));
