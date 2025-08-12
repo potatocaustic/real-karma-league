@@ -42,26 +42,33 @@ function getTeamLogoHTML(teamId) {
 }
 
 /**
- * Parses a Firestore timestamp string into a YYYY-MM-DD format for URL parameters.
- * @param {string} dateString - e.g., "August 11, 2025 at 1:08:59 PM UTC-5"
- * @returns {string|null} - e.g., "2025-08-11" or null if invalid
+ * Parses a Firestore Timestamp object or a date string into a YYYY-MM-DD format.
+ * @param {object|string} dateValue - Firestore Timestamp or a date string.
+ * @returns {string|null} - e.g., "2025-08-11" or null if invalid.
  */
-function parseFirestoreDate(dateString) {
-    if (!dateString) return null;
-    try {
-        const parsableString = dateString.split(' at ')[0];
-        const dateObj = new Date(parsableString);
-        if (isNaN(dateObj)) return null;
+function parseFirestoreDate(dateValue) {
+    if (!dateValue) return null;
+    let dateObj;
 
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const day = String(dateObj.getDate()).padStart(2, '0');
-        
-        return `${year}-${month}-${day}`;
-    } catch (e) {
-        console.error("Error parsing date:", e);
-        return null;
+    // Handle Firestore Timestamp object
+    if (typeof dateValue.toDate === 'function') {
+        dateObj = dateValue.toDate();
     }
+    // Handle string date as a fallback
+    else if (typeof dateValue === 'string') {
+        const parsableString = dateValue.split(' at ')[0];
+        dateObj = new Date(parsableString);
+    } else {
+        return null; // Unsupported type
+    }
+
+    if (isNaN(dateObj.getTime())) return null;
+
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const day = String(dateObj.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
 }
 
 // --- Data Loading from Firestore ---
@@ -97,9 +104,10 @@ async function loadData() {
           transaction_id: doc.id,
           ...doc.data()
       })).sort((a, b) => {
-          const dateA = a.date ? new Date(a.date.split(' at ')[0]) : 0;
-          const dateB = b.date ? new Date(b.date.split(' at ')[0]) : 0;
-          return dateB - dateA;
+          // **FIXED**: Handle Firestore Timestamp objects directly
+          const timeA = a.date?.toDate ? a.date.toDate().getTime() : 0;
+          const timeB = b.date?.toDate ? b.date.toDate().getTime() : 0;
+          return timeB - timeA;
       });
 
       console.log(`Loaded ${allDraftPicks.length} draft picks, ${allTeams.length} teams, and ${allTransactionsLogData.length} transactions.`);
@@ -223,7 +231,7 @@ function displayTableView() {
           const teamFilters = lastAcquisition.involved_teams?.join(',');
           if (formattedDate && teamFilters) {
                const transactionsLink = `transactions.html?type=TRADE&date=${formattedDate}&teamFilters=${teamFilters}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
-               finalTradeStatusHTML = `<a href="${transactionsLink}" title="View transaction from ${lastAcquisition.date}">${escapeHTML(tradeStatusText)}</a>`;
+               finalTradeStatusHTML = `<a href="${transactionsLink}" title="View transaction from ${new Date(lastAcquisition.date.toDate()).toLocaleString()}">${escapeHTML(tradeStatusText)}</a>`;
           } else {
               finalTradeStatusHTML = escapeHTML(tradeStatusText);
           }
