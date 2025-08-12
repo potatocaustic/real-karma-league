@@ -48,7 +48,6 @@ async function loadData() {
 
         allTransactions = transactionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // Fetch team names from the seasonal_records subcollection
         const teamPromises = allTeamsSnap.docs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
             const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamId, getCollectionName('seasonal_records'), ACTIVE_SEASON_ID);
@@ -56,7 +55,7 @@ async function loadData() {
             return {
                 id: teamId,
                 team_name: seasonalRecordSnap.data()?.team_name || teamId,
-                conference: teamDoc.data()?.conference // Fetching conference value from the top-level team document
+                conference: teamDoc.data()?.conference
             };
         });
         allTeams = await Promise.all(teamPromises);
@@ -76,7 +75,18 @@ async function loadData() {
         allTransactions = sortedTransactions;
         
         populateFilters();
+        // **MODIFIED**: This function will now check the URL and filter automatically
         displayTransactions();
+
+        // **NEW**: Check URL params after data load to disable filters if needed
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('id')) {
+            weekFilterEl.disabled = true;
+            typeFilterEl.disabled = true;
+            teamFilterEl.disabled = true;
+            transactionsTitleEl.textContent = 'Viewing Specific Transaction';
+        }
+
 
     } catch (error) {
         console.error("Error loading data:", error);
@@ -103,15 +113,11 @@ async function fetchAllPlayerStats() {
 
 // --- Filter and Display Logic ---
 function populateFilters() {
-    // Dynamically populate the week filter from transaction data
     const weekValues = [...new Set(allTransactions.map(t => t.week))].filter(Boolean).sort();
     const weekOptions = weekValues.map(week => `<option value="${week}">${week}</option>`).join('');
     weekFilterEl.innerHTML = '<option value="all">All Weeks</option>' + weekOptions;
     
-    // Filter out malformed team documents AND teams without a conference
     const validTeams = allTeams.filter(team => team.id !== 'FA' && team.team_name && typeof team.team_name === 'string' && team.conference);
-
-    // Sort valid teams alphabetically by name
     const sortedTeams = validTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
     
     const teamOptions = sortedTeams
@@ -127,24 +133,28 @@ function setupEventListeners() {
 }
 
 function getFilteredTransactions() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const transactionIdFromUrl = urlParams.get('id');
+
+    // **NEW**: If an ID is in the URL, prioritize it and ignore other filters.
+    if (transactionIdFromUrl) {
+        return allTransactions.filter(transaction => transaction.id === transactionIdFromUrl);
+    }
+    
+    // Original filter logic for dropdowns
     const weekFilterValue = weekFilterEl.value;
     const typeFilterValue = typeFilterEl.value;
     const teamFilterValue = teamFilterEl.value;
     
     return allTransactions.filter(transaction => {
-        // Filter by week
         if (weekFilterValue !== 'all' && transaction.week !== weekFilterValue) {
             return false;
         }
-
-        // Filter by type
         if (typeFilterValue !== 'all' && transaction.type !== typeFilterValue) {
             return false;
         }
-
-        // Filter by team
         if (teamFilterValue !== 'all') {
-            const involvedTeamIds = (transaction.involved_teams || []).map(t => t.id);
+            const involvedTeamIds = transaction.involved_teams.map(t => t.id);
             if (!involvedTeamIds.includes(teamFilterValue)) {
                 return false;
             }
@@ -163,7 +173,10 @@ function displayTransactions() {
         return;
     }
     
-    transactionsTitleEl.textContent = `${filteredTransactions.length} Transaction${filteredTransactions.length === 1 ? '' : 's'}`;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (!urlParams.has('id')) {
+        transactionsTitleEl.textContent = `${filteredTransactions.length} Transaction${filteredTransactions.length === 1 ? '' : 's'}`;
+    }
     
     const transactionsHTML = filteredTransactions.map(renderTransaction).join('');
     transactionsListEl.innerHTML = transactionsHTML;
@@ -231,7 +244,6 @@ function renderTransaction(transaction) {
         }
         case 'CUT': {
             const player = transaction.involved_players[0];
-            // Access the team ID from the `involved_teams` array, not from player.from
             const fromTeamId = transaction.involved_teams[0]?.id;
             const team = allTeams.find(t => t.id === fromTeamId);
             if (team) {
