@@ -427,15 +427,15 @@
 
       <div class="quick-links-container">
           <a href="draft-results.html" class="quick-link-btn">S8 Draft Results</a>
-          <a href="draft-lottery.html" class="quick-link-btn">S9 Lottery Odds</a>
+          <a href="draft-lottery.html" class="quick-link-btn">S10 Lottery Odds</a>
       </div>
 
       <div class="season-tabs">
-        <div class="season-tab active" data-season="8">Season 8</div>
-        <div class="season-tab" data-season="9">Season 9</div>
+        <div class="season-tab active" data-season="9">Season 9</div>
         <div class="season-tab" data-season="10">Season 10</div>
         <div class="season-tab" data-season="11">Season 11</div>
         <div class="season-tab" data-season="12">Season 12</div>
+        <div class="season-tab" data-season="13">Season 13</div>
       </div>
 
       <div class="view-toggle">
@@ -474,7 +474,7 @@
 
       <div id="table-view" class="draft-board">
         <div class="draft-header">
-          <h3 id="draft-title">Season 8 Draft Picks</h3>
+          <h3 id="draft-title">Season 9 Draft Picks</h3>
         </div>
         <div class="pick-summary" id="pick-summary">
           <div class="loading">Loading draft pick summary...</div>
@@ -513,13 +513,11 @@
           db, 
           collection, 
           getDocs,
-          collectionGroup,
-          query,
-          where
+          collectionGroup
       } from '../js/firebase-init.js';
 
       // --- Globals ---
-      let currentSeason = 8;
+      let currentSeason = 9; // Default to Season 9 draft
       let currentView = 'table';
       let allDraftPicks = [];
       let allTeams = [];
@@ -586,17 +584,29 @@
             allDraftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
             // 2. Fetch all Team Names using a collectionGroup query
-            const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('__name__', '==', `S${currentSeason}`));
-            const teamRecordsSnap = await getDocs(query(collectionGroup(db, getCollectionName('seasonal_records'))));
+            // **FIXED**: Query the collectionGroup without a `where` clause and filter client-side.
+            const teamRecordsColGroup = collectionGroup(db, getCollectionName('seasonal_records'));
+            const teamRecordsSnap = await getDocs(teamRecordsColGroup);
             allTeams = teamRecordsSnap.docs
-                .filter(doc => doc.id === `S${currentSeason}`) // Ensure we're only getting records for the active season (e.g., S8)
+                .filter(doc => doc.id.startsWith('S')) // Get all seasonal records
                 .map(doc => ({
-                    team_id: doc.ref.parent.parent.id, // The team_id is the ID of the parent document
-                    team_name: doc.data().team_name
-                }));
+                    team_id: doc.ref.parent.parent.id, 
+                    team_name: doc.data().team_name,
+                    season: doc.id
+                }))
+                // Create a unique list of teams, preferring the most recent team name available
+                .reduce((acc, current) => {
+                    const existingTeam = acc.find(team => team.team_id === current.team_id);
+                    if (!existingTeam || parseInt(current.season.slice(1)) > parseInt(existingTeam.season.slice(1))) {
+                        // If team not in accumulator or current entry is for a newer season, replace/add it
+                        return [...acc.filter(team => team.team_id !== current.team_id), current];
+                    }
+                    return acc;
+                }, []);
             
-            // 3. Fetch Transaction Log for the current season
-            const transCol = collection(db, getCollectionName('transactions'), 'seasons', `S${currentSeason}`);
+            // 3. Fetch Transaction Log for the active league season (S8)
+            const activeLeagueSeason = "S8";
+            const transCol = collection(db, getCollectionName('transactions'), 'seasons', activeLeagueSeason);
             const transSnap = await getDocs(transCol);
             allTransactionsLogData = transSnap.docs.map(doc => ({
                 transaction_id: doc.id,
@@ -643,7 +653,6 @@
         const statusFilter = document.getElementById('status-filter').value;
         
         return allDraftPicks.filter(pick => {
-          // Firestore stores season as a number, so we parse for safety
           if (parseInt(pick.season) !== currentSeason) return false;
           if (roundFilter !== 'all' && parseInt(pick.round) !== parseInt(roundFilter)) return false;
           if (ownerFilter !== 'all' && pick.current_owner !== ownerFilter) return false;
@@ -711,12 +720,11 @@
             finalTradeStatusHTML = escapeHTML(tradeStatusText);
           } else if (pick.current_owner !== pick.original_team) {
             
-            // NEW: Firestore-based transaction lookup
             const relevantTransactions = (allTransactionsLogData || [])
                 .filter(t => t.type === 'TRADE' && t.involved_picks?.some(p => p.id === pick.pick_id && p.to === pick.current_owner));
             
             if (relevantTransactions.length > 0) {
-                const lastAcquisition = relevantTransactions[0]; // Already sorted by date
+                const lastAcquisition = relevantTransactions[0];
                 const pickInTrade = lastAcquisition.involved_picks.find(p => p.id === pick.pick_id);
                 const fromTeamId = pickInTrade.from;
 
@@ -726,7 +734,6 @@
                     tradeStatusText = `Acquired via ${getTeamName(fromTeamId)}`;
                 }
 
-                // Create link to transaction
                 const formattedDate = parseFirestoreDate(lastAcquisition.date);
                 const teamFilters = lastAcquisition.involved_teams?.join(',');
                 if (formattedDate && teamFilters) {
@@ -737,7 +744,6 @@
                 }
 
             } else {
-                // Fallback if transaction isn't found
                 tradeStatusText = `Acquired from ${getTeamName(pick.original_team)}`;
                 finalTradeStatusHTML = escapeHTML(tradeStatusText);
             }
@@ -833,19 +839,14 @@
         document.querySelectorAll('.season-tab').forEach(tab => {
           tab.addEventListener('click', () => {
             const newSeason = parseInt(tab.dataset.season);
-            if (newSeason === currentSeason) return; // Don't reload if clicking the same season
+            if (newSeason === currentSeason && allDraftPicks.length > 0) return; 
 
             document.querySelectorAll('.season-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             currentSeason = newSeason;
 
-            // Clear current data and show loading indicators before fetching new data
-            allTransactionsLogData = [];
-            document.getElementById('draft-table-body').innerHTML = '<tr><td colspan="4" class="loading">Loading draft picks...</td></tr>';
-            document.getElementById('pick-summary').innerHTML = '<div class="loading">Loading draft pick summary...</div>';
-            document.getElementById('team-view').innerHTML = '<div class="loading">Loading team ownership view...</div>';
-            
-            loadData(); // Reload data for the new season
+            // Don't re-fetch all data, just re-render with the new season filter
+            displayDraftBoard();
           });
         });
         
@@ -879,7 +880,6 @@
             }
         }
 
-        // Initial data load for the default season
         loadData();
       });
     </script>
