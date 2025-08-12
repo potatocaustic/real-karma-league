@@ -15,7 +15,6 @@
             }
         })();
     </script>
-    <script src="../js/main.js" type="module"></script>
     <style>
         /* Page-specific styles for draft-lottery.html */
         .page-header {
@@ -362,15 +361,80 @@
 </head>
 <body>
     <header>
-        </header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <span class="header-text">Real Karma League</span>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">☰</button>
+            <ul id="nav-menu">
+                <li><a href="RKL-S8.html">S8 Home</a></li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub ▼</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central ▼</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
 
     <main>
-        </main>
+        <div class="page-header">
+            <h2 id="table-title">S9 Lottery Odds</h2>
+            <p id="table-description">S9 lottery odds for the 14 non-playoff teams.</p>
+        </div>
+
+        <div class="quick-links-container">
+            <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
+            <a href="draft-results.html" class="quick-link-btn">S8 Draft Results</a>
+        </div>
+
+        <div class="lottery-container">
+            <div class="lottery-header">
+                <h3 class="lottery-card-title">Season 9 Draft</h3>
+                <div id="button-container" class="button-container">
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table id="lottery-table" class="lottery-table">
+                    <thead id="lottery-table-head">
+                    </thead>
+                    <tbody id="lottery-table-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
 
     <footer>
-        </footer>
+        <p>@caustic on Real</p>
+        <a href="/S8/trade-block.html">GM Portal</a>
+    </footer>
 
     <script type="module">
+        import '../js/main.js'; // Import main.js to run it first
         import { db, collection, getDocs, doc, getDoc, query, where } from '../js/firebase-init.js';
 
         // --- DATA AND CONFIGURATION ---
@@ -683,7 +747,7 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', initializeApp);
+        initializeApp(); // Call the function directly, no listener needed for module script at end of body
 
     </script>
 </body>
