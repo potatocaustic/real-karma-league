@@ -86,7 +86,7 @@
 
     <script src="../js/main.js" type="module"></script>
     <script type="module">
-        import { db, doc, getDoc, getDocs, collection, query, where, limit } from '../js/firebase-init.js';
+        import { db, doc, getDoc, getDocs, collection, query, where, limit, collectionGroup } from '../js/firebase-init.js';
         import { generateLineupTable } from '../js/main.js';
 
         // --- CONFIGURATION ---
@@ -109,21 +109,9 @@
             return (USE_DEV_COLLECTIONS && devCollections.includes(baseName)) ? `${baseName}_dev` : baseName;
         };
 
-        const getPlayerSeasonalStats = async (playerId) => {
-            if (playerStatsCache.has(playerId)) return playerStatsCache.get(playerId);
-            try {
-                const statsRef = doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), SEASON_ID);
-                const statsSnap = await getDoc(statsRef);
-                if (statsSnap.exists()) {
-                    const stats = statsSnap.data();
-                    playerStatsCache.set(playerId, stats);
-                    return stats;
-                }
-                return null;
-            } catch (error) {
-                console.error(`Failed to get stats for player ${playerId}:`, error);
-                return null;
-            }
+        const getPlayerSeasonalStats = (playerId) => {
+            // This function now just performs a quick lookup from the pre-populated cache.
+            return playerStatsCache.has(playerId) ? playerStatsCache.get(playerId) : null;
         };
 
         const createAwardCard = (title, winnerData) => {
@@ -162,31 +150,54 @@
         async function loadTrophyCase() {
             const awardsContainer = document.getElementById('awards-container');
             try {
+                // --- EFFICIENT DATA FETCHING ---
+                // Fetch awards, all team records for S8, and all player stats for S8 concurrently.
                 const awardsCollectionRef = collection(db, getCollectionName('awards'), `season_${SEASON_NUMBER}`, getCollectionName(`S${SEASON_NUMBER}_awards`));
-                const teamsCollectionRef = collection(db, getCollectionName('v2_teams'));
-                const [awardsSnap, teamsSnap] = await Promise.all([getDocs(awardsCollectionRef), getDocs(teamsCollectionRef)]);
+                const teamRecordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')));
+                const playerStatsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
 
-                const teamRecordPromises = teamsSnap.docs.map(teamDoc => getDoc(doc(db, getCollectionName('v2_teams'), teamDoc.id, getCollectionName('seasonal_records'), SEASON_ID)));
-                const teamRecordSnaps = await Promise.all(teamRecordPromises);
-                teamRecordSnaps.forEach(recordSnap => {
-                    if (recordSnap.exists()) allTeamRecords.set(recordSnap.ref.parent.parent.id, recordSnap.data());
+                const [awardsSnap, teamRecordsSnap, playerStatsSnap] = await Promise.all([
+                    getDocs(awardsCollectionRef),
+                    getDocs(teamRecordsQuery),
+                    getDocs(playerStatsQuery)
+                ]);
+
+                // Populate the team records cache for S8
+                teamRecordsSnap.docs.forEach(doc => {
+                    if (doc.id === SEASON_ID) {
+                        const teamId = doc.ref.parent.parent.id;
+                        allTeamRecords.set(teamId, doc.data());
+                    }
                 });
-                
+
+                // Populate the player stats cache for S8
+                playerStatsSnap.docs.forEach(doc => {
+                    if (doc.id === SEASON_ID) {
+                        const playerId = doc.ref.parent.parent.id;
+                        playerStatsCache.set(playerId, doc.data());
+                    }
+                });
+
                 const awardsMap = new Map(awardsSnap.docs.map(doc => [doc.id, doc.data()]));
 
-                awardsContainer.innerHTML = `
-                    <div class="awards-grid" id="top-awards"></div>
+                // --- BUILD ALL HTML BEFORE RENDERING ---
+                const topAwardsHTML = await renderTopAwards(awardsMap);
+                const allStarsHTML = `
                     <div class="all-stars-container">
                         ${await renderAllStarTeam('Eastern Conference All-Stars', awardsMap.get('all-stars-eastern')?.players)}
                         ${await renderAllStarTeam('Western Conference All-Stars', awardsMap.get('all-stars-western')?.players)}
                     </div>
-                    <div class="all-stars-container">
+                `;
+                const risingStarsHTML = `
+                     <div class="all-stars-container">
                         ${await renderAllStarTeam('Rising Stars East', awardsMap.get('rising-stars-eastern')?.players, true)}
                         ${await renderAllStarTeam('Rising Stars West', awardsMap.get('rising-stars-western')?.players, true)}
                     </div>
                 `;
                 
-                await renderTopAwards(awardsMap);
+                // Set the innerHTML a single time with the complete layout
+                awardsContainer.innerHTML = topAwardsHTML + allStarsHTML + risingStarsHTML;
+
             } catch (error) {
                 console.error("Error loading trophy case:", error);
                 awardsContainer.innerHTML = `<div class="error">Failed to load trophy case data. Please try again later.</div>`;
@@ -194,9 +205,7 @@
         }
 
         async function renderTopAwards(awardsMap) {
-            const topAwardsContainer = document.getElementById('top-awards');
-            let topAwardsHTML = '';
-
+            let html = '<div class="awards-grid">';
             const awardOrder = [
                 { id: 'league-champion', title: '🏆 League Champions 🏆' }, { id: 'finals-mvp', title: 'Finals MVP' },
                 { id: 'mvp', title: 'League MVP' }, { id: 'regular-season-title', title: 'Regular Season Title' },
@@ -209,7 +218,7 @@
             for (const awardInfo of awardOrder) {
                 const awardData = awardsMap.get(awardInfo.id);
                 if (!awardData) {
-                    topAwardsHTML += tbdCardHTML(awardInfo.title);
+                    html += tbdCardHTML(awardInfo.title);
                     continue;
                 }
 
@@ -220,96 +229,54 @@
 
                 switch (awardInfo.id) {
                     case 'league-champion':
-                        cardData = {
-                            name: teamName, detail: '(Combined Record)', nameLink: teamLink, logoId: awardData.team_id,
-                            stats: `Record: ${awardData.champ_wins}-${awardData.champ_losses} | PAM: ${Math.round(awardData.champ_pam || 0).toLocaleString()} | Med Rank: ${Math.round(awardData.champ_medrank || 0)}`
-                        };
+                        cardData = { name: teamName, detail: '(Combined Record)', nameLink: teamLink, logoId: awardData.team_id, stats: `Record: ${awardData.champ_wins}-${awardData.champ_losses} | PAM: ${Math.round(awardData.champ_pam || 0).toLocaleString()} | Med Rank: ${Math.round(awardData.champ_medrank || 0)}`};
                         break;
                     case 'finals-mvp':
-                        cardData = {
-                            name: awardData.player_handle, detail: teamName, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`,
-                            detailLink: teamLink, logoId: awardData.team_id,
-                            stats: `REL Median: ${(awardData.fmvp_rel_median || 0).toFixed(3)} | Med Rank: ${Math.round(awardData.fmvp_medrank || 0)}`
-                        };
+                        cardData = { name: awardData.player_handle, detail: teamName, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`, detailLink: teamLink, logoId: awardData.team_id, stats: `REL Median: ${(awardData.fmvp_rel_median || 0).toFixed(3)} | Med Rank: ${Math.round(awardData.fmvp_medrank || 0)}`};
                         break;
                     case 'regular-season-title':
-                        cardData = {
-                            name: teamName, detail: 'Best Record', nameLink: teamLink, logoId: awardData.team_id,
-                            stats: `Record: ${teamRecord?.wins}-${teamRecord?.losses} | PAM: ${Math.round(teamRecord?.pam || 0).toLocaleString()} | Med Rank: ${Math.round(teamRecord?.med_starter_rank || 0)}`
-                        };
+                        cardData = { name: teamName, detail: 'Best Record', nameLink: teamLink, logoId: awardData.team_id, stats: `Record: ${teamRecord?.wins}-${teamRecord?.losses} | PAM: ${Math.round(teamRecord?.pam || 0).toLocaleString()} | Med Rank: ${Math.round(teamRecord?.med_starter_rank || 0)}`};
                         break;
                     case 'gm-of-the-year':
-                        cardData = {
-                            name: awardData.gm_handle, detail: teamName, detailLink: teamLink, logoId: awardData.team_id,
-                            stats: `Record: ${teamRecord?.wins}-${teamRecord?.losses} | PAM: ${Math.round(teamRecord?.pam || 0).toLocaleString()} | Med Rank: ${Math.round(teamRecord?.med_starter_rank || 0)}`
-                        };
+                        cardData = { name: awardData.gm_handle, detail: teamName, detailLink: teamLink, logoId: awardData.team_id, stats: `Record: ${teamRecord?.wins}-${teamRecord?.losses} | PAM: ${Math.round(teamRecord?.pam || 0).toLocaleString()} | Med Rank: ${Math.round(teamRecord?.med_starter_rank || 0)}`};
                         break;
                     case 'best_performance_team': {
                         const dailyScoresRef = collection(db, getCollectionName('daily_scores'), `season_${SEASON_NUMBER}`, getCollectionName(`S${SEASON_NUMBER}_daily_scores`));
                         const q = query(dailyScoresRef, where("date", "==", awardData.date), where("team_id", "==", awardData.team_id), limit(1));
                         const dailyScoreSnap = await getDocs(q);
                         const dailyScoreData = dailyScoreSnap.empty ? {} : dailyScoreSnap.docs[0].data();
-                        cardData = {
-                            name: awardData.team_name,
-                            detail: `Week ${dailyScoreData.week || '?'} - ${Math.round(dailyScoreData.score || 0).toLocaleString()} Points`,
-                            nameLink: teamLink, logoId: awardData.team_id,
-                            stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`,
-                            modalOnClick: `findGameForTeam('${awardData.date}', '${awardData.team_id}'); return false;`
-                        };
+                        cardData = { name: awardData.team_name, detail: `Week ${dailyScoreData.week || '?'} - ${Math.round(dailyScoreData.score || 0).toLocaleString()} Points`, nameLink: teamLink, logoId: awardData.team_id, stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`, modalOnClick: `findGameForTeam('${awardData.date}', '${awardData.team_id}'); return false;`};
                         break;
                     }
                     case 'best_performance_player': {
                         const lineupsRef = collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups'));
                         const postLineupsRef = collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('post_lineups'));
-                        
                         let lineupSnap = await getDocs(query(lineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1)));
-                        
-                        // This variable will track where we found the lineup, which reliably tells us the game collection.
                         let foundIn = 'regular season';
-                        if (lineupSnap.empty) {
-                            foundIn = 'postseason';
-                            lineupSnap = await getDocs(query(postLineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1)));
-                        }
-
+                        if (lineupSnap.empty) { foundIn = 'postseason'; lineupSnap = await getDocs(query(postLineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1))); }
                         const lineupData = lineupSnap.empty ? {} : lineupSnap.docs[0].data();
-                        
-                        // --- FIX ---
-                        // Determine the game collection based on WHERE the lineup was found, not based on the
-                        // lineupData.game_type field, which may be missing or incorrect.
                         const gameCollection = foundIn === 'regular season' ? getCollectionName('games') : getCollectionName('post_games');
-                        
-                        cardData = {
-                            name: awardData.player_handle,
-                            detail: `Week ${lineupData.week || '?'} - ${Math.round(lineupData.points_adjusted || 0).toLocaleString()} Points`,
-                            nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`,
-                            logoId: awardData.team_id,
-                            stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`,
-                            modalOnClick: lineupData.game_id ? `showGameDetails('${lineupData.game_id}', '${gameCollection}'); return false;` : `alert('Game data not found.'); return false;`
-                        };
+                        cardData = { name: awardData.player_handle, detail: `Week ${lineupData.week || '?'} - ${Math.round(lineupData.points_adjusted || 0).toLocaleString()} Points`, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`, logoId: awardData.team_id, stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`, modalOnClick: lineupData.game_id ? `showGameDetails('${lineupData.game_id}', '${gameCollection}'); return false;` : `alert('Game data not found.'); return false;`};
                         break;
                     }
-                    default: { // Handles MVP, ROY, LVP, etc.
-                        const playerStats = await getPlayerSeasonalStats(awardData.player_id);
+                    default: {
+                        const playerStats = getPlayerSeasonalStats(awardData.player_id);
                         const statsString = playerStats ? `REL Median: ${playerStats.rel_median.toFixed(3)} | Med Rank: ${Math.round(playerStats.medrank)}` : '';
-                        cardData = {
-                            name: awardData.player_handle, detail: teamName, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`,
-                            detailLink: teamLink, logoId: awardData.team_id,
-                            stats: awardInfo.id === 'lvp' ? `<span class="detail-negative">${statsString}</span>` : statsString
-                        };
+                        cardData = { name: awardData.player_handle, detail: teamName, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`, detailLink: teamLink, logoId: awardData.team_id, stats: awardInfo.id === 'lvp' ? `<span class="detail-negative">${statsString}</span>` : statsString};
                     }
                 }
-                topAwardsHTML += createAwardCard(awardInfo.title, cardData);
+                html += createAwardCard(awardInfo.title, cardData);
             }
-            topAwardsContainer.innerHTML = topAwardsHTML;
+            html += '</div>'; // close awards-grid
+            return html;
         }
 
         async function renderAllStarTeam(title, players, isRisingStar = false) {
             if (!players || players.length === 0) return '';
-            
             const iconName = title.includes('Eastern') ? (isRisingStar ? 'RSE' : 'EAST') : (isRisingStar ? 'RSW' : 'WEST');
-
-            const playerItems = await Promise.all(players.map(async (p) => {
-                const stats = await getPlayerSeasonalStats(p.player_id);
+            
+            const playerItems = players.map(p => {
+                const stats = getPlayerSeasonalStats(p.player_id);
                 const relMedian = stats?.rel_median?.toFixed(3) || 'N/A';
                 const war = stats?.WAR?.toFixed(2) || 'N/A';
                 const gem = stats?.GEM?.toFixed(2) || 'N/A';
@@ -329,7 +296,7 @@
                         <div class="all-star-stat">${war}</div>
                         <div class="all-star-stat">${gem}</div>
                     </li>`;
-            }));
+            }).join('');
 
             return `
                 <div class="all-star-team">
@@ -340,7 +307,7 @@
                         <span class="stat-col-header">WAR</span>
                         <span class="stat-col-header">GEM</span>
                     </div>
-                    <ul class="all-star-list">${playerItems.join('')}</ul>
+                    <ul class="all-star-list">${playerItems}</ul>
                 </div>`;
         }
         
@@ -353,9 +320,7 @@
                 const q = query(gamesRef, where("date", "==", date));
                 const gamesSnap = await getDocs(q);
                 const gameDoc = gamesSnap.docs.find(doc => doc.data().team1_id === teamId || doc.data().team2_id === teamId);
-
                 if (!gameDoc) throw new Error("Could not find matching game for this performance.");
-                
                 await showGameDetails(gameDoc.id, getCollectionName('games'));
             } catch(error) {
                 console.error("Error finding team game:", error);
@@ -372,26 +337,19 @@
             
             try {
                 if(!gameId || gameId === 'undefined') throw new Error("Game ID is missing or undefined.");
-
                 const gameRef = doc(db, getCollectionName('seasons'), SEASON_ID, gameCollection, gameId);
-
                 const lineupsCollectionName = gameCollection === getCollectionName('games') ? getCollectionName('lineups') : getCollectionName('post_lineups');
                 const lineupsQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, lineupsCollectionName), where("game_id", "==", gameId));
-
                 const [gameSnap, lineupsSnap] = await Promise.all([getDoc(gameRef), getDocs(lineupsQuery)]);
                 if (!gameSnap.exists()) throw new Error("Game not found.");
                 
                 const game = gameSnap.data();
                 const allLineups = lineupsSnap.docs.map(d => d.data());
-
                 const team1 = { id: game.team1_id, ...allTeamRecords.get(game.team1_id) };
                 const team2 = { id: game.team2_id, ...allTeamRecords.get(game.team2_id) };
-
                 modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} (Week ${game.week})`;
-                
                 const team1Lineups = allLineups.filter(l => l.team_id === game.team1_id);
                 const team2Lineups = allLineups.filter(l => l.team_id === game.team2_id);
-                
                 modalBody.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1, game.winner === game.team1_id)}${generateLineupTable(team2Lineups, team2, game.winner === game.team2_id)}</div>`;
             } catch (error) {
                 console.error("Error showing game details:", error);
