@@ -259,40 +259,32 @@
                         break;
                     }
                     case 'best_performance_player': {
-                        // --- DEBUGGING STEP 1: Log the initial data from the award document ---
-                        console.log("--- Debugging Best Player Performance ---");
-                        console.log("Searching for lineup with this data:", awardData);
-
                         const lineupsRef = collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups'));
                         const postLineupsRef = collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('post_lineups'));
                         
                         let lineupSnap = await getDocs(query(lineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1)));
                         
+                        // This variable will track where we found the lineup, which reliably tells us the game collection.
                         let foundIn = 'regular season';
                         if (lineupSnap.empty) {
                             foundIn = 'postseason';
                             lineupSnap = await getDocs(query(postLineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1)));
                         }
 
-                        // --- DEBUGGING STEP 2: Log the result of the lineup query ---
-                        console.log(`Lineup query result (searched ${foundIn}): Found ${lineupSnap.size} documents.`);
-
                         const lineupData = lineupSnap.empty ? {} : lineupSnap.docs[0].data();
                         
-                        // --- DEBUGGING STEP 3: Log the lineup data and the variables derived from it ---
-                        console.log("Found lineupData:", lineupData);
-                        const gameId = lineupData.game_id;
-                        const gameCollection = lineupData.game_type === 'regular' ? getCollectionName('games') : getCollectionName('post_games');
-                        console.log(`Extracted gameId: '${gameId}', gameCollection: '${gameCollection}'`);
-                        console.log("-----------------------------------------");
-
+                        // --- FIX ---
+                        // Determine the game collection based on WHERE the lineup was found, not based on the
+                        // lineupData.game_type field, which may be missing or incorrect.
+                        const gameCollection = foundIn === 'regular season' ? getCollectionName('games') : getCollectionName('post_games');
+                        
                         cardData = {
                             name: awardData.player_handle,
                             detail: `Week ${lineupData.week || '?'} - ${Math.round(lineupData.points_adjusted || 0).toLocaleString()} Points`,
                             nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`,
                             logoId: awardData.team_id,
                             stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`,
-                            modalOnClick: `showGameDetails('${gameId}', '${gameCollection}'); return false;`
+                            modalOnClick: lineupData.game_id ? `showGameDetails('${lineupData.game_id}', '${gameCollection}'); return false;` : `alert('Game data not found.'); return false;`
                         };
                         break;
                     }
@@ -372,9 +364,6 @@
         };
 
         window.showGameDetails = async (gameId, gameCollection) => {
-            // --- DEBUGGING STEP 4: Log the arguments received by showGameDetails ---
-            console.log(`showGameDetails called with gameId: '${gameId}', gameCollection: '${gameCollection}'`);
-
             const modal = document.getElementById('game-modal');
             const modalTitle = document.getElementById('modal-title');
             const modalBody = document.getElementById('modal-body-content');
@@ -385,8 +374,6 @@
                 if(!gameId || gameId === 'undefined') throw new Error("Game ID is missing or undefined.");
 
                 const gameRef = doc(db, getCollectionName('seasons'), SEASON_ID, gameCollection, gameId);
-                // --- DEBUGGING STEP 5: Log the exact path being queried ---
-                console.log("Querying Firestore for game at path:", gameRef.path);
 
                 const lineupsCollectionName = gameCollection === getCollectionName('games') ? getCollectionName('lineups') : getCollectionName('post_lineups');
                 const lineupsQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, lineupsCollectionName), where("game_id", "==", gameId));
