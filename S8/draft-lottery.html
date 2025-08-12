@@ -618,10 +618,10 @@
                 const draftPicksQuery = query(collection(db, getCollectionName('draftPicks')), where('season', '==', Number(DRAFT_SEASON_ID.replace('S',''))), where('round', '==', 1));
                 const postGamesQuery = collection(db, getCollectionName('seasons'), PREVIOUS_SEASON_ID, getCollectionName('post_games'));
 
-                const [teamsSnap, draftPicksSnap, postGamesSnap] = await Promise.all([
+                const [teamsSnap, draftPicksSnap, postseasonGamesSnap] = await Promise.all([
                     getDocs(teamsQuery),
                     getDocs(draftPicksQuery),
-                    getDocs(postGamesSnap)
+                    getDocs(postGamesQuery)
                 ]);
 
                 // 3. Process Draft Picks
@@ -649,7 +649,7 @@
                 }, {});
 
                 // 5. Determine Playoff and Lottery Teams
-                const postGames = postGamesSnap.docs.map(doc => doc.data());
+                const postGames = postseasonGamesSnap.docs.map(doc => doc.data());
                 const playoffTeamIds = new Set();
                 
                 // Add top 6 seeds from each conference
