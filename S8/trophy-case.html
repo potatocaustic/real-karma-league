@@ -110,7 +110,6 @@
         };
 
         const getPlayerSeasonalStats = (playerId) => {
-            // This function now just performs a quick lookup from the pre-populated cache.
             return playerStatsCache.has(playerId) ? playerStatsCache.get(playerId) : null;
         };
 
@@ -150,7 +149,6 @@
         async function loadTrophyCase() {
             const awardsContainer = document.getElementById('awards-container');
             try {
-                // --- EFFICIENT DATA FETCHING ---
                 const awardsCollectionRef = collection(db, getCollectionName('awards'), `season_${SEASON_NUMBER}`, getCollectionName(`S${SEASON_NUMBER}_awards`));
                 const teamRecordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')));
                 const playerStatsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
@@ -180,14 +178,14 @@
                 const topAwardsHTML = await renderTopAwards(awardsMap);
                 const allStarsHTML = `
                     <div class="all-stars-container">
-                        ${await renderAllStarTeam('Eastern Conference All-Stars', awardsMap.get('all-stars-eastern')?.players)}
-                        ${await renderAllStarTeam('Western Conference All-Stars', awardsMap.get('all-stars-western')?.players)}
+                        ${renderAllStarTeam('Eastern Conference All-Stars', awardsMap.get('all-stars-eastern')?.players)}
+                        ${renderAllStarTeam('Western Conference All-Stars', awardsMap.get('all-stars-western')?.players)}
                     </div>
                 `;
                 const risingStarsHTML = `
                      <div class="all-stars-container">
-                        ${await renderAllStarTeam('Rising Stars East', awardsMap.get('rising-stars-eastern')?.players, true)}
-                        ${await renderAllStarTeam('Rising Stars West', awardsMap.get('rising-stars-western')?.players, true)}
+                        ${renderAllStarTeam('Rising Stars East', awardsMap.get('rising-stars-eastern')?.players, true)}
+                        ${renderAllStarTeam('Rising Stars West', awardsMap.get('rising-stars-western')?.players, true)}
                     </div>
                 `;
                 
@@ -266,7 +264,7 @@
             return html;
         }
 
-        async function renderAllStarTeam(title, players, isRisingStar = false) {
+        function renderAllStarTeam(title, players, isRisingStar = false) {
             if (!players || players.length === 0) return '';
             const iconName = title.includes('Eastern') ? (isRisingStar ? 'RSE' : 'EAST') : (isRisingStar ? 'RSW' : 'WEST');
             
@@ -279,7 +277,7 @@
                 const isAllStar = stats?.all_star === '1';
                 const isRookie = stats?.rookie === '1';
                 let badgesHTML = '';
-                if(isAllStar && !isRisingStar) badgesHTML += `<span class="all-star-badge">⭐️</span>`;
+                if(isAllStar && !isRisingStar) badgesHTML += `<span class="all-star-badge">★</span>`;
                 if(isRookie) badgesHTML += `<span class="rookie-badge">R</span>`;
                 
                 return `
