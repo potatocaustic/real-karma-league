@@ -104,7 +104,6 @@ async function loadData() {
           transaction_id: doc.id,
           ...doc.data()
       })).sort((a, b) => {
-          // **FIXED**: Handle Firestore Timestamp objects directly
           const timeA = a.date?.toDate ? a.date.toDate().getTime() : 0;
           const timeB = b.date?.toDate ? b.date.toDate().getTime() : 0;
           return timeB - timeA;
@@ -226,12 +225,13 @@ function displayTableView() {
           } else {
               tradeStatusText = `Acquired via ${getTeamName(fromTeamId)}`;
           }
-
-          const formattedDate = parseFirestoreDate(lastAcquisition.date);
-          const teamFilters = lastAcquisition.involved_teams?.join(',');
-          if (formattedDate && teamFilters) {
-               const transactionsLink = `transactions.html?type=TRADE&date=${formattedDate}&teamFilters=${teamFilters}&pick_id=${encodeURIComponent(pick.pick_id || '')}`;
-               finalTradeStatusHTML = `<a href="${transactionsLink}" title="View transaction from ${new Date(lastAcquisition.date.toDate()).toLocaleString()}">${escapeHTML(tradeStatusText)}</a>`;
+          
+          // **FIXED**: Generate link using the unique transaction_id
+          const tradeId = lastAcquisition.transaction_id;
+          if (tradeId) {
+              const transactionsLink = `transactions.html?id=${tradeId}`;
+              const titleDate = lastAcquisition.date?.toDate ? new Date(lastAcquisition.date.toDate()).toLocaleString() : 'View transaction';
+              finalTradeStatusHTML = `<a href="${transactionsLink}" title="${titleDate}">${escapeHTML(tradeStatusText)}</a>`;
           } else {
               finalTradeStatusHTML = escapeHTML(tradeStatusText);
           }
