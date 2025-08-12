@@ -374,12 +374,13 @@ function getRankDisplay(rank) {
 
 async function initializePage() {
     try {
-        const seasonData = await getActiveSeason(); // Captures season data
+        const seasonData = await getActiveSeason();
         await fetchAllTeamsAndRecords();
-        await fetchLatestPowerRankings();
+        await fetchAllPowerRankings();
 
         renderStandings();
-        renderPowerRankings();
+        setupPowerRankingsSelector();
+        renderPowerRankings(latestPRVersion);
         
         if (playoffBracketBtn) {
             const isPostseason = isPostseasonWeek(seasonData.current_week);
