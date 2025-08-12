@@ -409,11 +409,22 @@ async function initializePage() {
         }
 
         viewToggleButton1.addEventListener('click', () => {
-            const targetView = currentView === 'conferences' ? 'fullLeague' : 'conferences';
+            let targetView;
+            if (currentView === 'conferences') {
+                targetView = 'fullLeague';
+            } else { 
+                targetView = 'conferences';
+            }
             switchView(targetView);
         });
+
         viewToggleButton2.addEventListener('click', () => {
-            const targetView = currentView === 'powerRankings' ? 'conferences' : 'powerRankings';
+            let targetView;
+            if (currentView === 'powerRankings') {
+                targetView = 'fullLeague';
+            } else { 
+                targetView = 'powerRankings';
+            }
             switchView(targetView);
         });
         
