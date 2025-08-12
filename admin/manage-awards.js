@@ -1,15 +1,14 @@
 // /admin/manage-awards.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = true;
 const getCollectionName = (baseName) => {
-    if (baseName.includes('_awards')) {
-        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-    }
+    // This logic is simplified as all relevant collections follow the same dev/prod pattern
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 };
+
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -25,6 +24,16 @@ let allPlayers = new Map();
 let allGms = new Map();
 let allTeams = [];
 let currentSeasonId = null;
+
+// --- Helper Functions ---
+function calculateMedian(numbers) {
+    if (!numbers || numbers.length === 0) return 0;
+    const sorted = [...numbers].filter(n => typeof n === 'number').sort((a, b) => a - b);
+    if (sorted.length === 0) return 0;
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
 
 // --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -220,22 +229,101 @@ async function handleFormSubmit(e) {
     saveButton.textContent = 'Saving...';
 
     try {
-        const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
         const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
 
+        // --- PRE-CALCULATIONS (READS) ---
+        let championExtraStats = {};
+        const championTeamId = document.getElementById('award-league-champion').value;
+        if (championTeamId) {
+            // Fetch team record
+            const recordRef = doc(db, getCollectionName("v2_teams"), championTeamId, getCollectionName("seasonal_records"), currentSeasonId);
+            const recordSnap = await getDoc(recordRef);
+            if (recordSnap.exists()) {
+                const rec = recordSnap.data();
+                championExtraStats.champ_wins = (rec.wins || 0) + (rec.post_wins || 0);
+                championExtraStats.champ_losses = (rec.losses || 0) + (rec.post_losses || 0);
+                championExtraStats.champ_pam = (rec.pam || 0) + (rec.post_pam || 0);
+            }
+
+            // Fetch lineups for median rank calculation
+            const lineupsRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("lineups"));
+            const postLineupsRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("post_lineups"));
+            
+            const [regLineupsSnap, postLineupsSnap] = await Promise.all([
+                getDocs(query(lineupsRef, where("team_id", "==", championTeamId))),
+                getDocs(query(postLineupsRef, where("team_id", "==", championTeamId)))
+            ]);
+
+            const allRanks = [
+                ...regLineupsSnap.docs.map(d => d.data().global_rank),
+                ...postLineupsSnap.docs.map(d => d.data().global_rank)
+            ].filter(rank => rank > 0);
+
+            championExtraStats.champ_medrank = calculateMedian(allRanks);
+        }
+
+        let fmvpExtraStats = {};
+        const fmvpHandle = document.getElementById('award-finals-mvp').value;
+        if (fmvpHandle && allPlayers.has(fmvpHandle)) {
+            const player = allPlayers.get(fmvpHandle);
+
+            // Find Finals game dates
+            const postGamesRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("post_games"));
+            const finalsGamesSnap = await getDocs(query(postGamesRef, where("series_id", "==", "Finals")));
+            const finalsDates = finalsGamesSnap.docs.map(d => d.data().date);
+
+            if (finalsDates.length > 0) {
+                // Get FMVP lineups for those dates
+                const postLineupsRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("post_lineups"));
+                const fmvpLineupsSnap = await getDocs(query(postLineupsRef, where("player_id", "==", player.id), where("date", "in", finalsDates)));
+                const fmvpLineups = fmvpLineupsSnap.docs.map(d => d.data());
+
+                // Calculate MedRank
+                const fmvpRanks = fmvpLineups.map(l => l.global_rank).filter(r => r > 0);
+                fmvpExtraStats.fmvp_medrank = calculateMedian(fmvpRanks);
+
+                // Calculate REL Median
+                const totalPoints = fmvpLineups.reduce((sum, l) => sum + (l.points_adjusted || 0), 0);
+                
+                const dailyAveragesRef = collection(db, `${getCollectionName('post_daily_averages')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_post_daily_averages`)}`);
+                let totalMedianScore = 0;
+                // Firestore 'in' query is limited to 30 elements, so we fetch one by one if needed.
+                const dailyAvgPromises = finalsDates.map(date => {
+                    const yyyymmdd = date.split('/').reverse().join('-').replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$1-$2');
+                    return getDoc(doc(dailyAveragesRef, yyyymmdd));
+                });
+                const dailyAvgSnaps = await Promise.all(dailyAvgPromises);
+                dailyAvgSnaps.forEach(snap => {
+                    if(snap.exists()) totalMedianScore += snap.data().median_score || 0;
+                });
+                
+                fmvpExtraStats.fmvp_rel_median = totalMedianScore > 0 ? totalPoints / totalMedianScore : 0;
+            }
+        }
+
+        // --- BATCH WRITES ---
+        const batch = writeBatch(db);
+        const allStarPlayerIds = new Set(); // To track players needing the 'all_star: 1' flag
+
+        // Individual Awards
         const singleAwards = ['finals-mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
         for (const id of singleAwards) {
             const handle = document.getElementById(`award-${id}`).value;
             const docRef = doc(awardsCollectionRef, id);
             if (handle && allPlayers.has(handle)) {
                 const player = allPlayers.get(handle);
-                batch.set(docRef, { award_name: id.replace(/-/g, ' '), player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id });
+                let data = { award_name: id.replace(/-/g, ' '), player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id };
+                if(id === 'finals-mvp') {
+                    data = { ...data, ...fmvpExtraStats };
+                }
+                batch.set(docRef, data);
             } else {
                 batch.delete(docRef);
             }
         }
 
+        // GM Award
         const gmHandle = document.getElementById('award-gm-of-the-year').value;
         const gmDocRef = doc(awardsCollectionRef, 'gm-of-the-year');
         if (gmHandle && allGms.has(gmHandle)) {
@@ -244,19 +332,25 @@ async function handleFormSubmit(e) {
         } else {
             batch.delete(gmDocRef);
         }
-
+        
+        // Team Awards
         const teamAwards = ['league-champion', 'regular-season-title'];
         for (const id of teamAwards) {
             const teamId = document.getElementById(`award-${id}`).value;
             const docRef = doc(awardsCollectionRef, id);
             if (teamId) {
                 const team = allTeams.find(t => t.id === teamId);
-                batch.set(docRef, { award_name: id.replace(/-/g, ' '), team_id: team.id, team_name: team.team_name });
+                let data = { award_name: id.replace(/-/g, ' '), team_id: team.id, team_name: team.team_name };
+                 if(id === 'league-champion') {
+                    data = { ...data, ...championExtraStats };
+                }
+                batch.set(docRef, data);
             } else {
                 batch.delete(docRef);
             }
         }
 
+        // List-based Awards
         const listAwards = ['all-stars-eastern', 'all-stars-western', 'rising-stars-eastern', 'rising-stars-western'];
         for (const id of listAwards) {
             const players = [];
@@ -266,6 +360,11 @@ async function handleFormSubmit(e) {
                 if (handle && allPlayers.has(handle)) {
                     const player = allPlayers.get(handle);
                     players.push({ player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id });
+                    
+                    // If this is an All-Star list (not Rising Star), add the player ID for the flag update
+                    if (id.startsWith('all-star')) {
+                        allStarPlayerIds.add(player.id);
+                    }
                 }
             });
             const docRef = doc(awardsCollectionRef, id);
@@ -275,6 +374,13 @@ async function handleFormSubmit(e) {
                 batch.delete(docRef);
             }
         }
+
+        // NEW: Update the 'all_star' flag for each selected player
+        for (const playerId of allStarPlayerIds) {
+            const playerStatsRef = doc(db, getCollectionName("v2_players"), playerId, getCollectionName("seasonal_stats"), currentSeasonId);
+            batch.set(playerStatsRef, { all_star: '1' }, { merge: true });
+        }
+
 
         await batch.commit();
         alert('Manual awards saved successfully!');
