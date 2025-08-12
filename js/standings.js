@@ -46,11 +46,7 @@ async function fetchAllTeamsAndRecords() {
     const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
 
     const teamsQuery = query(collection(db, teamsCollectionName), where('conference', 'in', ['Eastern', 'Western']));
-    
-    const recordsQuery = query(
-        collectionGroup(db, seasonalRecordsCollectionName), 
-        where('__name__', '==', activeSeasonId)
-    );
+    const recordsQuery = query(collectionGroup(db, seasonalRecordsCollectionName)); 
 
     const [teamsSnapshot, recordsSnapshot] = await Promise.all([
         getDocs(teamsQuery),
@@ -59,8 +55,10 @@ async function fetchAllTeamsAndRecords() {
 
     const seasonalRecordsMap = new Map();
     recordsSnapshot.forEach(doc => {
-        const teamId = doc.ref.parent.parent.id; 
-        seasonalRecordsMap.set(teamId, doc.data());
+        if (doc.id === activeSeasonId) {
+            const teamId = doc.ref.parent.parent.id; 
+            seasonalRecordsMap.set(teamId, doc.data());
+        }
     });
 
     const teams = teamsSnapshot.docs.map(teamDoc => {
