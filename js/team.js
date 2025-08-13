@@ -68,22 +68,13 @@ async function loadPageData() {
             return;
         }
         
-        // --- CORRECTED LOGIC: Build the allTeamsSeasonalRecords map first ---
-        // This replaces the faulty collectionGroup query.
+        // --- DEFINE ALL DATA PROMISES ---
         const allTeamsSnap = await getDocs(collection(db, "v2_teams"));
         const teamRecordPromises = allTeamsSnap.docs.map(teamDoc => 
             getDoc(doc(db, "v2_teams", teamDoc.id, "seasonal_records", ACTIVE_SEASON_ID))
         );
-        const allTeamsRecordsSnaps = await Promise.all(teamRecordPromises);
+        const allTeamsRecordsPromise = Promise.all(teamRecordPromises);
 
-        allTeamsRecordsSnaps.forEach(snap => {
-            if (snap.exists()) {
-                const teamIdForRecord = snap.ref.parent.parent.id;
-                allTeamsSeasonalRecords.set(teamIdForRecord, snap.data());
-            }
-        });
-        
-        // --- DEFINE REMAINING DATA PROMISES ---
         const teamDocPromise = getDoc(doc(db, "v2_teams", teamId));
         const teamSeasonalPromise = getDoc(doc(db, "v2_teams", teamId, "seasonal_records", ACTIVE_SEASON_ID));
 
@@ -96,8 +87,10 @@ async function loadPageData() {
         const draftPicksPromise = getDocs(collection(db, "draftPicks"));
         const transactionsPromise = getDocs(collection(db, "transactions", "seasons", ACTIVE_SEASON_ID));
 
-        // --- AWAIT REMAINING PROMISES ---
+
+        // --- AWAIT ALL PROMISES ---
         const [
+            allTeamsRecordsSnaps,
             teamDocSnap,
             teamSeasonalSnap,
             rosterSnap,
@@ -106,14 +99,25 @@ async function loadPageData() {
             draftPicksSnap,
             transactionsSnap
         ] = await Promise.all([
+            allTeamsRecordsPromise,
             teamDocPromise,
             teamSeasonalPromise,
             rosterPromise,
             schedulePromise,
             postSchedulePromise,
-            draftPicksSnap,
-            transactionsSnap
+            draftPicksPromise,
+            transactionsPromise
         ]);
+
+        // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
+        allTeamsRecordsSnaps.forEach(snap => {
+            if (snap.exists()) {
+                const teamIdForRecord = snap.ref.parent.parent.id;
+                allTeamsSeasonalRecords.set(teamIdForRecord, snap.data());
+            }
+        });
+        
+        generateIconStylesheet(Array.from(allTeamsSeasonalRecords.keys()));
 
         // --- PROCESS CORE TEAM DATA ---
         if (!teamDocSnap.exists() || !teamSeasonalSnap.exists()) {
@@ -123,13 +127,11 @@ async function loadPageData() {
         teamData = { id: teamDocSnap.id, ...teamDocSnap.data() };
         teamSeasonalData = teamSeasonalSnap.data();
 
-        // --- PROCESS HELPERS & GLOBAL DATA ---
+        // --- PROCESS OTHER DATA ---
         allScheduleData = scheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         allPostseasonScheduleData = postScheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         allDraftPicks = draftPicksSnap.docs.map(d => d.data());
         allTransactions = transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-
-        generateIconStylesheet(Array.from(allTeamsSeasonalRecords.keys()));
 
         // --- PROCESS ROSTER & PLAYER SEASONAL STATS (MULTI-STEP) ---
         const playerDocs = rosterSnap.docs;
@@ -373,12 +375,12 @@ async function showGameDetails(team1_id, team2_id, date, isPostseason) {
         const team1Info = { id: team1_id, team_name: getTeamName(team1_id), ...allTeamsSeasonalRecords.get(team1_id) };
         const team2Info = { id: team2_id, team_name: getTeamName(team2_id), ...allTeamsSeasonalRecords.get(team2_id) };
         
-        const gameDocId = isPostseason 
+        const gameDocId = isPostseason
             ? allPostseasonScheduleData.find(g => g.date === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id
             : allScheduleData.find(g => g.date === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
-
-        if (!gameDocId) throw new Error("Could not find game document ID.");
         
+        if (!gameDocId) throw new Error("Could not find game document ID.");
+
         const gameSnap = await getDoc(doc(db, "seasons", ACTIVE_SEASON_ID, isPostseason ? "post_games" : "games", gameDocId));
         const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
 
