@@ -11,7 +11,7 @@ import {
     query,
     where,
     limit,
-    orderBy, // Added
+    orderBy,
     setDoc,
     deleteDoc,
     serverTimestamp,
@@ -21,7 +21,8 @@ import {
     arrayUnion,
     onSnapshot,
     connectFirestoreEmulator,
-    collectionGroup // Added
+    collectionGroup,
+    documentId 
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
@@ -62,7 +63,7 @@ export {
     query,
     where,
     limit,
-    orderBy, // Added
+    orderBy,
     httpsCallable,
     setDoc,
     deleteDoc,
@@ -72,5 +73,6 @@ export {
     writeBatch,
     arrayUnion,
     onSnapshot,
-    collectionGroup // Added
+    collectionGroup,
+    documentId 
 };
