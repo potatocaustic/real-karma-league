@@ -111,7 +111,6 @@ async function loadPageData() {
 
 
         // --- AWAIT ALL PROMISES ---
-        // Corrected: Removed postScheduleSnap from the destructuring array to match the promises
         const [
             allTeamsRecordsSnaps,
             teamDocSnap,
@@ -358,19 +357,20 @@ function loadDraftCapital() {
 
 // --- MODAL & EVENT HANDLERS ---
 
-async function showGameDetails(team1_id, team2_id, date) {
+async function showGameDetails(team1_id, team2_id, gameDate) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalContentEl = document.getElementById('game-details-content-area');
 
+    const normalizedDate = normalizeDate(gameDate);
     modal.style.display = 'block';
-    modalTitle.textContent = `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(date)}`;
+    modalTitle.textContent = `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(normalizedDate)}`;
     modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
     
     try {
         const q = query(
             collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("lineups")),
-            where("date", "==", date),
+            where("date", "==", gameDate), // Query with the original M/D/YYYY date
             where("team_id", "in", [team1_id, team2_id]),
             where("started", "==", "TRUE")
         );
@@ -380,11 +380,14 @@ async function showGameDetails(team1_id, team2_id, date) {
         const team1Lineups = lineupsData.filter(l => l.team_id === team1_id);
         const team2Lineups = lineupsData.filter(l => l.team_id === team2_id);
 
-        const team1Info = { id: team1_id, team_name: getTeamName(team1_id), ...allTeamsSeasonalRecords.get(team1_id) };
-        const team2Info = { id: team2_id, team_name: getTeamName(team2_id), ...allTeamsSeasonalRecords.get(team2_id) };
+        // Corrected: Calculate records at the time of the game for the modal
+        const team1Record = getTeamRecordAtDate(team1_id, gameDate).split('-').map(Number);
+        const team2Record = getTeamRecordAtDate(team2_id, gameDate).split('-').map(Number);
+
+        const team1Info = { id: team1_id, team_name: getTeamName(team1_id), wins: team1Record[0], losses: team1Record[1] };
+        const team2Info = { id: team2_id, team_name: getTeamName(team2_id), wins: team2Record[0], losses: team2Record[1] };
         
-        // Corrected logic to find the game document ID
-        const gameDocId = allScheduleData.find(g => normalizeDate(g.date) === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
+        const gameDocId = allScheduleData.find(g => g.date === gameDate && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
         
         if (!gameDocId) {
             throw new Error("Could not find game document ID.");
@@ -420,7 +423,7 @@ function handleRosterSort(column) {
 }
 
 
-// --- HELPER & UTILITY FUNCTIONS (Largely Unchanged) ---
+// --- HELPER & UTILITY FUNCTIONS ---
 
 function generateIconStylesheet(teamIdList) {
     const iconStyles = teamIdList.map(id => {
@@ -431,7 +434,6 @@ function generateIconStylesheet(teamIdList) {
 
     const styleElement = document.getElementById('team-icon-styles');
     if (styleElement) {
-        // Corrected: Removed width and height to prevent override of CSS file
         styleElement.innerHTML = `
             .team-logo-css {
                 background-size: cover; background-position: center;
@@ -487,15 +489,13 @@ function generateGameItemHTML(game) {
         oppScoreText = Math.round(oppScoreValue).toLocaleString();
         teamScoreClass = teamWon ? 'win' : 'loss';
         oppScoreClass = oppWon ? 'win' : 'loss';
-        const normalizedDateForHandler = normalizeDate(game.date);
-        // Corrected: Removed the 'isPostseason' boolean argument
-        clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${normalizedDateForHandler}')" style="cursor: pointer;"`;
+        // Corrected: Pass the original M/D/YYYY date string to the handler
+        clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')" style="cursor: pointer;"`;
     }
 
     const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
     const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
 
-    // Desktop View HTML
     const desktopHTML = `
         <div class="game-info-table">
             <div class="week-cell"><div class="week-badge">${game.week || 'TBD'}</div></div>
@@ -517,7 +517,6 @@ function generateGameItemHTML(game) {
             </div>
         </div>`;
     
-    // Mobile View HTML
     const mobileHTML = `
         <div class="game-matchup">
             <div class="week-badge">${game.week || 'TBD'}</div>
