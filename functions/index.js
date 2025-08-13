@@ -1774,10 +1774,12 @@ async function performPlayerRankingUpdate() {
     const seasonId = activeSeasonDoc.id;
     const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
     const regSeasonGpMinimum = seasonGamesPlayed >= 60 ? 3 : 0;
-    const postSeasonGpMinimum = 0; 
+    const postSeasonGpMinimum = 0; // No GP minimum for postseason
 
     const seasonalStatsCollectionGroup = db.collectionGroup(getCollectionName('seasonal_stats'));
-    const seasonalStatsQuery = seasonalStatsCollectionGroup.where(FieldValue.documentId(), 'endsWith', '/' + seasonId);
+    
+    // --- CORRECTED: Replaced FieldValue.documentId() with the correct admin.firestore.FieldPath.documentId() ---
+    const seasonalStatsQuery = seasonalStatsCollectionGroup.where(admin.firestore.FieldPath.documentId(), 'endsWith', '/' + seasonId);
     const seasonalStatsSnap = await seasonalStatsQuery.get();
 
     const allPlayerStats = seasonalStatsSnap.docs.map(doc => {
@@ -1789,6 +1791,7 @@ async function performPlayerRankingUpdate() {
         };
     });
 
+    // List of base stat names that should not rank zero values
     const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
 
     const leaderboards = {
