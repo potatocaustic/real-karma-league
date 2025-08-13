@@ -91,10 +91,10 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
     match /{path=**}/seasonal_stats/{recordId} {
-        allow read: if true;
+        allow get, list: if true;
     }
     match /{path=**}/seasonal_records/{recordId} {
-        allow read: if true;
+        allow get, list: if true;
     }
     
     // =======================================================
@@ -175,10 +175,10 @@ service cloud.firestore {
         allow write: if isAdminDev();
     }
     match /{path=**}/seasonal_stats_dev/{recordId} {
-        allow read: if true;
+        allow get, list: if true;
     }
     match /{path=**}/seasonal_records_dev/{recordId} {
-        allow read: if true;
+        allow get, list: if true;
     }
     match /post_daily_averages_dev/{doc=**} {
       allow read: if true;
@@ -189,7 +189,6 @@ service cloud.firestore {
     // ADMIN-ONLY & LEGACY RULES (Corrected)
     // =======================================================
     
-    // CORRECTED: Allows a logged-in user to check their own document in the admins collection.
     match /admins/{userId} {
       allow read: if request.auth.uid == userId;
       allow write: if false;
@@ -198,7 +197,6 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
-    // CORRECTED: Allows the collection query from main.js on the legacy teams collection.
     match /teams/{document=**} { 
       allow read: if true;
       allow write: if false;
@@ -239,3 +237,5 @@ service cloud.firestore {
     }
   }
 }
+
+
