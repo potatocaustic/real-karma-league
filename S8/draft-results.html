@@ -187,7 +187,7 @@
         try {
           // 1. Fetch all draft picks for the current season
           const seasonNumber = CURRENT_SEASON_ID.replace('S', '');
-          const draftResultsCollectionRef = collection(db, `${getCollectionName('draft_results')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_draft_results`)}`);
+          const draftResultsCollectionRef = collection(db, getCollectionName('draft_results'), `season_${seasonNumber}`, getCollectionName(`S${seasonNumber}_draft_results`));
           const draftPicksSnap = await getDocs(draftResultsCollectionRef);
           const draftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
