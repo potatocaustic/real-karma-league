@@ -1,5 +1,5 @@
 // /js/player.js
-import { db, collection, doc, getDoc, getDocs, query, where } from './firebase-init.js';
+import { db, collection, doc, getDoc, getDocs, query, where, documentId } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
@@ -50,67 +50,75 @@ function generateIconStylesheet(teams) {
 }
 
 /**
- * Fetches all necessary data from Firestore to build the player page.
+ * OPTIMIZED: Fetches only the necessary data from Firestore in an efficient sequence.
  */
 async function loadPlayerData() {
-    // CORRECTED: Look for the 'id' parameter in the URL.
     const playerId = new URLSearchParams(window.location.search).get('id');
     if (!playerId) {
         document.getElementById('player-main-info').innerHTML = '<div class="error">No player ID specified in URL.</div>';
         return;
     }
-    
+
     try {
-        // 1. Fetch the Player's core data and seasonal stats directly by ID.
-        // CORRECTED: This is now a more efficient direct 'get' instead of a query.
+        // --- Step 1: Fetch core player data and lineups in parallel ---
         const playerRef = doc(db, getCollectionName('v2_players'), playerId);
-        const playerSnap = await getDoc(playerRef);
-
-        if (!playerSnap.exists()) {
-            document.getElementById('player-main-info').innerHTML = `<div class="error">Player with ID '${playerId}' not found.</div>`;
-            return;
-        }
-
-        const playerData = playerSnap.data();
-        document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL ${SEASON_ID}`;
-
-        const seasonalStatsRef = doc(db, `${getCollectionName('v2_players')}/${playerId}/${getCollectionName('seasonal_stats')}/${SEASON_ID}`);
-        const seasonalStatsSnap = await getDoc(seasonalStatsRef);
-        const seasonalStats = seasonalStatsSnap.exists() ? seasonalStatsSnap.data() : {};
-
-        currentPlayer = { id: playerId, ...playerData, ...seasonalStats };
-
-        // 2. Fetch all Teams data to create a map for easy lookup
-        const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
-        const teamsSnap = await getDocs(teamsQuery);
-        for (const teamDoc of teamsSnap.docs) {
-            const teamData = { id: teamDoc.id, ...teamDoc.data() };
-            const teamRecordRef = doc(db, `${getCollectionName('v2_teams')}/${teamDoc.id}/${getCollectionName('seasonal_records')}/${SEASON_ID}`);
-            const teamRecordSnap = await getDoc(teamRecordRef);
-            if (teamRecordSnap.exists()) {
-                Object.assign(teamData, teamRecordSnap.data());
-            }
-            allTeamsData.set(teamDoc.id, teamData);
-        }
-        generateIconStylesheet(allTeamsData);
-
-        // 3. Fetch this player's lineups for the season
+        const seasonalStatsRef = doc(db, playerRef.path, getCollectionName('seasonal_stats'), SEASON_ID);
         const lineupsQuery = query(
             collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups')),
             where('player_id', '==', playerId),
             where('started', '==', 'TRUE')
         );
-        const lineupsSnap = await getDocs(lineupsQuery);
-        playerLineups = lineupsSnap.docs.map(d => d.data()).sort((a,b) => (a.week || 0) - (b.week || 0));
 
-        // 4. Fetch all games for the season and map them by ID
-        const gamesQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('games')));
-        const gamesSnap = await getDocs(gamesQuery);
-        gamesSnap.forEach(gameDoc => {
-            allGamesData.set(gameDoc.id, { id: gameDoc.id, ...gameDoc.data() });
-        });
+        const [playerSnap, seasonalStatsSnap, lineupsSnap] = await Promise.all([
+            getDoc(playerRef),
+            getDoc(seasonalStatsRef),
+            getDocs(lineupsQuery)
+        ]);
+
+        if (!playerSnap.exists()) {
+            document.getElementById('player-main-info').innerHTML = `<div class="error">Player with ID '${playerId}' not found.</div>`;
+            return;
+        }
         
-        // 5. Render all page components with the fetched data
+        const playerData = playerSnap.data();
+        const seasonalStats = seasonalStatsSnap.exists() ? seasonalStatsSnap.data() : {};
+        currentPlayer = { id: playerId, ...playerData, ...seasonalStats };
+        playerLineups = lineupsSnap.docs.map(d => d.data()).sort((a,b) => (a.week || 0) - (b.week || 0));
+        document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL ${SEASON_ID}`;
+
+        // --- Step 2: Compile lists of required game and team IDs from lineups ---
+        const requiredGameIds = new Set();
+        const requiredTeamIds = new Set([currentPlayer.current_team_id]);
+        playerLineups.forEach(lineup => {
+            requiredGameIds.add(lineup.game_id);
+            requiredTeamIds.add(lineup.team_id); 
+        });
+
+        // --- Step 3: Fetch only the necessary games and teams ---
+        const gamesPromise = fetchDocsInChunks(
+            collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('games')),
+            Array.from(requiredGameIds)
+        );
+        const teamsPromise = fetchDocsInChunks(
+            collection(db, getCollectionName('v2_teams')),
+            Array.from(requiredTeamIds)
+        );
+        
+        const [games, teams] = await Promise.all([gamesPromise, teamsPromise]);
+        
+        games.forEach(game => allGamesData.set(game.id, game));
+        
+        // --- Step 4: Fetch seasonal records ONLY for the required teams ---
+        const teamRecordPromises = teams.map(team => getDoc(doc(db, `${getCollectionName('v2_teams')}/${team.id}/${getCollectionName('seasonal_records')}/${SEASON_ID}`)));
+        const teamRecordSnaps = await Promise.all(teamRecordPromises);
+
+        teams.forEach((team, index) => {
+            const record = teamRecordSnaps[index].exists() ? teamRecordSnaps[index].data() : {};
+            allTeamsData.set(team.id, { ...team, ...record });
+        });
+
+        // --- Step 5: Render all page components with the optimized data ---
+        generateIconStylesheet(allTeamsData);
         displayPlayerHeader();
         loadPerformanceData();
         loadGameHistory();
@@ -119,6 +127,27 @@ async function loadPlayerData() {
         console.error("Error loading player data from Firestore:", error);
         document.getElementById('player-main-info').innerHTML = `<div class="error">Failed to load player data. See console for details.</div>`;
     }
+}
+
+/**
+ * Helper function to fetch documents using 'in' queries, handling arrays larger than 30.
+ * @param {import("firebase/firestore").CollectionReference} collectionRef - The Firestore collection to query.
+ * @param {string[]} ids - An array of document IDs to fetch.
+ * @returns {Promise<object[]>} A promise that resolves to an array of document data.
+ */
+async function fetchDocsInChunks(collectionRef, ids) {
+    if (!ids || ids.length === 0) return [];
+    const chunks = [];
+    for (let i = 0; i < ids.length; i += 30) {
+        chunks.push(ids.slice(i, i + 30));
+    }
+    const promises = chunks.map(chunk => getDocs(query(collectionRef, where(documentId(), 'in', chunk))));
+    const chunkSnapshots = await Promise.all(promises);
+    const results = [];
+    chunkSnapshots.forEach(snap => {
+        snap.forEach(doc => results.push({ id: doc.id, ...doc.data() }));
+    });
+    return results;
 }
 
 /**
