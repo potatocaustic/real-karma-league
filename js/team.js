@@ -21,12 +21,12 @@ const ACTIVE_SEASON_ID = 'S8';
 const USE_DEV_COLLECTIONS = true;
 
 /**
- * **Gets the correct collection name based on the environment.** 
+ * **Gets the correct collection name based on the environment.**
  * @param {string} baseName The base name of the collection.
  * @returns {string} The collection name with or without the _dev suffix.
  */
 function getCollectionName(baseName) {
-    // This logic mirrors the getCollectionName function in your index.js 
+    // This logic mirrors the getCollectionName function in your index.js
     const devSuffix = '_dev';
     if (!USE_DEV_COLLECTIONS) {
         return baseName;
@@ -45,7 +45,6 @@ let teamData = null; // For v2_teams/{id} root doc
 let teamSeasonalData = null; // For v2_teams/{id}/seasonal_records/S8 doc
 let rosterPlayers = []; // Array of combined player + seasonal_stats objects
 let allScheduleData = [];
-let allPostseasonScheduleData = [];
 let allDraftPicks = [];
 let allTransactions = [];
 let allTeamsSeasonalRecords = new Map(); // Map of teamId -> seasonal_record for getTeamName()
@@ -106,7 +105,6 @@ async function loadPageData() {
         const rosterPromise = getDocs(rosterQuery);
 
         const schedulePromise = getDocs(collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("games")));
-        const postSchedulePromise = getDocs(collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("post_games")));
         
         const draftPicksPromise = getDocs(collection(db, getCollectionName("draftPicks")));
         const transactionsPromise = getDocs(collection(db, getCollectionName("transactions"), "seasons", ACTIVE_SEASON_ID));
@@ -119,7 +117,6 @@ async function loadPageData() {
             teamSeasonalSnap,
             rosterSnap,
             scheduleSnap,
-            postScheduleSnap,
             draftPicksSnap,
             transactionsSnap
         ] = await Promise.all([
@@ -128,9 +125,8 @@ async function loadPageData() {
             teamSeasonalPromise,
             rosterPromise,
             schedulePromise,
-            postSchedulePromise,
-            draftPicksPromise,
-            transactionsPromise
+            draftPicksSnap,
+            transactionsSnap
         ]);
 
         // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
@@ -153,7 +149,6 @@ async function loadPageData() {
 
         // --- PROCESS OTHER DATA ---
         allScheduleData = scheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        allPostseasonScheduleData = postScheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         allDraftPicks = draftPicksSnap.docs.map(d => d.data());
         allTransactions = transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
 
@@ -236,13 +231,6 @@ function displayTeamHeader() {
             </div>
         </a>`;
     teamStatsContainer.style.display = 'grid';
-    
-    // Handle postseason profile button visibility
-    const postseasonBtn = document.getElementById('postseason-profile-btn');
-    if (postseasonBtn && postseed > 0) {
-        postseasonBtn.href = `team-postseason.html?id=${teamId}`;
-        postseasonBtn.style.display = 'inline-block';
-    }
 }
 
 function loadRoster() {
@@ -309,8 +297,7 @@ function loadRoster() {
 }
 
 function loadSchedule() {
-    const combinedSchedule = [...allScheduleData, ...allPostseasonScheduleData];
-    const teamGames = combinedSchedule
+    const teamGames = allScheduleData
         .filter(game => game.team1_id === teamId || game.team2_id === teamId)
         .sort((a, b) => new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date)));
 
@@ -320,8 +307,6 @@ function loadSchedule() {
     }
 
     const gamesHTML = teamGames.map(game => {
-        // This function's internal logic is complex but relies on data that is now correctly sourced,
-        // so we can largely reuse the original HTML generation logic.
         return generateGameItemHTML(game);
     }).join('');
 
@@ -372,7 +357,7 @@ function loadDraftCapital() {
 
 // --- MODAL & EVENT HANDLERS ---
 
-async function showGameDetails(team1_id, team2_id, date, isPostseason) {
+async function showGameDetails(team1_id, team2_id, date) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalContentEl = document.getElementById('game-details-content-area');
@@ -381,11 +366,9 @@ async function showGameDetails(team1_id, team2_id, date, isPostseason) {
     modalTitle.textContent = `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(date)}`;
     modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
     
-    const lineupsCollectionName = getCollectionName(isPostseason ? 'post_lineups' : 'lineups');
-
     try {
         const q = query(
-            collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, lineupsCollectionName),
+            collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("lineups")),
             where("date", "==", date),
             where("team_id", "in", [team1_id, team2_id]),
             where("started", "==", "TRUE")
@@ -399,13 +382,14 @@ async function showGameDetails(team1_id, team2_id, date, isPostseason) {
         const team1Info = { id: team1_id, team_name: getTeamName(team1_id), ...allTeamsSeasonalRecords.get(team1_id) };
         const team2Info = { id: team2_id, team_name: getTeamName(team2_id), ...allTeamsSeasonalRecords.get(team2_id) };
         
-        const gameDocId = isPostseason
-            ? allPostseasonScheduleData.find(g => g.date === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id
-            : allScheduleData.find(g => g.date === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
+        // Corrected logic to find the game document ID
+        const gameDocId = allScheduleData.find(g => normalizeDate(g.date) === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
         
-        if (!gameDocId) throw new Error("Could not find game document ID.");
+        if (!gameDocId) {
+            throw new Error("Could not find game document ID.");
+        }
 
-        const gameSnap = await getDoc(doc(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName(isPostseason ? "post_games" : "games"), gameDocId));
+        const gameSnap = await getDoc(doc(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("games"), gameDocId));
         const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
 
         modalContentEl.innerHTML = `
@@ -416,7 +400,7 @@ async function showGameDetails(team1_id, team2_id, date, isPostseason) {
 
     } catch(error) {
         console.error("Error fetching game details:", error);
-        modalContentEl.innerHTML = '<div class="error">Could not load game details.</div>';
+        modalContentEl.innerHTML = `<div class="error">Could not load game details.</div>`;
     }
 }
 
@@ -446,9 +430,10 @@ function generateIconStylesheet(teamIdList) {
 
     const styleElement = document.getElementById('team-icon-styles');
     if (styleElement) {
+        // Corrected: Removed width and height to prevent override of CSS file
         styleElement.innerHTML = `
             .team-logo-css {
-                width: 24px; height: 24px; background-size: cover; background-position: center;
+                background-size: cover; background-position: center;
                 background-repeat: no-repeat; display: inline-block; vertical-align: middle;
                 flex-shrink: 0; border-radius: 4px;
             }
@@ -462,10 +447,7 @@ function getTeamName(id) {
 
 function getTeamRecordAtDate(teamIdForRecord, targetDate) {
     const normalizedTargetDate = normalizeDate(targetDate);
-    // Use combined schedule data for accuracy across season types
-    const combinedSchedule = [...allScheduleData, ...allPostseasonScheduleData];
-    
-    const completedGames = combinedSchedule.filter(game => {
+    const completedGames = allScheduleData.filter(game => {
         const normalizedGameDate = normalizeDate(game.date);
         return normalizedGameDate && normalizedGameDate <= normalizedTargetDate &&
             game.completed === 'TRUE' &&
@@ -485,7 +467,6 @@ function generateGameItemHTML(game) {
     const isTeam1 = game.team1_id === teamId;
     const opponentId = isTeam1 ? game.team2_id : game.team1_id;
     const isCompleted = game.completed === 'TRUE';
-    const isPostseason = !!game.series_id;
     
     const teamName = getTeamName(teamId);
     const opponentName = getTeamName(opponentId);
@@ -506,7 +487,8 @@ function generateGameItemHTML(game) {
         teamScoreClass = teamWon ? 'win' : 'loss';
         oppScoreClass = oppWon ? 'win' : 'loss';
         const normalizedDateForHandler = normalizeDate(game.date);
-        clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${normalizedDateForHandler}', ${isPostseason})" style="cursor: pointer;"`;
+        // Corrected: Removed the 'isPostseason' boolean argument
+        clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${normalizedDateForHandler}')" style="cursor: pointer;"`;
     }
 
     const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
