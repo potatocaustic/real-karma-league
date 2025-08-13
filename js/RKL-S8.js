@@ -207,11 +207,11 @@ function initializeGamesSection(seasonData) {
             if (gamesList) {
                 gamesList.dataset.liveInitialized = 'false';
             }
-            loadRecentGames(seasonData);
+            loadRecentGames();
         }
     }, (error) => {
         console.error("Error listening to scoring status, defaulting to recent games:", error);
-        loadRecentGames(seasonData);
+        loadRecentGames();
     });
 }
 
@@ -345,7 +345,7 @@ function loadLiveGames() {
     });
 }
 
-async function loadRecentGames(seasonData) {
+async function loadRecentGames() {
     const gamesList = document.getElementById('recent-games');
     const gamesHeader = document.getElementById('games-header-title');
     if (!gamesList || !gamesHeader) return;
@@ -353,31 +353,39 @@ async function loadRecentGames(seasonData) {
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        const isPostseason = isPostseasonWeek(seasonData?.current_week);
-        
-        gamesHeader.textContent = isPostseason ? 'Recent Postseason Games' : 'Recent Games';
+        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1));
+        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1));
 
-        const collectionToQuery = isPostseason ? getCollectionName('post_games') : getCollectionName('games');
-        
-        let mostRecentSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1)));
+        const [regSnap, postSnap] = await Promise.all([getDocs(regularSeasonGamesQuery), getDocs(postSeasonGamesQuery)]);
 
-        if (mostRecentSnapshot.empty && isPostseason) {
-            console.log("No completed postseason games found, showing final regular season games instead.");
-            const fallbackQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1));
-            mostRecentSnapshot = await getDocs(fallbackQuery);
-        }
+        const mostRecentRegGame = !regSnap.empty ? regSnap.docs[0].data() : null;
+        const mostRecentPostGame = !postSnap.empty ? postSnap.docs[0].data() : null;
 
-        if (mostRecentSnapshot.empty) {
+        let mostRecentDate;
+        let collectionToQuery;
+
+        if (mostRecentPostGame && (!mostRecentRegGame || new Date(mostRecentPostGame.date) >= new Date(mostRecentRegGame.date))) {
+            mostRecentDate = mostRecentPostGame.date;
+            collectionToQuery = getCollectionName('post_games');
+        } else if (mostRecentRegGame) {
+            mostRecentDate = mostRecentRegGame.date;
+            collectionToQuery = getCollectionName('games');
+        } else {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
 
-        const mostRecentDate = mostRecentSnapshot.docs[0].data().date;
-        const finalCollectionToQuery = mostRecentSnapshot.docs[0].ref.parent.id;
-
-        const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, finalCollectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
+        const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+        if (games.length === 0) {
+            gamesList.innerHTML = '<div class="loading">No completed games found.</div>';
+            return;
+        }
+
+        const displayedGameIsPostseason = isPostseasonWeek(games[0]?.week);
+        gamesHeader.textContent = displayedGameIsPostseason ? 'Recent Postseason Games' : 'Recent Games';
+        
         const maxScore = Math.max(...games.flatMap(g => [g.team1_score || 0, g.team2_score || 0]), 1);
 
         gamesList.innerHTML = games.map(game => {
@@ -389,7 +397,6 @@ async function loadRecentGames(seasonData) {
             let team2NameHTML = escapeHTML(team2.team_name);
             let team1Record, team2Record;
             
-            // Re-check if the game being rendered is postseason, using its own week property
             const gameIsPostseason = isPostseasonWeek(game.week);
 
             if (gameIsPostseason) {
@@ -452,6 +459,7 @@ async function loadRecentGames(seasonData) {
         gamesList.innerHTML = '<div class="error">Could not load recent games. See console for details.</div>';
     }
 }
+
 
 function loadSeasonInfo(seasonData) {
     const currentWeekSpan = document.getElementById('current-week');
