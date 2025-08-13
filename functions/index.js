@@ -574,7 +574,10 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
             apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
             playoffs: 0, post_losses: 0, post_med_starter_rank: 0, post_msr_rank: 0, post_pam: 0, post_pam_rank: 0, post_wins: 0, postseed: 0, sortscore: 0,
             wins: 0, wpct: 0, total_transactions: 0,
-            team_name: teamName // MODIFIED: Set the fetched team name here.
+            // --- NEW: Added tREL fields ---
+            tREL: 0,
+            post_tREL: 0,
+            team_name: teamName
         });
     }
     console.log(`Prepared empty seasonal_records for ${teamsSnap.size} teams.`);
@@ -1344,6 +1347,69 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
         db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollection)).where('started', '==', 'TRUE').get()
     ]);
 
+    const playersCollectionRef = db.collection(getCollectionName('v2_players'));
+    const allPlayersSnap = await playersCollectionRef.get();
+    const seasonalStatsCollectionGroup = db.collectionGroup(getCollectionName('seasonal_stats'));
+    const seasonalStatsQuery = query(seasonalStatsCollectionGroup, where(isPostseason ? 'post_games_played' : 'games_played', '>=', 0));
+    const seasonalStatsSnapForTeams = await seasonalStatsQuery.get();
+
+    const playerStatsForTeams = new Map();
+    seasonalStatsSnapForTeams.docs.forEach(doc => {
+        const pathParts = doc.ref.path.split('/');
+        const docSeasonId = pathParts[pathParts.length - 2];
+        if (docSeasonId === seasonId) {
+            const playerId = pathParts[pathParts.length - 4];
+            playerStatsForTeams.set(playerId, doc.data());
+        }
+    });
+
+    // --- MODIFIED: tREL calculation now uses a weighted average ---
+    const teamRelDataMap = new Map();
+    allPlayersSnap.forEach(playerDoc => {
+        const playerData = playerDoc.data();
+        const playerStats = playerStatsForTeams.get(playerDoc.id);
+        const teamId = playerData.current_team_id;
+
+        if (teamId && playerStats) {
+            // Initialize team data if it doesn't exist
+            if (!teamRelDataMap.has(teamId)) {
+                teamRelDataMap.set(teamId, {
+                    weightedSum: 0,
+                    totalGP: 0,
+                    post_weightedSum: 0,
+                    post_totalGP: 0
+                });
+            }
+
+            const teamData = teamRelDataMap.get(teamId);
+
+            // Calculate for regular season
+            const relMedian = playerStats.rel_median || 0;
+            const gamesPlayed = playerStats.games_played || 0;
+            if (gamesPlayed > 0) {
+                teamData.weightedSum += relMedian * gamesPlayed;
+                teamData.totalGP += gamesPlayed;
+            }
+
+            // Calculate for postseason
+            const postRelMedian = playerStats.post_rel_median || 0;
+            const postGamesPlayed = playerStats.post_games_played || 0;
+            if (postGamesPlayed > 0) {
+                teamData.post_weightedSum += postRelMedian * postGamesPlayed;
+                teamData.post_totalGP += postGamesPlayed;
+            }
+        }
+    });
+    
+    // Calculate the final tREL values
+    const finalTRelMap = new Map();
+    for (const [teamId, data] of teamRelDataMap.entries()) {
+        const tREL = data.totalGP > 0 ? data.weightedSum / data.totalGP : 0;
+        const post_tREL = data.post_totalGP > 0 ? data.post_weightedSum / data.post_totalGP : 0;
+        finalTRelMap.set(teamId, { tREL, post_tREL });
+    }
+    // --- END MODIFICATION ---
+
     const allTeamData = teamsSnap.docs
         .filter(doc => doc.data().conference)
         .map(doc => ({ id: doc.id, ...doc.data() }));
@@ -1428,6 +1494,8 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
 
     for (const team of calculatedStats) {
         const { teamId, ...stats } = team;
+        const relValues = finalTRelMap.get(teamId) || { tREL: 0, post_tREL: 0 };
+
         const finalUpdate = {
             [`${prefix}wins`]: stats.wins || 0,
             [`${prefix}losses`]: stats.losses || 0,
@@ -1435,6 +1503,7 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
             [`${prefix}med_starter_rank`]: stats.med_starter_rank || 0,
             [`${prefix}msr_rank`]: stats[`${prefix}msr_rank`] || 0,
             [`${prefix}pam_rank`]: stats[`${prefix}pam_rank`] || 0,
+            [`${prefix}tREL`]: relValues[`${prefix}tREL`] || 0,
         };
 
         if (!isPostseason) {
