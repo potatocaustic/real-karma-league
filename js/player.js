@@ -3,8 +3,6 @@ import { db, collection, doc, getDoc, getDocs, query, where, limit } from './fir
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
-// Mimics the USE_DEV_COLLECTIONS flag from your Cloud Functions (index.js)
-// Set to `true` to use collections ending in `_dev`, `false` for production.
 const USE_DEV_COLLECTIONS = true; 
 const SEASON_ID = 'S8';
 
@@ -65,7 +63,8 @@ async function loadPlayerData() {
 
     try {
         // 1. Fetch the Player's core data and seasonal stats
-        const playerQuery = query(collection(db, getCollectionName('v2_players')), where('player_handle', '==', playerHandle), limit(1));
+        const playersCollection = getCollectionName('v2_players');
+        const playerQuery = query(collection(db, playersCollection), where('player_handle', '==', playerHandle), limit(1));
         const playerSnap = await getDocs(playerQuery);
 
         if (playerSnap.empty) {
@@ -150,7 +149,7 @@ function displayPlayerHeader() {
       </div>`;
 
     const getOrdinal = (n) => {
-        if (isNaN(n) || n <= 0) return 'Unranked';
+        if (!n || isNaN(n) || n <= 0) return 'Unranked';
         const s = ["th", "st", "nd", "rd"], v = n % 100;
         return n + (s[(v - 20) % 10] || s[v] || s[0]);
     };
@@ -167,7 +166,7 @@ function displayPlayerHeader() {
       <a href="leaderboards.html?category=median_gameday_rank" class="stat-card-link"><div class="stat-card">
         <div class="stat-value">${medianRank}</div><div class="stat-label">Median Gameday Rank</div><div class="stat-rank">${formatRank(currentPlayer.medrank_rank)}</div></div></a>
       <a href="leaderboards.html?category=gem" class="stat-card-link"><div class="stat-card">
-        <div class="stat-value">${(currentPlayer.GEM || 0).toFixed(1) || '-'}</div><div class="stat-label">GEM</div><div class="stat-rank">${formatRank(currentPlayer.GEM_rank)}</div></div></a>
+        <div class="stat-value">${(currentPlayer.GEM || 0) ? (currentPlayer.GEM).toFixed(1) : '-'}</div><div class="stat-label">GEM</div><div class="stat-rank">${formatRank(currentPlayer.GEM_rank)}</div></div></a>
       <a href="leaderboards.html?category=aag_median" class="stat-card-link"><div class="stat-card"> <div class="stat-value">${currentPlayer.aag_median || 0}</div><div class="stat-label">Games Above Median</div><div class="stat-rank">${formatRank(currentPlayer.aag_median_rank)}</div></div></a>
     `;
     document.getElementById('player-stats').style.display = 'grid';
@@ -225,7 +224,7 @@ function loadGameHistory() {
         const opponentId = game.team1_id === lineup.team_id ? game.team2_id : game.team1_id;
         const opponentTeam = allTeamsData.get(opponentId);
         
-        if (!playerTeam || !opponentTeam) return ''; // Skip if team data is missing
+        if (!playerTeam || !opponentTeam) return ''; 
         
         const playerTeamResult = game.winner === playerTeam.id ? 'W' : 'L';
         const opponentTeamResult = game.winner === opponentTeam.id ? 'W' : 'L';
@@ -233,6 +232,8 @@ function loadGameHistory() {
         const opponentIconClass = `icon-${opponentTeam.id.replace(/[^a-zA-Z0-9]/g, '')}`;
         const isCaptain = lineup.is_captain === 'TRUE';
         const score = Math.round(lineup.points_adjusted || 0);
+        const formattedDate = new Date(game.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
 
         return `
             <div class="game-item" data-gameid="${game.id}">
@@ -248,7 +249,7 @@ function loadGameHistory() {
                       <span class="game-history-team-name">${opponentTeam.team_name} <span class="game-result-indicator game-result-${opponentTeamResult.toLowerCase()}">(${opponentTeamResult})</span></span>
                     </span>
                 </div>
-                <div class="game-history-date">${new Date(game.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (Week ${lineup.week})</div>
+                <div class="game-history-date">${formattedDate} (Week ${lineup.week})</div>
               </div>
               <div class="game-performance">
                 <div class="performance-score ${isCaptain ? 'captain-performance' : ''}">${score.toLocaleString()}${isCaptain ? ' (C)' : ''}</div>
@@ -268,6 +269,11 @@ async function showGameDetails(gameId) {
     const modalTitle = document.getElementById('modal-title');
     const modalContentArea = document.getElementById('game-details-content-area');
     
+    if (!modal || !modalTitle || !modalContentArea) {
+        console.error("Modal elements not found in the DOM. Ensure game-modal-component.html is loaded.");
+        return;
+    }
+    
     modal.style.display = 'block';
     modalTitle.textContent = 'Game Details';
     modalContentArea.innerHTML = '<div class="loading">Loading game details...</div>';
@@ -278,8 +284,9 @@ async function showGameDetails(gameId) {
 
         const team1 = allTeamsData.get(game.team1_id);
         const team2 = allTeamsData.get(game.team2_id);
+        const formattedDate = new Date(game.date.replace(/-/g, '/')).toLocaleDateString('en-US');
         
-        modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${new Date(game.date).toLocaleDateString()}`;
+        modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formattedDate}`;
 
         const lineupsQuery = query(
             collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups')),
@@ -307,20 +314,17 @@ async function showGameDetails(gameId) {
 document.addEventListener('DOMContentLoaded', () => {
     loadPlayerData();
 
-    const modal = document.getElementById('game-modal');
-    const closeModalBtn = document.getElementById('close-modal-btn');
-
-    // Listener for closing the modal
-    const closeModal = () => modal.style.display = 'none';
-    closeModalBtn.addEventListener('click', closeModal);
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            closeModal();
+    // CORRECTED: Use event delegation for all modal interactions.
+    // This ensures the listeners work even if the modal HTML is loaded dynamically.
+    document.addEventListener('click', (event) => {
+        const modal = document.getElementById('game-modal');
+        
+        // Handle modal closing
+        if (event.target.id === 'close-modal-btn' || event.target === modal) {
+            if(modal) modal.style.display = 'none';
         }
-    });
 
-    // Delegated event listener for opening the modal from game history or performance table
-    document.querySelector('main').addEventListener('click', (event) => {
+        // Handle modal opening
         const clickableRow = event.target.closest('.clickable-row, .game-item');
         if (clickableRow && clickableRow.dataset.gameid) {
             showGameDetails(clickableRow.dataset.gameid);
