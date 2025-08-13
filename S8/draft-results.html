@@ -163,8 +163,7 @@
 
     <script src="../js/main.js" type="module"></script>
     <script type="module">
-      import { db } from '../js/firebase-init.js';
-      import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      import { db, collection, getDocs, doc, getDoc } from '../js/firebase-init.js';
 
       // --- DEV ENVIRONMENT CONFIG ---
       const USE_DEV_COLLECTIONS = true;
@@ -187,7 +186,6 @@
         try {
           // 1. Fetch all draft picks for the current season
           const seasonNumber = CURRENT_SEASON_ID.replace('S', '');
-          console.log("Verifying db object:", db);
           const draftResultsCollectionRef = collection(db, getCollectionName('draft_results'), `season_${seasonNumber}`, getCollectionName(`S${seasonNumber}_draft_results`));
           const draftPicksSnap = await getDocs(draftResultsCollectionRef);
           const draftPicks = draftPicksSnap.docs.map(doc => doc.data());
