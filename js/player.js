@@ -1,5 +1,5 @@
 // /js/player.js
-import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, documentId } from './firebase-init.js';
+import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
@@ -14,11 +14,8 @@ let currentPlayer = null;
 
 /**
  * Gets the correct Firestore collection name based on the environment.
- * @param {string} baseName The base name of the collection (e.g., 'v2_players').
- * @returns {string} The collection name with a '_dev' suffix if in development mode.
  */
 const getCollectionName = (baseName) => {
-    // This function now correctly handles adding '_dev' to collection group names as well.
     if (baseName === 'seasonal_records' || baseName === 'seasonal_stats') {
         return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
     }
@@ -28,7 +25,6 @@ const getCollectionName = (baseName) => {
 
 /**
  * Generates and injects CSS rules for team logos.
- * @param {Map<string, object>} teams - A map of team data objects.
  */
 function generateIconStylesheet(teams) {
     let iconStyles = '';
@@ -86,27 +82,24 @@ async function loadPlayerData() {
         const seasonalStats = seasonalStatsSnap.exists() ? seasonalStatsSnap.data() : {};
         currentPlayer = { id: playerId, ...playerData, ...seasonalStats };
 
-        // 2. Efficiently fetch all seasonal records for all teams for the current season using a collectionGroup query
-        const teamIds = teamsSnap.docs.map(doc => doc.id);
+        // 2. Efficiently fetch all seasonal records for all teams for the current season
         for (const teamDoc of teamsSnap.docs) {
             allTeamsData.set(teamDoc.id, { id: teamDoc.id, ...teamDoc.data() });
         }
-
-        if (teamIds.length > 0) {
-            // This query now uses a collectionGroup to get all team records for the season at once.
-            const seasonalRecordsQuery = query(
-                collectionGroup(db, getCollectionName('seasonal_records')),
-                where(documentId(), 'in', teamIds.map(id => `${getCollectionName('v2_teams')}/${id}/${getCollectionName('seasonal_records')}/${SEASON_ID}`))
-            );
-            const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
-            seasonalRecordsSnap.forEach(recordDoc => {
-                const teamId = recordDoc.ref.parent.parent.id;
-                const teamData = allTeamsData.get(teamId);
-                if (teamData) {
-                    Object.assign(teamData, recordDoc.data());
-                }
-            });
-        }
+        
+        // THIS IS THE CORRECTED, EFFICIENT QUERY
+        const seasonalRecordsQuery = query(
+            collectionGroup(db, getCollectionName('seasonal_records')),
+            where('season', '==', SEASON_ID)
+        );
+        const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
+        seasonalRecordsSnap.forEach(recordDoc => {
+            const teamId = recordDoc.ref.parent.parent.id;
+            const teamData = allTeamsData.get(teamId);
+            if (teamData) {
+                Object.assign(teamData, recordDoc.data());
+            }
+        });
         
         generateIconStylesheet(allTeamsData);
 
@@ -176,7 +169,6 @@ function displayPlayerHeader() {
 
     const medianRank = currentPlayer.medrank === Infinity ? '-' : Math.round(currentPlayer.medrank || 0) || '-';
 
-    // These stat cards now exclusively show regular season data.
     document.getElementById('player-stats').innerHTML = `
       <a href="leaderboards.html?category=war" class="stat-card-link"><div class="stat-card">
         <div class="stat-value">${(currentPlayer.WAR || 0).toFixed(2)}</div><div class="stat-label">WAR</div><div class="stat-rank">${formatRank(currentPlayer.WAR_rank)}</div></div></a>
@@ -281,7 +273,6 @@ function loadGameHistory() {
 
 /**
  * Fetches data for a specific game and displays it in the modal.
- * @param {string} gameId The ID of the game to display.
  */
 async function showGameDetails(gameId) {
     const modal = document.getElementById('game-modal');
@@ -307,7 +298,6 @@ async function showGameDetails(gameId) {
         
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formattedDate}`;
 
-        // This query correctly targets the regular season 'lineups' subcollection.
         const lineupsQuery = query(
             collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups')),
             where('game_id', '==', gameId),
@@ -337,12 +327,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (event) => {
         const modal = document.getElementById('game-modal');
         
-        // Handle modal closing
         if (event.target.id === 'close-modal-btn' || event.target === modal) {
             if(modal) modal.style.display = 'none';
         }
 
-        // Handle modal opening
         const clickableRow = event.target.closest('.clickable-row, .game-item');
         if (clickableRow && clickableRow.dataset.gameid) {
             showGameDetails(clickableRow.dataset.gameid);

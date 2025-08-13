@@ -571,10 +571,11 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
         const teamName = activeRecordSnap.exists ? activeRecordSnap.data().team_name : "Name Not Found";
 
         batch.set(recordRef, {
+            season: seasonId,
+            team_id: teamDoc.id,
             apPAM: 0, apPAM_count: 0, apPAM_total: 0, elim: 0, losses: 0, MaxPotWins: 0, med_starter_rank: 0, msr_rank: 0, pam: 0, pam_rank: 0, playin: 0,
             playoffs: 0, post_losses: 0, post_med_starter_rank: 0, post_msr_rank: 0, post_pam: 0, post_pam_rank: 0, post_wins: 0, postseed: 0, sortscore: 0,
             wins: 0, wpct: 0, total_transactions: 0,
-            // --- NEW: Added tREL fields ---
             tREL: 0,
             post_tREL: 0,
             team_name: teamName
