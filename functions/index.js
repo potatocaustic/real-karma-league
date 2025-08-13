@@ -1776,20 +1776,26 @@ async function performPlayerRankingUpdate() {
     const regSeasonGpMinimum = seasonGamesPlayed >= 60 ? 3 : 0;
     const postSeasonGpMinimum = 0; // No GP minimum for postseason
 
+    // --- CORRECTED: Removed the invalid .where() clause and will filter in the code below ---
     const seasonalStatsCollectionGroup = db.collectionGroup(getCollectionName('seasonal_stats'));
-    
-    // --- CORRECTED: Replaced FieldValue.documentId() with the correct admin.firestore.FieldPath.documentId() ---
-    const seasonalStatsQuery = seasonalStatsCollectionGroup.where(admin.firestore.FieldPath.documentId(), 'endsWith', '/' + seasonId);
-    const seasonalStatsSnap = await seasonalStatsQuery.get();
+    const seasonalStatsSnap = await seasonalStatsCollectionGroup.get();
 
-    const allPlayerStats = seasonalStatsSnap.docs.map(doc => {
-        const pathParts = doc.ref.path.split('/');
-        const playerId = pathParts[pathParts.length - 4]; 
-        return {
-            player_id: playerId,
-            ...doc.data()
-        };
-    });
+    const allPlayerStats = seasonalStatsSnap.docs
+        // Filter the results to include only stats from the active season
+        .filter(doc => {
+            const pathParts = doc.ref.path.split('/');
+            const docSeasonId = pathParts[pathParts.length - 2];
+            return docSeasonId === seasonId;
+        })
+        // Map the filtered documents to the data structure we need
+        .map(doc => {
+            const pathParts = doc.ref.path.split('/');
+            const playerId = pathParts[pathParts.length - 4]; 
+            return {
+                player_id: playerId,
+                ...doc.data()
+            };
+        });
 
     // List of base stat names that should not rank zero values
     const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
