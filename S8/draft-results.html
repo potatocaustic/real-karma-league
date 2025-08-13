@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL S7 Draft Results</title>
+    <title>RKL S8 Draft Results</title>
     <link rel="stylesheet" href="../css/global-styles.css">
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
@@ -89,13 +89,13 @@
         <span class="moon-icon">🌙</span>
       </button>
       <h1>
-        <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text">Real Karma League</span>
       </h1>
       <nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
-            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="RKL-S8.html">S8 Home</a></li>
             <li><a href="standings.html">Standings & Rankings</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
@@ -123,29 +123,29 @@
     
     <main>
       <div class="page-header">
-        <h2>S7 Draft Results</h2>
-        <p>Season 7 draft results and player performance</p>
+        <h2>S8 Draft Results</h2>
+        <p>Season 8 draft results and player performance</p>
       </div>
 
       <div class="quick-links-container">
           <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
-          <a href="draft-lottery.html" class="quick-link-btn">S8 Lottery Odds</a>
+          <a href="draft-lottery.html" class="quick-link-btn">S9 Lottery Odds</a>
       </div>
 
       <div class="results-container">
         <div class="results-header" style="border-radius: 8px 8px 0 0; width: auto; margin: 0 auto;">
-          <h3 id="results-title">Season 7 Draft</h3>
+          <h3 id="results-title">Season 8 Draft</h3>
         </div>
         <table class="results-table">
           <thead>
             <tr>
               <th class="desktop-only">Round</th>
-              <th class="sortable" onclick="handleSort('Overall')">Overall<span class="sort-indicator"></span></th>
+              <th class="sortable" onclick="handleSort('overall')">Overall<span class="sort-indicator"></span></th>
               <th>Team</th>
               <th>Player</th>
               <th class="sortable desktop-only" onclick="handleSort('games_played')">GP<span class="sort-indicator"></span></th>
-              <th class="sortable desktop-only" onclick="handleSort('calculated_median_rank')">Med Rank<span class="sort-indicator"></span></th>
-              <th class="sortable" onclick="handleSort('calculated_rel_median')">REL<span class="sort-indicator"></span></th>
+              <th class="sortable desktop-only" onclick="handleSort('medrank')">Med Rank<span class="sort-indicator"></span></th>
+              <th class="sortable" onclick="handleSort('rel_median')">REL<span class="sort-indicator"></span></th>
               <th class="sortable desktop-only" onclick="handleSort('WAR')">WAR<span class="sort-indicator"></span></th>
             </tr>
           </thead>
@@ -158,163 +158,102 @@
     
     <footer>
       <p>@caustic on Real</p>
-      <a href="/S7/trade-block.html">GM Portal</a>
+      <a href="/S8/trade-block.html">GM Portal</a>
     </footer>
 
     <script src="../js/main.js" type="module"></script>
-    <script>
-      const SHEET_ID = '12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4';
-      const BASE_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
+    <script type="module">
+      import { db } from '../js/firebase-init.js';
+      import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+      // --- DEV ENVIRONMENT CONFIG ---
+      const USE_DEV_COLLECTIONS = true;
+      const getCollectionName = (baseName) => {
+          // Add other specific collection names here if they have unique logic
+          if (baseName.includes('_draft_results')) {
+              return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+          }
+          return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+      };
+
+      const CURRENT_SEASON_ID = 'S8';
       let allDraftData = [];
-      let sortState = { column: 'Overall', direction: 'asc' };
-
-      async function fetchSheetData(sheetName) {
-        try {
-          const response = await fetch(BASE_URL + encodeURIComponent(sheetName));
-          if (!response.ok) throw new Error(`Network response was not ok for ${sheetName}`);
-          const csvText = await response.text();
-          return parseCSV(csvText);
-        } catch (error) {
-          console.error(`Error fetching ${sheetName}:`, error);
-          return null;
-        }
-      }
-
-      function parseCSV(csvText) {
-        const lines = csvText.trim().split('\n');
-        const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim());
-        const data = [];
-        for (let i = 1; i < lines.length; i++) {
-          const values = [];
-          let currentVal = '';
-          let inQuotes = false;
-          for (let j = 0; j < lines[i].length; j++) {
-            const char = lines[i][j];
-            if (char === '"' && (j === 0 || lines[i][j-1] !== '\\')) inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) { values.push(currentVal.replace(/^"|"$/g, '').trim()); currentVal = ''; }
-            else currentVal += char;
-          }
-          values.push(currentVal.replace(/^"|"$/g, '').trim());
-          if (values.length === headers.length) {
-            const row = {};
-            headers.forEach((header, index) => { row[header] = values[index] || ''; });
-            data.push(row);
-          }
-        }
-        return data;
-      }
-      
-      function parseNumber(value) {
-        if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
-        const cleaned = String(value).replace(/,/g, '');
-        const parsed = parseFloat(cleaned);
-        return isNaN(parsed) ? 0 : parsed;
-      }
-
-      function calculateAllPlayerStats(players, weeklyAverages, lineups) {
-        if (!players || !weeklyAverages || !lineups) return players || [];
-        const weeklyAveragesMap = {};
-        weeklyAverages.forEach(week => {
-          if (week.date) {
-            weeklyAveragesMap[week.date] = {
-              mean_score: parseNumber(week.mean_score),
-              median_score: parseNumber(week.median_score)
-            };
-          }
-        });
-
-        return players.map(player => {
-          const playerGames = lineups.filter(lineup => 
-            (lineup.player_handle === player.player_handle || lineup.player_id === player.player_id) && 
-            (String(lineup.started).toUpperCase() === 'TRUE')
-          );
-          
-          let totalPlayerKarmaRawForREL = 0;
-          let totalMeanKarma = 0;
-          let totalMedianKarma = 0;
-          let validGamesForREL = 0;
-          const ranks = [];
-
-          playerGames.forEach(game => {
-            if (weeklyAveragesMap[game.date]) {
-              totalPlayerKarmaRawForREL += parseNumber(game.points_raw);
-              totalMeanKarma += weeklyAveragesMap[game.date].mean_score;
-              totalMedianKarma += weeklyAveragesMap[game.date].median_score;
-              validGamesForREL++;
-            }
-            const globalRank = parseNumber(game.global_rank);
-            if (globalRank > 0) ranks.push(globalRank);
-          });
-          
-          const avgPlayerRawKarmaForREL = validGamesForREL > 0 ? totalPlayerKarmaRawForREL / validGamesForREL : 0;
-          const avgMeanKarma = validGamesForREL > 0 ? totalMeanKarma / validGamesForREL : 0;
-          const avgMedianKarma = validGamesForREL > 0 ? totalMedianKarma / validGamesForREL : 0;
-          
-          const calculated_rel_median = avgMedianKarma > 0 ? (avgPlayerRawKarmaForREL / avgMedianKarma) : 0;
-          
-          let calculated_median_rank = Infinity;
-          if (ranks.length > 0) {
-            ranks.sort((a, b) => a - b);
-            const mid = Math.floor(ranks.length / 2);
-            calculated_median_rank = ranks.length % 2 === 0 ? (ranks[mid - 1] + ranks[mid]) / 2 : ranks[mid];
-          }
-          
-          return {
-            ...player, 
-            calculated_rel_median: calculated_rel_median,
-            calculated_median_rank: calculated_median_rank,
-            games_played: parseInt(player.games_played || 0),
-            WAR: parseNumber(player.WAR)
-          };
-        });
-      }
+      let sortState = { column: 'overall', direction: 'asc' };
 
       async function loadDataAndDisplay() {
         const resultsBody = document.getElementById('results-body');
-        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Fetching data...</td></tr>`;
-        
-        const [draftResultsRaw, playersRaw, teams, weeklyAverages, lineups] = await Promise.all([
-          fetchSheetData('Draft_Results'),
-          fetchSheetData('Players'),
-          fetchSheetData('Teams'),
-          fetchSheetData('Weekly_Averages'),
-          fetchSheetData('Lineups')
-        ]);
+        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Fetching data from Firestore...</td></tr>`;
 
-        if (!draftResultsRaw || !playersRaw || !teams || !weeklyAverages || !lineups) {
-          resultsBody.innerHTML = `<tr><td colspan="8" class="error">Failed to load required data. Please try again later.</td></tr>`;
-          return;
+        try {
+          // 1. Fetch all draft picks for the current season
+          const seasonNumber = CURRENT_SEASON_ID.replace('S', '');
+          const draftResultsCollectionRef = collection(db, `${getCollectionName('draft_results')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_draft_results`)}`);
+          const draftPicksSnap = await getDocs(draftResultsCollectionRef);
+          const draftPicks = draftPicksSnap.docs.map(doc => doc.data());
+
+          if (draftPicks.length === 0) {
+            resultsBody.innerHTML = `<tr><td colspan="8" class="error">No draft results found for Season ${seasonNumber}.</td></tr>`;
+            return;
+          }
+
+          resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Processing player and team data...</td></tr>`;
+
+          // 2. Gather all unique player and team IDs from the draft
+          const playerIds = new Set();
+          const teamIds = new Set();
+          draftPicks.forEach(pick => {
+            if (pick.player_id) playerIds.add(pick.player_id);
+            if (pick.team_id) teamIds.add(pick.team_id);
+          });
+
+          // 3. Fetch all required team and player data in parallel
+          const teamPromises = [...teamIds].map(id => getDoc(doc(db, getCollectionName('v2_teams'), id, getCollectionName('seasonal_records'), CURRENT_SEASON_ID)));
+          const playerPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id, getCollectionName('seasonal_stats'), CURRENT_SEASON_ID)));
+          
+          const [teamDocs, playerDocs] = await Promise.all([
+              Promise.all(teamPromises),
+              Promise.all(playerPromises)
+          ]);
+
+          // 4. Create maps for easy data lookup
+          const teamsMap = new Map();
+          teamDocs.forEach(doc => {
+              if (doc.exists()) {
+                  teamsMap.set(doc.ref.parent.parent.id, doc.data().team_name);
+              }
+          });
+          
+          const playersMap = new Map();
+          playerDocs.forEach(doc => {
+              if (doc.exists()) {
+                  playersMap.set(doc.ref.parent.parent.id, doc.data());
+              }
+          });
+
+          // 5. Combine all data into a single array for rendering
+          allDraftData = draftPicks.map(pick => {
+            const playerStats = playersMap.get(pick.player_id);
+            return {
+              ...pick,
+              team_name: teamsMap.get(pick.team_id) || pick.team_id,
+              games_played: playerStats?.games_played || 0,
+              medrank: playerStats?.medrank || Infinity,
+              rel_median: playerStats?.rel_median || 0,
+              WAR: playerStats?.WAR || 0,
+            };
+          });
+          
+          displayDraftResults();
+
+        } catch (error) {
+          console.error("Error loading draft data from Firestore:", error);
+          resultsBody.innerHTML = `<tr><td colspan="8" class="error">Failed to load data from Firestore. Please check the console.</td></tr>`;
         }
-
-        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Processing data...</td></tr>`;
-        
-        // Filter for Season 7 draft picks only
-        const draftResults = draftResultsRaw.filter(p => p.Season === '7');
-
-        const playersWithStats = calculateAllPlayerStats(playersRaw, weeklyAverages, lineups);
-        const teamsMap = new Map(teams.map(team => [team.team_id, team.team_name]));
-        const playersMap = new Map(playersWithStats.map(p => [p.player_id, p]));
-
-        allDraftData = draftResults.map(pick => {
-          const playerData = playersMap.get(pick.player_id);
-          return {
-            ...pick,
-            team_name: teamsMap.get(pick.team_id) || pick.team_id,
-            games_played: playerData ? playerData.games_played : 0,
-            calculated_median_rank: playerData ? playerData.calculated_median_rank : Infinity,
-            calculated_rel_median: playerData ? playerData.calculated_rel_median : 0,
-            WAR: playerData ? playerData.WAR : 0,
-          };
-        });
-        
-        displayDraftResults();
       }
 
       function displayDraftResults() {
         let dataToDisplay = [...allDraftData];
         
-        // Sorting logic
         dataToDisplay.sort((a, b) => {
           const col = sortState.column;
           const dir = sortState.direction === 'asc' ? 1 : -1;
@@ -322,12 +261,12 @@
           let valA = a[col];
           let valB = b[col];
 
-          if (col === 'calculated_median_rank') {
+          if (col === 'medrank') {
             valA = valA === Infinity ? Number.MAX_SAFE_INTEGER : valA;
             valB = valB === Infinity ? Number.MAX_SAFE_INTEGER : valB;
           }
           
-          if (['Overall', 'games_played', 'calculated_median_rank', 'calculated_rel_median', 'WAR'].includes(col)) {
+          if (['overall', 'games_played', 'medrank', 'rel_median', 'WAR'].includes(col)) {
               valA = parseFloat(valA) || 0;
               valB = parseFloat(valB) || 0;
           }
@@ -341,7 +280,7 @@
         const resultsHeader = document.querySelector('.results-header');
 
         if (dataToDisplay.length === 0) {
-            resultsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No S7 draft results found.</td></tr>`;
+            resultsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No S8 draft results found.</td></tr>`;
             resultsHeader.style.display = 'none';
             document.querySelector('.results-table').style.boxShadow = 'none';
             return;
@@ -351,20 +290,20 @@
         document.querySelector('.results-table').style.borderRadius = '0 0 8px 8px';
 
         resultsBody.innerHTML = dataToDisplay.map(pick => {
-          const medRankDisplay = pick.calculated_median_rank === Infinity ? '-' : Math.round(pick.calculated_median_rank);
-          const relDisplay = pick.calculated_rel_median.toFixed(3);
-          const warDisplay = pick.WAR.toFixed(2);
-          const playerCellHTML = pick.Player.toUpperCase() === 'FORFEITED'
-            ? `<span>${pick.Player}</span>`
-            : `<a href="player.html?player=${encodeURIComponent(pick.Player)}" class="player-link">${pick.Player}</a>`;
+          const medRankDisplay = pick.medrank === Infinity ? '-' : Math.round(pick.medrank);
+          const relDisplay = (pick.rel_median || 0).toFixed(3);
+          const warDisplay = (pick.WAR || 0).toFixed(2);
+          const playerCellHTML = pick.forfeit
+            ? `<span>FORFEITED</span>`
+            : `<a href="player.html?player=${encodeURIComponent(pick.player_handle)}" class="player-link">${pick.player_handle}</a>`;
 
           return `
             <tr>
-              <td class="desktop-only">${pick.Round}</td>
-              <td>${pick.Overall}</td>
+              <td class="desktop-only">${pick.round}</td>
+              <td>${pick.overall}</td>
               <td class="team-cell">
                 <div class="team-cell-content">
-                  <img src="icons/${pick.team_id}.webp" alt="${pick.team_name}" class="team-logo" onerror="this.style.display='none'">
+                  <img src="../icons/${pick.team_id}.webp" alt="${pick.team_name}" class="team-logo" onerror="this.style.display='none'">
                   <a href="team.html?id=${pick.team_id}" class="team-link">${pick.team_name}</a>
                 </div>
               </td>
@@ -389,11 +328,10 @@
           sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
         } else {
           sortState.column = column;
-          // Default sort directions
-          if (column === 'Overall' || column === 'calculated_median_rank') {
+          if (column === 'overall' || column === 'medrank') {
             sortState.direction = 'asc';
           } else {
-            sortState.direction = 'desc'; // Default desc for REL, WAR, GP
+            sortState.direction = 'desc';
           }
         }
         updateSortIndicators();
@@ -411,19 +349,20 @@
       
       const resultsHeader = document.querySelector('.results-header');
       const table = document.querySelector('.results-table');
-      const resizeObserver = new ResizeObserver(entries => {
-        for (let entry of entries) {
-            if(entry.target.offsetWidth > 0) {
-              resultsHeader.style.width = `${entry.target.offsetWidth}px`;
-            }
-        }
-      });
-      if(table) {
+      if (table) {
+        const resizeObserver = new ResizeObserver(entries => {
+          for (let entry of entries) {
+              if(entry.target.offsetWidth > 0) {
+                resultsHeader.style.width = `${entry.target.offsetWidth}px`;
+              }
+          }
+        });
         resizeObserver.observe(table);
       }
 
       document.addEventListener('DOMContentLoaded', () => {
         loadDataAndDisplay();
+        updateSortIndicators();
       });
     </script>
   </body>
