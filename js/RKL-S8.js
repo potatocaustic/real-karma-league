@@ -264,13 +264,27 @@ function loadLiveGames() {
 
         snapshot.docs.forEach(gameDoc => {
             const gameId = gameDoc.id;
-            const game = gameDoc.data();
-            const team1 = allTeams.find(t => t.id === game.team1_lineup[0]?.team_id);
-            const team2 = allTeams.find(t => t.id === game.team2_lineup[0]?.team_id);
+            const liveGameData = gameDoc.data();
+            const team1 = allTeams.find(t => t.id === liveGameData.team1_lineup[0]?.team_id);
+            const team2 = allTeams.find(t => t.id === liveGameData.team2_lineup[0]?.team_id);
             if (!team1 || !team2) return;
+            
+            // --- CHANGE #1 START: Check if live game is postseason and get correct record ---
+            const originalGame = allGamesCache.find(g => g.id === gameId);
+            const gameIsPostseason = originalGame ? isPostseasonWeek(originalGame.week) : false;
+            let team1Record, team2Record;
 
-            const team1_total = game.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
-            const team2_total = game.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+            if (gameIsPostseason && originalGame) {
+                team1Record = `${originalGame.team1_wins || 0}-${originalGame.team2_wins || 0}`;
+                team2Record = `${originalGame.team2_wins || 0}-${originalGame.team1_wins || 0}`;
+            } else {
+                team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
+                team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
+            }
+            // --- CHANGE #1 END ---
+
+            const team1_total = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+            const team2_total = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             
             const isTeam1Winning = team1_total >= team2_total;
             const team1_bar_percent = (team1_total / maxScore) * 100;
@@ -281,9 +295,12 @@ function loadLiveGames() {
             if (gameItem) { // UPDATE EXISTING
                 const teamScores = gameItem.querySelectorAll('.team-score');
                 const teamBars = gameItem.querySelectorAll('.team-bar');
+                const teamRecords = gameItem.querySelectorAll('.team-record'); // Update record spans
 
                 teamScores[0].textContent = formatInThousands(team1_total);
                 teamScores[1].textContent = formatInThousands(team2_total);
+                teamRecords[0].textContent = team1Record;
+                teamRecords[1].textContent = team2Record;
                 
                 teamBars[0].style.width = `${team1_bar_percent}%`;
                 teamBars[1].style.width = `${team2_bar_percent}%`;
@@ -301,7 +318,7 @@ function loadLiveGames() {
                                 <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
                                     <span class="team-name">${team1.team_name}</span>
-                                    <span class="team-record">${team1.wins || 0}-${team1.losses || 0}</span>
+                                    <span class="team-record">${team1Record}</span>
                                 </div>
                                 <div class="winner-indicator-placeholder"></div>
                                 <div class="team-bar-container">
@@ -313,7 +330,7 @@ function loadLiveGames() {
                                 <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
                                     <span class="team-name">${team2.team_name}</span>
-                                    <span class="team-record">${team2.wins || 0}-${team2.losses || 0}</span>
+                                    <span class="team-record">${team2Record}</span>
                                 </div>
                                 <div class="winner-indicator-placeholder"></div>
                                 <div class="team-bar-container">
@@ -382,10 +399,9 @@ async function loadRecentGames() {
             gamesList.innerHTML = '<div class="loading">No completed games found.</div>';
             return;
         }
-
-        const displayedGameIsPostseason = isPostseasonWeek(games[0]?.week);
-        gamesHeader.textContent = displayedGameIsPostseason ? 'Recent Postseason Games' : 'Recent Games';
         
+        // --- CHANGE #2: Logic moved from here... ---
+
         const maxScore = Math.max(...games.flatMap(g => [g.team1_score || 0, g.team2_score || 0]), 1);
 
         gamesList.innerHTML = games.map(game => {
@@ -393,12 +409,16 @@ async function loadRecentGames() {
             const team2 = allTeams.find(t => t.id === game.team2_id);
             if (!team1 || !team2) return '';
 
+            // --- CHANGE #2: ...to inside the loop for more accuracy. ---
+            const gameIsPostseason = isPostseasonWeek(game.week);
+            if (game === games[0]) { // Set header based on the first game of the day
+                 gamesHeader.textContent = gameIsPostseason ? 'Recent Postseason Games' : 'Recent Games';
+            }
+
             let team1NameHTML = escapeHTML(team1.team_name);
             let team2NameHTML = escapeHTML(team2.team_name);
             let team1Record, team2Record;
             
-            const gameIsPostseason = isPostseasonWeek(game.week);
-
             if (gameIsPostseason) {
                 if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
                 if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
@@ -523,64 +543,47 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
     contentArea.innerHTML = '<div class="loading">Loading game details...</div>';
 
     try {
-        let gameData, team1Lineups, team2Lineups, team1, team2;
-        let isPostseason = false;
+        let team1Lineups, team2Lineups, team1, team2;
+
+        const originalGame = allGamesCache.find(g => g.id === gameId);
+        if (!originalGame) throw new Error("Original game data not found in cache.");
+        
+        const gameIsPostseason = isPostseasonWeek(originalGame.week);
+        
+        team1 = allTeams.find(t => t.id === originalGame.team1_id);
+        team2 = allTeams.find(t => t.id === originalGame.team2_id);
 
         if (isLiveGame) {
             const gameRef = doc(db, getCollectionName('live_games'), gameId);
             const gameSnap = await getDoc(gameRef);
             if (!gameSnap.exists()) throw new Error("Live game data not found.");
             
-            gameData = gameSnap.data();
-            team1 = allTeams.find(t => t.id === gameData.team1_lineup[0]?.team_id);
-            team2 = allTeams.find(t => t.id === gameData.team2_lineup[0]?.team_id);
-            team1Lineups = gameData.team1_lineup || [];
-            team2Lineups = gameData.team2_lineup || [];
+            const liveGameData = gameSnap.data();
+            team1Lineups = liveGameData.team1_lineup || [];
+            team2Lineups = liveGameData.team2_lineup || [];
             modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - Live`;
         } else {
-            gameData = allGamesCache.find(g => g.id === gameId);
-            if (!gameData) {
-                throw new Error("Game not found in cache.");
-            }
-
-            isPostseason = isPostseasonWeek(gameData.week);
-            const lineupsCollectionName = isPostseason 
-                ? getCollectionName('post_lineups') 
-                : getCollectionName('lineups');
-            
+            const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
             const allLineupsForGame = lineupsSnap.docs.map(d => d.data());
 
-            team1 = allTeams.find(t => t.id === gameData.team1_id);
-            team2 = allTeams.find(t => t.id === gameData.team2_id);
             team1Lineups = allLineupsForGame.filter(l => l.team_id === team1.id && l.started === "TRUE");
             team2Lineups = allLineupsForGame.filter(l => l.team_id === team2.id && l.started === "TRUE");
             modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(gameDate)}`;
         }
 
-        // Create team objects specifically for the modal
-        let team1ForModal = team1;
-        let team2ForModal = team2;
+        let team1ForModal = team1, team2ForModal = team2;
 
-        // If it's a completed postseason game, overwrite the records
-        if (isPostseason && !isLiveGame) {
-            team1ForModal = {
-                ...team1,
-                wins: gameData.team1_wins || 0,
-                losses: gameData.team2_wins || 0,
-            };
-            team2ForModal = {
-                ...team2,
-                wins: gameData.team2_wins || 0,
-                losses: gameData.team1_wins || 0,
-            };
+        // --- CHANGE #3: This logic now works for both live and completed postseason games ---
+        if (gameIsPostseason) {
+            team1ForModal = { ...team1, wins: originalGame.team1_wins || 0, losses: originalGame.team2_wins || 0 };
+            team2ForModal = { ...team2, wins: originalGame.team2_wins || 0, losses: originalGame.team1_wins || 0 };
         }
 
-        const winnerId = isLiveGame ? null : gameData.winner;
+        const winnerId = isLiveGame ? null : originalGame.winner;
         
-        // Pass the modified team objects to the rendering function
         contentArea.innerHTML = `
             <div class="game-details-grid">
                 ${generateLineupTable(team1Lineups, team1ForModal, !isLiveGame && winnerId === team1.id, isLiveGame)}
@@ -593,6 +596,7 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
         contentArea.innerHTML = `<div class="error">Could not load game details.</div>`;
     }
 }
+
 
 function closeModal() {
     const modal = document.getElementById('game-modal');
