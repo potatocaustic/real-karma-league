@@ -111,6 +111,7 @@ async function loadPageData() {
 
 
         // --- AWAIT ALL PROMISES ---
+        // Corrected: Removed postScheduleSnap from the destructuring array to match the promises
         const [
             allTeamsRecordsSnaps,
             teamDocSnap,
@@ -125,8 +126,8 @@ async function loadPageData() {
             teamSeasonalPromise,
             rosterPromise,
             schedulePromise,
-            draftPicksSnap,
-            transactionsSnap
+            draftPicksPromise,
+            transactionsPromise
         ]);
 
         // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
@@ -614,6 +615,7 @@ function normalizeDate(dateInput) {
 }
 
 function formatDateMMDD(dateString) {
+    if (!dateString) return '';
     const date = new Date(dateString + 'T00:00:00Z');
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const day = String(date.getUTCDate()).padStart(2, '0');
@@ -621,6 +623,7 @@ function formatDateMMDD(dateString) {
 }
 
 function formatDateShort(dateString) {
+    if (!dateString) return '';
     const date = new Date(dateString + 'T00:00:00Z');
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const day = String(date.getUTCDate()).padStart(2, '0');
