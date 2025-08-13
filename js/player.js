@@ -1,5 +1,5 @@
 // /js/player.js
-import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup } from './firebase-init.js';
+import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, documentId } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
