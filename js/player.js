@@ -1,5 +1,5 @@
 // /js/player.js
-import { db, collection, doc, getDoc, getDocs, query, where, limit } from './firebase-init.js';
+import { db, collection, doc, getDoc, getDocs, query, where } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
@@ -53,28 +53,26 @@ function generateIconStylesheet(teams) {
  * Fetches all necessary data from Firestore to build the player page.
  */
 async function loadPlayerData() {
-    const playerHandle = new URLSearchParams(window.location.search).get('player');
-    if (!playerHandle) {
-        document.getElementById('player-main-info').innerHTML = '<div class="error">No player specified.</div>';
+    // CORRECTED: Look for the 'id' parameter in the URL.
+    const playerId = new URLSearchParams(window.location.search).get('id');
+    if (!playerId) {
+        document.getElementById('player-main-info').innerHTML = '<div class="error">No player ID specified in URL.</div>';
         return;
     }
     
-    document.getElementById('page-title').textContent = `${playerHandle} - RKL ${SEASON_ID}`;
-
     try {
-        // 1. Fetch the Player's core data and seasonal stats
-        const playersCollection = getCollectionName('v2_players');
-        const playerQuery = query(collection(db, playersCollection), where('player_handle', '==', playerHandle), limit(1));
-        const playerSnap = await getDocs(playerQuery);
+        // 1. Fetch the Player's core data and seasonal stats directly by ID.
+        // CORRECTED: This is now a more efficient direct 'get' instead of a query.
+        const playerRef = doc(db, getCollectionName('v2_players'), playerId);
+        const playerSnap = await getDoc(playerRef);
 
-        if (playerSnap.empty) {
-            document.getElementById('player-main-info').innerHTML = `<div class="error">Player '${playerHandle}' not found.</div>`;
+        if (!playerSnap.exists()) {
+            document.getElementById('player-main-info').innerHTML = `<div class="error">Player with ID '${playerId}' not found.</div>`;
             return;
         }
 
-        const playerDoc = playerSnap.docs[0];
-        const playerData = playerDoc.data();
-        const playerId = playerDoc.id;
+        const playerData = playerSnap.data();
+        document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL ${SEASON_ID}`;
 
         const seasonalStatsRef = doc(db, `${getCollectionName('v2_players')}/${playerId}/${getCollectionName('seasonal_stats')}/${SEASON_ID}`);
         const seasonalStatsSnap = await getDoc(seasonalStatsRef);
@@ -314,8 +312,6 @@ async function showGameDetails(gameId) {
 document.addEventListener('DOMContentLoaded', () => {
     loadPlayerData();
 
-    // CORRECTED: Use event delegation for all modal interactions.
-    // This ensures the listeners work even if the modal HTML is loaded dynamically.
     document.addEventListener('click', (event) => {
         const modal = document.getElementById('game-modal');
         

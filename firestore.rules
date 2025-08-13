@@ -17,12 +17,11 @@ service cloud.firestore {
     // V2 PRODUCTION RULES
     // =======================================================
 
-    // CORRECTED: Allows reads (get, list) on all documents in the collection
     match /v2_players/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
-    match /v2_teams/{teamId}/{documents=**} {
+    match /v2_teams/{document=**} {
       allow read: if true;
       allow write: if isAdmin();
     }
@@ -30,7 +29,6 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-    // ... other rules are unchanged ...
     match /draftPicks/{doc=**} {
       allow read: if true;
       allow write: if isAdmin(); 
@@ -103,12 +101,11 @@ service cloud.firestore {
     // V2 DEVELOPMENT RULES (_dev)
     // =======================================================
 
-    // CORRECTED: Allows reads (get, list) on all documents in the collection
     match /v2_players_dev/{document=**} {
       allow read: if true;
       allow write: if isAdminDev();
     }
-    match /v2_teams_dev/{teamId}/{documents=**} {
+    match /v2_teams_dev/{document=**} {
       allow read: if true;
       allow write: if isAdminDev();
     }
@@ -116,7 +113,6 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdminDev();
     }
-    // ... other _dev rules are unchanged ...
     match /live_games_dev/{gameId} {
         allow read: if true;
         allow write: if isAdminDev();
@@ -190,17 +186,20 @@ service cloud.firestore {
     }
     
     // =======================================================
-    // ADMIN-ONLY & LEGACY RULES (Unchanged)
+    // ADMIN-ONLY & LEGACY RULES (Corrected)
     // =======================================================
     
-    match /admins/{doc} {
-      allow read, write: if false;
+    // CORRECTED: Allows a logged-in user to check their own document in the admins collection.
+    match /admins/{userId} {
+      allow read: if request.auth.uid == userId;
+      allow write: if false;
     }
     match /players/{doc} { 
       allow read: if true;
       allow write: if false;
     }
-    match /teams/{doc} { 
+    // CORRECTED: Allows the collection query from main.js on the legacy teams collection.
+    match /teams/{document=**} { 
       allow read: if true;
       allow write: if false;
     }

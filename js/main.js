@@ -165,7 +165,7 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
                         const captainBadge = isCaptain ? '<span class="captain-badge">C</span>' : '';
                         return `
                             <tr class="${isCaptain ? 'captain-row' : ''}">
-                                <td class="player-name-cell"><a href="player.html?player=${encodeURIComponent(p.player_handle)}" class="player-link">${p.player_handle}</a>${captainBadge}</td>
+                                <td class="player-name-cell"><a href="player.html?id=${encodeURIComponent(p.player_id)}" class="player-link">${p.player_handle}</a>${captainBadge}</td>
                                 <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
                                 <td class="rank-cell">${p.global_rank || '-'}</td>
                             </tr>
