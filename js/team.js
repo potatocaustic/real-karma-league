@@ -7,8 +7,7 @@ import {
     getDoc,
     getDocs,
     query,
-    where,
-    collectionGroup
+    where
 } from './firebase-init.js';
 
 import { generateLineupTable } from './main.js';
@@ -35,6 +34,7 @@ async function init() {
     try {
         // Dynamically load the modal component
         const modalResponse = await fetch('../common/game-modal-component.html');
+        if (!modalResponse.ok) throw new Error('Failed to load modal component.');
         const modalHTML = await modalResponse.text();
         document.getElementById('modal-placeholder').innerHTML = modalHTML;
 
@@ -67,8 +67,23 @@ async function loadPageData() {
             document.getElementById('team-main-info').innerHTML = '<div class="error">No team specified in URL.</div>';
             return;
         }
+        
+        // --- CORRECTED LOGIC: Build the allTeamsSeasonalRecords map first ---
+        // This replaces the faulty collectionGroup query.
+        const allTeamsSnap = await getDocs(collection(db, "v2_teams"));
+        const teamRecordPromises = allTeamsSnap.docs.map(teamDoc => 
+            getDoc(doc(db, "v2_teams", teamDoc.id, "seasonal_records", ACTIVE_SEASON_ID))
+        );
+        const allTeamsRecordsSnaps = await Promise.all(teamRecordPromises);
 
-        // --- DEFINE ALL DATA PROMISES ---
+        allTeamsRecordsSnaps.forEach(snap => {
+            if (snap.exists()) {
+                const teamIdForRecord = snap.ref.parent.parent.id;
+                allTeamsSeasonalRecords.set(teamIdForRecord, snap.data());
+            }
+        });
+        
+        // --- DEFINE REMAINING DATA PROMISES ---
         const teamDocPromise = getDoc(doc(db, "v2_teams", teamId));
         const teamSeasonalPromise = getDoc(doc(db, "v2_teams", teamId, "seasonal_records", ACTIVE_SEASON_ID));
 
@@ -81,12 +96,7 @@ async function loadPageData() {
         const draftPicksPromise = getDocs(collection(db, "draftPicks"));
         const transactionsPromise = getDocs(collection(db, "transactions", "seasons", ACTIVE_SEASON_ID));
 
-        // For getTeamName() helper
-        const allTeamsRecordsQuery = query(collectionGroup(db, 'seasonal_records'), where('__name__', 'like', `S8`));
-        const allTeamsRecordsPromise = getDocs(allTeamsRecordsQuery);
-
-
-        // --- AWAIT ALL PROMISES ---
+        // --- AWAIT REMAINING PROMISES ---
         const [
             teamDocSnap,
             teamSeasonalSnap,
@@ -94,8 +104,7 @@ async function loadPageData() {
             scheduleSnap,
             postScheduleSnap,
             draftPicksSnap,
-            transactionsSnap,
-            allTeamsRecordsSnap
+            transactionsSnap
         ] = await Promise.all([
             teamDocPromise,
             teamSeasonalPromise,
@@ -103,8 +112,7 @@ async function loadPageData() {
             schedulePromise,
             postSchedulePromise,
             draftPicksSnap,
-            transactionsSnap,
-            allTeamsRecordsPromise
+            transactionsSnap
         ]);
 
         // --- PROCESS CORE TEAM DATA ---
@@ -119,12 +127,7 @@ async function loadPageData() {
         allScheduleData = scheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         allPostseasonScheduleData = postScheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         allDraftPicks = draftPicksSnap.docs.map(d => d.data());
-        allTransactions = transactionsSnap.docs.map(d => d.data());
-
-        allTeamsRecordsSnap.forEach(snap => {
-            const teamIdForRecord = snap.ref.parent.parent.id;
-            allTeamsSeasonalRecords.set(teamIdForRecord, snap.data());
-        });
+        allTransactions = transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
 
         generateIconStylesheet(Array.from(allTeamsSeasonalRecords.keys()));
 
@@ -143,7 +146,6 @@ async function loadPageData() {
                 ...seasonalStats
             };
         });
-
 
         // --- RENDER ALL PAGE COMPONENTS ---
         displayTeamHeader();
@@ -371,7 +373,13 @@ async function showGameDetails(team1_id, team2_id, date, isPostseason) {
         const team1Info = { id: team1_id, team_name: getTeamName(team1_id), ...allTeamsSeasonalRecords.get(team1_id) };
         const team2Info = { id: team2_id, team_name: getTeamName(team2_id), ...allTeamsSeasonalRecords.get(team2_id) };
         
-        const gameSnap = await getDoc(doc(db, "seasons", ACTIVE_SEASON_ID, isPostseason ? "post_games" : "games", `${normalizeDate(date)}-${team1_id}-${team2_id}`));
+        const gameDocId = isPostseason 
+            ? allPostseasonScheduleData.find(g => g.date === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id
+            : allScheduleData.find(g => g.date === date && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
+
+        if (!gameDocId) throw new Error("Could not find game document ID.");
+        
+        const gameSnap = await getDoc(doc(db, "seasons", ACTIVE_SEASON_ID, isPostseason ? "post_games" : "games", gameDocId));
         const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
 
         modalContentEl.innerHTML = `
@@ -441,7 +449,7 @@ function getTeamRecordAtDate(teamIdForRecord, targetDate) {
     let wins = 0, losses = 0;
     completedGames.forEach(game => {
         if (game.winner === teamIdForRecord) wins++;
-        else losses++;
+        else if (game.winner) losses++;
     });
 
     return `${wins}-${losses}`;
@@ -466,7 +474,7 @@ function generateGameItemHTML(game) {
         const teamScoreValue = parseFloat(isTeam1 ? game.team1_score : game.team2_score);
         const oppScoreValue = parseFloat(isTeam1 ? game.team2_score : game.team1_score);
         teamWon = teamScoreValue > oppScoreValue;
-        oppWon = !teamWon;
+        oppWon = !teamWon && !!game.winner;
         teamScoreText = Math.round(teamScoreValue).toLocaleString();
         oppScoreText = Math.round(oppScoreValue).toLocaleString();
         teamScoreClass = teamWon ? 'win' : 'loss';
@@ -539,8 +547,9 @@ function generatePickItemHTML(pick) {
     if (!isOriginalOwner && !isForfeiture) {
         const transaction = allTransactions.find(t => t.involved_picks?.some(p => p.id === pick.pick_id));
         let viaText = `from ${originalTeamName}`;
-        if (transaction && transaction.from_team !== pick.original_team) {
-            viaText = `via ${getTeamName(transaction.from_team)} (from ${originalTeamName})`;
+        if (transaction && transaction.involved_teams[0] !== pick.original_team && transaction.involved_teams[1] !== pick.original_team) {
+            const viaTeamId = transaction.involved_teams.find(t => t.id !== teamId);
+            viaText = `via ${getTeamName(viaTeamId)} (from ${originalTeamName})`;
         }
         
         let statsText = '';
@@ -584,21 +593,27 @@ function normalizeDate(dateInput) {
     if (typeof dateInput.toDate === 'function') {
         date = dateInput.toDate();
     } else {
-        date = new Date(dateInput.replace(/-/g, '/')); // More robust parsing
+        const parts = dateInput.split('/');
+        if (parts.length === 3) {
+            // Assuming M/D/YYYY format
+            date = new Date(Date.UTC(parts[2], parts[0] - 1, parts[1]));
+        } else {
+            return null; // Invalid format
+        }
     }
     if (isNaN(date.getTime())) return null;
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD
 }
 
 function formatDateMMDD(dateString) {
-    const date = new Date(dateString.replace(/-/g, '/'));
+    const date = new Date(dateString + 'T00:00:00Z');
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const day = String(date.getUTCDate()).padStart(2, '0');
     return `${month}-${day}`;
 }
 
 function formatDateShort(dateString) {
-    const date = new Date(dateString.replace(/-/g, '/'));
+    const date = new Date(dateString + 'T00:00:00Z');
     const month = String(date.getUTCMonth() + 1).padStart(2, '0');
     const day = String(date.getUTCDate()).padStart(2, '0');
     const year = String(date.getUTCFullYear()).slice(-2);
