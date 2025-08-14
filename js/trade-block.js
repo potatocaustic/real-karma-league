@@ -250,7 +250,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             if (type === 'seeking') {
                 listContent = items.join('<br>');
             } else {
-                // MODIFIED: Added class="trade-block-item-list" to the ul
                 listContent = `<ul class="trade-block-item-list">${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
             }
 
@@ -262,35 +261,47 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                     <div class="toggle-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>`;
         };
 
-        const playersList = playersOnBlock.map(player => {
-            const pData = playersMap.get(player.id);
-            const pStats = statsMap.get(player.id);
-            const isNew = player.addedOn.toDate().getTime() > FORTY_EIGHT_HOURS_AGO;
-            const newBadge = isNew ? `<span class="new-item-badge">New</span>` : '';
-
-            if (!pData || !pStats) return `Player data not found`;
-            return `<a href="/S7/player.html?id=${player.id}">${pData.player_handle}</a> (GP: ${pStats.games_played || 0}, REL: ${pStats.rel_median ? parseFloat(pStats.rel_median).toFixed(3) : 'N/A'}, WAR: ${pStats.WAR ? pStats.WAR.toFixed(2) : 'N/A'}) ${newBadge}`;
-        });
-        const playersHtml = renderCollapsibleSection(playersList, 'players');
-
-        const picksList = picksOnBlock.map(pick => {
-            const pickInfo = draftPicksMap.get(pick.id);
-            const isNew = pick.addedOn.toDate().getTime() > FORTY_EIGHT_HOURS_AGO;
-            const newBadge = isNew ? `<span class="new-item-badge">New</span>` : '';
-
-            if (pickInfo) {
-                const originalTeamInfo = teamsMap.get(pickInfo.original_team);
-                const teamName = originalTeamInfo ? originalTeamInfo.team_name : pickInfo.original_team;
-                const ownerRecord = originalTeamInfo ? `(${(originalTeamInfo.wins || 0)}-${(originalTeamInfo.losses || 0)})` : '';
-                const round = pickInfo.round;
-                const roundSuffix = round == 1 ? 'st' : round == 2 ? 'nd' : round == 3 ? 'rd' : 'th';
-                return `S${pickInfo.season} ${teamName} ${round}${roundSuffix} ${ownerRecord} ${newBadge}`;
-            }
-            return `${pick.id} (Unknown Pick) ${newBadge}`;
-        });
-        const picksHtml = renderCollapsibleSection(picksList, 'picks');
+        // MODIFIED: Conditionally build HTML for each section to hide empty ones
         
-        const seekingHtml = renderCollapsibleSection(seekingText, 'seeking');
+        let playersHtml = '';
+        if (playersOnBlock.length > 0) {
+            const playersList = playersOnBlock.map(player => {
+                const pData = playersMap.get(player.id);
+                const pStats = statsMap.get(player.id);
+                const isNew = player.addedOn.toDate().getTime() > FORTY_EIGHT_HOURS_AGO;
+                const newBadge = isNew ? `<span class="new-item-badge">New</span>` : '';
+
+                if (!pData || !pStats) return `Player data not found`;
+                return `<a href="/S7/player.html?id=${player.id}">${pData.player_handle}</a> (GP: ${pStats.games_played || 0}, REL: ${pStats.rel_median ? parseFloat(pStats.rel_median).toFixed(3) : 'N/A'}, WAR: ${pStats.WAR ? pStats.WAR.toFixed(2) : 'N/A'}) ${newBadge}`;
+            });
+            playersHtml = `<p><strong>Players Available:</strong></p>${renderCollapsibleSection(playersList, 'players')}<hr>`;
+        }
+        
+        let picksHtml = '';
+        if (picksOnBlock.length > 0) {
+            const picksList = picksOnBlock.map(pick => {
+                const pickInfo = draftPicksMap.get(pick.id);
+                const isNew = pick.addedOn.toDate().getTime() > FORTY_EIGHT_HOURS_AGO;
+                const newBadge = isNew ? `<span class="new-item-badge">New</span>` : '';
+
+                if (pickInfo) {
+                    const originalTeamInfo = teamsMap.get(pickInfo.original_team);
+                    const teamName = originalTeamInfo ? originalTeamInfo.team_name : pickInfo.original_team;
+                    const ownerRecord = originalTeamInfo ? `(${(originalTeamInfo.wins || 0)}-${(originalTeamInfo.losses || 0)})` : '';
+                    const round = pickInfo.round;
+                    const roundSuffix = round == 1 ? 'st' : round == 2 ? 'nd' : round == 3 ? 'rd' : 'th';
+                    return `S${pickInfo.season} ${teamName} ${round}${roundSuffix} ${ownerRecord} ${newBadge}`;
+                }
+                return `${pick.id} (Unknown Pick) ${newBadge}`;
+            });
+            picksHtml = `<p><strong>Picks Available:</strong></p>${renderCollapsibleSection(picksList, 'picks')}<hr>`;
+        }
+        
+        let seekingHtml = '';
+        const seekingTextTrimmed = seekingText.trim();
+        if (seekingTextTrimmed && seekingTextTrimmed.toLowerCase() !== 'n/a') {
+            seekingHtml = `<p><strong>Seeking:</strong><br>${renderCollapsibleSection(seekingText, 'seeking')}</p>`;
+        }
 
         const blockHtml = `
             <div class="trade-block-card" data-team-id="${teamId}">
@@ -301,9 +312,9 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
                 <div class="trade-block-content">
-                    <p><strong>Players Available:</strong></p>${playersHtml}<hr>
-                    <p><strong>Picks Available:</strong></p>${picksHtml}<hr>
-                    <p><strong>Seeking:</strong><br>${seekingHtml}</p>
+                    ${playersHtml}
+                    ${picksHtml}
+                    ${seekingHtml}
                 </div>
             </div>`;
         container.innerHTML += blockHtml;
