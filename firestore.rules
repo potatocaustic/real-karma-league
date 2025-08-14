@@ -28,9 +28,16 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-    match /seasons/{seasonId}/{documents=**} {
-      allow read: if true;
+    match /seasons/{seasonId} {
+      // Allow authenticated users to read the list of seasons to find the active one
+      allow get, list: if request.auth.uid != null;
       allow write: if isAdmin();
+
+      // Keep existing rule for all subcollections within a season
+      match /{documents=**} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
     }
     match /draftPicks/{doc=**} {
       allow read: if true;
@@ -118,9 +125,16 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdminDev();
     }
-    match /seasons_dev/{seasonId}/{documents=**} {
-      allow read: if true;
+    match /seasons_dev/{seasonId} {
+      // Allow authenticated users to read the list of seasons to find the active one
+      allow get, list: if request.auth.uid != null;
       allow write: if isAdminDev();
+      
+      // Keep existing rule for all subcollections within a season
+      match /{documents=**} {
+        allow read: if true;
+        allow write: if isAdminDev();
+      }
     }
     match /live_games_dev/{gameId} {
         allow read: if true;
