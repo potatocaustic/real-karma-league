@@ -5,7 +5,7 @@
 // Set this to 'true' to use '_dev' collections in Firestore.
 // Set this to 'false' for the live, production database.
 // ===================================================================
-const IS_DEVELOPMENT = true; 
+const IS_DEVELOPMENT = true;
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, signInAnonymously, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
@@ -30,6 +30,7 @@ import {
     connectFirestoreEmulator,
     collectionGroup,
     documentId,
+    Timestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
@@ -49,7 +50,6 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 
-// Define collectionNames based on the IS_DEVELOPMENT flag
 export const collectionNames = {
     seasons: IS_DEVELOPMENT ? 'seasons_dev' : 'seasons',
     users: IS_DEVELOPMENT ? 'users_dev' : 'users',
@@ -92,4 +92,5 @@ export {
     onSnapshot,
     collectionGroup,
     documentId,
+    Timestamp 
 };
