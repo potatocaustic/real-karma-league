@@ -230,6 +230,7 @@ function addSaveHandler(gmUid) {
                     const now = Timestamp.now();
                     const NINETY_SIX_HOURS_AGO_MS = now.toMillis() - (96 * 60 * 60 * 1000);
 
+                    // 1. Manage the recently_removed list
                     let recently_removed = (oldBlockData.recently_removed || []).filter(item => item.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS);
                     
                     const oldPlayers = oldBlockData.on_the_block || [];
@@ -247,37 +248,38 @@ function addSaveHandler(gmUid) {
                     });
                     
                     const removedMap = new Map(recently_removed.map(item => [item.id, item]));
-                    let isNewAddition = false;
 
+                    // 2. Build the new lists, restoring timestamps where necessary
                     const oldPlayersMap = new Map(oldPlayers.map(p => [p.id, p.addedOn]));
                     const newPlayers = Array.from(selectedPlayerIds).map(id => {
-                        if (oldPlayersMap.has(id)) {
-                            return { id, addedOn: oldPlayersMap.get(id) };
-                        }
+                        if (oldPlayersMap.has(id)) return { id, addedOn: oldPlayersMap.get(id) };
                         if (removedMap.has(id)) {
                             const removedItem = removedMap.get(id);
                             if (removedItem.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS) {
                                 return { id, addedOn: removedItem.originalAddedOn };
                             }
                         }
-                        isNewAddition = true;
                         return { id, addedOn: now };
                     });
 
                     const oldPicksMap = new Map(oldPicks.map(p => [p.id, p.addedOn]));
                      const newPicks = Array.from(selectedPickIds).map(id => {
-                        if (oldPicksMap.has(id)) {
-                            return { id, addedOn: oldPicksMap.get(id) };
-                        }
+                        if (oldPicksMap.has(id)) return { id, addedOn: oldPicksMap.get(id) };
                         if (removedMap.has(id)) {
                             const removedItem = removedMap.get(id);
                             if (removedItem.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS) {
                                 return { id, addedOn: removedItem.originalAddedOn };
                             }
                         }
-                        isNewAddition = true;
                         return { id, addedOn: now };
                     });
+
+                    // 3. MODIFIED: Robustly determine if a genuinely new item was added
+                    const oldPlayerIds = new Set(oldPlayers.map(p => p.id));
+                    const hasNewPlayer = newPlayers.some(p => !oldPlayerIds.has(p.id));
+                    const oldPickIds = new Set(oldPicks.map(p => p.id));
+                    const hasNewPick = newPicks.some(p => !oldPickIds.has(p.id));
+                    const isNewAddition = hasNewPlayer || hasNewPick;
 
                     const updatedData = {
                         gm_uid: gmUid,
@@ -287,15 +289,11 @@ function addSaveHandler(gmUid) {
                         recently_removed: recently_removed
                     };
                     
-                    // MODIFIED: This block ensures the last_updated field is always preserved
                     if (isNewAddition) {
-                        // If a new item was added, update the timestamp to now
                         updatedData.last_updated = serverTimestamp();
                     } else if (oldBlockData.last_updated) {
-                        // Otherwise, preserve the existing timestamp
                         updatedData.last_updated = oldBlockData.last_updated;
                     } else {
-                        // Edge case: If the block never had a timestamp, set one now
                         updatedData.last_updated = serverTimestamp();
                     }
                     
