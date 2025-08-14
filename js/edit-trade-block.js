@@ -16,7 +16,8 @@ import {
     deleteDoc,
     limit,
     documentId,
-    collectionNames
+    collectionNames,
+    Timestamp
 } from './firebase-init.js';
 
 const formContainer = document.getElementById('form-container');
@@ -200,7 +201,6 @@ function renderForm(blockData, players, picks, teamsMap, gmUid) {
     addSaveHandler(gmUid);
 }
 
-// MODIFIED: This function is completely rewritten to handle the new data structure and anti-abuse rules.
 function addSaveHandler(gmUid) {
     const form = document.getElementById('trade-block-form');
     if (form) {
@@ -234,18 +234,18 @@ function addSaveHandler(gmUid) {
 
                     const newPlayers = selectedPlayerIds.map(id => {
                         if (oldPlayersMap.has(id)) {
-                            return { id, addedOn: oldPlayersMap.get(id) }; // Preserve old timestamp
+                            return { id, addedOn: oldPlayersMap.get(id) };
                         }
-                        isNewAddition = true; // Flag that a new item was added
-                        return { id, addedOn: serverTimestamp() }; // Assign new timestamp
+                        isNewAddition = true;
+                        return { id, addedOn: Timestamp.now() };
                     });
 
                     const newPicks = selectedPickIds.map(id => {
                         if (oldPicksMap.has(id)) {
-                            return { id, addedOn: oldPicksMap.get(id) }; // Preserve old timestamp
+                            return { id, addedOn: oldPicksMap.get(id) };
                         }
-                        isNewAddition = true; // Flag that a new item was added
-                        return { id, addedOn: serverTimestamp() }; // Assign new timestamp
+                        isNewAddition = true;
+                        return { id, addedOn: Timestamp.now() };
                     });
                     
                     const updatedData = {
@@ -255,7 +255,6 @@ function addSaveHandler(gmUid) {
                         seeking: seekingText,
                     };
 
-                    // Only update 'last_updated' if a genuinely new item was added
                     if (isNewAddition) {
                         updatedData.last_updated = serverTimestamp();
                     }
@@ -268,7 +267,7 @@ function addSaveHandler(gmUid) {
 
             } catch (error) {
                 console.error("Error saving/deleting trade block:", error);
-                alert("Error: Could not save trade block. Check console for details.");
+                alert(`Error: ${error.message}`);
                 saveButton.textContent = 'Save Changes';
                 saveButton.disabled = false;
             }
