@@ -54,21 +54,22 @@ async function authorizeAndLoadForm(user, teamId) {
     try {
         const activeSeasonId = await getActiveSeasonId();
 
+        // Define references to the new V2 collections
         const teamRef = doc(db, collectionNames.teams, teamId);
         const teamRecordRef = doc(teamRef, collectionNames.seasonalRecords, activeSeasonId);
         const userAdminRef = doc(db, collectionNames.users, user.uid);
         const playersQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const picksQuery = query(collection(db, collectionNames.draftPicks), where("current_owner", "==", teamId));
-        const allTeamsQuery = collection(db, collectionNames.teams);
+        // MODIFIED: Removed the inefficient 'allTeamsQuery'
         const blockRef = doc(db, "tradeblocks", teamId);
 
-        const [teamDoc, teamRecordDoc, adminDoc, playersSnap, picksSnap, allTeamsSnap, blockDoc] = await Promise.all([
+        // MODIFIED: Removed 'getDocs(allTeamsQuery)' and 'allTeamsSnap' to make the data fetch more efficient
+        const [teamDoc, teamRecordDoc, adminDoc, playersSnap, picksSnap, blockDoc] = await Promise.all([
             getDoc(teamRef),
             getDoc(teamRecordRef),
             getDoc(userAdminRef),
             getDocs(playersQuery),
             getDocs(picksQuery),
-            getDocs(allTeamsQuery),
             getDoc(blockRef)
         ]);
 
@@ -87,6 +88,7 @@ async function authorizeAndLoadForm(user, teamId) {
             return;
         }
 
+        // Fetch seasonal records for all teams (this is necessary to format pick descriptions)
         const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
         const teamsMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
         
@@ -96,6 +98,7 @@ async function authorizeAndLoadForm(user, teamId) {
         const playerIds = playersSnap.docs.map(doc => doc.id);
         let availablePlayers = [];
         if (playerIds.length > 0) {
+            // Firestore 'in' query is limited to 30, but a team roster will not exceed this.
             const playerStatsPaths = playerIds.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
             const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
             const statsSnap = await getDocs(statsQuery);
