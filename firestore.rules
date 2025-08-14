@@ -96,6 +96,12 @@ service cloud.firestore {
     match /{path=**}/seasonal_records/{recordId} {
         allow get, list: if true;
     }
+    match /v2_teams/{teamId}/seasonal_records/{recordId} {
+        allow read: if true;
+    }
+    match /v2_players/{playerId}/seasonal_stats/{recordId} {
+        allow read: if true;
+    }
     
     // =======================================================
     // V2 DEVELOPMENT RULES (_dev)
@@ -184,7 +190,14 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdminDev();
     }
-    
+
+    // MODIFIED: Added explicit paths for the _dev subcollections as well.
+    match /v2_teams_dev/{teamId}/seasonal_records_dev/{recordId} {
+        allow read: if true;
+    }
+    match /v2_players_dev/{playerId}/seasonal_stats_dev/{recordId} {
+        allow read: if true;
+    }
     // =======================================================
     // ADMIN-ONLY & LEGACY RULES (Corrected)
     // =======================================================
