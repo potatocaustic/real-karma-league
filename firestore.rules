@@ -3,13 +3,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- HELPER FUNCTIONS ---
-    function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    
-    function isAdminDev() {
-      return get(/databases/$(database)/documents/users_dev/$(request.auth.uid)).data.role == 'admin';
+    // --- UNIFIED HELPER FUNCTION ---
+    // This single function correctly checks for admin status in EITHER
+    // the production 'users' or development 'users_dev' collection.
+    function isUserAdmin() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let userDevPath = /databases/$(database)/documents/users_dev/$(request.auth.uid);
+      
+      // Check for admin role in the production 'users' collection
+      let isProdAdmin = exists(userPath) && get(userPath).data.role == 'admin';
+      
+      // Check for admin role in the development 'users_dev' collection
+      let isDevAdmin = exists(userDevPath) && get(userDevPath).data.role == 'admin';
+      
+      return isProdAdmin || isDevAdmin;
     }
 
     // =======================================================
@@ -18,93 +25,93 @@ service cloud.firestore {
 
     match /settings/{doc=**} {
       allow read: if true;
-      allow write: if isAdmin() || isAdminDev();
+      allow write: if isUserAdmin();
     }
 
     match /tradeblocks/{teamId} {
       allow read: if true;
-      allow write: if request.auth.uid == request.resource.data.gm_uid || isAdmin() || isAdminDev();
+      allow write: if request.auth.uid == request.resource.data.gm_uid || isUserAdmin();
     }
 
     // --- Production Rules ---
 
     match /seasons/{seasonId} {
       allow get, list: if request.auth.uid != null;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
       match /{documents=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
       }
     }
 
     match /v2_players/{document=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /v2_teams/{document=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /draftPicks/{doc=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /live_games/{gameId} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /transactions/{transactionId} {
       allow read: if true;
-      allow create: if isAdmin();
+      allow create: if isUserAdmin();
       allow update, delete: if false; 
     }
     match /transactions/seasons/{seasonId}/{transactionId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /draft_results/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /awards/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /power_rankings/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /lottery_results/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /live_scoring_status/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /users/{userId} {
-        allow read: if request.auth.uid == userId || isAdmin();
-        allow write: if isAdmin();
+        allow read: if request.auth.uid == userId || isUserAdmin();
+        allow write: if isUserAdmin();
     }
     match /daily_scores/{doc=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /post_daily_scores/{doc=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /daily_averages/{doc=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /post_daily_averages/{doc=**} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /leaderboards/{doc=**} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /{path=**}/seasonal_stats/{recordId} {
         allow get, list: if true;
@@ -117,81 +124,81 @@ service cloud.firestore {
 
     match /seasons_dev/{seasonId} {
       allow get, list: if request.auth.uid != null;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
       match /{documents=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
       }
     }
 
     match /v2_players_dev/{document=**} {
       allow read: if true;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
     }
     match /v2_teams_dev/{document=**} {
       allow read: if true;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
     }
     match /live_games_dev/{gameId} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /transactions_dev/{transactionId} {
       allow read: if true;
-      allow create: if isAdminDev();
+      allow create: if isUserAdmin();
       allow update, delete: if false;
     }
     match /transactions_dev/seasons/{seasonId}/{transactionId} {
       allow read: if true;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
     }
     match /draft_results_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /draftPicks_dev/{doc=**} {
       allow read: if true;
-      allow write: if isAdminDev(); 
+      allow write: if isUserAdmin(); 
     }
     match /awards_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /power_rankings_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /lottery_results_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /live_scoring_status_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /usage_stats_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /users_dev/{userId} {
-        allow read: if request.auth.uid == userId || isAdminDev();
-        allow write: if isAdminDev();
+        allow read: if request.auth.uid == userId || isUserAdmin();
+        allow write: if isUserAdmin();
     }
     match /daily_scores_dev/{doc=**} {
       allow read: if true;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
     }
     match /post_daily_scores_dev/{doc=**} {
       allow read: if true;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
     }
     match /daily_averages_dev/{doc=**} {
       allow read: if true;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
     }
     match /leaderboards_dev/{doc=**} {
         allow read: if true;
-        allow write: if isAdminDev();
+        allow write: if isUserAdmin();
     }
     match /{path=**}/seasonal_stats_dev/{recordId} {
         allow get, list: if true;
@@ -201,7 +208,7 @@ service cloud.firestore {
     }
     match /post_daily_averages_dev/{doc=**} {
       allow read: if true;
-      allow write: if isAdminDev();
+      allow write: if isUserAdmin();
     }
 
     // =======================================================
@@ -238,17 +245,23 @@ service cloud.firestore {
     }
     match /lineups/{doc} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isUserAdmin();
     }
     match /post_lineups/{doc} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isUserAdmin();
     }
     match /new_players/{doc=**} {
-      allow read, write: if isAdmin();
+      allow read, write: if isUserAdmin();
     }
     match /new_teams/{doc=**} {
-      allow read, write: if isAdmin();
+      allow read, write: if isUserAdmin();
     }
   }
 }
+
+
+
+
+
+
