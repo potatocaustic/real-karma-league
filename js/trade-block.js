@@ -24,19 +24,9 @@ const adminControlsContainer = document.getElementById('admin-controls');
 const pageHeader = document.querySelector('.page-header');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
 
-// NEW: Inject CSS for new features
+// Inject CSS for new features, including dark mode fixes
 document.head.insertAdjacentHTML('beforeend', `
 <style>
-    .new-badge {
-        background-color: #4CAF50; /* Green */
-        color: white;
-        padding: 3px 8px;
-        font-size: 0.75rem;
-        font-weight: bold;
-        border-radius: 10px;
-        margin-left: 8px;
-        vertical-align: middle;
-    }
     .collapsible-content {
         position: relative;
         max-height: 110px; /* Approx 5 lines */
@@ -60,9 +50,6 @@ document.head.insertAdjacentHTML('beforeend', `
         color: #007bff;
         font-weight: bold;
     }
-    .dark-theme .collapsible-content .show-more-btn {
-         background: linear-gradient(to top, rgba(24,26,27,1) 60%, rgba(24,26,27,0));
-    }
     .collapsible-content.expanded .show-more-btn {
         display: none;
     }
@@ -74,10 +61,17 @@ document.head.insertAdjacentHTML('beforeend', `
         font-size: 1rem;
         text-align: center;
     }
+    /* NEW: Dark mode compatibility styles */
+    .dark-theme .collapsible-content .show-more-btn {
+         background: linear-gradient(to top, rgb(24, 26, 27) 60%, rgba(24, 26, 27, 0));
+    }
+    .dark-theme .edit-my-block-btn {
+        color: #fff;
+        border-color: #fff;
+    }
 </style>
 `);
 
-// NEW: Helper to get the active season ID
 async function getActiveSeasonId() {
     const q = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
     const querySnapshot = await getDocs(q);
@@ -175,11 +169,10 @@ async function displayAllTradeBlocks(currentUserId) {
             }
         }
         
-        // NEW (Request 4): Add "Edit My Trade Block" button for GMs
         if (currentUserTeamId && !isAdmin) {
             const myTeamData = allTeamsMap.get(currentUserTeamId);
             const buttonHtml = `<a href="/S7/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn edit-my-block-btn">Edit ${myTeamData.team_name} Trade Block</a>`;
-            pageHeader.insertAdjacentHTML('afterend', buttonHtml);
+            if (pageHeader) pageHeader.insertAdjacentHTML('afterend', buttonHtml);
         }
 
         if (tradeBlocksSnap.empty) {
@@ -221,48 +214,44 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     }
 }
 
-// MODIFIED: This function is completely rewritten to implement new features
 function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId) {
     const existingBlockTeamIds = new Set();
-    const TWENTY_FOUR_HOURS_AGO = Date.now() - (24 * 60 * 60 * 1000);
-
+    
     tradeBlocksSnap.forEach(doc => {
         const teamId = doc.id;
         const blockData = doc.data();
         const teamData = teamsMap.get(teamId) || { team_name: teamId, gm_uid: null };
         
-        // NEW (Request 3): Check if block is empty
         const playersOnBlock = blockData.on_the_block || [];
         const picksOnBlock = blockData.picks_available_ids || [];
         const seekingText = blockData.seeking || '';
         const isEmpty = playersOnBlock.length === 0 && picksOnBlock.length === 0 && (seekingText.trim() === '' || seekingText.toLowerCase() === 'n/a');
         
-        // If block is empty and the viewer is not the GM, skip rendering this block
         if (isEmpty && teamData.gm_uid !== currentUserId) {
             return; 
         }
 
         existingBlockTeamIds.add(teamId);
 
-        // NEW (Request 2): Check for "New" badge
-        const lastUpdated = blockData.last_updated ? blockData.last_updated.toDate().getTime() : 0;
-        const newBadge = lastUpdated > TWENTY_FOUR_HOURS_AGO ? '<span class="new-badge">New</span>' : '';
-
-        // NEW (Request 1): Process collapsible content
+        // Process collapsible content
         const renderCollapsibleSection = (content, type) => {
-            if (!content || content.length === 0) return type === 'seeking' ? 'N/A' : '<li>N/A</li>';
+            if (!content || content.length === 0) {
+                 return (type === 'seeking') ? 'N/A' : '<ul><li>N/A</li></ul>';
+            }
             
-            const lines = Array.isArray(content) ? content : content.split('\n').filter(l => l.trim() !== '');
-            const lineCount = lines.length;
+            const items = (type === 'seeking') ? content.split('\n').filter(l => l.trim() !== '') : content;
+            const itemCount = items.length;
 
-            if (lineCount <= 5) return type === 'seeking' ? content.replace(/\n/g, '<br>') : content.map(item => `<li>${item}</li>`).join('');
-
+            if (itemCount <= 5) {
+                if (type === 'seeking') return content.replace(/\n/g, '<br>');
+                return `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+            }
+            
             const uniqueId = `collapse-${teamId}-${type}`;
-            const visibleContent = type === 'seeking' ? lines.slice(0, 5).join('<br>') : lines.slice(0, 5).map(item => `<li>${item}</li>`).join('');
-            const hiddenContent = type === 'seeking' ? lines.slice(5).join('<br>') : lines.slice(5).map(item => `<li>${item}</li>`).join('');
+            const listContent = items.map(item => `<li>${item}</li>`).join('');
 
             return `<div id="${uniqueId}" class="collapsible-content">
-                        ${type === 'seeking' ? visibleContent + '<br>' + hiddenContent : '<ul>' + visibleContent + hiddenContent + '</ul>'}
+                        <ul>${listContent}</ul>
                         <div class="show-more-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>
                     </div>`;
         };
@@ -275,6 +264,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         });
         const playersHtml = renderCollapsibleSection(playersList, 'players');
 
+        // MODIFIED: Properly generate picks list for collapsible section
         const picksList = picksOnBlock.map(pickId => {
             const pickInfo = draftPicksMap.get(pickId);
             if (pickInfo) {
@@ -287,7 +277,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             }
             return `${pickId} (Unknown Pick)`;
         });
-        const picksHtml = renderCollapsibleSection(picksList.join('<br>'), 'seeking'); // Use 'seeking' type for <br> formatting
+        const picksHtml = renderCollapsibleSection(picksList, 'picks');
         
         const seekingHtml = renderCollapsibleSection(seekingText, 'seeking');
 
@@ -295,13 +285,13 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
                     <a href="/S7/team.html?id=${teamId}">
-                        <h4><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}${newBadge}</h4>
+                        <h4><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
                     </a>
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
                 <div class="trade-block-content">
-                    <p><strong>Players Available:</strong></p>${playersHtml.startsWith('<li>') ? `<ul>${playersHtml}</ul>` : playersHtml}<hr>
-                    <p><strong>Picks Available:</strong><br>${picksHtml}</p><hr>
+                    <p><strong>Players Available:</strong></p>${playersHtml}<hr>
+                    <p><strong>Picks Available:</strong></p>${picksHtml}<hr>
                     <p><strong>Seeking:</strong><br>${seekingHtml}</p>
                 </div>
             </div>`;
@@ -351,7 +341,6 @@ function addUniversalClickListener(isAdmin) {
     isListenerAttached = true;
     
     document.body.addEventListener('click', (event) => {
-        // NEW (Request 1): Handle collapsible sections
         if (event.target.dataset.action === 'toggle-collapse') {
             const targetElement = document.querySelector(event.target.dataset.target);
             if (targetElement) {
