@@ -56,7 +56,7 @@ if (isDevelopment) {
 }
 
 // NEW: Environment-aware collection name configuration
-[cite_start]// This utility determines whether to use production or development collections. [cite: 2]
+// This utility determines whether to use production or development collections.
 export const collectionNames = {
     users: isDevelopment ? 'users_dev' : 'users',
     teams: isDevelopment ? 'v2_teams_dev' : 'v2_teams',
