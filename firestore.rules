@@ -12,7 +12,10 @@ service cloud.firestore {
     function isAdminDev() {
       return get(/databases/$(database)/documents/users_dev/$(request.auth.uid)).data.role == 'admin';
     }
-
+    match /settings/{doc=**} {
+      allow read: if request.auth.uid != null;
+      allow write: if isAdmin() || isAdminDev(); // Admins can change settings
+    }
     // =======================================================
     // V2 PRODUCTION RULES
     // =======================================================
