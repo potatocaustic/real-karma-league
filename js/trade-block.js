@@ -1,6 +1,5 @@
 // /js/trade-block.js
 
-// MODIFIED: Import new config and helpers from the centralized firebase-init.js
 import { 
     auth, 
     db, 
@@ -16,13 +15,67 @@ import {
     where,
     limit,
     documentId,
-    orderBy, // NEW
-    collectionNames // NEW
+    orderBy,
+    collectionNames
 } from './firebase-init.js';
 
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
+const pageHeader = document.querySelector('.page-header');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+
+// NEW: Inject CSS for new features
+document.head.insertAdjacentHTML('beforeend', `
+<style>
+    .new-badge {
+        background-color: #4CAF50; /* Green */
+        color: white;
+        padding: 3px 8px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        border-radius: 10px;
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+    .collapsible-content {
+        position: relative;
+        max-height: 110px; /* Approx 5 lines */
+        overflow: hidden;
+        transition: max-height 0.3s ease-out;
+    }
+    .collapsible-content.expanded {
+        max-height: 1000px; /* Large enough for any content */
+        transition: max-height 0.5s ease-in;
+    }
+    .collapsible-content .show-more-btn {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        text-align: center;
+        background: linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0));
+        padding-top: 20px;
+        padding-bottom: 5px;
+        cursor: pointer;
+        color: #007bff;
+        font-weight: bold;
+    }
+    .dark-theme .collapsible-content .show-more-btn {
+         background: linear-gradient(to top, rgba(24,26,27,1) 60%, rgba(24,26,27,0));
+    }
+    .collapsible-content.expanded .show-more-btn {
+        display: none;
+    }
+    .edit-my-block-btn {
+        display: block;
+        width: fit-content;
+        margin: 1rem auto 1.5rem auto;
+        padding: 10px 20px;
+        font-size: 1rem;
+        text-align: center;
+    }
+</style>
+`);
 
 // NEW: Helper to get the active season ID
 async function getActiveSeasonId() {
@@ -47,8 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function displayAllTradeBlocks(currentUserId) {
     try {
-        // This initial setup code remains the same
-        const settingsDocRef = doc(db, 'settings', 'tradeBlock'); // Assuming 'settings' doesn't have a _dev version based on rules
+        const settingsDocRef = doc(db, 'settings', 'tradeBlock');
         const settingsDoc = await getDoc(settingsDocRef);
         const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
 
@@ -87,34 +139,22 @@ async function displayAllTradeBlocks(currentUserId) {
         ]);
 
         const allPlayerIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => doc.data().on_the_block || []))];
-
-        // ===================================================================
-        // MODIFIED SECTION TO FIX 'IN' QUERY LIMITATION
-        // ===================================================================
+        
         let playersMap = new Map();
         let statsMap = new Map();
 
         if (allPlayerIds.length > 0) {
-            // Firestore 'in' queries are limited to 30 items. We must "chunk" the queries.
             const CHUNK_SIZE = 30;
             for (let i = 0; i < allPlayerIds.length; i += CHUNK_SIZE) {
                 const chunk = allPlayerIds.slice(i, i + CHUNK_SIZE);
-
-                // Create queries for the current chunk of players
                 const playersQuery = query(collection(db, collectionNames.players), where(documentId(), 'in', chunk));
                 const playerStatsPaths = chunk.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
                 const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
-
-                // Execute queries for the chunk and merge the results into our maps
                 const [playersDataSnap, statsDataSnap] = await Promise.all([getDocs(playersQuery), getDocs(statsQuery)]);
-
                 playersDataSnap.forEach(doc => playersMap.set(doc.id, doc.data()));
                 statsDataSnap.forEach(doc => statsMap.set(doc.ref.parent.parent.id, doc.data()));
             }
         }
-        // ===================================================================
-        // END OF MODIFIED SECTION
-        // ===================================================================
         
         const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
         const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
@@ -134,6 +174,13 @@ async function displayAllTradeBlocks(currentUserId) {
                 if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
             }
         }
+        
+        // NEW (Request 4): Add "Edit My Trade Block" button for GMs
+        if (currentUserTeamId && !isAdmin) {
+            const myTeamData = allTeamsMap.get(currentUserTeamId);
+            const buttonHtml = `<a href="/S7/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn edit-my-block-btn">Edit ${myTeamData.team_name} Trade Block</a>`;
+            pageHeader.insertAdjacentHTML('afterend', buttonHtml);
+        }
 
         if (tradeBlocksSnap.empty) {
             handleEmptyState(isAdmin, currentUserTeamId, allTeamsMap);
@@ -148,7 +195,7 @@ async function displayAllTradeBlocks(currentUserId) {
         container.innerHTML = `<div class="error">Could not load trade blocks. ${error.message}</div>`;
     }
 }
-// MODIFIED: Added statsMap to its signature
+
 function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
     
@@ -174,18 +221,61 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     }
 }
 
-// MODIFIED: Rewritten to use new data structures (V2 players/teams and separated stats)
+// MODIFIED: This function is completely rewritten to implement new features
 function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId) {
     const existingBlockTeamIds = new Set();
+    const TWENTY_FOUR_HOURS_AGO = Date.now() - (24 * 60 * 60 * 1000);
 
-    // The snapshot is already sorted by the Firestore query
     tradeBlocksSnap.forEach(doc => {
         const teamId = doc.id;
-        existingBlockTeamIds.add(teamId);
         const blockData = doc.data();
-        const teamData = teamsMap.get(teamId) || { team_name: teamId };
+        const teamData = teamsMap.get(teamId) || { team_name: teamId, gm_uid: null };
         
-        const picksWithDescriptions = (blockData.picks_available_ids || []).map(pickId => {
+        // NEW (Request 3): Check if block is empty
+        const playersOnBlock = blockData.on_the_block || [];
+        const picksOnBlock = blockData.picks_available_ids || [];
+        const seekingText = blockData.seeking || '';
+        const isEmpty = playersOnBlock.length === 0 && picksOnBlock.length === 0 && (seekingText.trim() === '' || seekingText.toLowerCase() === 'n/a');
+        
+        // If block is empty and the viewer is not the GM, skip rendering this block
+        if (isEmpty && teamData.gm_uid !== currentUserId) {
+            return; 
+        }
+
+        existingBlockTeamIds.add(teamId);
+
+        // NEW (Request 2): Check for "New" badge
+        const lastUpdated = blockData.last_updated ? blockData.last_updated.toDate().getTime() : 0;
+        const newBadge = lastUpdated > TWENTY_FOUR_HOURS_AGO ? '<span class="new-badge">New</span>' : '';
+
+        // NEW (Request 1): Process collapsible content
+        const renderCollapsibleSection = (content, type) => {
+            if (!content || content.length === 0) return type === 'seeking' ? 'N/A' : '<li>N/A</li>';
+            
+            const lines = Array.isArray(content) ? content : content.split('\n').filter(l => l.trim() !== '');
+            const lineCount = lines.length;
+
+            if (lineCount <= 5) return type === 'seeking' ? content.replace(/\n/g, '<br>') : content.map(item => `<li>${item}</li>`).join('');
+
+            const uniqueId = `collapse-${teamId}-${type}`;
+            const visibleContent = type === 'seeking' ? lines.slice(0, 5).join('<br>') : lines.slice(0, 5).map(item => `<li>${item}</li>`).join('');
+            const hiddenContent = type === 'seeking' ? lines.slice(5).join('<br>') : lines.slice(5).map(item => `<li>${item}</li>`).join('');
+
+            return `<div id="${uniqueId}" class="collapsible-content">
+                        ${type === 'seeking' ? visibleContent + '<br>' + hiddenContent : '<ul>' + visibleContent + hiddenContent + '</ul>'}
+                        <div class="show-more-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>
+                    </div>`;
+        };
+
+        const playersList = playersOnBlock.map(playerId => {
+            const pData = playersMap.get(playerId);
+            const pStats = statsMap.get(playerId);
+            if (!pData || !pStats) return `Player data not found`;
+            return `<a href="/S7/player.html?id=${playerId}">${pData.player_handle}</a> (GP: ${pStats.games_played || 0}, REL: ${pStats.rel_median ? parseFloat(pStats.rel_median).toFixed(3) : 'N/A'}, WAR: ${pStats.WAR ? pStats.WAR.toFixed(2) : 'N/A'})`;
+        });
+        const playersHtml = renderCollapsibleSection(playersList, 'players');
+
+        const picksList = picksOnBlock.map(pickId => {
             const pickInfo = draftPicksMap.get(pickId);
             if (pickInfo) {
                 const originalTeamInfo = teamsMap.get(pickInfo.original_team);
@@ -196,28 +286,23 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                 return `S${pickInfo.season} ${teamName} ${round}${roundSuffix} ${ownerRecord}`;
             }
             return `${pickId} (Unknown Pick)`;
-        }).join('<br>') || 'N/A';
-
-        // MODIFIED: Player data lookup is different now
-        const playersWithStats = (blockData.on_the_block || []).map(playerId => {
-            const pData = playersMap.get(playerId);
-            const pStats = statsMap.get(playerId);
-            if (!pData || !pStats) return `<li>Player data not found</li>`;
-            return `<li><a href="/S7/player.html?id=${playerId}">${pData.player_handle}</a> (GP: ${pStats.games_played || 0}, REL: ${pStats.rel_median ? parseFloat(pStats.rel_median).toFixed(3) : 'N/A'}, WAR: ${pStats.WAR ? pStats.WAR.toFixed(2) : 'N/A'})</li>`;
-        }).join('') || '<li>N/A</li>';
+        });
+        const picksHtml = renderCollapsibleSection(picksList.join('<br>'), 'seeking'); // Use 'seeking' type for <br> formatting
+        
+        const seekingHtml = renderCollapsibleSection(seekingText, 'seeking');
 
         const blockHtml = `
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
                     <a href="/S7/team.html?id=${teamId}">
-                        <h4><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
+                        <h4><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}${newBadge}</h4>
                     </a>
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
                 <div class="trade-block-content">
-                    <p><strong>Players Available:</strong></p><ul class="player-list">${playersWithStats}</ul><hr>
-                    <p><strong>Picks Available:</strong><br>${picksWithDescriptions}</p><hr>
-                    <p><strong>Seeking:</strong><br>${blockData.seeking || 'N/A'}</p>
+                    <p><strong>Players Available:</strong></p>${playersHtml.startsWith('<li>') ? `<ul>${playersHtml}</ul>` : playersHtml}<hr>
+                    <p><strong>Picks Available:</strong><br>${picksHtml}</p><hr>
+                    <p><strong>Seeking:</strong><br>${seekingHtml}</p>
                 </div>
             </div>`;
         container.innerHTML += blockHtml;
@@ -266,6 +351,15 @@ function addUniversalClickListener(isAdmin) {
     isListenerAttached = true;
     
     document.body.addEventListener('click', (event) => {
+        // NEW (Request 1): Handle collapsible sections
+        if (event.target.dataset.action === 'toggle-collapse') {
+            const targetElement = document.querySelector(event.target.dataset.target);
+            if (targetElement) {
+                targetElement.classList.add('expanded');
+            }
+            return;
+        }
+
         const target = event.target.closest('button');
         if (!target) return;
 
@@ -286,9 +380,7 @@ function addUniversalClickListener(isAdmin) {
                 if (confirm(confirmMsg)) {
                     target.textContent = 'Processing...';
                     target.disabled = true;
-                    
                     const action = httpsCallable(functions, callableName);
-
                     currentUser.getIdToken(true).then(() => {
                         return action();
                     }).then(result => {
