@@ -225,8 +225,8 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdmin();
     }
-    match /tradeblocks/{doc} {
-      allow read: if true;
+    match /tradeblocks/{teamId} {
+      allow read: if request.auth.uid != null;
       allow write: if request.auth.uid == request.resource.data.gm_uid || isAdmin() || isAdminDev();
     }
     match /new_players/{doc=**} {
