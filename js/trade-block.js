@@ -24,12 +24,12 @@ const adminControlsContainer = document.getElementById('admin-controls');
 const pageHeader = document.querySelector('.page-header');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
 
+// Inject CSS for new features
 document.head.insertAdjacentHTML('beforeend', `
 <style>
-    /* MODIFIED: Added style for the new 'new-item-badge' */
     .new-item-badge {
         display: inline-block;
-        background-color: #dc3545;
+        background-color: #28a745; /* MODIFIED: Changed to green */
         color: white;
         padding: 2px 6px;
         font-size: 0.7rem;
@@ -38,6 +38,11 @@ document.head.insertAdjacentHTML('beforeend', `
         margin-left: 8px;
         vertical-align: middle;
         text-transform: uppercase;
+    }
+    /* NEW: Style to remove bullet points from lists */
+    .trade-block-item-list {
+        list-style-type: none;
+        padding-left: 0;
     }
     .collapsible-content {
         position: relative;
@@ -130,7 +135,6 @@ async function displayAllTradeBlocks(currentUserId) {
             getDocs(collection(db, collectionNames.draftPicks))
         ]);
 
-        // MODIFIED: Get all player IDs from the new data structure
         const allPlayerIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => (doc.data().on_the_block || []).map(p => p.id)))];
         
         let playersMap = new Map();
@@ -189,7 +193,28 @@ async function displayAllTradeBlocks(currentUserId) {
 }
 
 function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
-    // This function remains the same
+    container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
+    
+    if (isAdmin) {
+        let adminSetupHtml = '<div class="trade-blocks-container"><h4>Admin: Create a Trade Block for a Team</h4>';
+        teamsMap.forEach((team, teamId) => {
+            if (team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())) {
+                adminSetupHtml += `
+                    <div class="admin-setup-item">
+                        <span><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${team.team_name}</span>
+                        <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
+                    </div>`;
+            }
+        });
+        adminSetupHtml += '</div>';
+        container.innerHTML += adminSetupHtml;
+    } else if (currentUserTeamId) {
+        const setupButtonHtml = `<div style="text-align: center; border-top: 2px solid #ddd; padding-top: 2rem;">
+            <h4>Your trade block is empty.</h4>
+            <button class="edit-btn" data-team-id="${currentUserTeamId}" data-action="setup">Set Up My Trade Block</button>
+        </div>`;
+        container.innerHTML += setupButtonHtml;
+    }
 }
 
 function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId) {
@@ -212,10 +237,9 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
 
         existingBlockTeamIds.add(teamId);
 
-        // MODIFIED: This function now has its full implementation
         const renderCollapsibleSection = (content, type) => {
             if (!content || content.length === 0) {
-                 return (type === 'seeking') ? 'N/A' : '<ul><li>N/A</li></ul>';
+                 return (type === 'seeking') ? 'N/A' : '<ul class="trade-block-item-list"><li>N/A</li></ul>';
             }
             
             const items = (type === 'seeking') ? content.split('\n').filter(l => l.trim() !== '') : content;
@@ -226,7 +250,8 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             if (type === 'seeking') {
                 listContent = items.join('<br>');
             } else {
-                listContent = `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                // MODIFIED: Added class="trade-block-item-list" to the ul
+                listContent = `<ul class="trade-block-item-list">${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
             }
 
             if (itemCount <= 5) {
@@ -332,7 +357,6 @@ function addUniversalClickListener(isAdmin) {
         if (clickTarget.dataset.action === 'toggle-collapse') {
             const targetElement = document.querySelector(clickTarget.dataset.target);
             if (targetElement) {
-                // MODIFIED: Toggle the class and then update the button's text based on the new state.
                 const isNowExpanded = targetElement.classList.toggle('expanded');
                 clickTarget.textContent = isNowExpanded ? 'Show Less' : 'Show More...';
             }
