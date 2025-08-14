@@ -129,17 +129,19 @@ async function displayAllTradeBlocks(currentUserId) {
         const activeSeasonId = await getActiveSeasonId();
         const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
 
-        const [tradeBlocksSnap, teamsSnap, draftPicksSnap] = await Promise.all([
+        // MODIFIED: Removed the inefficient fetching of all draft picks here.
+        const [tradeBlocksSnap, teamsSnap] = await Promise.all([
             getDocs(tradeBlocksQuery),
             getDocs(collection(db, collectionNames.teams)),
-            getDocs(collection(db, collectionNames.draftPicks))
         ]);
 
+        // 1. Get all Player and Pick IDs from the trade blocks first.
         const allPlayerIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => (doc.data().on_the_block || []).map(p => p.id)))];
+        const allPickIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => (doc.data().picks_available_ids || []).map(p => p.id)))];
         
+        // 2. Fetch Player data on-demand in chunks (already efficient).
         let playersMap = new Map();
         let statsMap = new Map();
-
         if (allPlayerIds.length > 0) {
             const CHUNK_SIZE = 30;
             for (let i = 0; i < allPlayerIds.length; i += CHUNK_SIZE) {
@@ -153,6 +155,19 @@ async function displayAllTradeBlocks(currentUserId) {
             }
         }
         
+        // 3. NEW: Fetch Draft Pick data on-demand in chunks (now efficient).
+        let draftPicksMap = new Map();
+        if (allPickIds.length > 0) {
+            const CHUNK_SIZE = 30;
+             for (let i = 0; i < allPickIds.length; i += CHUNK_SIZE) {
+                const chunk = allPickIds.slice(i, i + CHUNK_SIZE);
+                const picksQuery = query(collection(db, collectionNames.draftPicks), where(documentId(), 'in', chunk));
+                const picksDataSnap = await getDocs(picksQuery);
+                picksDataSnap.forEach(doc => draftPicksMap.set(doc.id, doc.data()));
+            }
+        }
+
+        // 4. The rest of the function proceeds as normal with the efficiently fetched data.
         const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
         const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
         
@@ -161,8 +176,6 @@ async function displayAllTradeBlocks(currentUserId) {
             const seasonalData = teamsRecordMap.get(doc.id) || {};
             return [doc.id, { ...staticData, ...seasonalData }];
         }));
-
-        const draftPicksMap = new Map(draftPicksSnap.docs.map(doc => [doc.id, doc.data()]));
 
         container.innerHTML = '';
         let currentUserTeamId = null;
@@ -191,7 +204,6 @@ async function displayAllTradeBlocks(currentUserId) {
         container.innerHTML = `<div class="error">Could not load trade blocks. ${error.message}</div>`;
     }
 }
-
 function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
     
