@@ -44,14 +44,24 @@ document.head.insertAdjacentHTML('beforeend', `
         width: 100%;
         text-align: center;
         background: linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0));
-        padding-top: 20px;
-        padding-bottom: 5px;
+        padding: 20px 0 5px 0;
         cursor: pointer;
         color: #007bff;
         font-weight: bold;
     }
     .collapsible-content.expanded .show-more-btn {
         display: none;
+    }
+    .show-less-btn {
+        display: none; /* Hidden by default */
+        text-align: center;
+        padding: 8px;
+        cursor: pointer;
+        color: #007bff;
+        font-weight: bold;
+    }
+    .collapsible-content.expanded .show-less-btn {
+        display: block; /* Shown only when expanded */
     }
     .edit-my-block-btn {
         display: block;
@@ -61,13 +71,12 @@ document.head.insertAdjacentHTML('beforeend', `
         font-size: 1rem;
         text-align: center;
     }
-    /* NEW: Dark mode compatibility styles */
-    .dark-theme .collapsible-content .show-more-btn {
-         background: linear-gradient(to top, rgb(24, 26, 27) 60%, rgba(24, 26, 27, 0));
+    /* CORRECTED: Dark mode compatibility styles */
+    .dark-mode .collapsible-content .show-more-btn {
+         background: linear-gradient(to top, rgb(30, 30, 30) 60%, rgba(30, 30, 30, 0));
     }
-    .dark-theme .edit-my-block-btn {
+    .dark-mode .edit-my-block-btn {
         color: #fff;
-        border-color: #fff;
     }
 </style>
 `);
@@ -123,7 +132,6 @@ async function displayAllTradeBlocks(currentUserId) {
         }
 
         const activeSeasonId = await getActiveSeasonId();
-
         const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
 
         const [tradeBlocksSnap, teamsSnap, draftPicksSnap] = await Promise.all([
@@ -241,19 +249,24 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             
             const items = (type === 'seeking') ? content.split('\n').filter(l => l.trim() !== '') : content;
             const itemCount = items.length;
+            const uniqueId = `collapse-${teamId}-${type}`;
+
+            let listContent;
+            if (type === 'seeking') {
+                listContent = items.join('<br>');
+            } else {
+                listContent = `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+            }
 
             if (itemCount <= 5) {
-                if (type === 'seeking') return content.replace(/\n/g, '<br>');
-                return `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+                return listContent;
             }
             
-            const uniqueId = `collapse-${teamId}-${type}`;
-            const listContent = items.map(item => `<li>${item}</li>`).join('');
-
             return `<div id="${uniqueId}" class="collapsible-content">
-                        <ul>${listContent}</ul>
+                        ${listContent}
                         <div class="show-more-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>
-                    </div>`;
+                    </div>
+                    <div class="show-less-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show Less</div>`;
         };
 
         const playersList = playersOnBlock.map(playerId => {
@@ -264,7 +277,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         });
         const playersHtml = renderCollapsibleSection(playersList, 'players');
 
-        // MODIFIED: Properly generate picks list for collapsible section
         const picksList = picksOnBlock.map(pickId => {
             const pickInfo = draftPicksMap.get(pickId);
             if (pickInfo) {
@@ -341,18 +353,20 @@ function addUniversalClickListener(isAdmin) {
     isListenerAttached = true;
     
     document.body.addEventListener('click', (event) => {
-        if (event.target.dataset.action === 'toggle-collapse') {
-            const targetElement = document.querySelector(event.target.dataset.target);
+        const clickTarget = event.target;
+        if (clickTarget.dataset.action === 'toggle-collapse') {
+            const targetElement = document.querySelector(clickTarget.dataset.target);
             if (targetElement) {
-                targetElement.classList.add('expanded');
+                // MODIFIED: Toggle class instead of just adding it
+                targetElement.classList.toggle('expanded');
             }
             return;
         }
 
-        const target = event.target.closest('button');
-        if (!target) return;
+        const buttonTarget = clickTarget.closest('button');
+        if (!buttonTarget) return;
 
-        const teamIdToEdit = target.dataset.teamId;
+        const teamIdToEdit = buttonTarget.dataset.teamId;
         if (teamIdToEdit) {
             window.location.href = `/S7/edit-trade-block.html?team=${teamIdToEdit}`;
             return;
@@ -367,8 +381,8 @@ function addUniversalClickListener(isAdmin) {
 
             const handleAdminAction = (callableName, confirmMsg, buttonText) => {
                 if (confirm(confirmMsg)) {
-                    target.textContent = 'Processing...';
-                    target.disabled = true;
+                    buttonTarget.textContent = 'Processing...';
+                    buttonTarget.disabled = true;
                     const action = httpsCallable(functions, callableName);
                     currentUser.getIdToken(true).then(() => {
                         return action();
@@ -378,15 +392,15 @@ function addUniversalClickListener(isAdmin) {
                     }).catch(error => {
                         console.error("Function call failed:", error);
                         alert(`Error: ${error.message}`);
-                        target.textContent = buttonText;
-                        target.disabled = false;
+                        buttonTarget.textContent = buttonText;
+                        buttonTarget.disabled = false;
                     });
                 }
             };
 
-            if (target.id === 'deadline-btn') {
+            if (buttonTarget.id === 'deadline-btn') {
                 handleAdminAction('clearAllTradeBlocks', 'Are you sure you want to CLEAR ALL trade blocks and activate the deadline? This cannot be undone.', 'Activate Trade Deadline');
-            } else if (target.id === 'reopen-btn') {
+            } else if (buttonTarget.id === 'reopen-btn') {
                 handleAdminAction('reopenTradeBlocks', 'Are you sure you want to re-open trading for all teams?', 'Re-Open Trading');
             }
         }
