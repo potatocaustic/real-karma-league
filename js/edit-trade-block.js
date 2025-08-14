@@ -223,7 +223,6 @@ function addSaveHandler(gmUid) {
                 const now = Timestamp.now();
                 const NINETY_SIX_HOURS_AGO_MS = now.toMillis() - (96 * 60 * 60 * 1000);
 
-                // 1. Manage the recently_removed list.
                 let recently_removed = (oldBlockData.recently_removed || []).filter(item => item.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS);
                 
                 const oldPlayers = oldBlockData.on_the_block || [];
@@ -242,7 +241,6 @@ function addSaveHandler(gmUid) {
                 
                 const removedMap = new Map(recently_removed.map(item => [item.id, item]));
 
-                // 2. Build the new lists, restoring timestamps where necessary.
                 const oldPlayersMap = new Map(oldPlayers.map(p => [p.id, p.addedOn]));
                 const newPlayers = Array.from(selectedPlayerIds).map(id => {
                     if (oldPlayersMap.has(id)) return { id, addedOn: oldPlayersMap.get(id) };
@@ -267,9 +265,6 @@ function addSaveHandler(gmUid) {
                     return { id, addedOn: now };
                 });
 
-                // 3. MODIFIED: This is the new, robust way to determine a new addition.
-                // An addition is "new" only if its timestamp was just created ('now'),
-                // not restored from the block's history.
                 const hasNewPlayer = newPlayers.some(p => p.addedOn === now);
                 const hasNewPick = newPicks.some(p => p.addedOn === now);
                 const isNewAddition = hasNewPlayer || hasNewPick;
@@ -291,9 +286,13 @@ function addSaveHandler(gmUid) {
                 }
                 
                 await setDoc(tradeBlockRef, updatedData);
-                alert("Trade block saved successfully!");
                 
-                window.location.href = '/S7/trade-block.html';
+                saveButton.textContent = 'Success!';
+                saveButton.style.backgroundColor = '#28a745'; // Green color
+
+                setTimeout(() => {
+                    window.location.href = '/S7/trade-block.html';
+                }, 1000); // 1 second delay
 
             } catch (error) {
                 console.error("Error saving/deleting trade block:", error);
