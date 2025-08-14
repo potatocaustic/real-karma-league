@@ -1,15 +1,15 @@
 // /js/trade-block.js
 
-import { 
-    auth, 
-    db, 
-    functions, 
-    onAuthStateChanged, 
+import {
+    auth,
+    db,
+    functions,
+    onAuthStateChanged,
     collection,
     collectionGroup,
-    doc, 
-    getDoc, 
-    getDocs, 
+    doc,
+    getDoc,
+    getDocs,
     httpsCallable,
     query,
     where,
@@ -24,7 +24,7 @@ const adminControlsContainer = document.getElementById('admin-controls');
 const pageHeader = document.querySelector('.page-header');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
 
-// Inject CSS for new features, including dark mode fixes
+// Inject CSS for new features, with corrected selectors
 document.head.insertAdjacentHTML('beforeend', `
 <style>
     .collapsible-content {
@@ -60,7 +60,8 @@ document.head.insertAdjacentHTML('beforeend', `
         color: #007bff;
         font-weight: bold;
     }
-    .collapsible-content.expanded .show-less-btn {
+    /* MODIFIED: Use adjacent sibling selector (+) to show the button */
+    .collapsible-content.expanded + .show-less-btn {
         display: block; /* Shown only when expanded */
     }
     .edit-my-block-btn {
@@ -71,12 +72,12 @@ document.head.insertAdjacentHTML('beforeend', `
         font-size: 1rem;
         text-align: center;
     }
-    /* CORRECTED: Dark mode compatibility styles */
     .dark-mode .collapsible-content .show-more-btn {
          background: linear-gradient(to top, rgb(30, 30, 30) 60%, rgba(30, 30, 30, 0));
     }
-    .dark-mode .edit-my-block-btn {
-        color: #fff;
+    /* MODIFIED: Increased selector specificity to override global-styles.css */
+    .dark-mode a.edit-my-block-btn {
+        color: #fff !important;
     }
 </style>
 `);
@@ -262,6 +263,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                 return listContent;
             }
             
+            // MODIFIED: Added a Show Less button that is a sibling to the content div
             return `<div id="${uniqueId}" class="collapsible-content">
                         ${listContent}
                         <div class="show-more-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>
@@ -354,10 +356,11 @@ function addUniversalClickListener(isAdmin) {
     
     document.body.addEventListener('click', (event) => {
         const clickTarget = event.target;
+        
+        // MODIFIED: Toggle class to handle both Show More and Show Less
         if (clickTarget.dataset.action === 'toggle-collapse') {
             const targetElement = document.querySelector(clickTarget.dataset.target);
             if (targetElement) {
-                // MODIFIED: Toggle class instead of just adding it
                 targetElement.classList.toggle('expanded');
             }
             return;
