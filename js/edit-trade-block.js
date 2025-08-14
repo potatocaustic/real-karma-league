@@ -200,7 +200,6 @@ function renderForm(blockData, players, picks, teamsMap, gmUid) {
     formContainer.innerHTML = formHtml;
     addSaveHandler(gmUid);
 }
-
 function addSaveHandler(gmUid) {
     const form = document.getElementById('trade-block-form');
     if (form) {
@@ -218,17 +217,13 @@ function addSaveHandler(gmUid) {
             try {
                 const tradeBlockRef = doc(db, "tradeblocks", teamId);
                 
-                // MODIFIED: The logic no longer checks if the block is empty or deletes the document.
-                // It now follows a single, unified path to always update the document,
-                // which preserves the 'recently_removed' history.
-
                 const existingBlockDoc = await getDoc(tradeBlockRef);
                 const oldBlockData = existingBlockDoc.exists() ? existingBlockDoc.data() : { on_the_block: [], picks_available_ids: [], recently_removed: [] };
 
                 const now = Timestamp.now();
                 const NINETY_SIX_HOURS_AGO_MS = now.toMillis() - (96 * 60 * 60 * 1000);
 
-                // 1. Manage the recently_removed list by filtering out old items and adding newly removed ones.
+                // 1. Manage the recently_removed list.
                 let recently_removed = (oldBlockData.recently_removed || []).filter(item => item.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS);
                 
                 const oldPlayers = oldBlockData.on_the_block || [];
@@ -247,7 +242,7 @@ function addSaveHandler(gmUid) {
                 
                 const removedMap = new Map(recently_removed.map(item => [item.id, item]));
 
-                // 2. Build the new lists, checking against old and recently removed items to enforce anti-abuse rules.
+                // 2. Build the new lists, restoring timestamps where necessary.
                 const oldPlayersMap = new Map(oldPlayers.map(p => [p.id, p.addedOn]));
                 const newPlayers = Array.from(selectedPlayerIds).map(id => {
                     if (oldPlayersMap.has(id)) return { id, addedOn: oldPlayersMap.get(id) };
@@ -272,11 +267,11 @@ function addSaveHandler(gmUid) {
                     return { id, addedOn: now };
                 });
 
-                // 3. Robustly determine if a genuinely new item was added.
-                const oldPlayerIds = new Set(oldPlayers.map(p => p.id));
-                const hasNewPlayer = newPlayers.some(p => !oldPlayerIds.has(p.id));
-                const oldPickIds = new Set(oldPicks.map(p => p.id));
-                const hasNewPick = newPicks.some(p => !oldPickIds.has(p.id));
+                // 3. MODIFIED: This is the new, robust way to determine a new addition.
+                // An addition is "new" only if its timestamp was just created ('now'),
+                // not restored from the block's history.
+                const hasNewPlayer = newPlayers.some(p => p.addedOn === now);
+                const hasNewPick = newPicks.some(p => p.addedOn === now);
                 const isNewAddition = hasNewPlayer || hasNewPick;
 
                 const updatedData = {
