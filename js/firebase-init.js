@@ -22,7 +22,8 @@ import {
     onSnapshot,
     connectFirestoreEmulator,
     collectionGroup,
-    documentId 
+    documentId,
+    collectionNames
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
@@ -74,5 +75,6 @@ export {
     arrayUnion,
     onSnapshot,
     collectionGroup,
-    documentId 
+    documentId,
+    collectionNames
 };
