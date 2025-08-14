@@ -256,7 +256,8 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
     match /tradeblocks/{teamId} {
-      allow read: if request.auth.uid != null;
+      // Allow anyone to read the trade blocks, but only GMs/Admins to write.
+      allow read: if true; 
       allow write: if request.auth.uid == request.resource.data.gm_uid || isAdmin() || isAdminDev();
     }
     match /new_players/{doc=**} {
