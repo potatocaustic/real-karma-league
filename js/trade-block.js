@@ -201,7 +201,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
         const blockData = doc.data();
         const teamData = teamsMap.get(teamId) || { team_name: teamId, gm_uid: null };
         
-        // MODIFIED: Read from new data structure and sort by timestamp
         const playersOnBlock = (blockData.on_the_block || []).sort((a, b) => b.addedOn.toMillis() - a.addedOn.toMillis());
         const picksOnBlock = (blockData.picks_available_ids || []).sort((a, b) => b.addedOn.toMillis() - a.addedOn.toMillis());
         const seekingText = blockData.seeking || '';
@@ -213,11 +212,31 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
 
         existingBlockTeamIds.add(teamId);
 
+        // MODIFIED: This function now has its full implementation
         const renderCollapsibleSection = (content, type) => {
-            // This function remains the same
+            if (!content || content.length === 0) {
+                 return (type === 'seeking') ? 'N/A' : '<ul><li>N/A</li></ul>';
+            }
+            
+            const items = (type === 'seeking') ? content.split('\n').filter(l => l.trim() !== '') : content;
+            const itemCount = items.length;
+            const uniqueId = `collapse-${teamId}-${type}`;
+
+            let listContent;
+            if (type === 'seeking') {
+                listContent = items.join('<br>');
+            } else {
+                listContent = `<ul>${items.map(item => `<li>${item}</li>`).join('')}</ul>`;
+            }
+
+            if (itemCount <= 5) {
+                return listContent;
+            }
+            
+            return `<div id="${uniqueId}" class="collapsible-content">${listContent}</div>
+                    <div class="toggle-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>`;
         };
 
-        // MODIFIED: Mapping now includes sorting and "new" badge logic
         const playersList = playersOnBlock.map(player => {
             const pData = playersMap.get(player.id);
             const pStats = statsMap.get(player.id);
