@@ -1,45 +1,64 @@
 // /js/trade-block.js
 
-// CORRECTED: Import everything from the centralized firebase-init.js file
+// MODIFIED: Import new config and helpers from the centralized firebase-init.js
 import { 
     auth, 
     db, 
     functions, 
     onAuthStateChanged, 
-    collection, 
+    collection,
+    collectionGroup,
     doc, 
     getDoc, 
     getDocs, 
-    httpsCallable 
+    httpsCallable,
+    query,
+    where,
+    limit,
+    documentId,
+    orderBy, // NEW
+    collectionNames // NEW
 } from './firebase-init.js';
 
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
 
+// NEW: Helper to get the active season ID
+async function getActiveSeasonId() {
+    const q = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        throw new Error("No active season found.");
+    }
+    return querySnapshot.docs[0].id;
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
-    // CORRECTED: Use modular onAuthStateChanged syntax
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             await displayAllTradeBlocks(user.uid);
         } else {
-            if (!window.location.pathname.endsWith('login.html')) {
-                window.location.href = '/login.html';
-            }
+             // No redirect needed here for public view
+             await displayAllTradeBlocks(null); // NEW: Allow non-logged-in users to view
         }
     });
 });
 
+// MODIFIED: This function is completely rewritten to use V2 data sources.
 async function displayAllTradeBlocks(currentUserId) {
     try {
-        // CORRECTED: Use modular syntax for all Firestore calls
-        const settingsDocRef = doc(db, 'settings', 'tradeBlock');
+        const settingsDocRef = doc(db, collectionNames.settings, 'tradeBlock');
         const settingsDoc = await getDoc(settingsDocRef);
         const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
-        
-        const adminDocRef = doc(db, "admins", currentUserId);
-        const adminDoc = await getDoc(adminDocRef);
-        const isAdmin = adminDoc.exists();
+
+        let isAdmin = false;
+        if (currentUserId) {
+            const adminDocRef = doc(db, collectionNames.users, currentUserId);
+            const adminDoc = await getDoc(adminDocRef);
+            isAdmin = adminDoc.exists() && adminDoc.data().role === 'admin';
+        }
         
         if (isAdmin && adminControlsContainer) {
             adminControlsContainer.style.display = 'block';
@@ -58,39 +77,71 @@ async function displayAllTradeBlocks(currentUserId) {
             return;
         }
 
-        const [tradeBlocksSnap, teamsSnap, draftPicksSnap, playersSnap] = await Promise.all([
-            getDocs(collection(db, "tradeblocks")),
-            getDocs(collection(db, "teams")),
-            getDocs(collection(db, "draftPicks")),
-            getDocs(collection(db, "players"))
+        const activeSeasonId = await getActiveSeasonId();
+
+        // MODIFIED: Fetch trade blocks and sort by recency
+        const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
+
+        const [tradeBlocksSnap, teamsSnap, draftPicksSnap] = await Promise.all([
+            getDocs(tradeBlocksQuery),
+            getDocs(collection(db, collectionNames.teams)),
+            getDocs(collection(db, collectionNames.draftPicks))
         ]);
 
-        const teamsMap = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
+        // Get all unique player IDs from all trade blocks
+        const allPlayerIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => doc.data().on_the_block || []))];
+
+        let playersMap = new Map();
+        let statsMap = new Map();
+
+        if (allPlayerIds.length > 0) {
+            // Fetch player documents and their seasonal stats for the active season
+            const playersQuery = query(collection(db, collectionNames.players), where(documentId(), 'in', allPlayerIds));
+            const playerStatsPaths = allPlayerIds.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
+            const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
+
+            const [playersDataSnap, statsDataSnap] = await Promise.all([getDocs(playersQuery), getDocs(statsQuery)]);
+            
+            playersMap = new Map(playersDataSnap.docs.map(doc => [doc.id, doc.data()]));
+            statsMap = new Map(statsDataSnap.docs.map(doc => [doc.ref.parent.parent.id, doc.data()]));
+        }
+        
+        // Build map of all team records for the active season
+        const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
+        const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
+        
+        // Build the final map of all team data (static + seasonal)
+        const allTeamsMap = new Map(teamsSnap.docs.map(doc => {
+            const staticData = doc.data();
+            const seasonalData = teamsRecordMap.get(doc.id) || {};
+            return [doc.id, { ...staticData, ...seasonalData }];
+        }));
+
         const draftPicksMap = new Map(draftPicksSnap.docs.map(doc => [doc.id, doc.data()]));
-        const playersMap = new Map(playersSnap.docs.map(doc => [doc.id, doc.data()]));
 
         container.innerHTML = '';
         let currentUserTeamId = null;
-        for (const [teamId, teamData] of teamsMap.entries()) {
-            if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
+        if (currentUserId) {
+            for (const [teamId, teamData] of allTeamsMap.entries()) {
+                if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
+            }
         }
 
         if (tradeBlocksSnap.empty) {
-            handleEmptyState(isAdmin, currentUserTeamId, teamsMap);
+            handleEmptyState(isAdmin, currentUserTeamId, allTeamsMap);
         } else {
-            handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, isAdmin, currentUserId, currentUserTeamId);
+            handleExistingBlocks(tradeBlocksSnap, allTeamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId);
         }
         
         addUniversalClickListener(isAdmin);
 
     } catch (error) {
         console.error("Error displaying trade blocks:", error);
-        container.innerHTML = '<div class="error">Could not load trade blocks. Please try again later.</div>';
+        container.innerHTML = `<div class="error">Could not load trade blocks. ${error.message}</div>`;
     }
 }
 
-// The following helper functions (handleEmptyState, handleExistingBlocks) have no syntax changes
-// but are included for completeness.
+// MODIFIED: Added statsMap to its signature
 function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
     
@@ -100,7 +151,7 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
             if (team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())) {
                 adminSetupHtml += `
                     <div class="admin-setup-item">
-                        <span><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${team.team_name}</span>
+                        <span><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${team.team_name}</span>
                         <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
                     </div>`;
             }
@@ -116,8 +167,11 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     }
 }
 
-function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, isAdmin, currentUserId, currentUserTeamId) {
+// MODIFIED: Rewritten to use new data structures (V2 players/teams and separated stats)
+function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId) {
     const existingBlockTeamIds = new Set();
+
+    // The snapshot is already sorted by the Firestore query
     tradeBlocksSnap.forEach(doc => {
         const teamId = doc.id;
         existingBlockTeamIds.add(teamId);
@@ -129,7 +183,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             if (pickInfo) {
                 const originalTeamInfo = teamsMap.get(pickInfo.original_team);
                 const teamName = originalTeamInfo ? originalTeamInfo.team_name : pickInfo.original_team;
-                const ownerRecord = originalTeamInfo ? `(${originalTeamInfo.wins}-${originalTeamInfo.losses})` : '';
+                const ownerRecord = originalTeamInfo ? `(${(originalTeamInfo.wins || 0)}-${(originalTeamInfo.losses || 0)})` : '';
                 const round = pickInfo.round;
                 const roundSuffix = round == 1 ? 'st' : round == 2 ? 'nd' : round == 3 ? 'rd' : 'th';
                 return `S${pickInfo.season} ${teamName} ${round}${roundSuffix} ${ownerRecord}`;
@@ -137,17 +191,19 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             return `${pickId} (Unknown Pick)`;
         }).join('<br>') || 'N/A';
 
-        const playersWithStats = (blockData.on_the_block || []).map(handle => {
-            const p = playersMap.get(handle);
-            if (!p) return `<li>${handle} (stats not found)</li>`;
-            return `<li><a href="/S7/player.html?player=${handle}">${handle}</a> (GP: ${p.games_played || 0}, REL: ${p.rel_median ? parseFloat(p.rel_median).toFixed(3) : 'N/A'}, WAR: ${p.WAR ? p.WAR.toFixed(2) : 'N/A'})</li>`;
+        // MODIFIED: Player data lookup is different now
+        const playersWithStats = (blockData.on_the_block || []).map(playerId => {
+            const pData = playersMap.get(playerId);
+            const pStats = statsMap.get(playerId);
+            if (!pData || !pStats) return `<li>Player data not found</li>`;
+            return `<li><a href="/S7/player.html?id=${playerId}">${pData.player_handle}</a> (GP: ${pStats.games_played || 0}, REL: ${pStats.rel_median ? parseFloat(pStats.rel_median).toFixed(3) : 'N/A'}, WAR: ${pStats.WAR ? pStats.WAR.toFixed(2) : 'N/A'})</li>`;
         }).join('') || '<li>N/A</li>';
 
         const blockHtml = `
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
                     <a href="/S7/team.html?id=${teamId}">
-                        <h4><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
+                        <h4><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
                     </a>
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
@@ -187,7 +243,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             teamsWithoutBlocks.forEach(([teamId, team]) => {
                 adminSetupHtml += `
                     <div class="admin-setup-item">
-                        <span><img src="/S7/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'">${team.team_name}</span>
+                        <span><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'">${team.team_name}</span>
                         <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
                     </div>`;
             });
