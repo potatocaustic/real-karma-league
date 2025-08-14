@@ -2707,12 +2707,57 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 });
 
 
-// UPDATED: Changed to V2 onCall function
+// Replace the empty 'clearAllTradeBlocks' function with this:
 exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
-    // This function can remain as-is.
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDocRef = db.collection(getCollectionName('users')).doc(request.auth.uid);
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    try {
+        const tradeBlocksRef = db.collection('tradeblocks');
+        const tradeBlocksSnap = await tradeBlocksRef.get();
+        
+        const batch = db.batch();
+        tradeBlocksSnap.docs.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        const settingsRef = db.doc('settings/tradeBlock');
+        batch.set(settingsRef, { status: 'closed' }, { merge: true });
+
+        await batch.commit();
+        return { message: "All trade blocks have been cleared and the deadline is now active." };
+
+    } catch (error) {
+        console.error("Error clearing trade blocks:", error);
+        throw new HttpsError('internal', 'An error occurred while clearing trade blocks.');
+    }
 });
 
-// UPDATED: Changed to V2 onCall function
+// Replace the empty 'reopenTradeBlocks' function with this:
 exports.reopenTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
-    // This function can remain as-is.
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDocRef = db.collection(getCollectionName('users')).doc(request.auth.uid);
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    try {
+        const settingsRef = db.doc('settings/tradeBlock');
+        await settingsRef.set({ status: 'open' }, { merge: true });
+
+        return { message: "Trading has been successfully re-opened." };
+
+    } catch (error) {
+        console.error("Error reopening trade blocks:", error);
+        throw new HttpsError('internal', 'An error occurred while reopening trade blocks.');
+    }
 });

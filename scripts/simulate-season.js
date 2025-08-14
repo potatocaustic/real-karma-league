@@ -11,13 +11,11 @@ const db = admin.firestore();
 
 // --- CONFIGURATION ---
 const SEASON_ID = "S8";
-const USE_DEV_COLLECTIONS = true; // Ensure this is true for testing
+const USE_DEV_COLLECTIONS = true;
 const SEASON_NUM = SEASON_ID.replace('S', '');
 
 // --- Helper to switch between dev/prod collections ---
-const getCollectionName = (baseName) => {
-    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-};
+const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 // --- Helper Functions for Calculations ---
 function calculateMedian(numbers) {
@@ -126,13 +124,21 @@ async function simulateSeason() {
             const [team1] = teamsToSchedule.splice(team1Index, 1);
             const team2Index = Math.floor(Math.random() * teamsToSchedule.length);
             const [team2] = teamsToSchedule.splice(team2Index, 1);
-            const formattedDate = `${gameDate.getMonth() + 1}/${gameDate.getDate()}/${gameDate.getFullYear()}`;
-            const gameId = `${formattedDate}-${team1.team_id}-${team2.team_id}`.replace(/\//g, "-");
+            
+            // CORRECTED: Use YYYY-MM-DD format for dates
+            const year = gameDate.getFullYear();
+            const month = String(gameDate.getMonth() + 1).padStart(2, '0');
+            const day = String(gameDate.getDate()).padStart(2, '0');
+            const formattedDate = `${year}-${month}-${day}`;
+
+            const gameId = `${formattedDate}-${team1.team_id}-${team2.team_id}`;
             schedule.push({ id: gameId, week: String(week), date: formattedDate, team1_id: team1.team_id, team2_id: team2.team_id, completed: 'FALSE', team1_score: 0, team2_score: 0, winner: '' });
         }
         gameDate.setDate(gameDate.getDate() + 7);
     }
     console.log(` Done. Generated ${schedule.length} games.`);
+
+    // ... (The rest of the script remains the same)
 
     // 3. SIMULATE GAMES AND LINEUPS
     process.stdout.write("[3/9] Simulating game results and generating lineup data...");
@@ -142,15 +148,12 @@ async function simulateSeason() {
         let team2_total_score = 0;
 
         [game.team1_id, game.team2_id].forEach((teamId, teamIndex) => {
-            // MODIFIED: Lineup size is now 6
             const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId).slice(0, 6);
             teamPlayers.forEach((player, index) => {
-                // MODIFIED: Scores are now smaller and more realistic
                 const points_adjusted = Math.floor(Math.random() * 15000);
                 const global_rank = Math.floor(Math.random() * 3000) + 1;
                 const isCaptain = index === 0;
                 
-                // MODIFIED: Add final_score field
                 const final_score = isCaptain ? points_adjusted * 1.5 : points_adjusted;
 
                 if (teamIndex === 0) {
@@ -172,7 +175,7 @@ async function simulateSeason() {
                     points_adjusted, 
                     global_rank, 
                     raw_score: points_adjusted,
-                    final_score // Add the new field
+                    final_score
                 });
             });
         });
@@ -236,7 +239,9 @@ async function simulateSeason() {
     process.stdout.write("[6/9] Aggregating seasonal stats for players and teams...");
     const playerSeasonalStats = new Map();
     allLineups.forEach(l => {
-        if (!playerSeasonalStats.has(l.player_id)) playerSeasonalStats.set(l.player_id, {});
+        if (!playerSeasonalStats.has(l.player_id)) {
+            playerSeasonalStats.set(l.player_id, { rookie: '0', all_star: '0' });
+        }
         const stats = playerSeasonalStats.get(l.player_id);
         stats.games_played = (stats.games_played || 0) + 1;
         stats.total_points = (stats.total_points || 0) + l.points_adjusted;
@@ -272,7 +277,18 @@ async function simulateSeason() {
     }
 
     const teamSeasonalStats = new Map();
-    allTeams.forEach(t => teamSeasonalStats.set(t.team_id, { team_id: t.team_id, team_name: t.team_name, conference: t.conference, wins: 0, losses: 0, pam: 0, apPAM_total: 0, apPAM_count: 0, ranks: [] }));
+    allTeams.forEach(t => teamSeasonalStats.set(t.team_id, { 
+        team_id: t.team_id, 
+        season: SEASON_ID,
+        team_name: t.team_name, 
+        conference: t.conference, 
+        wins: 0, losses: 0, pam: 0, 
+        apPAM_total: 0, apPAM_count: 0, 
+        ranks: [],
+        total_transactions: 0,
+        playin: 0, playoffs: 0, elim: 0,
+        tREL: 0
+    }));
     schedule.forEach(g => {
         teamSeasonalStats.get(g.winner).wins++;
         const loserId = g.team1_id === g.winner ? g.team2_id : g.team1_id;
@@ -287,6 +303,29 @@ async function simulateSeason() {
     allLineups.forEach(l => {
         if (l.global_rank > 0) teamSeasonalStats.get(l.team_id).ranks.push(l.global_rank);
     });
+
+    const teamRelDataMap = new Map();
+    for (const [playerId, playerStats] of playerSeasonalStats.entries()) {
+        const playerTeamId = allPlayers.find(p => p.player_id === playerId)?.current_team_id;
+        if (playerTeamId && teamSeasonalStats.has(playerTeamId)) {
+            if (!teamRelDataMap.has(playerTeamId)) {
+                teamRelDataMap.set(playerTeamId, { weightedSum: 0, totalGP: 0 });
+            }
+            const teamData = teamRelDataMap.get(playerTeamId);
+            const relMedian = playerStats.rel_median || 0;
+            const gamesPlayed = playerStats.games_played || 0;
+            if (gamesPlayed > 0) {
+                teamData.weightedSum += relMedian * gamesPlayed;
+                teamData.totalGP += gamesPlayed;
+            }
+        }
+    }
+    for (const [teamId, data] of teamRelDataMap.entries()) {
+        const teamStats = teamSeasonalStats.get(teamId);
+        if (teamStats) {
+            teamStats.tREL = data.totalGP > 0 ? data.weightedSum / data.totalGP : 0;
+        }
+    }
 
     for (const stats of teamSeasonalStats.values()) {
         stats.med_starter_rank = calculateMedian(stats.ranks);
@@ -333,9 +372,25 @@ async function simulateSeason() {
     const westConf = allTeamCalculatedStats.filter(t => t.conference === 'Western');
     [eastConf, westConf].forEach(conf => {
         if (conf.length === 0) return;
+        
         conf.sort((a, b) => (b.sortscore || 0) - (a.sortscore || 0)).forEach((t, i) => {
             const teamStats = teamSeasonalStats.get(t.team_id);
             if (teamStats) teamStats.postseed = i + 1;
+        });
+
+        const maxPotWinsSorted = [...conf].sort((a, b) => b.MaxPotWins - a.MaxPotWins);
+        const winsSorted = [...conf].sort((a, b) => b.wins - a.wins);
+        const playoffWinsThreshold = maxPotWinsSorted[6]?.MaxPotWins ?? 0;
+        const playinWinsThreshold = maxPotWinsSorted[10]?.MaxPotWins ?? 0;
+        const elimWinsThreshold = winsSorted[9]?.wins ?? 0;
+
+        conf.forEach(t => {
+            const teamStats = teamSeasonalStats.get(t.team_id);
+            if (teamStats) {
+                teamStats.playoffs = t.wins > playoffWinsThreshold ? 1 : 0;
+                teamStats.playin = t.wins > playinWinsThreshold ? 1 : 0;
+                teamStats.elim = t.MaxPotWins < elimWinsThreshold ? 1 : 0;
+            }
         });
     });
 
