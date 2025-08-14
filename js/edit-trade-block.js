@@ -207,11 +207,11 @@ function addSaveHandler(gmUid) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const selectedPlayerIds = Array.from(document.querySelectorAll('input[data-player-id]:checked')).map(cb => cb.dataset.playerId);
-            const selectedPickIds = Array.from(document.querySelectorAll('input[data-pick-id]:checked')).map(cb => cb.dataset.pickId);
+            const selectedPlayerIds = new Set(Array.from(document.querySelectorAll('input[data-player-id]:checked')).map(cb => cb.dataset.playerId));
+            const selectedPickIds = new Set(Array.from(document.querySelectorAll('input[data-pick-id]:checked')).map(cb => cb.dataset.pickId));
             const seekingText = document.getElementById('seeking').value.trim();
 
-            const isBlockEmpty = selectedPlayerIds.length === 0 && selectedPickIds.length === 0 && seekingText === '';
+            const isBlockEmpty = selectedPlayerIds.size === 0 && selectedPickIds.size === 0 && seekingText === '';
 
             const saveButton = form.querySelector('button[type="submit"]');
             saveButton.textContent = 'Saving...';
@@ -225,41 +225,78 @@ function addSaveHandler(gmUid) {
                     alert("Trade block cleared and removed successfully!");
                 } else {
                     const existingBlockDoc = await getDoc(tradeBlockRef);
-                    const oldBlockData = existingBlockDoc.exists() ? existingBlockDoc.data() : { on_the_block: [], picks_available_ids: [] };
+                    const oldBlockData = existingBlockDoc.exists() ? existingBlockDoc.data() : { on_the_block: [], picks_available_ids: [], recently_removed: [] };
 
-                    const oldPlayersMap = new Map((oldBlockData.on_the_block || []).map(p => [p.id, p.addedOn]));
-                    const oldPicksMap = new Map((oldBlockData.picks_available_ids || []).map(p => [p.id, p.addedOn]));
+                    const now = Timestamp.now();
+                    const NINETY_SIX_HOURS_AGO_MS = now.toMillis() - (96 * 60 * 60 * 1000);
 
-                    let isNewAddition = false;
-
-                    const newPlayers = selectedPlayerIds.map(id => {
-                        if (oldPlayersMap.has(id)) {
-                            return { id, addedOn: oldPlayersMap.get(id) };
+                    // 1. Find items that were just removed and add them to the 'recently_removed' list.
+                    let recently_removed = (oldBlockData.recently_removed || []).filter(item => item.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS);
+                    
+                    const oldPlayers = oldBlockData.on_the_block || [];
+                    oldPlayers.forEach(player => {
+                        if (!selectedPlayerIds.has(player.id)) {
+                            recently_removed.push({ id: player.id, type: 'player', originalAddedOn: player.addedOn, removedOn: now });
                         }
-                        isNewAddition = true;
-                        return { id, addedOn: Timestamp.now() };
                     });
 
-                    const newPicks = selectedPickIds.map(id => {
-                        if (oldPicksMap.has(id)) {
-                            return { id, addedOn: oldPicksMap.get(id) };
+                    const oldPicks = oldBlockData.picks_available_ids || [];
+                    oldPicks.forEach(pick => {
+                        if (!selectedPickIds.has(pick.id)) {
+                            recently_removed.push({ id: pick.id, type: 'pick', originalAddedOn: pick.addedOn, removedOn: now });
                         }
-                        isNewAddition = true;
-                        return { id, addedOn: Timestamp.now() };
                     });
                     
+                    const removedMap = new Map(recently_removed.map(item => [item.id, item]));
+                    let isNewAddition = false;
+
+                    // 2. Build the new lists, checking against old and recently removed items.
+                    const oldPlayersMap = new Map(oldPlayers.map(p => [p.id, p.addedOn]));
+                    const newPlayers = Array.from(selectedPlayerIds).map(id => {
+                        if (oldPlayersMap.has(id)) {
+                            return { id, addedOn: oldPlayersMap.get(id) }; // Keep existing timestamp
+                        }
+                        if (removedMap.has(id)) {
+                            const removedItem = removedMap.get(id);
+                            // If re-added within 96 hours, restore original timestamp.
+                            if (removedItem.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS) {
+                                return { id, addedOn: removedItem.originalAddedOn };
+                            }
+                        }
+                        // If it's not a re-add, it's a genuinely new item.
+                        isNewAddition = true;
+                        return { id, addedOn: now };
+                    });
+
+                    const oldPicksMap = new Map(oldPicks.map(p => [p.id, p.addedOn]));
+                     const newPicks = Array.from(selectedPickIds).map(id => {
+                        if (oldPicksMap.has(id)) {
+                            return { id, addedOn: oldPicksMap.get(id) }; // Keep existing timestamp
+                        }
+                        if (removedMap.has(id)) {
+                            const removedItem = removedMap.get(id);
+                            if (removedItem.removedOn.toMillis() > NINETY_SIX_HOURS_AGO_MS) {
+                                return { id, addedOn: removedItem.originalAddedOn };
+                            }
+                        }
+                        isNewAddition = true;
+                        return { id, addedOn: now };
+                    });
+
                     const updatedData = {
                         gm_uid: gmUid,
                         on_the_block: newPlayers,
                         picks_available_ids: newPicks,
                         seeking: seekingText,
+                        recently_removed: recently_removed
                     };
-
+                    
                     if (isNewAddition) {
                         updatedData.last_updated = serverTimestamp();
                     }
                     
-                    await setDoc(tradeBlockRef, updatedData, { merge: true });
+                    // Use setDoc without merge to ensure the entire document is replaced with the clean data
+                    await setDoc(tradeBlockRef, updatedData);
                     alert("Trade block saved successfully!");
                 }
                 
