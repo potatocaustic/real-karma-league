@@ -40,8 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             await displayAllTradeBlocks(user.uid);
         } else {
-             // No redirect needed here for public view
-             await displayAllTradeBlocks(null); // NEW: Allow non-logged-in users to view
+            container.innerHTML = '<div class="error">You must be logged in to view the trade block. Please <a href="../login.html">log in</a>.</div>';
         }
     });
 });
