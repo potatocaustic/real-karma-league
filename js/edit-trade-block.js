@@ -72,7 +72,7 @@ async function authorizeAndLoadForm(user, teamId) {
             getDoc(teamRecordRef),
             getDoc(userAdminRef),
             getDocs(playersQuery),
-            getDocs(picksSnap),
+            getDocs(picksQuery),
             getDocs(allTeamsQuery),
             getDoc(blockRef)
         ]);
