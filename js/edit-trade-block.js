@@ -1,19 +1,23 @@
 // /js/edit-trade-block.js
 
-// CORRECTED: Import everything from the centralized firebase-init.js
+// MODIFIED: Import new config and helpers from the centralized firebase-init.js
 import { 
     auth, 
     db,
     onAuthStateChanged,
-    collection, 
-    doc, 
+    collection,
+    collectionGroup,
+    doc,
     getDoc, 
     getDocs, 
     query, 
     where, 
     serverTimestamp, 
     setDoc, 
-    deleteDoc 
+    deleteDoc,
+    limit,
+    documentId,
+    collectionNames // NEW: import the collection name configuration
 } from './firebase-init.js';
 
 const formContainer = document.getElementById('form-container');
@@ -21,6 +25,16 @@ const editTitle = document.getElementById('edit-title');
 
 const urlParams = new URLSearchParams(window.location.search);
 const teamId = urlParams.get('team');
+
+// NEW: Helper to get the active season ID
+async function getActiveSeasonId() {
+    const q = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
+    const querySnapshot = await getDocs(q);
+    if (querySnapshot.empty) {
+        throw new Error("No active season found.");
+    }
+    return querySnapshot.docs[0].id;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!teamId) {
@@ -38,25 +52,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+// MODIFIED: This function is completely rewritten to use V2 data sources.
 async function authorizeAndLoadForm(user, teamId) {
     try {
-        const teamRef = doc(db, "teams", teamId);
-        const adminRef = doc(db, "admins", user.uid);
-        const playersQuery = query(collection(db, "players"), where("current_team_id", "==", teamId));
-        const picksQuery = query(collection(db, "draftPicks"), where("current_owner", "==", teamId));
-        const teamsQuery = collection(db, "teams");
+        const activeSeasonId = await getActiveSeasonId();
+
+        // Define references to the new V2 collections
+        const teamRef = doc(db, collectionNames.teams, teamId);
+        const teamRecordRef = doc(teamRef, collectionNames.seasonalRecords, activeSeasonId);
+        const userAdminRef = doc(db, collectionNames.users, user.uid);
+        const playersQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
+        const picksQuery = query(collection(db, collectionNames.draftPicks), where("current_owner", "==", teamId));
+        const allTeamsQuery = collection(db, collectionNames.teams);
         const blockRef = doc(db, "tradeblocks", teamId);
 
-        const [teamDoc, adminDoc, playersSnap, picksSnap, teamsSnap, blockDoc] = await Promise.all([
+        // Fetch all base data in parallel
+        const [teamDoc, teamRecordDoc, adminDoc, playersSnap, picksSnap, allTeamsSnap, blockDoc] = await Promise.all([
             getDoc(teamRef),
-            getDoc(adminRef),
+            getDoc(teamRecordRef),
+            getDoc(userAdminRef),
             getDocs(playersQuery),
-            getDocs(picksQuery),
-            getDocs(teamsQuery),
+            getDocs(picksSnap),
+            getDocs(allTeamsQuery),
             getDoc(blockRef)
         ]);
-
-        const teamsMap = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
 
         if (!teamDoc.exists()) {
             formContainer.innerHTML = '<div class="error">Team not found.</div>';
@@ -64,17 +83,38 @@ async function authorizeAndLoadForm(user, teamId) {
         }
 
         const teamData = teamDoc.data();
-        const hasPermission = adminDoc.exists() || teamData.gm_uid === user.uid;
+        const teamRecordData = teamRecordDoc.exists() ? teamRecordDoc.data() : {};
+        const isAdmin = adminDoc.exists() && adminDoc.data().role === 'admin';
+        const hasPermission = isAdmin || teamData.gm_uid === user.uid;
 
         if (!hasPermission) {
             formContainer.innerHTML = '<div class="error">You do not have permission to edit this trade block.</div>';
             return;
         }
 
-        editTitle.textContent = `Edit ${teamData.team_name} Trade Block`;
+        // Fetch seasonal records for all teams to build a map for pick formatting
+        const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
+        const teamsMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
+        
+        editTitle.textContent = `Edit ${teamRecordData.team_name || teamId} Trade Block`;
         const blockData = blockDoc.exists() ? blockDoc.data() : { on_the_block: [], picks_available_ids: [], seeking: '' };
         
-        let availablePlayers = playersSnap.docs.map(doc => ({ handle: doc.id, ...doc.data() }));
+        // Process players and fetch their seasonal stats
+        const playerIds = playersSnap.docs.map(doc => doc.id);
+        let availablePlayers = [];
+        if (playerIds.length > 0) {
+            const playerStatsPaths = playerIds.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
+            const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
+            const statsSnap = await getDocs(statsQuery);
+            const statsMap = new Map(statsSnap.docs.map(doc => [doc.ref.parent.parent.id, doc.data()]));
+            
+            availablePlayers = playersSnap.docs.map(playerDoc => {
+                const pData = playerDoc.data();
+                const pStats = statsMap.get(playerDoc.id) || {};
+                return { id: playerDoc.id, ...pData, ...pStats };
+            });
+        }
+        
         let availablePicks = picksSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         availablePlayers.sort((a, b) => (b.WAR || 0) - (a.WAR || 0));
@@ -89,17 +129,17 @@ async function authorizeAndLoadForm(user, teamId) {
             return roundA - roundB;
         });
 
-        renderForm(blockData, availablePlayers, availablePicks, teamsMap);
+        // NEW: Pass the team's gm_uid to the render function so it can be saved with the block
+        renderForm(blockData, availablePlayers, availablePicks, teamsMap, teamData.gm_uid);
 
     } catch (error) {
         console.error("Authorization or loading error:", error);
-        formContainer.innerHTML = '<div class="error">Could not load editor.</div>';
+        formContainer.innerHTML = `<div class="error">Could not load editor. ${error.message}</div>`;
     }
 }
 
-// The renderForm and addSaveHandler functions are already using modern syntax
-// and do not need to be changed. They are included here for completeness.
-function renderForm(blockData, players, picks, teamsMap) {
+// MODIFIED: Accepts gmUid to pass to the save handler
+function renderForm(blockData, players, picks, teamsMap, gmUid) {
     const formatPick = (pick) => {
         const originalTeamInfo = teamsMap.get(pick.original_team);
         const teamName = originalTeamInfo ? originalTeamInfo.team_name : pick.original_team;
@@ -108,10 +148,11 @@ function renderForm(blockData, players, picks, teamsMap) {
         return `S${pick.season} ${teamName} ${round}${roundSuffix}`;
     };
     
+    // MODIFIED: Player data structure has changed (id, player_handle)
     const playersHtml = players.map(p => `
         <tr>
-            <td class="col-checkbox"><input type="checkbox" data-player-handle="${p.handle}" ${blockData.on_the_block.includes(p.handle) ? 'checked' : ''}></td>
-            <td class="col-name">${p.handle}</td>
+            <td class="col-checkbox"><input type="checkbox" data-player-id="${p.id}" ${blockData.on_the_block.includes(p.id) ? 'checked' : ''}></td>
+            <td class="col-name">${p.player_handle}</td>
             <td class="col-stat-gp mobile-hide">${p.games_played || 0}</td>
             <td class="col-stat-small mobile-hide">${p.rel_median ? parseFloat(p.rel_median).toFixed(3) : 'N/A'}</td>
             <td class="col-stat-small">${p.WAR ? p.WAR.toFixed(2) : 'N/A'}</td>
@@ -120,7 +161,7 @@ function renderForm(blockData, players, picks, teamsMap) {
 
     const picksHtml = picks.map(p => {
         const originalOwnerInfo = teamsMap.get(p.original_team);
-        const ownerRecord = originalOwnerInfo ? `${originalOwnerInfo.wins}-${originalOwnerInfo.losses}` : 'N/A';
+        const ownerRecord = originalOwnerInfo ? `${originalOwnerInfo.wins || 0}-${originalOwnerInfo.losses || 0}` : 'N/A';
         
         return `
         <tr>
@@ -169,16 +210,19 @@ function renderForm(blockData, players, picks, teamsMap) {
         </form>
     `;
     formContainer.innerHTML = formHtml;
-    addSaveHandler();
+    // MODIFIED: Pass gmUid to save handler
+    addSaveHandler(gmUid);
 }
 
-function addSaveHandler() {
+// MODIFIED: Accepts gmUid to include in the saved document
+function addSaveHandler(gmUid) {
     const form = document.getElementById('trade-block-form');
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const selectedPlayers = Array.from(document.querySelectorAll('input[data-player-handle]:checked')).map(cb => cb.dataset.playerHandle);
+            // MODIFIED: Selector now targets data-player-id
+            const selectedPlayers = Array.from(document.querySelectorAll('input[data-player-id]:checked')).map(cb => cb.dataset.playerId);
             const selectedPicks = Array.from(document.querySelectorAll('input[data-pick-id]:checked')).map(cb => cb.dataset.pickId);
             const seekingText = document.getElementById('seeking').value.trim();
 
@@ -195,7 +239,9 @@ function addSaveHandler() {
                     await deleteDoc(tradeBlockRef);
                     alert("Trade block cleared and removed successfully!");
                 } else {
+                    // MODIFIED: The data saved now includes the gm_uid to satisfy security rules
                     const updatedData = {
+                        gm_uid: gmUid, // NEW
                         on_the_block: selectedPlayers,
                         picks_available_ids: selectedPicks,
                         seeking: seekingText,
