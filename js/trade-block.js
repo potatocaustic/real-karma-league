@@ -24,7 +24,7 @@ const adminControlsContainer = document.getElementById('admin-controls');
 const pageHeader = document.querySelector('.page-header');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
 
-// Inject CSS for new features, with corrected selectors
+// Inject CSS for new features, with corrected selectors and simplified toggle button style
 document.head.insertAdjacentHTML('beforeend', `
 <style>
     .collapsible-content {
@@ -34,35 +34,17 @@ document.head.insertAdjacentHTML('beforeend', `
         transition: max-height 0.3s ease-out;
     }
     .collapsible-content.expanded {
-        max-height: 1000px; /* Large enough for any content */
+        max-height: 1000px;
         transition: max-height 0.5s ease-in;
     }
-    .collapsible-content .show-more-btn {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        text-align: center;
-        background: linear-gradient(to top, rgba(255,255,255,1) 60%, rgba(255,255,255,0));
-        padding: 20px 0 5px 0;
-        cursor: pointer;
-        color: #007bff;
-        font-weight: bold;
-    }
-    .collapsible-content.expanded .show-more-btn {
-        display: none;
-    }
-    .show-less-btn {
-        display: none; /* Hidden by default */
+    /* The gradient fade-out is no longer needed with a persistent toggle button */
+    .toggle-btn {
+        display: block;
         text-align: center;
         padding: 8px;
         cursor: pointer;
         color: #007bff;
         font-weight: bold;
-    }
-    /* MODIFIED: Use adjacent sibling selector (+) to show the button */
-    .collapsible-content.expanded + .show-less-btn {
-        display: block; /* Shown only when expanded */
     }
     .edit-my-block-btn {
         display: block;
@@ -72,10 +54,6 @@ document.head.insertAdjacentHTML('beforeend', `
         font-size: 1rem;
         text-align: center;
     }
-    .dark-mode .collapsible-content .show-more-btn {
-         background: linear-gradient(to top, rgb(30, 30, 30) 60%, rgba(30, 30, 30, 0));
-    }
-    /* MODIFIED: Increased selector specificity to override global-styles.css */
     .dark-mode a.edit-my-block-btn {
         color: #fff !important;
     }
@@ -242,7 +220,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
 
         existingBlockTeamIds.add(teamId);
 
-        // Process collapsible content
         const renderCollapsibleSection = (content, type) => {
             if (!content || content.length === 0) {
                  return (type === 'seeking') ? 'N/A' : '<ul><li>N/A</li></ul>';
@@ -263,12 +240,9 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                 return listContent;
             }
             
-            // MODIFIED: Added a Show Less button that is a sibling to the content div
-            return `<div id="${uniqueId}" class="collapsible-content">
-                        ${listContent}
-                        <div class="show-more-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>
-                    </div>
-                    <div class="show-less-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show Less</div>`;
+            // MODIFIED: Use a single container and a single toggle button
+            return `<div id="${uniqueId}" class="collapsible-content">${listContent}</div>
+                    <div class="toggle-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>`;
         };
 
         const playersList = playersOnBlock.map(playerId => {
@@ -357,11 +331,12 @@ function addUniversalClickListener(isAdmin) {
     document.body.addEventListener('click', (event) => {
         const clickTarget = event.target;
         
-        // MODIFIED: Toggle class to handle both Show More and Show Less
         if (clickTarget.dataset.action === 'toggle-collapse') {
             const targetElement = document.querySelector(clickTarget.dataset.target);
             if (targetElement) {
-                targetElement.classList.toggle('expanded');
+                // MODIFIED: Toggle the class and then update the button's text based on the new state.
+                const isNowExpanded = targetElement.classList.toggle('expanded');
+                clickTarget.textContent = isNowExpanded ? 'Show Less' : 'Show More...';
             }
             return;
         }
