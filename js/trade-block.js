@@ -45,10 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// MODIFIED: This function is completely rewritten to use V2 data sources.
 async function displayAllTradeBlocks(currentUserId) {
     try {
-        const settingsDocRef = doc(db, collectionNames.settings, 'tradeBlock');
+        // This initial setup code remains the same
+        const settingsDocRef = doc(db, 'settings', 'tradeBlock'); // Assuming 'settings' doesn't have a _dev version based on rules
         const settingsDoc = await getDoc(settingsDocRef);
         const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
 
@@ -78,7 +78,6 @@ async function displayAllTradeBlocks(currentUserId) {
 
         const activeSeasonId = await getActiveSeasonId();
 
-        // MODIFIED: Fetch trade blocks and sort by recency
         const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
 
         const [tradeBlocksSnap, teamsSnap, draftPicksSnap] = await Promise.all([
@@ -87,29 +86,39 @@ async function displayAllTradeBlocks(currentUserId) {
             getDocs(collection(db, collectionNames.draftPicks))
         ]);
 
-        // Get all unique player IDs from all trade blocks
         const allPlayerIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => doc.data().on_the_block || []))];
 
+        // ===================================================================
+        // MODIFIED SECTION TO FIX 'IN' QUERY LIMITATION
+        // ===================================================================
         let playersMap = new Map();
         let statsMap = new Map();
 
         if (allPlayerIds.length > 0) {
-            // Fetch player documents and their seasonal stats for the active season
-            const playersQuery = query(collection(db, collectionNames.players), where(documentId(), 'in', allPlayerIds));
-            const playerStatsPaths = allPlayerIds.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
-            const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
+            // Firestore 'in' queries are limited to 30 items. We must "chunk" the queries.
+            const CHUNK_SIZE = 30;
+            for (let i = 0; i < allPlayerIds.length; i += CHUNK_SIZE) {
+                const chunk = allPlayerIds.slice(i, i + CHUNK_SIZE);
 
-            const [playersDataSnap, statsDataSnap] = await Promise.all([getDocs(playersQuery), getDocs(statsQuery)]);
-            
-            playersMap = new Map(playersDataSnap.docs.map(doc => [doc.id, doc.data()]));
-            statsMap = new Map(statsDataSnap.docs.map(doc => [doc.ref.parent.parent.id, doc.data()]));
+                // Create queries for the current chunk of players
+                const playersQuery = query(collection(db, collectionNames.players), where(documentId(), 'in', chunk));
+                const playerStatsPaths = chunk.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
+                const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
+
+                // Execute queries for the chunk and merge the results into our maps
+                const [playersDataSnap, statsDataSnap] = await Promise.all([getDocs(playersQuery), getDocs(statsQuery)]);
+
+                playersDataSnap.forEach(doc => playersMap.set(doc.id, doc.data()));
+                statsDataSnap.forEach(doc => statsMap.set(doc.ref.parent.parent.id, doc.data()));
+            }
         }
+        // ===================================================================
+        // END OF MODIFIED SECTION
+        // ===================================================================
         
-        // Build map of all team records for the active season
         const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
         const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
         
-        // Build the final map of all team data (static + seasonal)
         const allTeamsMap = new Map(teamsSnap.docs.map(doc => {
             const staticData = doc.data();
             const seasonalData = teamsRecordMap.get(doc.id) || {};
@@ -139,7 +148,6 @@ async function displayAllTradeBlocks(currentUserId) {
         container.innerHTML = `<div class="error">Could not load trade blocks. ${error.message}</div>`;
     }
 }
-
 // MODIFIED: Added statsMap to its signature
 function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
