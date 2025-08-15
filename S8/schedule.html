@@ -76,6 +76,17 @@
         margin-right: 6px;
         animation: pulse-live 1.5s infinite;
     }
+    .live-indicator-text::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #dc3545;
+        border-radius: 50%;
+        margin-right: 8px; /* Adjusted for better spacing next to text */
+        animation: pulse-live 1.5s infinite;
+        vertical-align: middle; /* Aligns the dot with the text */
+    }
     @keyframes pulse-live {
         0% { opacity: 1; }
         50% { opacity: 0.4; }
