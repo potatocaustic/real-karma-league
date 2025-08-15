@@ -194,10 +194,10 @@ async function displayAllTradeBlocks(currentUserId) {
         if (tradeBlocksSnap.empty) {
             handleEmptyState(isAdmin, currentUserTeamId, allTeamsMap);
         } else {
-            handleExistingBlocks(tradeBlocksSnap, allTeamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId);
+            handleExistingBlocks(tradeBlocksSnap, allTeamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId, activeSeasonId);
         }
         
-        addUniversalClickListener(isAdmin);
+        addUniversalClickListener(isAdmin, activeSeasonId); 
 
     } catch (error) {
         console.error("Error displaying trade blocks:", error);
@@ -273,7 +273,6 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                     <div class="toggle-btn" data-action="toggle-collapse" data-target="#${uniqueId}">Show More...</div>`;
         };
 
-        // MODIFIED: Conditionally build HTML for each section to hide empty ones
         
         let playersHtml = '';
         if (playersOnBlock.length > 0) {
@@ -284,7 +283,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
                 const newBadge = isNew ? `<span class="new-item-badge">New</span>` : '';
 
                 if (!pData || !pStats) return `Player data not found`;
-                return `<a href="/S7/player.html?id=${player.id}">${pData.player_handle}</a> (GP: ${pStats.games_played || 0}, REL: ${pStats.rel_median ? parseFloat(pStats.rel_median).toFixed(3) : 'N/A'}, WAR: ${pStats.WAR ? pStats.WAR.toFixed(2) : 'N/A'}) ${newBadge}`;
+                return `<a href="/${activeSeasonId}/player.html?id=${player.id}">${pData.player_handle}</a> (GP: ${pStats.games_played || 0}, REL: ${pStats.rel_median ? parseFloat(pStats.rel_median).toFixed(3) : 'N/A'}, WAR: ${pStats.WAR ? pStats.WAR.toFixed(2) : 'N/A'}) ${newBadge}`;
             });
             playersHtml = `<p><strong>Players Available:</strong></p>${renderCollapsibleSection(playersList, 'players')}<hr>`;
         }

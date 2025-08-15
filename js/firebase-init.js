@@ -1,11 +1,7 @@
-// In /js/firebase-init.js
+// /js/firebase-init.js
 
-// ===================================================================
-// DEVELOPMENT FLAG
-// Set this to 'true' to use '_dev' collections in Firestore.
-// Set this to 'false' for the live, production database.
-// ===================================================================
-const IS_DEVELOPMENT = true;
+// MODIFIED: The hardcoded flag is removed from here.
+// The script will now determine the environment dynamically.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, signInAnonymously, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
@@ -30,9 +26,23 @@ import {
     connectFirestoreEmulator,
     collectionGroup,
     documentId,
-    Timestamp 
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+
+// ===================================================================
+// DYNAMIC ENVIRONMENT CONFIGURATION
+// ===================================================================
+// 1. Check for a page-specific configuration object.
+const pageConfig = window.firebasePageConfig || {};
+
+// 2. Determine the environment. Default to DEVELOPMENT unless the page
+// explicitly requests production collections.
+const IS_DEVELOPMENT = !pageConfig.useProdCollections;
+
+// 3. Log the environment for easy debugging.
+console.log(`Firebase is running in ${IS_DEVELOPMENT ? 'DEVELOPMENT' : 'PRODUCTION'} mode for this page.`);
+// ===================================================================
 
 const firebaseConfig = {
     apiKey: "AIzaSyDch0dQ1c9_mDzANAvfMoK1HAnMrRl1WnY",
@@ -92,5 +102,5 @@ export {
     onSnapshot,
     collectionGroup,
     documentId,
-    Timestamp 
+    Timestamp
 };

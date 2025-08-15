@@ -11,11 +11,13 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // --- CONFIGURATION ---
+// MODIFIED: Preset for the S7 backfill
 const SPREADSHEET_ID = "1D1YUw9931ikPLihip3tn7ynkoJGFUHxtogfrq_Hz3P0";
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
 const SEASON_ID = "S7";
 const SEASON_NUM = "7";
-const USE_DEV_COLLECTIONS = true; // Flag to control environment
+const SEASON_STATUS = "active"; // Set to "active" because S7 is ongoing
+const USE_DEV_COLLECTIONS = false;
 
 // --- Helper to switch between dev/prod collections ---
 const getCollectionName = (baseName) => {
@@ -307,10 +309,43 @@ async function seedDatabase() {
                 }
             }
         });
+        
+        // NEW: Calculate tREL (Team REL)
+        const teamRelDataMap = new Map();
+        playersData.forEach(player => {
+            const playerStats = playerSeasonalStats.get(player.player_id);
+            const teamId = player.current_team_id;
+
+            if (teamId && playerStats) {
+                if (!teamRelDataMap.has(teamId)) {
+                    teamRelDataMap.set(teamId, {
+                        weightedSum: 0, totalGP: 0,
+                        post_weightedSum: 0, post_totalGP: 0
+                    });
+                }
+                const teamData = teamRelDataMap.get(teamId);
+                if (playerStats.games_played > 0) {
+                    teamData.weightedSum += (playerStats.rel_median || 0) * (playerStats.games_played || 0);
+                    teamData.totalGP += playerStats.games_played || 0;
+                }
+                if (playerStats.post_games_played > 0) {
+                    teamData.post_weightedSum += (playerStats.post_rel_median || 0) * (playerStats.post_games_played || 0);
+                    teamData.post_totalGP += playerStats.post_games_played || 0;
+                }
+            }
+        });
 
         for (const [teamId, stats] of teamSeasonalStats.entries()) {
             stats[statKey('med_starter_rank')] = calculateMedian(stats[statKey('ranks')] || []);
             delete stats[statKey('ranks')];
+            
+            // NEW: Add calculated tREL to the main stats object
+            const relData = teamRelDataMap.get(teamId);
+            if (relData) {
+                stats.tREL = relData.totalGP > 0 ? relData.weightedSum / relData.totalGP : 0;
+                stats.post_tREL = relData.post_totalGP > 0 ? relData.post_weightedSum / relData.post_totalGP : 0;
+            }
+
             if (!isPostseason) {
                 const wins = stats.wins || 0;
                 const losses = stats.losses || 0;
@@ -465,12 +500,12 @@ async function seedDatabase() {
 
     batch.set(seasonRef, {
         season_name: `Season ${SEASON_NUM}`,
-        status: "completed", // Historical seasons are completed
+        status: SEASON_STATUS, // MODIFIED: Use the configured status
         gs: season_gs,
         gp: season_gp,
         season_karma: season_karma,
         season_trans: season_trans,
-        current_week: "Season Complete"
+        current_week: "Season Complete" // This can be manually updated later if needed
     }, { merge: true });
     writeCount++;
     console.log(`Prepared parent document for season ${SEASON_ID} with summary stats.`);
