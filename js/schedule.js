@@ -208,7 +208,12 @@ function setupWeekSelector() {
 }
 
 async function displayWeek(week) {
-    document.getElementById('games-title').textContent = `${week === 'Finals' ? '🏆 ' : ''}${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
+    const gamesTitle = document.getElementById('games-title');
+    if (week === 'Relegation') {
+        gamesTitle.textContent = 'Relegation Game';
+    } else {
+        gamesTitle.textContent = `${week === 'Finals' ? '🏆 ' : ''}${isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`} Games`;
+    }
     const gamesContent = document.getElementById('games-content');
     const weekStandoutsSection = document.getElementById('week-standouts-section');
     
