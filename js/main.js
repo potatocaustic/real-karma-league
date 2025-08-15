@@ -142,14 +142,17 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
     otherPlayers.sort((a, b) => (b.final_score || 0) - (a.final_score || 0));
     const sortedLineups = captain ? [captain, ...otherPlayers] : otherPlayers;
 
-    // MODIFIED: Request 2 - Add team seed to the header if it exists
     const teamNameWithSeed = team.seed ? `(${team.seed}) ${team.team_name}` : team.team_name;
+    
+    // MODIFIED: Use the correct list of All-Star team IDs to determine the file extension.
+    const allStarTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+    const iconExt = team.id && allStarTeamIds.includes(team.id) ? 'png' : 'webp';
 
     return `
         <div class="team-breakdown ${isWinner ? 'winner' : ''}">
             <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'">
                 <div class="modal-team-info-wrapper">
-                    <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                    <img src="../icons/${team.id}.${iconExt}" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                     <h4>${teamNameWithSeed}</h4>
                     <span class="modal-team-record">(${team.wins}-${team.losses})</span>
                 </div>
