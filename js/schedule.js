@@ -385,7 +385,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 if (gameData.team1_seed) titleTeam1Name = `(${gameData.team1_seed}) ${titleTeam1Name}`;
                 if (gameData.team2_seed) titleTeam2Name = `(${gameData.team2_seed}) ${titleTeam2Name}`;
             }
-            modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
+            modalTitle.innerHTML = `${titleTeam1Name} vs ${titleTeam2Name} - <span class="live-indicator-text">Live</span>`;
 
         } else {
             const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
