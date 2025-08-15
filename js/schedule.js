@@ -430,8 +430,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         if (isLive) {
             const teamTotalElements = contentArea.querySelectorAll('.team-total');
             teamTotalElements.forEach(el => {
-                // The 'live-indicator' class and its animation are already defined in schedule.html's CSS
-                el.innerHTML = `<span class="live-indicator"></span> ${el.innerHTML}`;
+                el.innerHTML = `<span class="live-indicator-text"></span> ${el.innerHTML}`;
             });
         }
 
