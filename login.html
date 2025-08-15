@@ -67,6 +67,18 @@
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
     <script type="module" src="/js/login.js"></script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('reason') === 'unauthorized') {
+          const errorMessageContainer = document.getElementById('error-message');
+          if (errorMessageContainer) {
+            errorMessageContainer.textContent = 'You must be logged in to view the GM portal.';
+          }
+        }
+      });
+    </script>
     
 </body>
 </html>

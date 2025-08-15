@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             await displayAllTradeBlocks(user.uid);
         } else {
-            container.innerHTML = '<div class="error">You must be logged in to view the trade block. Please <a href="../login.html">log in</a>.</div>';
+            window.location.href = '../login.html?reason=unauthorized';
         }
     });
 });
