@@ -187,7 +187,7 @@ async function displayAllTradeBlocks(currentUserId) {
         
         if (currentUserTeamId && !isAdmin) {
             const myTeamData = allTeamsMap.get(currentUserTeamId);
-            const buttonHtml = `<a href="/S7/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn edit-my-block-btn">Edit ${myTeamData.team_name} Trade Block</a>`;
+            const buttonHtml = `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn edit-my-block-btn">Edit ${myTeamData.team_name} Trade Block</a>`;
             if (pageHeader) pageHeader.insertAdjacentHTML('afterend', buttonHtml);
         }
 
@@ -391,7 +391,7 @@ function addUniversalClickListener(isAdmin) {
 
         const teamIdToEdit = buttonTarget.dataset.teamId;
         if (teamIdToEdit) {
-            window.location.href = `/S7/edit-trade-block.html?team=${teamIdToEdit}`;
+            window.location.href = `/common/edit-trade-block.html?team=${teamIdToEdit}`;
             return;
         }
 

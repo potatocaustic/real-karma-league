@@ -45,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             authorizeAndLoadForm(user, teamId);
         } else {
-            window.location.href = '/login.html';
+            window.location.href = '../login.html';
         }
     });
 });
@@ -196,7 +196,7 @@ function renderForm(blockData, players, picks, teamsMap, gmUid) {
             </div>
             <div class="form-buttons-container">
                 <button type="submit" class="edit-btn">Save Changes</button>
-                <a href="/S7/trade-block.html" class="edit-btn cancel-btn">Cancel</a>
+                <a href="/common/trade-block.html" class="edit-btn cancel-btn">Cancel</a>
             </div>
         </form>
     `;
@@ -294,7 +294,7 @@ function addSaveHandler(gmUid) {
                 saveButton.style.backgroundColor = '#28a745'; // Green color
 
                 setTimeout(() => {
-                    window.location.href = '/S7/trade-block.html';
+                    window.location.href = '/common/trade-block.html';
                 }, 1000); // 1 second delay
 
             } catch (error) {
