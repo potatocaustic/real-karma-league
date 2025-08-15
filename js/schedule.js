@@ -385,7 +385,8 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 if (gameData.team1_seed) titleTeam1Name = `(${gameData.team1_seed}) ${titleTeam1Name}`;
                 if (gameData.team2_seed) titleTeam2Name = `(${gameData.team2_seed}) ${titleTeam2Name}`;
             }
-            modalTitle.innerHTML = `${titleTeam1Name} vs ${titleTeam2Name} - <span class="live-indicator-text">Live</span>`;
+            // MODIFICATION: Reverted title to plain text
+            modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
 
         } else {
             const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
@@ -424,6 +425,15 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
         const winnerId = isLive ? null : gameData.winner;
         contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id, isLive)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id, isLive)}</div>`;
+        
+        // MODIFICATION: Add the blinking dot to the team score totals if the game is live
+        if (isLive) {
+            const teamTotalElements = contentArea.querySelectorAll('.team-total');
+            teamTotalElements.forEach(el => {
+                // The 'live-indicator' class and its animation are already defined in schedule.html's CSS
+                el.innerHTML = `<span class="live-indicator"></span> ${el.innerHTML}`;
+            });
+        }
 
     } catch (error) {
         console.error("Error showing game details:", error);
