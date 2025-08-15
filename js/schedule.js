@@ -98,11 +98,14 @@ async function fetchInitialPageData(seasonId) {
     const teamsCollection = getCollectionName('v2_teams');
     const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
     const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
+    // MODIFIED: Added a reference to fetch exhibition games
+    const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
 
-    const [teamsSnapshot, gamesSnap, postGamesSnap] = await Promise.all([
+    const [teamsSnapshot, gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
         getDocs(collection(db, teamsCollection)),
         getDocs(gamesRef),
         getDocs(postGamesRef),
+        getDocs(exhibitionGamesRef), // MODIFIED: Fetching the exhibition games
     ]);
     
     const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
@@ -113,15 +116,18 @@ async function fetchInitialPageData(seasonId) {
     });
     allTeams = (await Promise.all(teamPromises)).filter(t => t !== null);
     
+    // MODIFIED: Merged all game types into a single cache for easier handling
     allGamesCache = [
         ...gamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })), 
-        ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() }))
+        ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })),
+        ...exhibitionGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() }))
     ];
 }
 
 // --- CORE LOGIC & RENDERING ---
 function calculateHistoricalRecords() {
-    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+    // MODIFIED: Updated week order to include exhibition weeks for record calculation continuity
+    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
     const teamRecordsByWeek = {};
 
     allTeams.forEach(team => {
@@ -130,20 +136,24 @@ function calculateHistoricalRecords() {
 
     for (const week of weekOrder) {
         historicalRecords[week] = { ...Object.fromEntries(Object.entries(teamRecordsByWeek).map(([id, rec]) => [id, `${rec.wins}-${rec.losses}`])) };
+        
+        // Only update win/loss for regular season games
+        if (!isNaN(week)) {
+            const gamesThisWeek = allGamesCache.filter(g => g.week === week && g.completed === 'TRUE');
+            gamesThisWeek.forEach(game => {
+                const winnerId = game.winner;
+                const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
 
-        const gamesThisWeek = allGamesCache.filter(g => g.week === week && g.completed === 'TRUE');
-        gamesThisWeek.forEach(game => {
-            const winnerId = game.winner;
-            const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
-
-            if (teamRecordsByWeek[winnerId]) teamRecordsByWeek[winnerId].wins++;
-            if (teamRecordsByWeek[loserId]) teamRecordsByWeek[loserId].losses++;
-        });
+                if (teamRecordsByWeek[winnerId]) teamRecordsByWeek[winnerId].wins++;
+                if (teamRecordsByWeek[loserId]) teamRecordsByWeek[loserId].losses++;
+            });
+        }
     }
 }
 
 function determineInitialWeek() {
-    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+    // MODIFIED: Updated week order to correctly find the current week
+    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))].sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
     let targetWeek = null;
@@ -168,11 +178,13 @@ function listenForLiveGames() {
 
 function setupWeekSelector() {
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))];
-    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+    // MODIFIED: The definitive week order for sorting the buttons on the UI
+    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
     allKnownWeeks.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
     const visibleWeeks = allKnownWeeks.filter(week => {
-        if (!isPostseason(week)) return true;
+        if (week === 'All-Star' || week === 'Relegation' || !isPostseason(week)) return true;
+        // For postseason, only show if a team has been decided
         const weekGames = allGamesCache.filter(g => g.week === week);
         return weekGames.some(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
     });
@@ -218,7 +230,8 @@ async function displayWeek(week) {
 
     if (weekStandoutsSection) {
         const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
-        if (allGamesInWeekCompleted && !isWeekPostseason) {
+        // MODIFIED: Standouts only show for regular season weeks
+        if (allGamesInWeekCompleted && !isWeekPostseason && week !== 'All-Star' && week !== 'Relegation') {
             await calculateAndDisplayStandouts(week);
             weekStandoutsSection.style.display = 'block';
         } else {
@@ -343,22 +356,23 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
     try {
         let gameData, team1Lineups, team2Lineups, team1, team2;
-        const isGamePostseason = isPostseason(currentWeek);
+        
+        gameData = allGamesCache.find(g => g.id === gameId);
+        if (!gameData) throw new Error("Game not found in cache.");
+        const isGamePostseason = isPostseason(gameData.week);
 
         if (isLive) {
             const liveGameData = liveGamesCache.get(gameId);
             if (!liveGameData) throw new Error("Live game data not found in cache.");
-            gameData = liveGameData;
-            team1 = getTeamById(gameData.team1_lineup[0]?.team_id);
-            team2 = getTeamById(gameData.team2_lineup[0]?.team_id);
-            team1Lineups = gameData.team1_lineup || [];
-            team2Lineups = gameData.team2_lineup || [];
+            
+            team1 = getTeamById(liveGameData.team1_lineup[0]?.team_id);
+            team2 = getTeamById(liveGameData.team2_lineup[0]?.team_id);
+            team1Lineups = liveGameData.team1_lineup || [];
+            team2Lineups = liveGameData.team2_lineup || [];
             modalTitle.textContent = `${escapeHTML(team1.team_name)} vs ${escapeHTML(team2.team_name)} - Live`;
         } else {
-            gameData = allGamesCache.find(g => g.id === gameId);
-            if (!gameData) throw new Error("Game not found in cache.");
-            
-            const lineupsCollectionName = getCollectionName(isGamePostseason ? 'post_lineups' : 'lineups');
+            const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
+            const lineupsCollectionName = getCollectionName(isExhibition ? 'exhibition_lineups' : (isGamePostseason ? 'post_lineups' : 'lineups'));
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             
@@ -372,8 +386,22 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             modalTitle.textContent = `${escapeHTML(team1.team_name)} vs ${escapeHTML(team2.team_name)} - ${formatDateShort(gameDate)}`;
         }
 
+        // MODIFIED: Create copies of team objects to avoid mutating the cache
+        let modalTeam1 = { ...team1 };
+        let modalTeam2 = { ...team2 };
+
+        // MODIFIED: If it's a postseason game, overwrite the wins/losses with the series record
+        if (isGamePostseason && !isLive) {
+            modalTeam1.wins = gameData.team1_wins || 0;
+            modalTeam1.losses = gameData.team2_wins || 0;
+            modalTeam2.wins = gameData.team2_wins || 0;
+            modalTeam2.losses = gameData.team1_wins || 0;
+        }
+
         const winnerId = isLive ? null : gameData.winner;
-        contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, team1, !isLive && winnerId === team1.id)}${generateLineupTable(team2Lineups, team2, !isLive && winnerId === team2.id)}</div>`;
+        // MODIFIED: Pass the potentially modified team objects to the table generator
+        contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id)}</div>`;
+
     } catch (error) {
         console.error("Error showing game details:", error);
         contentArea.innerHTML = `<div class="error">Could not load details. ${error.message}</div>`;
