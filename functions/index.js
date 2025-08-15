@@ -1468,24 +1468,53 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
     rankAndSort(calculatedStats, 'pam', false, `${prefix}pam_rank`);
 
     if (!isPostseason) {
+        // NEW: Check if the regular season is complete
+        const incompleteGamesSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('completed', '!=', 'TRUE').limit(1).get();
+        const isRegularSeasonComplete = incompleteGamesSnap.empty;
+
         const eastConf = calculatedStats.filter(t => t.conference === 'Eastern');
         const westConf = calculatedStats.filter(t => t.conference === 'Western');
 
         [eastConf, westConf].forEach(conf => {
             if (conf.length === 0) return;
+            
+            // Sort by sortscore to determine postseed regardless of logic path
             conf.sort((a, b) => b.sortscore - a.sortscore).forEach((t, i) => t.postseed = i + 1);
 
-            const maxPotWinsSorted = [...conf].sort((a, b) => b.MaxPotWins - a.MaxPotWins);
-            const winsSorted = [...conf].sort((a, b) => b.wins - a.wins);
-            const playoffWinsThreshold = maxPotWinsSorted[6]?.MaxPotWins ?? 0;
-            const playinWinsThreshold = maxPotWinsSorted[10]?.MaxPotWins ?? 0;
-            const elimWinsThreshold = winsSorted[9]?.wins ?? 0;
+            if (isRegularSeasonComplete) {
+                console.log(`Regular season for ${conf[0].conference} conference is complete. Using sortscore for clinching.`);
+                // Logic for a completed regular season (based on final sortscore)
+                conf.forEach((team, index) => {
+                    const rank = index + 1; // Rank is 1-based index
+                    if (rank <= 6) {
+                        team.playoffs = 1;
+                        team.playin = 0;
+                        team.elim = 0;
+                    } else if (rank >= 7 && rank <= 10) {
+                        team.playoffs = 0;
+                        team.playin = 1;
+                        team.elim = 0;
+                    } else {
+                        team.playoffs = 0;
+                        team.playin = 0;
+                        team.elim = 1;
+                    }
+                });
+            } else {
+                console.log(`Regular season for ${conf[0].conference} conference is ongoing. Using win thresholds for clinching.`);
+                // Original logic for an incomplete regular season (based on win thresholds)
+                const maxPotWinsSorted = [...conf].sort((a, b) => b.MaxPotWins - a.MaxPotWins);
+                const winsSorted = [...conf].sort((a, b) => b.wins - a.wins);
+                const playoffWinsThreshold = maxPotWinsSorted[6]?.MaxPotWins ?? 0;
+                const playinWinsThreshold = maxPotWinsSorted[10]?.MaxPotWins ?? 0;
+                const elimWinsThreshold = winsSorted[9]?.wins ?? 0;
 
-            conf.forEach(t => {
-                t.playoffs = t.wins > playoffWinsThreshold ? 1 : 0;
-                t.playin = t.wins > playinWinsThreshold ? 1 : 0;
-                t.elim = t.MaxPotWins < elimWinsThreshold ? 1 : 0;
-            });
+                conf.forEach(t => {
+                    t.playoffs = t.wins > playoffWinsThreshold ? 1 : 0;
+                    t.playin = t.wins > playinWinsThreshold ? 1 : 0;
+                    t.elim = t.MaxPotWins < elimWinsThreshold ? 1 : 0;
+                });
+            }
         });
     }
 

@@ -11,11 +11,13 @@ const db = admin.firestore();
 
 // --- CONFIGURATION ---
 const SEASON_ID = "S8";
-const USE_DEV_COLLECTIONS = true;
+const USE_DEV_COLLECTIONS = true; // Ensure this is true for testing
 const SEASON_NUM = SEASON_ID.replace('S', '');
 
 // --- Helper to switch between dev/prod collections ---
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+const getCollectionName = (baseName) => {
+    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+};
 
 // --- Helper Functions for Calculations ---
 function calculateMedian(numbers) {
@@ -124,21 +126,13 @@ async function simulateSeason() {
             const [team1] = teamsToSchedule.splice(team1Index, 1);
             const team2Index = Math.floor(Math.random() * teamsToSchedule.length);
             const [team2] = teamsToSchedule.splice(team2Index, 1);
-            
-            // CORRECTED: Use YYYY-MM-DD format for dates
-            const year = gameDate.getFullYear();
-            const month = String(gameDate.getMonth() + 1).padStart(2, '0');
-            const day = String(gameDate.getDate()).padStart(2, '0');
-            const formattedDate = `${year}-${month}-${day}`;
-
-            const gameId = `${formattedDate}-${team1.team_id}-${team2.team_id}`;
+            const formattedDate = `${gameDate.getMonth() + 1}/${gameDate.getDate()}/${gameDate.getFullYear()}`;
+            const gameId = `${formattedDate}-${team1.team_id}-${team2.team_id}`.replace(/\//g, "-");
             schedule.push({ id: gameId, week: String(week), date: formattedDate, team1_id: team1.team_id, team2_id: team2.team_id, completed: 'FALSE', team1_score: 0, team2_score: 0, winner: '' });
         }
         gameDate.setDate(gameDate.getDate() + 7);
     }
     console.log(` Done. Generated ${schedule.length} games.`);
-
-    // ... (The rest of the script remains the same)
 
     // 3. SIMULATE GAMES AND LINEUPS
     process.stdout.write("[3/9] Simulating game results and generating lineup data...");

@@ -11,13 +11,12 @@ admin.initializeApp({
 const db = admin.firestore();
 
 // --- CONFIGURATION ---
-// MODIFIED: Preset for the S7 backfill
 const SPREADSHEET_ID = "1D1YUw9931ikPLihip3tn7ynkoJGFUHxtogfrq_Hz3P0";
 const BASE_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=`;
 const SEASON_ID = "S7";
 const SEASON_NUM = "7";
-const SEASON_STATUS = "active"; // Set to "active" because S7 is ongoing
-const USE_DEV_COLLECTIONS = false;
+const SEASON_STATUS = "active";
+const USE_DEV_COLLECTIONS = true;
 
 // --- Helper to switch between dev/prod collections ---
 const getCollectionName = (baseName) => {
@@ -310,7 +309,6 @@ async function seedDatabase() {
             }
         });
         
-        // NEW: Calculate tREL (Team REL)
         const teamRelDataMap = new Map();
         playersData.forEach(player => {
             const playerStats = playerSeasonalStats.get(player.player_id);
@@ -339,7 +337,6 @@ async function seedDatabase() {
             stats[statKey('med_starter_rank')] = calculateMedian(stats[statKey('ranks')] || []);
             delete stats[statKey('ranks')];
             
-            // NEW: Add calculated tREL to the main stats object
             const relData = teamRelDataMap.get(teamId);
             if (relData) {
                 stats.tREL = relData.totalGP > 0 ? relData.weightedSum / relData.totalGP : 0;
@@ -444,6 +441,94 @@ async function seedDatabase() {
         }
     };
 
+    // =================================================================
+    // START: MODIFIED BLOCK FOR TRANSACTION PROCESSING
+    // =================================================================
+    console.log("Grouping and transforming legacy transaction data...");
+
+    // Create a placeholder document for the 'seasons' subcollection parent
+    const transactionsCollectionName = getCollectionName("transactions");
+    const seasonsDocRef = db.collection(transactionsCollectionName).doc('seasons');
+    batch.set(seasonsDocRef, { description: "Parent document for seasonal transaction data." }, { merge: true });
+    writeCount++;
+    await commitBatchIfNeeded();
+    console.log(`Placeholder document created at '${transactionsCollectionName}/seasons'.`);
+
+    // Group rows by transaction_id
+    const groupedTransactions = transactionsData.reduce((acc, row) => {
+        const id = row.transaction_id;
+        if (id) {
+            if (!acc[id]) {
+                acc[id] = [];
+            }
+            acc[id].push(row);
+        }
+        return acc;
+    }, {});
+
+    // Transform each group into the new format and add to batch
+    for (const transactionId in groupedTransactions) {
+        const rows = groupedTransactions[transactionId];
+        const firstRow = rows[0];
+        
+        // Skip if the date is invalid to prevent crashes
+        if (!firstRow.date || !firstRow.date.includes('/')) {
+            console.warn(`Skipping transaction ${transactionId} due to invalid date: "${firstRow.date}"`);
+            continue;
+        }
+
+        const involvedTeams = new Set();
+        const involvedPlayers = [];
+        const involvedPicks = [];
+
+        rows.forEach(row => {
+            // Add teams to a set to ensure uniqueness
+            if (row.from_team) involvedTeams.add(row.from_team);
+            if (row.to_team) involvedTeams.add(row.to_team);
+
+            // Add player asset if it exists
+            if (row.player_id) {
+                involvedPlayers.push({
+                    id: row.player_id,
+                    from: row.from_team || null,
+                    to: row.to_team || null,
+                });
+            }
+
+            // Add draft pick asset if it exists
+            if (row.draft_pick_id) {
+                involvedPicks.push({
+                    id: row.draft_pick_id,
+                    from: row.from_team || null,
+                    to: row.to_team || null,
+                });
+            }
+        });
+        
+        const newTransaction = {
+            // Firestore SDK can convert JS Date objects to Timestamps
+            timestamp: admin.firestore.Timestamp.fromDate(new Date(firstRow.date)),
+            type: firstRow.transaction_type.toUpperCase() || 'UNKNOWN',
+            notes: firstRow.notes || '',
+            involved_teams: Array.from(involvedTeams),
+            involved_players: involvedPlayers,
+            involved_picks: involvedPicks,
+            legacy_id: transactionId, // For easy cross-referencing
+            season: SEASON_ID, // Add the season field
+        };
+
+        // Write to the new nested collection structure
+        const transactionDocRef = db.collection(transactionsCollectionName).doc('seasons').collection(SEASON_ID).doc(transactionId);
+        batch.set(transactionDocRef, newTransaction);
+        writeCount++;
+        await commitBatchIfNeeded();
+    }
+    console.log(`Prepared ${Object.keys(groupedTransactions).length} transactions for seeding into '${transactionsCollectionName}/seasons/${SEASON_ID}'.`);
+    // =================================================================
+    // END: MODIFIED BLOCK FOR TRANSACTION PROCESSING
+    // =================================================================
+
+
     // Seed Teams and Seasonal Records
     for (const team of teamsData) {
         const teamDocRef = db.collection(getCollectionName("v2_teams")).doc(team.team_id);
@@ -458,6 +543,9 @@ async function seedDatabase() {
 
         const seasonalData = teamSeasonalStats.get(team.team_id) || {};
         seasonalData.team_name = team.team_name;
+        seasonalData.team_id = team.team_id;
+        // ADDED: This field is crucial for the query to find the document.
+        seasonalData.season = SEASON_ID;
         delete seasonalData.teamId;
 
         const seasonRecordRef = teamDocRef.collection(getCollectionName("seasonal_records")).doc(SEASON_ID);
@@ -500,12 +588,12 @@ async function seedDatabase() {
 
     batch.set(seasonRef, {
         season_name: `Season ${SEASON_NUM}`,
-        status: SEASON_STATUS, // MODIFIED: Use the configured status
+        status: SEASON_STATUS,
         gs: season_gs,
         gp: season_gp,
         season_karma: season_karma,
         season_trans: season_trans,
-        current_week: "Season Complete" // This can be manually updated later if needed
+        current_week: "Season Complete"
     }, { merge: true });
     writeCount++;
     console.log(`Prepared parent document for season ${SEASON_ID} with summary stats.`);
@@ -630,7 +718,6 @@ async function seedDatabase() {
     // --- Seed Leaderboards and Awards ---
     console.log("Seeding leaderboards and awards...");
 
-    // MODIFIED: Add placeholder for awards parent document
     const awardsParentDocRef = db.doc(`${getCollectionName('awards')}/season_${SEASON_NUM}`);
     batch.set(awardsParentDocRef, { description: `Awards for Season ${SEASON_NUM}` });
     writeCount++;

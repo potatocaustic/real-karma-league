@@ -269,19 +269,20 @@ function loadLiveGames() {
             const team2 = allTeams.find(t => t.id === liveGameData.team2_lineup[0]?.team_id);
             if (!team1 || !team2) return;
             
-            // --- CHANGE #1 START: Check if live game is postseason and get correct record ---
             const originalGame = allGamesCache.find(g => g.id === gameId);
             const gameIsPostseason = originalGame ? isPostseasonWeek(originalGame.week) : false;
             let team1Record, team2Record;
 
             if (gameIsPostseason && originalGame) {
-                team1Record = `${originalGame.team1_wins || 0}-${originalGame.team2_wins || 0}`;
-                team2Record = `${originalGame.team2_wins || 0}-${originalGame.team1_wins || 0}`;
+                // MODIFIED: Add bolded seed to the record line for postseason games
+                const team1SeedHTML = originalGame.team1_seed ? `<strong>(${originalGame.team1_seed})</strong> ` : '';
+                const team2SeedHTML = originalGame.team2_seed ? `<strong>(${originalGame.team2_seed})</strong> ` : '';
+                team1Record = `${team1SeedHTML}${originalGame.team1_wins || 0}-${originalGame.team2_wins || 0}`;
+                team2Record = `${team2SeedHTML}${originalGame.team2_wins || 0}-${originalGame.team1_wins || 0}`;
             } else {
                 team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
                 team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
             }
-            // --- CHANGE #1 END ---
 
             const team1_total = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             const team2_total = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
@@ -295,12 +296,13 @@ function loadLiveGames() {
             if (gameItem) { // UPDATE EXISTING
                 const teamScores = gameItem.querySelectorAll('.team-score');
                 const teamBars = gameItem.querySelectorAll('.team-bar');
-                const teamRecords = gameItem.querySelectorAll('.team-record'); // Update record spans
+                const teamRecords = gameItem.querySelectorAll('.team-record');
 
                 teamScores[0].textContent = formatInThousands(team1_total);
                 teamScores[1].textContent = formatInThousands(team2_total);
-                teamRecords[0].textContent = team1Record;
-                teamRecords[1].textContent = team2Record;
+                // MODIFIED: Use innerHTML to render the bolded seed
+                teamRecords[0].innerHTML = team1Record;
+                teamRecords[1].innerHTML = team2Record;
                 
                 teamBars[0].style.width = `${team1_bar_percent}%`;
                 teamBars[1].style.width = `${team2_bar_percent}%`;
@@ -400,8 +402,6 @@ async function loadRecentGames() {
             return;
         }
         
-        // --- CHANGE #2: Logic moved from here... ---
-
         const maxScore = Math.max(...games.flatMap(g => [g.team1_score || 0, g.team2_score || 0]), 1);
 
         gamesList.innerHTML = games.map(game => {
@@ -409,21 +409,21 @@ async function loadRecentGames() {
             const team2 = allTeams.find(t => t.id === game.team2_id);
             if (!team1 || !team2) return '';
 
-            // --- CHANGE #2: ...to inside the loop for more accuracy. ---
             const gameIsPostseason = isPostseasonWeek(game.week);
-            if (game === games[0]) { // Set header based on the first game of the day
+            if (game === games[0]) {
                  gamesHeader.textContent = gameIsPostseason ? 'Recent Postseason Games' : 'Recent Games';
             }
 
-            let team1NameHTML = escapeHTML(team1.team_name);
-            let team2NameHTML = escapeHTML(team2.team_name);
+            const team1NameHTML = escapeHTML(team1.team_name);
+            const team2NameHTML = escapeHTML(team2.team_name);
             let team1Record, team2Record;
             
             if (gameIsPostseason) {
-                if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
-                if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
-                team1Record = `${game.team1_wins || 0}-${game.team2_wins || 0}`;
-                team2Record = `${game.team2_wins || 0}-${game.team1_wins || 0}`;
+                // MODIFIED: Add bolded seed to the record line instead of the name line
+                const team1SeedHTML = game.team1_seed ? `<strong>(${game.team1_seed})</strong> ` : '';
+                const team2SeedHTML = game.team2_seed ? `<strong>(${game.team2_seed})</strong> ` : '';
+                team1Record = `${team1SeedHTML}${game.team1_wins || 0}-${game.team2_wins || 0}`;
+                team2Record = `${team2SeedHTML}${game.team2_wins || 0}-${game.team1_wins || 0}`;
             } else {
                 team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
                 team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
@@ -576,7 +576,6 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
 
         let team1ForModal = team1, team2ForModal = team2;
 
-        // --- CHANGE #3: This logic now works for both live and completed postseason games ---
         if (gameIsPostseason) {
             team1ForModal = { ...team1, wins: originalGame.team1_wins || 0, losses: originalGame.team2_wins || 0 };
             team2ForModal = { ...team2, wins: originalGame.team2_wins || 0, losses: originalGame.team1_wins || 0 };

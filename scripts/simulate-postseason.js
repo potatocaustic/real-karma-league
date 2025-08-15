@@ -26,10 +26,12 @@ const calculateMedian = (numbers) => {
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 const askQuestion = (query) => new Promise(resolve => rl.question(query, ans => resolve(ans)));
 
+
 /**
  * Core logic for advancing teams in the playoff bracket.
+ * MODIFIED: This function now accepts an array of concluded series objects.
  */
-async function advanceBracket(gamesToProcess, postGamesRef, batch) {
+async function advanceBracket(concludedSeries, postGamesRef, batch) {
     const advancementRules = {
         "W7vW8": { winnerTo: "W2vW7", winnerField: "team2_id", loserTo: "W8thSeedGame", loserField: "team1_id" },
         "E7vE8": { winnerTo: "E2vE7", winnerField: "team2_id", loserTo: "E8thSeedGame", loserField: "team1_id" },
@@ -53,27 +55,31 @@ async function advanceBracket(gamesToProcess, postGamesRef, batch) {
         "WCF": { winnerTo: "Finals", winnerField: "team1_id" },
     };
 
-    for (const game of gamesToProcess) {
-        const rule = advancementRules[game.series_id];
+    for (const series of concludedSeries) {
+        const rule = advancementRules[series.series_id];
         if (!rule) continue;
 
-        const winnerId = game.winner;
-        const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
+        const winnerId = series.winner;
+        const loserId = series.loser;
+        let winnerSeed = series.winnerSeed;
 
         if (rule.winnerTo && winnerId) {
-            let winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
-            if (game.series_id === "E7vE8" || game.series_id === "W7vW8") winnerSeed = '7';
-            else if (game.series_id.includes('8thSeedGame')) winnerSeed = '8';
+            // Special seed handling for play-in games
+            if (series.series_id === "E7vE8" || series.series_id === "W7vW8") winnerSeed = '7';
+            else if (series.series_id.includes('8thSeedGame')) winnerSeed = '8';
 
             const winnerSeedField = rule.winnerField.replace('_id', '_seed');
             const winnerNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.winnerTo).get();
+            
+            // This correctly finds the next series and updates one team slot,
+            // leaving the other as-is (e.g., "TBD").
             winnerNextSeriesSnap.forEach(doc => {
                 batch.update(doc.ref, { [rule.winnerField]: winnerId, [winnerSeedField]: winnerSeed || '' });
             });
         }
 
         if (rule.loserTo && loserId) {
-            const loserSeed = loserId === game.team1_id ? game.team1_seed : game.team2_seed;
+            const loserSeed = series.loserSeed;
             const loserSeedField = rule.loserField.replace('_id', '_seed');
             const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.loserTo).get();
             loserNextSeriesSnap.forEach(doc => {
@@ -94,7 +100,7 @@ async function simulateDay(gamesForDay, allPlayers) {
     const postGamesRef = db.collection(getCollectionName('seasons')).doc(SEASON_ID).collection(getCollectionName('post_games'));
 
     // 1. Simulate Lineups & Scores
-    let newCompletedGames = [];
+    const newCompletedGames = [];
     const newCompletedLineups = [];
 
     for (const game of gamesForDay) {
@@ -131,32 +137,59 @@ async function simulateDay(gamesForDay, allPlayers) {
     }
     process.stdout.write("  -> Scores & lineups generated.\n");
 
-    // 2. Propagate Series Scores & Determine Series Winner
-    let seriesWinners = new Map();
-    for(const game of newCompletedGames) {
+    // 2. Propagate Series Scores, Determine Series Winner, and Delete Remaining Games
+    // MODIFIED: This section is refactored for clarity and correctness.
+    const concludedSeriesForAdvancement = [];
+
+    for (const game of newCompletedGames) {
+        // Determine if a series winner was declared in this game
         if (game.week !== 'Play-In') {
             const winConditions = { 'Round 1': 2, 'Round 2': 2, 'Conf Finals': 3, 'Finals': 4 };
             const winsNeeded = winConditions[game.week] || 99;
             let series_winner = '';
             if (game.team1_wins === winsNeeded) series_winner = game.team1_id;
             else if (game.team2_wins === winsNeeded) series_winner = game.team2_id;
-            
-            if (series_winner) {
-                seriesWinners.set(game.series_id, series_winner);
+
+            if (series_winner && !concludedSeriesForAdvancement.some(s => s.series_id === game.series_id)) {
+                const loser = series_winner === game.team1_id ? game.team2_id : game.team1_id;
+                const winnerSeed = series_winner === game.team1_id ? game.team1_seed : game.team2_seed;
+                const loserSeed = loser === game.team1_id ? game.team1_seed : game.team2_seed;
+
+                concludedSeriesForAdvancement.push({
+                    series_id: game.series_id,
+                    winner: series_winner,
+                    loser: loser,
+                    winnerSeed: winnerSeed,
+                    loserSeed: loserSeed
+                });
+
+                // NEW: Find and delete remaining incomplete games in this series
+                const remainingGamesSnap = await postGamesRef
+                    .where('series_id', '==', game.series_id)
+                    .where('completed', '==', 'FALSE')
+                    .get();
+
+                if (!remainingGamesSnap.empty) {
+                    process.stdout.write(`  -> Series ${game.series_id} won by ${series_winner}. Deleting ${remainingGamesSnap.size} remaining game(s).\n`);
+                    remainingGamesSnap.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                }
             }
         }
+
+        // Propagate latest win counts to all games in the series for UI consistency
         const seriesGamesSnap = await postGamesRef.where('series_id', '==', game.series_id).get();
         seriesGamesSnap.forEach(doc => {
             batch.update(doc.ref, { team1_wins: game.team1_wins, team2_wins: game.team2_wins });
         });
     }
-    
-    newCompletedGames = newCompletedGames.map(g => ({ ...g, series_winner: seriesWinners.get(g.series_id) || g.series_winner || '' }));
-    
-    for(const [seriesId, winnerId] of seriesWinners.entries()) {
-        const seriesGamesSnap = await postGamesRef.where('series_id', '==', seriesId).get();
+
+    // Now apply the final series winner to all games in that series in the batch
+    for (const series of concludedSeriesForAdvancement) {
+        const seriesGamesSnap = await postGamesRef.where('series_id', '==', series.series_id).get();
         seriesGamesSnap.forEach(doc => {
-            batch.update(doc.ref, { series_winner: winnerId });
+            batch.update(doc.ref, { series_winner: series.winner });
         });
     }
     process.stdout.write("  -> Series scores propagated.\n");
@@ -170,7 +203,8 @@ async function simulateDay(gamesForDay, allPlayers) {
     const win = median * 0.92;
 
     const dailyAvgData = { date: gameDate, week: gamesForDay[0].week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win: win };
-    const dailyAvgRef = db.doc(`${getCollectionName('post_daily_averages')}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_post_daily_averages`)}/${gameDate}`);
+    const yyyymmdd = new Date(gameDate).toISOString().split('T')[0];
+    const dailyAvgRef = db.doc(`${getCollectionName('post_daily_averages')}/season_${SEASON_NUM}/${getCollectionName(`S${SEASON_NUM}_post_daily_averages`)}/${yyyymmdd}`);
     batch.set(dailyAvgRef, dailyAvgData);
 
     newCompletedLineups.forEach(l => {
@@ -196,7 +230,7 @@ async function simulateDay(gamesForDay, allPlayers) {
     // 4. Update ALL seasonal stats
     const playersInvolved = [...new Set(newCompletedLineups.map(l => l.player_id))];
     for (const playerId of playersInvolved) {
-        const prevLineupsSnap = await postGamesRef.collection('lineups').where('player_id', '==', playerId).get();
+        const prevLineupsSnap = await db.collection(getCollectionName('seasons')).doc(SEASON_ID).collection(getCollectionName('post_lineups')).where('player_id', '==', playerId).get();
         const prevLineups = prevLineupsSnap.docs.map(d => d.data());
         const todaysLineups = newCompletedLineups.filter(l => l.player_id === playerId);
         const allPostLineups = [...prevLineups, ...todaysLineups];
@@ -226,7 +260,7 @@ async function simulateDay(gamesForDay, allPlayers) {
 
     // 5. Update the bracket
     process.stdout.write("  -> Advancing postseason bracket...");
-    await advanceBracket(newCompletedGames, postGamesRef, batch);
+    await advanceBracket(concludedSeriesForAdvancement, postGamesRef, batch);
     process.stdout.write(" Done.\n");
 
 
