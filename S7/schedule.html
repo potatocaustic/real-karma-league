@@ -81,6 +81,17 @@
         50% { opacity: 0.4; }
         100% { opacity: 1; }
     }
+    .live-indicator-text::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #dc3545;
+        border-radius: 50%;
+        margin-right: 8px; /* Adjusted for better spacing next to text */
+        animation: pulse-live 1.5s infinite;
+        vertical-align: middle; /* Aligns the dot with the text */
+    }
     .no-games { text-align: center; padding: 3rem; color: #666; }
 
     /* Dark Mode */
