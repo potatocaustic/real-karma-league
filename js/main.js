@@ -144,7 +144,6 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
 
     const teamNameWithSeed = team.seed ? `(${team.seed}) ${team.team_name}` : team.team_name;
     
-    // MODIFIED: Use the correct list of All-Star team IDs to determine the file extension.
     const allStarTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
     const iconExt = team.id && allStarTeamIds.includes(team.id) ? 'png' : 'webp';
 
@@ -167,9 +166,15 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
                         const finalScore = p.final_score || 0;
                         const captainBonus = isCaptain ? finalScore - baseScore : 0;
                         const captainBadge = isCaptain ? '<span class="captain-badge">C</span>' : '';
+
+                        const isRookie = p.rookie === '1';
+                        const isAllStar = p.all_star === '1';
+                        const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
+                        const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
+
                         return `
                             <tr class="${isCaptain ? 'captain-row' : ''}">
-                                <td class="player-name-cell"><a href="player.html?id=${encodeURIComponent(p.player_id)}" class="player-link">${p.player_handle}</a>${captainBadge}</td>
+                                <td class="player-name-cell"><a href="player.html?id=${encodeURIComponent(p.player_id)}" class="player-link">${p.player_handle}</a>${captainBadge}${rookieBadge}${allStarBadge}</td>
                                 <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
                                 <td class="rank-cell">${p.global_rank || '-'}</td>
                             </tr>
