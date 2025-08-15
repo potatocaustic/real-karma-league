@@ -1337,19 +1337,14 @@
         }
 
         async function loadPlayerData() {
-            playerHandle = getUrlParameter('player');
+            const playerHandleParam = getUrlParameter('player');
+            const playerIdParam = getUrlParameter('id');
 
-            if (playerHandle) {
-                const postseasonBtn = document.getElementById('postseason-btn');
-                if (postseasonBtn) {
-                    postseasonBtn.href = `postseason-player.html?player=${encodeURIComponent(playerHandle)}`;
-                }
-            }
-
-            if (!playerHandle) {
-                document.getElementById('player-main-info').innerHTML = '<div class="error">No player specified</div>';
+            if (!playerHandleParam && !playerIdParam) {
+                document.getElementById('player-main-info').innerHTML = '<div class="error">No player handle or ID specified in URL.</div>';
                 return;
             }
+
             const [playersRaw, teams, weeklyAveragesRaw, lineupsRaw, schedule, transactions] = await Promise.all([
                 fetchSheetData('Players'), fetchSheetData('Teams'),
                 fetchSheetData('Weekly_Averages'), fetchSheetData('Lineups'),
@@ -1369,13 +1364,30 @@
 
             allPlayersProcessed = calculateAllPlayerStats(playersRaw, weeklyAveragesRaw, lineupsRaw);
 
-            playerData = allPlayersProcessed.find(player => player.player_handle === playerHandle);
+            // Find player data by ID first, then fall back to handle
+            if (playerIdParam) {
+                playerData = allPlayersProcessed.find(p => p.player_id === playerIdParam);
+            } else if (playerHandleParam) {
+                playerData = allPlayersProcessed.find(p => p.player_handle === playerHandleParam);
+            }
 
             if (!playerData) {
                 document.getElementById('player-main-info').innerHTML = '<div class="error">Player not found</div>';
                 return;
             }
+            
+            // Set the global playerHandle from the found player data
+            playerHandle = playerData.player_handle;
 
+            // Update postseason button link now that we have the correct handle
+            if (playerHandle) {
+                const postseasonBtn = document.getElementById('postseason-btn');
+                if (postseasonBtn) {
+                    postseasonBtn.href = `postseason-player.html?player=${encodeURIComponent(playerHandle)}`;
+                }
+            }
+            
+            // Continue with the rest of the page load
             const playersMeeting3Games = allPlayersProcessed.filter(p => p.player_status === 'ACTIVE' && parseInt(p.games_played || 0) >= 3).length;
             const is3GPMinimumActive = playersMeeting3Games >= 120;
 
