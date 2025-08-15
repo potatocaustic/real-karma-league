@@ -98,25 +98,26 @@ async function fetchInitialPageData(seasonId) {
     const teamsCollection = getCollectionName('v2_teams');
     const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
     const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
-    // MODIFIED: Added a reference to fetch exhibition games
     const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
 
     const [teamsSnapshot, gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
         getDocs(collection(db, teamsCollection)),
         getDocs(gamesRef),
         getDocs(postGamesRef),
-        getDocs(exhibitionGamesRef), // MODIFIED: Fetching the exhibition games
+        getDocs(exhibitionGamesRef),
     ]);
     
     const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
-        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+        let teamData = { id: teamDoc.id, ...teamDoc.data(), wins: 0, losses: 0 }; // Start with base data and default record
         const seasonalRecordRef = doc(db, teamsCollection, teamDoc.id, getCollectionName('seasonal_records'), seasonId);
         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
-        return seasonalRecordSnap.exists() ? { ...teamData, ...seasonalRecordSnap.data() } : null;
+        if (seasonalRecordSnap.exists()) {
+            teamData = { ...teamData, ...seasonalRecordSnap.data() }; // Merge seasonal record if it exists
+        }
+        return teamData;
     });
-    allTeams = (await Promise.all(teamPromises)).filter(t => t !== null);
+    allTeams = await Promise.all(teamPromises);
     
-    // MODIFIED: Merged all game types into a single cache for easier handling
     allGamesCache = [
         ...gamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })), 
         ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })),
@@ -126,7 +127,6 @@ async function fetchInitialPageData(seasonId) {
 
 // --- CORE LOGIC & RENDERING ---
 function calculateHistoricalRecords() {
-    // MODIFIED: Updated week order to include exhibition weeks for record calculation continuity
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
     const teamRecordsByWeek = {};
 
@@ -137,7 +137,6 @@ function calculateHistoricalRecords() {
     for (const week of weekOrder) {
         historicalRecords[week] = { ...Object.fromEntries(Object.entries(teamRecordsByWeek).map(([id, rec]) => [id, `${rec.wins}-${rec.losses}`])) };
         
-        // Only update win/loss for regular season games
         if (!isNaN(week)) {
             const gamesThisWeek = allGamesCache.filter(g => g.week === week && g.completed === 'TRUE');
             gamesThisWeek.forEach(game => {
@@ -152,7 +151,6 @@ function calculateHistoricalRecords() {
 }
 
 function determineInitialWeek() {
-    // MODIFIED: Updated week order to correctly find the current week
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))].sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
@@ -178,13 +176,11 @@ function listenForLiveGames() {
 
 function setupWeekSelector() {
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))];
-    // MODIFIED: The definitive week order for sorting the buttons on the UI
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
     allKnownWeeks.sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
     const visibleWeeks = allKnownWeeks.filter(week => {
         if (week === 'All-Star' || week === 'Relegation' || !isPostseason(week)) return true;
-        // For postseason, only show if a team has been decided
         const weekGames = allGamesCache.filter(g => g.week === week);
         return weekGames.some(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
     });
@@ -230,7 +226,6 @@ async function displayWeek(week) {
 
     if (weekStandoutsSection) {
         const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
-        // MODIFIED: Standouts only show for regular season weeks
         if (allGamesInWeekCompleted && !isWeekPostseason && week !== 'All-Star' && week !== 'Relegation') {
             await calculateAndDisplayStandouts(week);
             weekStandoutsSection.style.display = 'block';
@@ -292,7 +287,7 @@ async function displayWeek(week) {
             return `<div class="game-card ${cardClass}" data-game-id="${game.id}" data-is-live="${isLive}" data-date="${game.date}"><div class="game-teams"><div class="team ${isCompleted && game.winner === team1.id ? 'winner' : ''}"><div class="team-left"><img src="../icons/${team1.id}.webp" alt="${escapeHTML(team1.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team1NameHTML}</div><div class="team-record">${team1Record}</div></div></div>${team1ScoreHTML}</div><div class="team ${isCompleted && game.winner === team2.id ? 'winner' : ''}"><div class="team-left"><img src="../icons/${team2.id}.webp" alt="${escapeHTML(team2.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team2NameHTML}</div><div class="team-record">${team2Record}</div></div></div>${team2ScoreHTML}</div></div><div class="game-status ${cardClass}">${statusHTML}</div></div>`;
         }).join('');
         
-        const dateHeaderPrefix = week === 'Finals' ? '🏆 ' : '';
+        const dateHeaderPrefix = week === 'Finals' ? '� ' : '';
         return `<div class="date-section"><div class="date-header">${dateHeaderPrefix}${formatDate(date)}</div><div class="games-grid">${dateGamesHTML}</div></div>`;
     }).join('');
 
@@ -361,6 +356,9 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         if (!gameData) throw new Error("Game not found in cache.");
         const isGamePostseason = isPostseason(gameData.week);
 
+        let titleTeam1Name = '';
+        let titleTeam2Name = '';
+
         if (isLive) {
             const liveGameData = liveGamesCache.get(gameId);
             if (!liveGameData) throw new Error("Live game data not found in cache.");
@@ -369,7 +367,16 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             team2 = getTeamById(liveGameData.team2_lineup[0]?.team_id);
             team1Lineups = liveGameData.team1_lineup || [];
             team2Lineups = liveGameData.team2_lineup || [];
-            modalTitle.textContent = `${escapeHTML(team1.team_name)} vs ${escapeHTML(team2.team_name)} - Live`;
+            
+            titleTeam1Name = escapeHTML(team1.team_name);
+            titleTeam2Name = escapeHTML(team2.team_name);
+
+            if (isGamePostseason) {
+                if (gameData.team1_seed) titleTeam1Name = `(${gameData.team1_seed}) ${titleTeam1Name}`;
+                if (gameData.team2_seed) titleTeam2Name = `(${gameData.team2_seed}) ${titleTeam2Name}`;
+            }
+            modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
+
         } else {
             const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
             const lineupsCollectionName = getCollectionName(isExhibition ? 'exhibition_lineups' : (isGamePostseason ? 'post_lineups' : 'lineups'));
@@ -383,24 +390,30 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             team2 = getTeamById(gameData.team2_id);
             team1Lineups = allLineupsForGame.filter(l => l.team_id === team1.id && l.started === "TRUE");
             team2Lineups = allLineupsForGame.filter(l => l.team_id === team2.id && l.started === "TRUE");
-            modalTitle.textContent = `${escapeHTML(team1.team_name)} vs ${escapeHTML(team2.team_name)} - ${formatDateShort(gameDate)}`;
+
+            titleTeam1Name = escapeHTML(team1.team_name);
+            titleTeam2Name = escapeHTML(team2.team_name);
+            if (isGamePostseason) {
+                if (gameData.team1_seed) titleTeam1Name = `(${gameData.team1_seed}) ${titleTeam1Name}`;
+                if (gameData.team2_seed) titleTeam2Name = `(${gameData.team2_seed}) ${titleTeam2Name}`;
+            }
+            modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - ${formatDateShort(gameDate)}`;
         }
 
-        // MODIFIED: Create copies of team objects to avoid mutating the cache
         let modalTeam1 = { ...team1 };
         let modalTeam2 = { ...team2 };
 
-        // MODIFIED: If it's a postseason game, overwrite the wins/losses with the series record
-        if (isGamePostseason && !isLive) {
+        if (isGamePostseason) {
             modalTeam1.wins = gameData.team1_wins || 0;
             modalTeam1.losses = gameData.team2_wins || 0;
             modalTeam2.wins = gameData.team2_wins || 0;
             modalTeam2.losses = gameData.team1_wins || 0;
+            modalTeam1.seed = gameData.team1_seed;
+            modalTeam2.seed = gameData.team2_seed;
         }
 
         const winnerId = isLive ? null : gameData.winner;
-        // MODIFIED: Pass the potentially modified team objects to the table generator
-        contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id)}</div>`;
+        contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id, isLive)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id, isLive)}</div>`;
 
     } catch (error) {
         console.error("Error showing game details:", error);

@@ -135,21 +135,22 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
     const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
     const winnerCheck = isWinner ? '✅ ' : '';
     
-    // Add the live indicator only if the isLive flag is true
     const liveIndicator = isLive ? '<span class="live-indicator-modal"></span>' : '';
 
-    // Sorting logic: captain first, then by points
     const captain = lineups.find(p => p.is_captain === "TRUE" || p.is_captain === true);
     const otherPlayers = lineups.filter(p => !(p.is_captain === "TRUE" || p.is_captain === true));
     otherPlayers.sort((a, b) => (b.final_score || 0) - (a.final_score || 0));
     const sortedLineups = captain ? [captain, ...otherPlayers] : otherPlayers;
+
+    // MODIFIED: Request 2 - Add team seed to the header if it exists
+    const teamNameWithSeed = team.seed ? `(${team.seed}) ${team.team_name}` : team.team_name;
 
     return `
         <div class="team-breakdown ${isWinner ? 'winner' : ''}">
             <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${team.id}'">
                 <div class="modal-team-info-wrapper">
                     <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
-                    <h4>${team.team_name}</h4>
+                    <h4>${teamNameWithSeed}</h4>
                     <span class="modal-team-record">(${team.wins}-${team.losses})</span>
                 </div>
             </div>
