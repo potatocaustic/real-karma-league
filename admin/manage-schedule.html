@@ -26,19 +26,16 @@
         </div>
 
         <div class="schedule-grid">
-            <!-- Regular Season Management -->
             <div class="schedule-section">
                 <h3>Regular Season Schedule</h3>
                 <div id="regular-season-schedule-container"></div>
                 <button id="add-game-btn" class="btn-admin-edit" style="margin-top: 1rem;">+ Add Game</button>
             </div>
 
-            <!-- Postseason Management -->
             <div class="schedule-section">
                 <h3>Postseason Automation</h3>
                 <p>Set the dates for each round. The bracket will be generated automatically after Week 15 is completed.</p>
                 <div id="postseason-dates-container">
-                    <!-- Date inputs will be populated here as collapsible sections -->
                 </div>
                 <button id="generate-postseason-btn" class="btn-admin-save" style="margin-top: 1.5rem;">Generate/Update Postseason Schedule</button>
                 <div id="postseason-schedule-container" style="margin-top: 1.5rem;"></div>
@@ -46,7 +43,6 @@
         </div>
     </main>
 
-    <!-- Modal for Adding/Editing a Game -->
     <div id="game-modal" class="modal-admin">
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
@@ -55,7 +51,6 @@
                 <div class="form-group-admin">
                     <label for="game-week">1. Select Week</label>
                     <select id="game-week" required>
-                        <!-- Populated by JS -->
                     </select>
                 </div>
                 <div class="form-group-admin">
@@ -70,7 +65,10 @@
                     <label for="team2-select">4. Select Team 2</label>
                     <select id="team2-select" required disabled></select>
                 </div>
-                <button type="submit" class="btn-admin-save">Save Game</button>
+                <div class="form-buttons-container">
+                    <button type="button" id="save-another-btn" class="btn-admin-secondary">Save & Log Another</button>
+                    <button type="submit" id="save-exit-btn" class="btn-admin-save">Save Game & Exit</button>
+                </div>
             </form>
         </div>
     </div>

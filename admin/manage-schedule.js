@@ -15,7 +15,6 @@ const postseasonDatesContainer = document.getElementById('postseason-dates-conta
 const addGameBtn = document.getElementById('add-game-btn');
 const generatePostseasonBtn = document.getElementById('generate-postseason-btn');
 
-// Modal Elements
 const gameModal = document.getElementById('game-modal');
 const gameForm = document.getElementById('game-form');
 const closeModalBtn = gameModal.querySelector('.close-btn-admin');
@@ -74,7 +73,15 @@ async function initializePage() {
 
         addGameBtn.addEventListener('click', openGameModal);
         closeModalBtn.addEventListener('click', () => gameModal.classList.remove('is-visible'));
-        gameForm.addEventListener('submit', handleSaveGame);
+        
+        gameForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveGame(true); 
+        });
+        document.getElementById('save-another-btn').addEventListener('click', () => {
+            saveGame(false); 
+        });
+
         gameWeekSelect.addEventListener('change', populateAvailableTeams);
         generatePostseasonBtn.addEventListener('click', handleGeneratePostseason);
         regularSeasonContainer.addEventListener('click', handleDeleteGame);
@@ -93,8 +100,6 @@ async function initializePage() {
 async function updateTeamCache(seasonId) {
     const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
-        if (!teamDoc.data().conference) return null;
-
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
         const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
@@ -115,7 +120,6 @@ function populatePostseasonDates() {
     for (const [round, count] of Object.entries(rounds)) {
         html += `<details class="round-details"><summary class="round-summary">${round}</summary><div class="round-date-inputs">`;
         for (let i = 1; i <= count; i++) {
-            // MODIFIED: Added data-round-name="${round}" to the input tag
             html += `<div class="form-group-admin" style="margin-bottom: 0.5rem;"><label for="date-${round.replace(' ', '-')}-${i}">Game ${i} Date</label><input type="date" id="date-${round.replace(' ', '-')}-${i}" data-round-name="${round}"></div>`;
         }
         html += `</div></details>`;
@@ -220,8 +224,11 @@ function populateAvailableTeams() {
         return;
     }
 
-    let availableTeams = allTeams;
-    if (!isNaN(week)) {
+    let availableTeams;
+
+    if (week === 'All-Star' || week === 'Relegation') {
+        availableTeams = allTeams;
+    } else {
         const scheduledTeams = new Set();
         if (gamesByWeek[week]) {
             gamesByWeek[week].forEach(game => {
@@ -229,10 +236,12 @@ function populateAvailableTeams() {
                 scheduledTeams.add(game.team2_id);
             });
         }
-        availableTeams = allTeams.filter(team => !scheduledTeams.has(team.id));
+        availableTeams = allTeams.filter(team => team.conference && !scheduledTeams.has(team.id));
     }
 
-    const teamOptions = '<option value="">-- Select a Team --</option>' + availableTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
+    const teamOptions = '<option value="">-- Select a Team --</option>' + availableTeams
+        .sort((a,b) => a.team_name.localeCompare(b.team_name))
+        .map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
     team1Select.innerHTML = teamOptions;
     team2Select.innerHTML = teamOptions;
@@ -240,9 +249,13 @@ function populateAvailableTeams() {
     team2Select.disabled = false;
 }
 
-async function handleSaveGame(e) {
-    e.preventDefault();
+async function saveGame(andExit = true) {
     const dateValue = document.getElementById('game-date').value;
+    if (!dateValue || !team1Select.value || !team2Select.value || !gameWeekSelect.value) {
+        alert("Please fill out all fields.");
+        return;
+    }
+
     const [year, month, day] = dateValue.split('-');
     const formattedDateForDoc = `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
     const formattedDateForId = `${year}-${month}-${day}`;
@@ -264,16 +277,35 @@ async function handleSaveGame(e) {
     const isExhibition = week === 'All-Star' || week === 'Relegation';
     const collectionName = isExhibition ? 'exhibition_games' : 'games';
     const gameId = `${formattedDateForId}-${team1Id}-${team2Id}`;
+    
+    const saveExitBtn = document.getElementById('save-exit-btn');
+    const saveAnotherBtn = document.getElementById('save-another-btn');
 
     try {
+        saveExitBtn.disabled = true;
+        saveAnotherBtn.disabled = true;
+        saveAnotherBtn.textContent = 'Saving...';
+
         await setDoc(doc(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName(collectionName)}`, gameId), gameData);
-        gameModal.classList.remove('is-visible');
         await loadSchedules();
+
+        if (andExit) {
+            gameModal.classList.remove('is-visible');
+        } else {
+            team1Select.value = '';
+            team2Select.value = '';
+            team1Select.focus();
+        }
     } catch (error) {
         console.error("Error saving game:", error);
         alert("Could not save game.");
+    } finally {
+        saveExitBtn.disabled = false;
+        saveAnotherBtn.disabled = false;
+        saveAnotherBtn.textContent = 'Save & Log Another';
     }
 }
+
 
 async function handleDeleteGame(e) {
     if (!e.target.matches('.btn-admin-delete')) return;
@@ -302,7 +334,6 @@ async function handleGeneratePostseason() {
     };
 
     document.querySelectorAll('#postseason-dates-container input[type="date"]').forEach(input => {
-        // MODIFIED: Reads the round name directly from the data attribute
         const roundName = input.dataset.roundName;
         
         if (dates[roundName] && input.value) {
