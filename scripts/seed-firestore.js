@@ -532,19 +532,22 @@ async function seedDatabase() {
     // Seed Teams and Seasonal Records
     for (const team of teamsData) {
         const teamDocRef = db.collection(getCollectionName("v2_teams")).doc(team.team_id);
+        // MODIFIED: Added gm_player_id to the static data for the team's root document
         const staticData = {
             team_id: team.team_id,
             conference: team.conference,
             current_gm_handle: team.current_gm_handle,
-            gm_uid: team.gm_uid
+            gm_uid: team.gm_uid,
+            gm_player_id: team.gm_player_id || null
         };
-        batch.set(teamDocRef, staticData);
+        batch.set(teamDocRef, staticData, { merge: true });
         writeCount++;
 
         const seasonalData = teamSeasonalStats.get(team.team_id) || {};
         seasonalData.team_name = team.team_name;
         seasonalData.team_id = team.team_id;
-        // ADDED: This field is crucial for the query to find the document.
+        // MODIFIED: Also add gm_player_id to the seasonal record for historical tracking
+        seasonalData.gm_player_id = team.gm_player_id || null;
         seasonalData.season = SEASON_ID;
         delete seasonalData.teamId;
 

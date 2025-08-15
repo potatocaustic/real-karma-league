@@ -274,7 +274,6 @@ function loadLiveGames() {
             let team1Record, team2Record;
 
             if (gameIsPostseason && originalGame) {
-                // MODIFIED: Add bolded seed to the record line for postseason games
                 const team1SeedHTML = originalGame.team1_seed ? `<strong>(${originalGame.team1_seed})</strong> ` : '';
                 const team2SeedHTML = originalGame.team2_seed ? `<strong>(${originalGame.team2_seed})</strong> ` : '';
                 team1Record = `${team1SeedHTML}${originalGame.team1_wins || 0}-${originalGame.team2_wins || 0}`;
@@ -300,7 +299,6 @@ function loadLiveGames() {
 
                 teamScores[0].textContent = formatInThousands(team1_total);
                 teamScores[1].textContent = formatInThousands(team2_total);
-                // MODIFIED: Use innerHTML to render the bolded seed
                 teamRecords[0].innerHTML = team1Record;
                 teamRecords[1].innerHTML = team2Record;
                 
@@ -419,7 +417,6 @@ async function loadRecentGames() {
             let team1Record, team2Record;
             
             if (gameIsPostseason) {
-                // MODIFIED: Add bolded seed to the record line instead of the name line
                 const team1SeedHTML = game.team1_seed ? `<strong>(${game.team1_seed})</strong> ` : '';
                 const team2SeedHTML = game.team2_seed ? `<strong>(${game.team2_seed})</strong> ` : '';
                 team1Record = `${team1SeedHTML}${game.team1_wins || 0}-${game.team2_wins || 0}`;
@@ -552,6 +549,14 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
         
         team1 = allTeams.find(t => t.id === originalGame.team1_id);
         team2 = allTeams.find(t => t.id === originalGame.team2_id);
+        
+        // MODIFIED: Added logic to include seed in the modal title
+        let titleTeam1Name = escapeHTML(team1.team_name);
+        let titleTeam2Name = escapeHTML(team2.team_name);
+        if (gameIsPostseason) {
+            if (originalGame.team1_seed) titleTeam1Name = `(${originalGame.team1_seed}) ${titleTeam1Name}`;
+            if (originalGame.team2_seed) titleTeam2Name = `(${originalGame.team2_seed}) ${titleTeam2Name}`;
+        }
 
         if (isLiveGame) {
             const gameRef = doc(db, getCollectionName('live_games'), gameId);
@@ -561,7 +566,7 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
             const liveGameData = gameSnap.data();
             team1Lineups = liveGameData.team1_lineup || [];
             team2Lineups = liveGameData.team2_lineup || [];
-            modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - Live`;
+            modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
         } else {
             const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
@@ -571,14 +576,20 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
 
             team1Lineups = allLineupsForGame.filter(l => l.team_id === team1.id && l.started === "TRUE");
             team2Lineups = allLineupsForGame.filter(l => l.team_id === team2.id && l.started === "TRUE");
-            modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formatDateShort(gameDate)}`;
+            modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - ${formatDateShort(gameDate)}`;
         }
 
-        let team1ForModal = team1, team2ForModal = team2;
+        let team1ForModal = { ...team1 };
+        let team2ForModal = { ...team2 };
 
         if (gameIsPostseason) {
-            team1ForModal = { ...team1, wins: originalGame.team1_wins || 0, losses: originalGame.team2_wins || 0 };
-            team2ForModal = { ...team2, wins: originalGame.team2_wins || 0, losses: originalGame.team1_wins || 0 };
+            team1ForModal.wins = originalGame.team1_wins || 0;
+            team1ForModal.losses = originalGame.team2_wins || 0;
+            team2ForModal.wins = originalGame.team2_wins || 0;
+            team2ForModal.losses = originalGame.team1_wins || 0;
+            // MODIFIED: Pass the seed to the modal team object
+            team1ForModal.seed = originalGame.team1_seed;
+            team2ForModal.seed = originalGame.team2_seed;
         }
 
         const winnerId = isLiveGame ? null : originalGame.winner;

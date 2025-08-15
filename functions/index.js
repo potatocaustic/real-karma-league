@@ -564,6 +564,7 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     const teamsSnap = await db.collection(getCollectionName("v2_teams")).get();
     for (const teamDoc of teamsSnap.docs) {
         const recordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(seasonId);
+        const teamRootData = teamDoc.data(); // Get data from the root team document
 
         // MODIFIED: Fetch the team name from the previous active season's record.
         const activeRecordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(activeSeasonId);
@@ -578,7 +579,8 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
             wins: 0, wpct: 0, total_transactions: 0,
             tREL: 0,
             post_tREL: 0,
-            team_name: teamName
+            team_name: teamName,
+            gm_player_id: teamRootData.gm_player_id || null // Carry forward the gm_player_id from the root doc
         });
     }
     console.log(`Prepared empty seasonal_records for ${teamsSnap.size} teams.`);
