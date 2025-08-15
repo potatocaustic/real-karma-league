@@ -147,6 +147,7 @@ async function seedDatabase() {
         l.points_adjusted = parseNumber(l.points_adjusted);
         l.global_rank = parseNumber(l.global_rank);
         l.raw_score = parseNumber(l.raw_score);
+        l.final_score = parseNumber(l.final_score);
     });
 
     // --- 2. PRE-CALCULATIONS & DATA ENHANCEMENT ---
@@ -604,7 +605,8 @@ async function seedDatabase() {
 
     // Seed Games
     for (const game of [...scheduleData, ...postScheduleData]) {
-        const gameId = `${game.date}-${game.team1_id}-${game.team2_id}`.replace(/\//g, "-");
+        const teams = [game.team1_id, game.team2_id].sort();
+        const gameId = `${game.date}-${teams[0]}-${teams[1]}`.replace(/\//g, "-");
         const collectionName = scheduleData.includes(game) ? getCollectionName("games") : getCollectionName("post_games");
         batch.set(seasonRef.collection(collectionName).doc(gameId), game);
         writeCount++;
