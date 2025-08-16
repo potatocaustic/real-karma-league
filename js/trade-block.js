@@ -229,7 +229,7 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     }
 }
 
-function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId) {
+function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersMap, statsMap, isAdmin, currentUserId, currentUserTeamId, activeSeasonId) {
     const existingBlockTeamIds = new Set();
     const FORTY_EIGHT_HOURS_AGO = Date.now() - (48 * 60 * 60 * 1000);
     
