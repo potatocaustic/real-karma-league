@@ -3,7 +3,7 @@
 import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, writeBatch, deleteDoc, setDoc, httpsCallable } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
+const USE_DEV_COLLECTIONS = true;
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 const loadingContainer = document.getElementById('loading-container');

@@ -4,7 +4,7 @@ import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDo
 import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 // --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
+const USE_DEV_COLLECTIONS = true;
 const getCollectionName = (baseName) => {
     // Handle dynamically generated collection names
     if (baseName.includes('_awards') || baseName.includes('_lineups') || baseName.includes('_games')) {

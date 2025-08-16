@@ -92,8 +92,18 @@
         <p>@caustic on Real</p>
         <a href="/common/trade-block.html">GM Portal</a>
     </footer>
+    
+    <div id="game-modal-container"></div>
 
     <script src="../js/main.js" type="module"></script>
+    <script>
+      // Fetch and inject the modal component
+      fetch('../common/game-modal-component.html')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('game-modal-container').innerHTML = data;
+        });
+    </script>
     
     <script src="../js/player.js" type="module"></script>
 </body>

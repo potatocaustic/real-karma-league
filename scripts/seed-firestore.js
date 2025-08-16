@@ -559,7 +559,15 @@ async function seedDatabase() {
     }
     console.log(`Prepared ${teamsData.length} teams and their seasonal stats for seeding.`);
 
+    const initialStats = {
+        aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, meanrank: 0, medsum: 0,
+        post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
+        post_medrank: 0, post_meanrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
+        WAR: 0, t100: 0, t100_pct: 0, post_t100: 0, post_t100_pct: 0, t50: 0, t50_pct: 0, post_t50: 0, post_t50_pct: 0, total_points: 0
+    };
+
     // Seed Players and Seasonal Stats (Now with Ranks)
+    console.log(`Preparing ${playersData.length} players and their ranked seasonal stats for seeding.`);
     for (const player of playersData) {
         const playerDocRef = db.collection(getCollectionName("v2_players")).doc(player.player_id);
         const staticData = {
@@ -567,21 +575,28 @@ async function seedDatabase() {
             player_status: player.player_status,
             current_team_id: player.current_team_id
         };
-        batch.set(playerDocRef, staticData);
+        // Use { merge: true } to safely update the player's root document
+        batch.set(playerDocRef, staticData, { merge: true });
         writeCount++;
 
-        if (playerSeasonalStats.has(player.player_id)) {
-            const seasonalData = playerSeasonalStats.get(player.player_id);
-            seasonalData.rookie = player.rookie || '0';
-            seasonalData.all_star = player.all_star || '0';
+        // Get calculated stats if they exist; otherwise, it will be undefined.
+        const calculatedStats = playerSeasonalStats.get(player.player_id);
 
-            const seasonStatsRef = playerDocRef.collection(getCollectionName("seasonal_stats")).doc(SEASON_ID);
-            batch.set(seasonStatsRef, seasonalData);
-            writeCount++;
-        }
+        // Combine the base zero stats, the calculated stats, and static sheet data.
+        // This ensures every player gets a full stat object.
+        const seasonalData = {
+            ...initialStats,
+            ...(calculatedStats || {}), // Use calculated stats or an empty object
+            rookie: player.rookie || '0',
+            all_star: player.all_star || '0'
+        };
+
+        const seasonStatsRef = playerDocRef.collection(getCollectionName("seasonal_stats")).doc(SEASON_ID);
+        batch.set(seasonStatsRef, seasonalData);
+        writeCount++;
+
         await commitBatchIfNeeded();
     }
-    console.log(`Prepared ${playersData.length} players and their ranked seasonal stats for seeding.`);
 
     // Calculate and set Season Summary Data
     const seasonRef = db.collection(getCollectionName("seasons")).doc(SEASON_ID);

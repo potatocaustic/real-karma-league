@@ -207,10 +207,19 @@ main {
         border-bottom-color: #ddd;
         font-size: 0.9rem;
     }
+    .performance-table th:first-child, .performance-table td:first-child {
+        text-align: left; /* MODIFIED: Left-align the first column */
+    }
     .performance-table tr.clickable-row:hover {
         background-color: #e9ecef;
         cursor: pointer;
     }
+    /* ADDED: Captain row highlight */
+    .captain-row {
+        background-color: #fff3cd !important;
+        font-weight: bold;
+    }
+
 
 /* Badges for performance table */
 .captain-badge-small {
@@ -245,8 +254,8 @@ main {
 .game-history-team-logo { width: 20px; height: 20px; border-radius: 3px; flex-shrink: 0; }
 .game-history-team-name { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .game-result-indicator { font-weight: bold; font-size: 0.9rem; margin-left: 0.25rem; }
-.game-result-win { color: #28a745; }
-.game-result-loss { color: #dc3545; }
+.game-result-w { color: #28a745; } /* MODIFIED: Matched legacy class */
+.game-result-l { color: #dc3545; } /* MODIFIED: Matched legacy class */
 .game-history-vs-separator { font-size: 0.9rem; color: #6c757d; font-weight: bold; padding: 0 0.25rem; flex-shrink: 0; }
 .game-history-date { font-size: 0.8rem; color: #666; margin-top: 0.3rem; text-align: left; }
 .game-performance { text-align: right; min-width: 100px; flex-shrink: 0; }

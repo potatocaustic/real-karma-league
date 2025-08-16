@@ -3,7 +3,7 @@
 import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
+const USE_DEV_COLLECTIONS = true;
 const getCollectionName = (baseName) => {
     // This logic is simplified as all relevant collections follow the same dev/prod pattern
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;

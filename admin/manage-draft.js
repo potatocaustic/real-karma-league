@@ -3,7 +3,7 @@
 import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, where } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
+const USE_DEV_COLLECTIONS = true;
 const getCollectionName = (baseName) => {
     if (baseName.includes('_draft_results')) {
         return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;

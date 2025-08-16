@@ -205,8 +205,11 @@ function loadPerformanceData() {
         const captainBonus = isCaptain ? Math.round(points * 0.5) : 0;
         const game = allGamesData.get(lineup.game_id);
         const isClickable = game && game.completed === 'TRUE';
+        
+        // MODIFIED: Added captain-row class
+        const rowClass = `${isClickable ? 'clickable-row' : ''} ${isCaptain ? 'captain-row' : ''}`;
 
-        return `<tr class="${isClickable ? 'clickable-row' : ''}" ${isClickable ? `data-gameid="${lineup.game_id}"` : ''}>
+        return `<tr class="${rowClass}" ${isClickable ? `data-gameid="${lineup.game_id}"` : ''}>
                     <td>Week ${lineup.week}${isCaptain ? '<span class="captain-badge-small">C</span>' : ''}</td>
                     <td>${points.toLocaleString()}${isCaptain ? ` (+${captainBonus.toLocaleString()})` : ''}</td>
                     <td>${formatRankBadge(lineup.global_rank)}</td>
@@ -327,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (event) => {
         const modal = document.getElementById('game-modal');
         
-        if (event.target.id === 'close-modal-btn' || event.target === modal) {
+        // Use event delegation for the close button since it's loaded dynamically
+        if (event.target.matches('#close-modal-btn') || event.target === modal) {
             if(modal) modal.style.display = 'none';
         }
 

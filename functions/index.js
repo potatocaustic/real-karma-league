@@ -13,7 +13,7 @@ const db = admin.firestore();
 // ===================================================================
 // DEVELOPMENT ENVIRONMENT CONFIGURATION
 // ===================================================================
-const USE_DEV_COLLECTIONS = false;
+const USE_DEV_COLLECTIONS = true;
 
 const getCollectionName = (baseName) => {
     if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats')) {
