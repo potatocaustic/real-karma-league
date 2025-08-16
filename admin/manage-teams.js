@@ -1,6 +1,6 @@
 // /admin/manage-teams.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, setDoc } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, setDoc, httpsCallable, functions } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = true;
@@ -11,11 +11,17 @@ const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
 const authStatusDiv = document.getElementById('auth-status');
 const teamsListContainer = document.getElementById('teams-list-container');
-const teamModal = document.getElementById('team-modal');
-const closeModalBtn = teamModal.querySelector('.close-btn-admin');
-const teamForm = document.getElementById('team-form');
 const seasonSelect = document.getElementById('season-select-teams');
 
+// Edit Modal
+const teamModal = document.getElementById('team-modal');
+const closeTeamModalBtn = teamModal.querySelector('.close-btn-admin');
+const teamForm = document.getElementById('team-form');
+
+// Rebrand Modal
+const rebrandModal = document.getElementById('rebrand-modal');
+const closeRebrandModalBtn = rebrandModal.querySelector('.close-btn-admin');
+const rebrandForm = document.getElementById('rebrand-form');
 
 let allTeams = [];
 let currentSeasonId = "";
@@ -51,20 +57,22 @@ async function initializePage() {
     });
 
     teamsListContainer.addEventListener('click', (e) => {
+        const teamId = e.target.dataset.teamId;
+        const teamData = allTeams.find(t => t.id === teamId);
+        if (!teamData) return;
+
         if (e.target.matches('.btn-admin-edit')) {
-            const teamId = e.target.dataset.teamId;
-            const teamData = allTeams.find(t => t.id === teamId);
-            if (teamData) {
-                openTeamModal(teamData);
-            }
+            openTeamModal(teamData);
+        } else if (e.target.matches('.btn-admin-rebrand')) {
+            openRebrandModal(teamData);
         }
     });
 
-    closeModalBtn.addEventListener('click', () => {
-        teamModal.style.display = 'none';
-    });
+    closeTeamModalBtn.addEventListener('click', () => teamModal.style.display = 'none');
+    closeRebrandModalBtn.addEventListener('click', () => rebrandModal.style.display = 'none');
 
     teamForm.addEventListener('submit', handleTeamFormSubmit);
+    rebrandForm.addEventListener('submit', handleRebrandFormSubmit);
 }
 
 async function populateSeasons() {
@@ -147,16 +155,15 @@ function displayTeams(teams) {
                 <span class="team-name">${team.season_record.team_name || 'N/A'}</span>
                 <span class="team-sub-details">${wins}-${losses} | GM: ${team.current_gm_handle || 'N/A'}</span>
             </div>
-            <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
+            <div class="team-actions">
+                <button class="btn-admin-secondary btn-admin-rebrand" data-team-id="${team.id}">Rebrand</button>
+                <button class="btn-admin-edit" data-team-id="${team.id}">Edit</button>
+            </div>
         `;
         fragment.appendChild(teamEntryDiv);
     });
 
     teamsListContainer.appendChild(fragment);
-    teamsListContainer.style.display = 'block';
-    teamsListContainer.style.visibility = 'visible';
-    teamsListContainer.style.height = 'auto';
-    teamsListContainer.style.opacity = '1';
 }
 
 function openTeamModal(team) {
@@ -169,6 +176,13 @@ function openTeamModal(team) {
     teamModal.style.display = 'block';
 }
 
+function openRebrandModal(team) {
+    document.getElementById('rebrand-old-team-id-input').value = team.id;
+    document.getElementById('rebrand-old-team-id-display').textContent = team.id;
+    document.getElementById('rebrand-new-name-input').value = '';
+    document.getElementById('rebrand-new-id-input').value = '';
+    rebrandModal.style.display = 'block';
+}
 
 async function handleTeamFormSubmit(e) {
     e.preventDefault();
@@ -191,11 +205,49 @@ async function handleTeamFormSubmit(e) {
         await setDoc(seasonRecordRef, seasonalData, { merge: true });
 
         alert('Team updated successfully!');
-        teamModal.style.display = 'none'; // Use style.display to hide
+        teamModal.style.display = 'none';
         await loadAndDisplayTeams();
     } catch (error) {
         console.error("Error updating team:", error);
         alert('Failed to update team.');
+    }
+}
+
+async function handleRebrandFormSubmit(e) {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Processing...';
+
+    const oldTeamId = document.getElementById('rebrand-old-team-id-input').value;
+    const newTeamName = document.getElementById('rebrand-new-name-input').value;
+    const newTeamId = document.getElementById('rebrand-new-id-input').value.toUpperCase();
+
+    if (oldTeamId === newTeamId) {
+        alert("New Team ID cannot be the same as the Old Team ID.");
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Rebrand';
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to rebrand ${oldTeamId} to ${newTeamId} (${newTeamName})? This action is permanent.`)) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Rebrand';
+        return;
+    }
+
+    try {
+        const rebrandTeam = httpsCallable(functions, 'rebrandTeam');
+        const result = await rebrandTeam({ oldTeamId, newTeamId, newTeamName });
+        alert(result.data.message);
+        rebrandModal.style.display = 'none';
+        await loadAndDisplayTeams();
+    } catch (error) {
+        console.error("Error calling rebrandTeam function:", error);
+        alert(`An error occurred: ${error.message}`);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Rebrand';
     }
 }
 

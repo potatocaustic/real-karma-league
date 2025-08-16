@@ -31,6 +31,7 @@
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
+    <!-- Edit Team Modal -->
     <div id="team-modal" class="modal-admin">
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
@@ -61,6 +62,31 @@
                     <input type="text" id="team-gm-uid-input">
                 </div>
                 <button type="submit" class="btn-admin-save">Save Team Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rebrand Team Modal -->
+    <div id="rebrand-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3>Rebrand Team</h3>
+            <form id="rebrand-form">
+                <input type="hidden" id="rebrand-old-team-id-input">
+                <div class="form-group-admin">
+                    <label>Old Team ID</label>
+                    <p id="rebrand-old-team-id-display" class="read-only-field"></p>
+                </div>
+                <div class="form-group-admin">
+                    <label for="rebrand-new-name-input">New Team Name</label>
+                    <input type="text" id="rebrand-new-name-input" required>
+                </div>
+                <div class="form-group-admin">
+                    <label for="rebrand-new-id-input">New Team ID</label>
+                    <input type="text" id="rebrand-new-id-input" required pattern="[A-Z0-9]{2,4}" title="Please enter 2-4 uppercase letters or numbers.">
+                </div>
+                <p class="form-note"><strong>Warning:</strong> Rebranding is a permanent and complex operation. It will update all associated players and draft picks. Double-check all information before submitting.</p>
+                <button type="submit" class="btn-admin-save btn-admin-danger">Submit Rebrand</button>
             </form>
         </div>
     </div>

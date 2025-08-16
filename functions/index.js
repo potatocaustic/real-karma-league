@@ -1028,19 +1028,25 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
             const existingPlayerSnap = await playerRef.get();
 
             if (existingPlayerSnap.exists) {
-                console.error(`Error: A player with the fetched/generated ID '${newPlayerId}' already exists. Aborting creation for this pick.`);
-                return null;
+                // *** MODIFIED LOGIC ***
+                // If player exists in a current draft, update their bio and team.
+                console.log(`Player with ID '${newPlayerId}' already exists. Updating their bio and current team.`);
+                batch.update(playerRef, {
+                    bio: bio,
+                    current_team_id: team_id
+                });
+            } else {
+                // Player does not exist, create them as a rookie.
+                batch.set(playerRef, {
+                    player_handle: player_handle,
+                    current_team_id: team_id,
+                    player_status: 'ACTIVE',
+                    bio: bio
+                });
+
+                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
+                batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
             }
-
-            batch.set(playerRef, {
-                player_handle: player_handle,
-                current_team_id: team_id,
-                player_status: 'ACTIVE',
-                bio: bio
-            });
-
-            const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
-            batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
 
         } else {
             console.log(`Historical draft (${draftSeason}). Checking for existing player: ${player_handle}.`);
