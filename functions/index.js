@@ -22,9 +22,112 @@ const getCollectionName = (baseName) => {
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 };
 
-// ===================================================================
-// LIVE SCORING REFACTOR FUNCTIONS
-// ===================================================================
+exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    const { oldTeamId, newTeamId, newTeamName } = request.data;
+    if (!oldTeamId || !newTeamId || !newTeamName) {
+        throw new HttpsError('invalid-argument', 'Missing required parameters for rebranding.');
+    }
+
+    console.log(`Starting rebrand for ${oldTeamId} to ${newTeamId} (${newTeamName})`);
+
+    try {
+        const batch = db.batch();
+
+        // 1. Duplicate team document and subcollections
+        const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+        if (activeSeasonSnap.empty) {
+            throw new HttpsError('failed-precondition', 'No active season found.');
+        }
+        const activeSeasonId = activeSeasonSnap.docs[0].id;
+
+        const oldTeamRef = db.collection(getCollectionName('v2_teams')).doc(oldTeamId);
+        const oldTeamDoc = await oldTeamRef.get();
+        if (!oldTeamDoc.exists) {
+            throw new HttpsError('not-found', `Old team with ID ${oldTeamId} not found.`);
+        }
+
+        const newTeamRef = db.collection(getCollectionName('v2_teams')).doc(newTeamId);
+        const newTeamData = { ...oldTeamDoc.data(), team_id: newTeamId };
+        batch.set(newTeamRef, newTeamData);
+
+        const oldRecordsSnap = await oldTeamRef.collection(getCollectionName('seasonal_records')).get();
+        oldRecordsSnap.forEach(doc => {
+            const newRecordRef = newTeamRef.collection(getCollectionName('seasonal_records')).doc(doc.id);
+            let recordData = doc.data();
+            if (doc.id === activeSeasonId) {
+                recordData.team_id = newTeamId;
+                recordData.team_name = newTeamName;
+            }
+            batch.set(newRecordRef, recordData);
+        });
+        
+        // 2. Update players
+        const playersQuery = db.collection(getCollectionName('v2_players')).where('current_team_id', '==', oldTeamId);
+        const playersSnap = await playersQuery.get();
+        playersSnap.forEach(doc => {
+            batch.update(doc.ref, { current_team_id: newTeamId });
+        });
+        console.log(`Found and updated ${playersSnap.size} players.`);
+
+        // 3. Update draft picks
+        const picksOwnerQuery = db.collection(getCollectionName('draftPicks')).where('current_owner', '==', oldTeamId);
+        const picksOriginalQuery = db.collection(getCollectionName('draftPicks')).where('original_team', '==', oldTeamId);
+
+        const [ownerPicksSnap, originalPicksSnap] = await Promise.all([picksOwnerQuery.get(), picksOriginalQuery.get()]);
+        
+        const allPicksToUpdate = new Map();
+        ownerPicksSnap.forEach(doc => allPicksToUpdate.set(doc.id, doc.data()));
+        originalPicksSnap.forEach(doc => allPicksToUpdate.set(doc.id, doc.data()));
+
+        for (const [pickId, pickData] of allPicksToUpdate.entries()) {
+            const oldPickRef = db.collection(getCollectionName('draftPicks')).doc(pickId);
+            if (pickId.includes(oldTeamId)) {
+                const newPickId = pickId.replace(oldTeamId, newTeamId);
+                const newPickRef = db.collection(getCollectionName('draftPicks')).doc(newPickId);
+                const newPickData = { ...pickData, pick_id: newPickId };
+                if (newPickData.current_owner === oldTeamId) newPickData.current_owner = newTeamId;
+                if (newPickData.original_team === oldTeamId) newPickData.original_team = newTeamId;
+                if (newPickData.base_owner === oldTeamId) newPickData.base_owner = newTeamId;
+                batch.set(newPickRef, newPickData);
+                batch.delete(oldPickRef);
+            } else {
+                const updateData = {};
+                if (pickData.current_owner === oldTeamId) updateData.current_owner = newTeamId;
+                if (pickData.original_team === oldTeamId) updateData.original_team = newTeamId;
+                if (pickData.base_owner === oldTeamId) updateData.base_owner = newTeamId;
+                batch.update(oldPickRef, updateData);
+            }
+        }
+        console.log(`Found and updated ${allPicksToUpdate.size} draft picks.`);
+
+        await batch.commit();
+
+        // Final step: Delete old team document after successful commit
+        const deleteBatch = db.batch();
+        const oldTeamRecordsToDeleteSnap = await oldTeamRef.collection(getCollectionName('seasonal_records')).get();
+        oldTeamRecordsToDeleteSnap.forEach(doc => {
+            deleteBatch.delete(doc.ref);
+        });
+        deleteBatch.delete(oldTeamRef);
+        await deleteBatch.commit();
+
+        console.log(`Rebrand complete. Old team ${oldTeamId} deleted.`);
+        return { success: true, message: `Team ${oldTeamId} successfully rebranded to ${newTeamId}.` };
+
+    } catch (error) {
+        console.error("Error rebranding team:", error);
+        throw new HttpsError('internal', `Failed to rebrand team: ${error.message}`);
+    }
+});
+
 
 async function performFullUpdate() {
     const statusSnap = await db.doc(`${getCollectionName('live_scoring_status')}/status`).get();
