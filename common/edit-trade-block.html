@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Edit Trade Block</title>
+    <title>RKL Trade Block</title>
     <link rel="stylesheet" href="../css/global-styles.css">
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
 </head>
@@ -48,12 +48,18 @@
     </header>
 
     <main>
-        <h2 id="edit-title" class="page-header">Edit Trade Block</h2>
-        <div id="form-container" class="edit-form-container">
-            <div class="loading">Verifying permissions and loading assets...</div>
+        <div class="page-header">
+            <h2>League Trade Blocks</h2>
+            <p>Assets available for trade across the league.</p>
+        </div>
+        
+        <div id="admin-controls"></div>
+
+        <div id="trade-blocks-container" class="trade-blocks-container">
+            <div class="loading">Loading all trade blocks...</div>
         </div>
     </main>
-    
+
     <footer>
       <p>@caustic on Real</p>
       <a href="trade-block.html">GM Portal</a>
@@ -61,8 +67,9 @@
     <script>
       window.firebasePageConfig = { useProdCollections: true };
     </script>
-    <script type="module" src="/js/firebase-init.js"></script>
-    <script type="module" src="/js/main.js"></script>
-    <script type="module" src="/js/edit-trade-block.js"></script>  
+    <script type="module" src="../js/firebase-init.js"></script>
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/trade-block.js"></script>
+    
 </body>
 </html>
