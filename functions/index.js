@@ -55,7 +55,8 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         }
 
         const newTeamRef = db.collection(getCollectionName('v2_teams')).doc(newTeamId);
-        const newTeamData = { ...oldTeamDoc.data(), team_id: newTeamId };
+        // Carry over the gm_player_id from the old document to the new one.
+        const newTeamData = { ...oldTeamDoc.data(), team_id: newTeamId, gm_player_id: oldTeamDoc.data().gm_player_id || null };
         batch.set(newTeamRef, newTeamData);
 
         const oldRecordsSnap = await oldTeamRef.collection(getCollectionName('seasonal_records')).get();
@@ -89,6 +90,13 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
 
         for (const [pickId, pickData] of allPicksToUpdate.entries()) {
             const oldPickRef = db.collection(getCollectionName('draftPicks')).doc(pickId);
+            
+            // *** MODIFIED LOGIC ***
+            // Check and update pick_description
+            if (pickData.pick_description && pickData.pick_description.includes(oldTeamId)) {
+                pickData.pick_description = pickData.pick_description.replace(oldTeamId, newTeamId);
+            }
+
             if (pickId.includes(oldTeamId)) {
                 const newPickId = pickId.replace(oldTeamId, newTeamId);
                 const newPickRef = db.collection(getCollectionName('draftPicks')).doc(newPickId);
@@ -103,6 +111,10 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
                 if (pickData.current_owner === oldTeamId) updateData.current_owner = newTeamId;
                 if (pickData.original_team === oldTeamId) updateData.original_team = newTeamId;
                 if (pickData.base_owner === oldTeamId) updateData.base_owner = newTeamId;
+                // Add the updated description to the update object if it was changed
+                if (pickData.pick_description) {
+                    updateData.pick_description = pickData.pick_description;
+                }
                 batch.update(oldPickRef, updateData);
             }
         }
@@ -127,6 +139,7 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         throw new HttpsError('internal', `Failed to rebrand team: ${error.message}`);
     }
 });
+
 
 
 async function performFullUpdate() {
