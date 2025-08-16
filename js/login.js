@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Signed in successfully
                 console.log('Login successful for:', userCredential.user.email);
                 // Redirect to the GM portal or another appropriate page
-                window.location.href = '/S7/trade-block.html';
+                window.location.href = '/common/trade-block.html';
             })
             .catch((error) => {
                 // Handle errors
