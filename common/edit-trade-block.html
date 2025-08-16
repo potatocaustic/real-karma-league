@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Trade Block</title>
+    <title>Edit Trade Block</title>
     <link rel="stylesheet" href="../css/global-styles.css">
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
 </head>
@@ -21,45 +21,39 @@
       <nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
-            <li><a href="/S7/RKL-S7.html">S7 Home</a></li>
-            <li><a href="/S7/standings.html">Standings & Rankings</a></li>
+            <li><a href="RKL-S7.html">S7 Home</a></li>
+            <li><a href="standings.html">Standings & Rankings</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
                 <div class="dropdown-content">
-                    <a href="/S7/leaderboards.html">Leaderboards</a>
-                    <a href="/S7/compare.html">Comparison Tool</a>
+                    <a href="leaderboards.html">Leaderboards</a>
+                    <a href="compare.html">Comparison Tool</a>
                 </div>
             </li>
-            <li><a href="/S7/schedule.html">Schedule</a></li>
+            <li><a href="schedule.html">Schedule</a></li>
             <li class="dropdown">
                 <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
                 <div class="dropdown-content">
-                    <a href="/S7/draft-capital.html">Draft Capital</a>
-                    <a href="/S7/draft-results.html">Draft Results</a>
-                    <a href="/S7/draft-lottery.html">Draft Lottery</a>
+                    <a href="draft-capital.html">Draft Capital</a>
+                    <a href="draft-results.html">Draft Results</a>
+                    <a href="draft-lottery.html">Draft Lottery</a>
                 </div>
             </li>
-            <li><a href="/S7/transactions.html">Transactions</a></li>
-            <li><a href="/S7/teams.html">Teams</a></li>
-            <li><a href="/S7/trophy-case.html">Trophy Case</a></li>
+            <li><a href="transactions.html">Transactions</a></li>
+            <li><a href="teams.html">Teams</a></li>
+            <li><a href="trophy-case.html">Trophy Case</a></li>
             <li><a href="changelog.html">Changelog</a></li>
         </ul>
       </nav>
     </header>
 
     <main>
-        <div class="page-header">
-            <h2>League Trade Blocks</h2>
-            <p>Assets available for trade across the league.</p>
-        </div>
-        
-        <div id="admin-controls"></div>
-
-        <div id="trade-blocks-container" class="trade-blocks-container">
-            <div class="loading">Loading all trade blocks...</div>
+        <h2 id="edit-title" class="page-header">Edit Trade Block</h2>
+        <div id="form-container" class="edit-form-container">
+            <div class="loading">Verifying permissions and loading assets...</div>
         </div>
     </main>
-
+    
     <footer>
       <p>@caustic on Real</p>
       <a href="trade-block.html">GM Portal</a>
@@ -67,9 +61,8 @@
     <script>
       window.firebasePageConfig = { useProdCollections: true };
     </script>
-    <script type="module" src="../js/firebase-init.js"></script>
-    <script type="module" src="../js/main.js"></script>
-    <script type="module" src="../js/trade-block.js"></script>
-    
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/edit-trade-block.js"></script>  
 </body>
 </html>
