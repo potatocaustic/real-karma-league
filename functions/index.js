@@ -586,6 +586,7 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
             team_id: gameData.team1_id,
             game_id: gameId,
             date: gameData.date,
+            week: gameData.week,
             game_type: collectionName === 'post_games' ? 'postseason' : (collectionName === 'exhibition_games' ? 'exhibition' : 'regular'),
             started: 'TRUE',
             is_captain: player.is_captain ? 'TRUE' : 'FALSE',
@@ -1927,27 +1928,28 @@ async function performPlayerRankingUpdate() {
     const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
     const regSeasonGpMinimum = seasonGamesPlayed >= 60 ? 3 : 0;
     const postSeasonGpMinimum = 0; // No GP minimum for postseason
+    const playersSnap = await db.collection(getCollectionName('v2_players')).get();
+    const statPromises = playersSnap.docs.map(playerDoc => 
+        playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
+    );
+    const statDocs = await Promise.all(statPromises);
 
-    // --- CORRECTED: Removed the invalid .where() clause and will filter in the code below ---
-    const seasonalStatsCollectionGroup = db.collectionGroup(getCollectionName('seasonal_stats'));
-    const seasonalStatsSnap = await seasonalStatsCollectionGroup.get();
-
-    const allPlayerStats = seasonalStatsSnap.docs
-        // Filter the results to include only stats from the active season
-        .filter(doc => {
+    const allPlayerStats = [];
+    statDocs.forEach(doc => {
+        if (doc.exists) {
             const pathParts = doc.ref.path.split('/');
-            const docSeasonId = pathParts[pathParts.length - 2];
-            return docSeasonId === seasonId;
-        })
-        // Map the filtered documents to the data structure we need
-        .map(doc => {
-            const pathParts = doc.ref.path.split('/');
-            const playerId = pathParts[pathParts.length - 4]; 
-            return {
+            const playerId = pathParts[pathParts.length - 3];
+            allPlayerStats.push({
                 player_id: playerId,
                 ...doc.data()
-            };
-        });
+            });
+        }
+    });
+    
+    if (allPlayerStats.length === 0) {
+        console.log(`No player stats found for active season ${seasonId}. Aborting ranking update.`);
+        return;
+    }
 
     // List of base stat names that should not rank zero values
     const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
