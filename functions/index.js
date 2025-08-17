@@ -1474,19 +1474,17 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
 
     const playersCollectionRef = db.collection(getCollectionName('v2_players'));
     const allPlayersSnap = await playersCollectionRef.get();
-    const seasonalStatsCollectionGroup = db.collectionGroup(getCollectionName('seasonal_stats'));
-    
-    // --- MODIFIED: Changed to use the correct Admin SDK query syntax ---
-    const seasonalStatsQuery = seasonalStatsCollectionGroup.where(isPostseason ? 'post_games_played' : 'games_played', '>=', 0);
-    const seasonalStatsSnapForTeams = await seasonalStatsQuery.get();
-
     const playerStatsForTeams = new Map();
-    seasonalStatsSnapForTeams.docs.forEach(doc => {
-        const pathParts = doc.ref.path.split('/');
-        const docSeasonId = pathParts[pathParts.length - 2];
-        if (docSeasonId === seasonId) {
-            const playerId = pathParts[pathParts.length - 4];
-            playerStatsForTeams.set(playerId, doc.data());
+    const playerStatPromises = allPlayersSnap.docs.map(playerDoc => 
+        playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
+    );
+    const seasonalStatsSnapForTeams = await Promise.all(playerStatPromises);
+
+    seasonalStatsSnapForTeams.forEach(docSnap => {
+        if (docSnap.exists) {
+            const pathParts = docSnap.ref.path.split('/');
+            const playerId = pathParts[pathParts.length - 3];
+            playerStatsForTeams.set(playerId, docSnap.data());
         }
     });
 
