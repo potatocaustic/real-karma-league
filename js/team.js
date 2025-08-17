@@ -506,7 +506,6 @@ function generateGameItemHTML(game) {
         oppScoreText = Math.round(oppScoreValue).toLocaleString();
         teamScoreClass = teamWon ? 'win' : 'loss';
         oppScoreClass = oppWon ? 'win' : 'loss';
-        // Corrected: Pass the original M/D/YYYY date string to the handler
         clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')" style="cursor: pointer;"`;
     }
 
@@ -552,6 +551,11 @@ function generateGameItemHTML(game) {
     return `<div class="game-item" ${clickHandler}>${desktopHTML}${mobileHTML}</div>`;
 }
 
+/**
+ * **MODIFIED FUNCTION**
+ * Generates the HTML for a single draft pick item, including refined logic for
+ * creating links to S8 or legacy S7 transaction pages.
+ */
 function generatePickItemHTML(pick) {
     const isOriginalOwner = pick.original_team === teamId;
     const isForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
@@ -569,21 +573,48 @@ function generatePickItemHTML(pick) {
     }
 
     let originHTML = `<div class="pick-origin">Original Pick</div>`;
-    if (!isOriginalOwner && !isForfeiture) {
-        const transaction = allTransactions.find(t => t.involved_picks?.some(p => p.id === pick.pick_id));
-        let viaText = `from ${originalTeamName}`;
-        if (transaction && transaction.involved_teams[0] !== pick.original_team && transaction.involved_teams[1] !== pick.original_team) {
-            const viaTeamId = transaction.involved_teams.find(t => t.id !== teamId);
-            viaText = `via ${getTeamName(viaTeamId)} (from ${originalTeamName})`;
-        }
-        
-        let statsText = '';
-        if (originalTeamRecord) {
-            statsText = `(${originalTeamRecord.wins}-${originalTeamRecord.losses}, ${Math.round(originalTeamRecord.pam)} PAM)`;
-        }
 
-        const transactionLink = transaction ? `transactions.html#${transaction.id}` : '#';
-        originHTML = `<div class="pick-origin"><a href="${transactionLink}">${viaText} <span class="pick-origin-stats">${statsText}</span></a></div>`;
+    if (!isOriginalOwner && !isForfeiture) {
+        // Find S8 transaction first
+        const transactionS8 = allTransactions.find(t => t.involved_picks?.some(p => p.id === pick.pick_id));
+
+        if (transactionS8) {
+            // S8 Logic with refined verbiage
+            const pickMoveData = transactionS8.involved_picks.find(p => p.id === pick.pick_id);
+            const fromTeamId = pickMoveData ? pickMoveData.from : null;
+            const fromTeamData = fromTeamId ? transactionS8.involved_teams.find(t => t.id === fromTeamId) : null;
+            
+            let viaText = `from ${originalTeamName}`; // Default verbiage
+            if (fromTeamData && fromTeamData.id !== pick.original_team) {
+                viaText = `via ${fromTeamData.team_name} (from ${originalTeamName})`;
+            }
+
+            let statsText = '';
+            if (originalTeamRecord) {
+                statsText = `(${originalTeamRecord.wins}-${originalTeamRecord.losses}, ${Math.round(originalTeamRecord.pam)} PAM)`;
+            }
+
+            const transactionLink = `/transactions.html?id=${transactionS8.id}`;
+            originHTML = `<div class="pick-origin"><a href="${transactionLink}">${viaText} <span class="pick-origin-stats">${statsText}</span></a></div>`;
+        
+        } else {
+            // No S8 transaction found, handle as Legacy (S7 or pre-S7)
+            let statsText = '';
+            if (originalTeamRecord) {
+                 statsText = `(${originalTeamRecord.wins}-${originalTeamRecord.losses}, ${Math.round(originalTeamRecord.pam)} PAM)`;
+            }
+            const verbiage = `from ${originalTeamName} <span class="pick-origin-stats">${statsText}</span>`;
+
+            // Check for a trade_id to determine if it's a linkable S7 trade or a non-linkable pre-S7 trade.
+            if (pick.trade_id) {
+                // Has a trade_id, so it's a linkable S7 trade.
+                const legacyLink = `../legacy/S7/transactions.html?pick_id=${pick.pick_id}`;
+                originHTML = `<div class="pick-origin"><a href="${legacyLink}">${verbiage}</a></div>`;
+            } else {
+                // No trade_id, so it's a pre-S7 trade. Display text without a link.
+                originHTML = `<div class="pick-origin">${verbiage}</div>`;
+            }
+        }
     }
 
     return `
