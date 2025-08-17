@@ -3,7 +3,7 @@
 import { generateLineupTable } from '../js/main.js';
 import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot } from '../js/firebase-init.js';
 
-const USE_DEV_COLLECTIONS = true; // Set to false for production
+const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 let activeSeasonId = '';
@@ -89,11 +89,6 @@ async function getActiveSeason() {
     activeSeasonId = seasonsSnapshot.docs[0].id;
 }
 
-/**
- * [OPTIMIZED] Fetches only the essential data for the initial page load.
- * Team and Game data is needed upfront for the week selector.
- * Lineups and daily scores are fetched on-demand.
- */
 async function fetchInitialPageData(seasonId) {
     const teamsCollection = getCollectionName('v2_teams');
     const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
@@ -289,7 +284,6 @@ async function displayWeek(week) {
             const statusIndicator = isLive ? `<span class="live-indicator"></span>` : '';
             const statusHTML = `${statusIndicator}${finalStatusText}`;
 
-            // MODIFIED: Use the correct list of All-Star team IDs to determine the file extension.
             const allStarTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
             const team1IconExt = team1.id && allStarTeamIds.includes(team1.id) ? 'png' : 'webp';
             const team2IconExt = team2.id && allStarTeamIds.includes(team2.id) ? 'png' : 'webp';
@@ -306,9 +300,7 @@ async function displayWeek(week) {
     });
 }
 
-/**
- * [OPTIMIZED] Fetches data for standouts on-demand for the selected week.
- */
+
 async function calculateAndDisplayStandouts(week) {
     const standoutWeekEl = document.getElementById('standout-week-number');
     if (standoutWeekEl) standoutWeekEl.textContent = week;
@@ -369,14 +361,47 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         let titleTeam1Name = '';
         let titleTeam2Name = '';
 
+        const allPlayerIdsInGame = [];
+
+        if (isLive) {
+            const liveGameData = liveGamesCache.get(gameId);
+            if (liveGameData) {
+                liveGameData.team1_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
+                liveGameData.team2_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
+            }
+        } else {
+            const lineupsCollectionName = getCollectionName(isGamePostseason ? 'post_lineups' : 'lineups');
+            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
+            const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
+            const lineupsSnap = await getDocs(lineupsQuery);
+            lineupsSnap.forEach(doc => allPlayerIdsInGame.push(doc.data().player_id));
+        }
+
+        const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
+        const playerStatsPromises = uniquePlayerIds.map(playerId => 
+            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
+        );
+        const playerStatsDocs = await Promise.all(playerStatsPromises);
+        
+        const playerSeasonalStats = new Map();
+        playerStatsDocs.forEach((docSnap, index) => {
+            if (docSnap.exists()) {
+                playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
+            }
+        });
+        // ===================================================================
+        // END OF BUG FIX
+        // ===================================================================
+
         if (isLive) {
             const liveGameData = liveGamesCache.get(gameId);
             if (!liveGameData) throw new Error("Live game data not found in cache.");
             
-            team1 = getTeamById(liveGameData.team1_lineup[0]?.team_id);
-            team2 = getTeamById(liveGameData.team2_lineup[0]?.team_id);
-            team1Lineups = liveGameData.team1_lineup || [];
-            team2Lineups = liveGameData.team2_lineup || [];
+            team1 = getTeamById(gameData.team1_id);
+            team2 = getTeamById(gameData.team2_id);
+            // Add seasonal stats to each player in the lineup
+            team1Lineups = liveGameData.team1_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) }));
+            team2Lineups = liveGameData.team2_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) }));
             
             titleTeam1Name = escapeHTML(team1.team_name);
             titleTeam2Name = escapeHTML(team2.team_name);
@@ -385,7 +410,6 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 if (gameData.team1_seed) titleTeam1Name = `(${gameData.team1_seed}) ${titleTeam1Name}`;
                 if (gameData.team2_seed) titleTeam2Name = `(${gameData.team2_seed}) ${titleTeam2Name}`;
             }
-            // MODIFICATION: Reverted title to plain text
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
 
         } else {
@@ -395,7 +419,11 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             
             const lineupsSnap = await getDocs(lineupsQuery);
-            const allLineupsForGame = lineupsSnap.docs.map(d => d.data());
+            const allLineupsForGame = lineupsSnap.docs.map(d => {
+                const lineupData = d.data();
+                // Add seasonal stats to each player in the lineup
+                return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
+            });
 
             team1 = getTeamById(gameData.team1_id);
             team2 = getTeamById(gameData.team2_id);
@@ -426,7 +454,6 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         const winnerId = isLive ? null : gameData.winner;
         contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id, isLive)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id, isLive)}</div>`;
         
-        // MODIFICATION: Add the blinking dot to the team score totals if the game is live
         if (isLive) {
             const teamTotalElements = contentArea.querySelectorAll('.team-total');
             teamTotalElements.forEach(el => {
