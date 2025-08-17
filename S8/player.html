@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title id="page-title">RKL Season 8 Player</title>
-    <link rel="stylesheet" href="../css/global-styles.css">
-    <link rel="stylesheet" href="../css/player.css">
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <title>RKL Season 8 Player</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/css/player.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
-        // Apply theme from local storage before page loads to prevent flashing
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -16,7 +15,6 @@
             }
         })();
     </script>
-    <style id="team-icon-styles"></style>
 </head>
 <body>
     <header>
@@ -25,7 +23,7 @@
             <span class="moon-icon">🌙</span>
         </button>
         <h1>
-            <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
             <span class="header-text">Real Karma League</span>
         </h1>
         <nav>
@@ -52,7 +50,7 @@
                 <li><a href="transactions.html">Transactions</a></li>
                 <li><a href="teams.html">Teams</a></li>
                 <li><a href="trophy-case.html">Trophy Case</a></li>
-                <li><a href="changelog.html">Changelog</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
             </ul>
         </nav>
     </header>
@@ -95,16 +93,15 @@
     
     <div id="game-modal-container"></div>
 
-    <script src="../js/main.js" type="module"></script>
+    <script src="/js/main.js" type="module"></script>
     <script>
-      // Fetch and inject the modal component
-      fetch('../common/game-modal-component.html')
+      fetch('/common/game-modal-component.html')
         .then(response => response.text())
         .then(data => {
           document.getElementById('game-modal-container').innerHTML = data;
         });
     </script>
     
-    <script src="../js/player.js" type="module"></script>
+    <script src="/js/player.js" type="module"></script>
 </body>
 </html>

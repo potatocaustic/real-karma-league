@@ -4,10 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 8 Schedule & Results</title>
-    <link rel="stylesheet" href="../css/global-styles.css" />
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
-        // Apply theme from local storage before page loads to prevent flashing
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -16,7 +15,6 @@
         })();
     </script>
 <style>
-    /* Page-specific styles for schedule.html */
     .week-selector { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 2rem; text-align: center; transition: background-color 0.3s, box-shadow 0.3s; }
     .week-buttons { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
     .week-btn { background-color: #f8f9fa; border: 2px solid #ddd; border-radius: 6px; padding: 0.8rem 0.5rem; cursor: pointer; transition: all 0.3s ease; font-weight: 500; width: 100px; text-align: center; display: flex; align-items: center; justify-content: center; flex-shrink: 0; white-space: nowrap; }
@@ -35,7 +33,7 @@
     .games-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); overflow: hidden; }
     .games-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; }
     .games-header h3 { color: white; margin: 0; font-size: 1.4rem; }
-    .games-by-date { padding: 1rem; } /* Provides padding for the inner content */
+    .games-by-date { padding: 1rem; } 
     .date-section { margin-bottom: 2rem; }
     .date-header { background-color: #f8f9fa; padding: 1rem; border-left: 4px solid #007bff; margin-bottom: 1rem; font-weight: bold; font-size: 1.1rem; color: #333; }
     .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
@@ -48,7 +46,6 @@
     .team.winner { font-weight: bold; color: #28a745; }
     .team-left { display: flex; align-items: center; gap: 0.5rem; }
 
-    /* MODIFIED: Icon is larger, but text sizes are reverted */
     .team-logo { width: 40px; height: 40px; }
     .team-name { font-size: 1rem; font-weight: 500; }
     .team-record { font-size: 0.8rem; color: #666; }
@@ -83,9 +80,9 @@
         height: 8px;
         background-color: #dc3545;
         border-radius: 50%;
-        margin-right: 8px; /* Adjusted for better spacing next to text */
+        margin-right: 8px; 
         animation: pulse-live 1.5s infinite;
-        vertical-align: middle; /* Aligns the dot with the text */
+        vertical-align: middle; 
     }
     @keyframes pulse-live {
         0% { opacity: 1; }
@@ -94,7 +91,6 @@
     }
     .no-games { text-align: center; padding: 3rem; color: #666; }
 
-    /* Dark Mode */
     .dark-mode .week-selector, .dark-mode .games-container, .dark-mode .standout-item { background-color: #1e1e1e; }
     .dark-mode .week-btn { background-color: #2c2c2c; border-color: #444; color: #e0e0e0; }
     .dark-mode .week-btn:hover { border-color: #bb86fc; }
@@ -117,11 +113,7 @@
         .games-grid, .standouts-grid { grid-template-columns: 1fr; }
     }
     
-    /*
-    ===================================================================
-    == MODAL STYLES (Self-Contained) ==
-    ===================================================================
-    */
+
     .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); overflow-y: auto; }
     .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); transition: background-color 0.3s; }
     .modal-header { background-color: #333; color: white; padding: 1.5rem; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
@@ -183,43 +175,42 @@
 </head>
   <body>
     <header>
-      <button id="theme-toggle-btn" aria-label="Toggle Theme">
-        <span class="sun-icon">☀️</span>
-        <span class="moon-icon">🌙</span>
-      </button>
-      <h1>
-        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
-        <span class="header-text">Real Karma League</span>
-      </h1>
-      <nav>
-        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-        <ul id="nav-menu">
-            <li><a href="RKL-S8.html">S8 Home</a></li>
-            <li><a href="standings.html">Standings & Rankings</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="leaderboards.html">Leaderboards</a>
-                    <a href="compare.html">Comparison Tool</a>
-                </div>
-            </li>
-            <li><a href="schedule.html">Schedule</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="draft-capital.html">Draft Capital</a>
-                    <a href="draft-results.html">Draft Results</a>
-                    <a href="draft-lottery.html">Draft Lottery</a>
-                </div>
-            </li>
-            <li><a href="transactions.html">Transactions</a></li>
-            <li><a href="teams.html">Teams</a></li>
-            <li><a href="trophy-case.html">Trophy Case</a></li>
-            <li><a href="changelog.html">Changelog</a></li>
-        </ul>
-      </nav>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <span class="header-text">Real Karma League</span>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="RKL-S8.html">S8 Home</a></li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
     </header>
-
     <main>
         <div class="page-header">
             <h2>Schedule & Results</h2>
@@ -285,8 +276,8 @@
     </footer>
 
 
-    <script src="../js/firebase-init.js" type="module"></script>
-    <script src="../js/main.js" type="module"></script>
-    <script src="../js/schedule.js" type="module"></script>
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/main.js" type="module"></script>
+    <script src="/js/schedule.js" type="module"></script>
 </body>
 </html>

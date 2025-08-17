@@ -4,10 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 8 Playoff Bracket</title>
-    <link rel="stylesheet" href="../css/global-styles.css" />
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
-        // Apply theme from local storage before page loads to prevent flashing
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -16,7 +15,6 @@
         })();
     </script>
     <style>
-        /* Page-specific styles for playoff-bracket.html */
         :root {
             --bracket-border-color: #ddd;
             --bracket-bg-color: #f8f9fa;
@@ -24,7 +22,7 @@
             --winner-bg: #e8f5e8;
             --team-hover-bg: #e9ecef;
             --playin-bg-color: #fff;
-            --bg-color: #fff; /* for sticky headers */
+            --bg-color: #fff; 
             --details-border-color: #ddd;
             --details-summary-bg: #f8f9fa;
             --details-summary-hover-bg: #e9ecef;
@@ -37,7 +35,7 @@
             --winner-bg: #3a4a3a;
             --team-hover-bg: #383838;
             --playin-bg-color: #1e1e1e;
-            --bg-color: #121212; /* for sticky headers */
+            --bg-color: #121212; 
             --details-border-color: #444;
             --details-summary-bg: #2c2c2c;
             --details-summary-hover-bg: #383838;
@@ -412,7 +410,7 @@
             <span class="moon-icon">🌙</span>
         </button>
         <h1>
-            <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
             <span class="header-text">Real Karma League</span>
         </h1>
         <nav>
@@ -439,7 +437,7 @@
                 <li><a href="transactions.html">Transactions</a></li>
                 <li><a href="teams.html">Teams</a></li>
                 <li><a href="trophy-case.html">Trophy Case</a></li>
-                <li><a href="changelog.html">Changelog</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
             </ul>
         </nav>
     </header>
@@ -466,29 +464,23 @@
         <a href="/common/trade-block.html">GM Portal</a>
     </footer>
     
-    <!-- Import Firebase and main JS -->
     <script src="../js/main.js" type="module"></script>
     <script type="module">
         import { db, collection, getDocs, query, where, doc, getDoc } from '/js/firebase-init.js';
 
-        // --- CONFIGURATION ---
         const SEASON_ID = "S8";
         const USE_DEV_COLLECTIONS = true; 
         const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
-        // --- GLOBAL DATA CACHE ---
         let allTeamsMap = new Map();
         let seriesMap = new Map();
 
-        // --- DATA FETCHING ---
         async function fetchAllData() {
             const container = document.getElementById('bracket-container');
             try {
-                // 1. Fetch all teams with a valid conference
                 const teamsQuery = query(collection(db, getCollectionName('v2_teams')), where('conference', 'in', ['Eastern', 'Western']));
                 const teamsSnap = await getDocs(teamsQuery);
                 
-                // 2. For each team, fetch their specific S8 seasonal record
                 const teamRecordPromises = teamsSnap.docs.map(async (teamDoc) => {
                     try {
                         const teamData = { id: teamDoc.id, ...teamDoc.data() };
@@ -504,10 +496,8 @@
                         }
                         return teamData;
                     } catch (error) {
-                        // THIS IS THE NEW DEBUGGING CODE
                         console.error(`!!!!!! FAILED to fetch record for team: ${teamDoc.id} !!!!!!`);
                         console.error("The error was:", error);
-                        // Return a default object so Promise.all doesn't crash
                         return { id: teamDoc.id, ...teamDoc.data(), error: true };
                     }
                 });
@@ -515,35 +505,29 @@
                 const teamsWithRecords = await Promise.all(teamRecordPromises);
                 teamsWithRecords.forEach(team => allTeamsMap.set(team.id, team));
 
-                // 3. Fetch all postseason games for S8
                 const seasonDocRef = doc(db, getCollectionName('seasons'), SEASON_ID);
 
-                // --- TEMPORARY DEBUGGING ---
                 console.log("--- DEBUGGING PLAYOFF BRACKET ---");
                 console.log("Is 'seasonDocRef' a valid object?", seasonDocRef);
                 console.log("Collection name being used:", getCollectionName('post_games'));
-                // --- END DEBUGGING ---
 
-                const postGamesQuery = collection(seasonDocRef, getCollectionName('post_games')); // This is line 531
+                const postGamesQuery = collection(seasonDocRef, getCollectionName('post_games')); 
                 const postGamesSnap = await getDocs(postGamesQuery);
 
-                // 4. Process games into a series map, ensuring we have one entry per series_id
                 postGamesSnap.forEach(doc => {
                     const gameData = doc.data();
-                    // Since all games in a series have the same win counts, we can just overwrite.
-                    // This ensures we always have the latest state for the series.
                     seriesMap.set(gameData.series_id, gameData);
                 });
 
-                return true; // Indicate success
+                return true; 
             } catch (error) {
                 console.error("Error fetching Firestore data:", error);
                 container.innerHTML = `<div class="error">Could not load playoff data from Firestore.</div>`;
-                return false; // Indicate failure
+                return false; 
             }
         }
 
-        // --- HELPER FUNCTIONS ---
+
         function getTeam(teamId) {
             if (!teamId || teamId === "TBD") return { id: "TBD", team_name: "TBD" };
             return allTeamsMap.get(teamId) || { id: teamId, team_name: teamId };
@@ -560,7 +544,7 @@
             return series.series_winner || null;
         }
 
-        // --- HTML RENDERING FUNCTIONS ---
+
         function createTeamHTML(teamId, series, displaySeed, isSeriesWinner) {
             const teamData = getTeam(teamId);
             const isWinner = isSeriesWinner && isSeriesWinner === teamId;
@@ -581,7 +565,7 @@
             return `
                 <a href="${teamHref}" class="team ${isWinner ? 'winner' : ''} ${isTBD ? 'tbd' : ''}">
                     <span class="team-seed">${seedToShow}</span>
-                    <img src="../icons/${isTBD ? 'RKL' : teamData.id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='../icons/RKL.webp';">
+                    <img src="/icons/${isTBD ? 'RKL' : teamData.id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='/icons/RKL.webp';">
                     <div class="team-info">
                         <span class="team-name">${teamData.team_name}</span>
                         ${scoreOrRecordHTML}
@@ -772,7 +756,7 @@
 
         document.addEventListener('DOMContentLoaded', renderBracket);
         import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
-        import { functions } from '/js/firebase-init.js'; // Assuming 'functions' is exported from your init file
+        import { functions } from '/js/firebase-init.js'; 
 
         const testBracketButton = document.getElementById('testBracketButton');
         const testResultDiv = document.getElementById('testResult');
@@ -781,11 +765,9 @@
             console.log("Calling 'test_updatePlayoffBracket'...");
             testResultDiv.textContent = 'Running test...';
 
-            // Get a reference to the callable function
             const test_updatePlayoffBracket = httpsCallable(functions, 'test_updatePlayoffBracket');
 
             try {
-                // Call the function and wait for the result
                 const result = await test_updatePlayoffBracket();
                 console.log("Function returned:", result.data);
                 testResultDiv.textContent = `Success! ${result.data.message}`;

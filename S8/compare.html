@@ -4,10 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Compare Players & Teams - RKL S8</title>
-    <link rel="stylesheet" href="../css/global-styles.css">
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon">
     <script>
-      // Apply theme from local storage before page loads to prevent flashing
       (function() {
         const theme = localStorage.getItem('theme');
         if (theme === 'dark') {
@@ -16,7 +15,6 @@
       })();
     </script>
     <style>
-        /* Styles specific to the Compare page */
         .comparison-container {
             max-width: 900px;
             margin: 2rem auto;
@@ -99,7 +97,7 @@
             font-size: 1.5rem;
             font-weight: bold;
             color: #6c757d;
-            padding-top: 1.5rem; /* Align with select inputs */
+            padding-top: 1.5rem;
         }
         .dark-mode .vs-separator {
             color: #aaa;
@@ -125,7 +123,6 @@
             cursor: not-allowed;
         }
 
-        /* Results Styles */
         .results-container {
             margin-top: 2rem;
             opacity: 0;
@@ -287,12 +284,11 @@
                 gap: 4%;
             }
             .entity-header {
-                width: 48%; /* Adjust width for side-by-side */
+                width: 48%; 
             }
             .entity-header a {
-                font-size: 1rem; /* Smaller font on mobile */
+                font-size: 1rem; 
             }
-            /* UPDATED RULE: Changed to allow text wrapping instead of truncation. */
             .entity-header .entity-name-text {
                 display: block;
                 white-space: normal;
@@ -300,7 +296,7 @@
                 max-width: 100%;
             }
             .entity-header .badge-container {
-                display: none; /* Hide badges on mobile */
+                display: none; 
             }
             .entity-icon {
                 width: 40px;
@@ -324,48 +320,48 @@
 </head>
 <body>
     <header>
-      <button id="theme-toggle-btn" aria-label="Toggle Theme">
-        <span class="sun-icon">☀️</span>
-        <span class="moon-icon">🌙</span>
-      </button>
-      <h1>
-        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.onerror=null; this.src='../rklfavicon.ico';">
-        <span class="header-text">Real Karma League</span>
-      </h1>
-      <nav>
-        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-        <ul id="nav-menu">
-            <li><a href="RKL-S7.html">S7 Home</a></li>
-            <li><a href="standings.html">Standings & Rankings</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="leaderboards.html">Leaderboards</a>
-                    <a href="compare.html">Comparison Tool</a>
-                </div>
-            </li>
-            <li><a href="schedule.html">Schedule</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="draft-capital.html">Draft Capital</a>
-                    <a href="draft-results.html">Draft Results</a>
-                    <a href="draft-lottery.html">Draft Lottery</a>
-                </div>
-            </li>
-            <li><a href="transactions.html">Transactions</a></li>
-            <li><a href="teams.html">Teams</a></li>
-            <li><a href="trophy-case.html">Trophy Case</a></li>
-            <li><a href="changelog.html">Changelog</a></li>
-        </ul>
-      </nav>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <span class="header-text">Real Karma League</span>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="RKL-S8.html">S8 Home</a></li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
     </header>
 
     <main>
         <div class="page-header">
             <h2>Head-to-Head Comparison</h2>
             <p>Select two players or two teams to compare their key metrics.</p>
-            <p>Check out the <a href="stats-glossary.html">advanced stats glossary</a> to learn more about some of the metrics used on this page!</p>
+            <p>Check out the <a href="/common/stats-glossary.html">advanced stats glossary</a> to learn more about some of the metrics used on this page!</p>
         </div>
 
         <div class="comparison-container">
@@ -394,8 +390,8 @@
         <a href="/common/trade-block.html">GM Portal</a>
     </footer>
 
-    <script src="../js/main.js" type="module"></script>
-    <script src="../js/firebase-init.js" type="module"></script>
-    <script src="../js/comparedev.js" type="module"></script>
+    <script src="/js/main.js" type="module"></script>
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/comparedev.js" type="module"></script>
 </body>
 </html>

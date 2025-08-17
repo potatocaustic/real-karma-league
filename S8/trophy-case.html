@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 8 Trophy Case</title>
-    <link rel="stylesheet" href="../css/global-styles.css" />
-    <link rel="stylesheet" href="../css/trophy-case.css" />
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="/css/global-styles.css" />
+    <link rel="stylesheet" href="/css/trophy-case.css" />
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
         (function () {
             const theme = localStorage.getItem('theme');
@@ -23,7 +23,7 @@
             <span class="moon-icon">🌙</span>
         </button>
         <h1>
-            <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.onerror=null; this.src='../rklfavicon.ico';">
+            <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
             <span class="header-text">Real Karma League</span>
         </h1>
         <nav>
@@ -50,7 +50,7 @@
                 <li><a href="transactions.html">Transactions</a></li>
                 <li><a href="teams.html">Teams</a></li>
                 <li><a href="trophy-case.html">Trophy Case</a></li>
-                <li><a href="changelog.html">Changelog</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
             </ul>
         </nav>
     </header>
@@ -88,16 +88,13 @@
         import { db, doc, getDoc, getDocs, collection, query, where, limit, collectionGroup } from '../js/firebase-init.js';
         import { generateLineupTable } from '../js/main.js';
 
-        // --- CONFIGURATION ---
         const SEASON_ID = 'S8';
-        const USE_DEV_COLLECTIONS = true; // Set to false for production
+        const USE_DEV_COLLECTIONS = true;
         const SEASON_NUMBER = SEASON_ID.replace('S', '');
 
-        // --- GLOBAL CACHES ---
         let allTeamRecords = new Map();
         let playerStatsCache = new Map();
 
-        // --- HELPER FUNCTIONS ---
         const getCollectionName = (baseName) => {
             const devCollections = [
                 'awards', 'S8_awards', 'v2_players', 'seasonal_stats',
@@ -125,7 +122,7 @@
                     <div>
                         <h3>${title}</h3>
                         <div class="award-winner">
-                            <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
+                            <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='/icons/FA.webp';">
                             <div class="winner-info">
                                 <div class="winner-name">${winnerNameHTML}</div>
                                 <div class="winner-detail">${winnerDetailHTML}</div>
