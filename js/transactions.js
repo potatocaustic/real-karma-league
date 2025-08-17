@@ -203,21 +203,21 @@ function getTeamLogo(teamId) {
     if (!teamId) return '';
     const teamData = allTeams.find(t => t.id === teamId);
     if (!teamData) return '';
-    return `<img src="../icons/${teamId}.webp" alt="${teamData.team_name}" class="team-logo-inline" onerror="this.style.display='none'">`;
+    return `<img src="/icons/${teamId}.webp" alt="${teamData.team_name}" class="team-logo-inline" onerror="this.style.display='none'">`;
 }
 
 function getTeamNameLink(teamId) {
     if (!teamId) return 'N/A';
     const teamData = allTeams.find(t => t.id === teamId);
     if (!teamData) return teamId;
-    return `<a href="../team.html?id=${teamId}" class="team-name-link">${teamData.team_name}</a>`;
+    return `<a href="team.html?id=${teamId}" class="team-name-link">${teamData.team_name}</a>`;
 }
 
 function getPlayerNameLink(playerHandle) {
     if (!playerHandle) return 'N/A';
     const player = allTransactions.flatMap(t => t.involved_players || []).find(p => p.player_handle === playerHandle);
     const playerId = player?.id || '';
-    return `<a href="../player.html?player=${playerId}" class="player-name-link">${playerHandle}</a>`;
+    return `<a href="player.html?player=${playerId}" class="player-name-link">${playerHandle}</a>`;
 }
 
 function getVerb(teamName, verb) {

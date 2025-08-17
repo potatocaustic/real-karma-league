@@ -734,6 +734,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         batch.set(newSeasonRef, {
             season_name: `Season ${newSeasonNumber}`,
             status: "active",
+            current_week: "1",
             gp: 0,
             gs: 0,
             season_trans: 0,
@@ -2132,18 +2133,6 @@ exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async 
     }
 });
 
-/**
- * Runs daily to determine the current week of the active season.
- * It finds the earliest incomplete game and writes its week/round name
- * to the active season document.
- */
-/**
- * Runs daily to determine the current week of the active season.
- * It finds the earliest incomplete game and writes its week/round name
- * to the active season document.
- * * CORRECTED: This version handles the edge case where the regular season is complete
- * but the postseason schedule has not yet been generated.
- */
 exports.updateCurrentWeek = onSchedule({
     schedule: "every day 03:30",
     timeZone: "America/Chicago",
@@ -2166,7 +2155,6 @@ exports.updateCurrentWeek = onSchedule({
 
         let nextGameWeek = null;
 
-        // 1. Check for the next incomplete regular season game
         const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
         const incompleteGamesQuery = gamesRef
             .where('completed', '!=', 'TRUE')
@@ -2177,7 +2165,6 @@ exports.updateCurrentWeek = onSchedule({
         if (!incompleteGamesSnap.empty) {
             nextGameWeek = incompleteGamesSnap.docs[0].data().week;
         } else {
-            // 2. If no regular season games are left, check the postseason
             console.log("No incomplete regular season games found. Checking postseason...");
             const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
             const incompletePostGamesQuery = postGamesRef
@@ -2191,31 +2178,21 @@ exports.updateCurrentWeek = onSchedule({
             }
         }
 
-        // 3. Determine and write the final status based on what was found
         if (nextGameWeek !== null) {
             console.log(`The next game is in week/round: '${nextGameWeek}'. Updating season document.`);
             await activeSeasonDoc.ref.set({
                 current_week: String(nextGameWeek)
             }, { merge: true });
         } else {
-            // --- NEW LOGIC ---
-            // No incomplete games were found. We must now determine if the season is
-            // truly over, or if we are just waiting for the postseason to be scheduled.
-
-            // Check if any postseason games (beyond a placeholder) have ever been generated.
             const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
-            const allPostGamesSnap = await postGamesRef.limit(2).get(); // We only need to know if more than 1 doc exists.
+            const allPostGamesSnap = await postGamesRef.limit(2).get(); 
 
             if (allPostGamesSnap.size > 1) {
-                // More than a placeholder document exists. Since we already confirmed there are
-                // no *incomplete* postseason games, this means the postseason has run and is complete.
                 console.log("No incomplete games found anywhere. Postseason is complete. Setting current week to 'Season Complete'.");
                 await activeSeasonDoc.ref.set({
                     current_week: "Season Complete"
                 }, { merge: true });
             } else {
-                // The regular season is over, but a multi-game postseason schedule hasn't been generated yet.
-                // Set an intermediary status to avoid prematurely ending the season.
                 console.log("Regular season complete. Awaiting postseason schedule generation.");
                 await activeSeasonDoc.ref.set({
                     current_week: "End of Regular Season"
@@ -2231,12 +2208,8 @@ exports.updateCurrentWeek = onSchedule({
         return null;
     }
 });
-/**
- * On-demand function for admins to manually trigger the auto-finalization
- * logic for all currently active live games. This is primarily for testing.
- */
+
 exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (request) => {
-    // 1. Authenticate the user and check for admin privileges.
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -2246,9 +2219,6 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
     }
 
     console.log(`Manual trigger received for auto-finalization by admin: ${request.auth.uid}`);
-
-    // 2. Re-use the exact same logic from the scheduled function.
-    // This ensures the test is accurate.
     try {
         const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
 
@@ -2266,13 +2236,11 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
                 await delay(randomGameDelay);
 
                 console.log(`Manually auto-finalizing game ${gameDoc.id} after a ${randomGameDelay}ms delay.`);
-                // The 'true' flag ensures player delays are used, just like the real function.
                 await processAndFinalizeGame(gameDoc, true);
                 console.log(`Successfully auto-finalized game ${gameDoc.id}.`);
 
             } catch (error) {
                 console.error(`Failed to auto-finalize game ${gameDoc.id}:`, error);
-                // In a real run, we might update the doc, but for a test, just log it.
             }
         }
 
@@ -2284,11 +2252,6 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
         throw new HttpsError('internal', `An unexpected error occurred: ${error.message}`);
     }
 });
-/**
- * ===================================================================
- * REFACTORED & NEW POSTSEASON ADVANCEMENT LOGIC
- * ===================================================================
- */
 
 /**
  * Core logic for advancing teams in the playoff bracket.
