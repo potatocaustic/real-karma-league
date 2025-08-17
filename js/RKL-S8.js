@@ -550,7 +550,6 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
         team1 = allTeams.find(t => t.id === originalGame.team1_id);
         team2 = allTeams.find(t => t.id === originalGame.team2_id);
         
-        // MODIFIED: Added logic to include seed in the modal title
         let titleTeam1Name = escapeHTML(team1.team_name);
         let titleTeam2Name = escapeHTML(team2.team_name);
         if (gameIsPostseason) {
@@ -558,21 +557,56 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
             if (originalGame.team2_seed) titleTeam2Name = `(${originalGame.team2_seed}) ${titleTeam2Name}`;
         }
 
+        const allPlayerIdsInGame = [];
+        if (isLiveGame) {
+            const gameRef = doc(db, getCollectionName('live_games'), gameId);
+            const gameSnap = await getDoc(gameRef);
+            if (gameSnap.exists()) {
+                const liveData = gameSnap.data();
+                liveData.team1_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
+                liveData.team2_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
+            }
+        } else {
+            const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
+            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
+            const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
+            const lineupsSnap = await getDocs(lineupsQuery);
+            lineupsSnap.forEach(doc => allPlayerIdsInGame.push(doc.data().player_id));
+        }
+
+        const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
+        const playerStatsPromises = uniquePlayerIds.map(playerId => 
+            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
+        );
+        const playerStatsDocs = await Promise.all(playerStatsPromises);
+        
+        const playerSeasonalStats = new Map();
+        playerStatsDocs.forEach((docSnap, index) => {
+            if (docSnap.exists()) {
+                playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
+            }
+        });
+
         if (isLiveGame) {
             const gameRef = doc(db, getCollectionName('live_games'), gameId);
             const gameSnap = await getDoc(gameRef);
             if (!gameSnap.exists()) throw new Error("Live game data not found.");
             
             const liveGameData = gameSnap.data();
-            team1Lineups = liveGameData.team1_lineup || [];
-            team2Lineups = liveGameData.team2_lineup || [];
+            // Add seasonal stats to each player in the lineup
+            team1Lineups = liveGameData.team1_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
+            team2Lineups = liveGameData.team2_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
         } else {
             const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
-            const allLineupsForGame = lineupsSnap.docs.map(d => d.data());
+            const allLineupsForGame = lineupsSnap.docs.map(d => {
+                const lineupData = d.data();
+                // Add seasonal stats to each player in the lineup
+                return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
+            });
 
             team1Lineups = allLineupsForGame.filter(l => l.team_id === team1.id && l.started === "TRUE");
             team2Lineups = allLineupsForGame.filter(l => l.team_id === team2.id && l.started === "TRUE");
@@ -587,7 +621,6 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
             team1ForModal.losses = originalGame.team2_wins || 0;
             team2ForModal.wins = originalGame.team2_wins || 0;
             team2ForModal.losses = originalGame.team1_wins || 0;
-            // MODIFIED: Pass the seed to the modal team object
             team1ForModal.seed = originalGame.team1_seed;
             team2ForModal.seed = originalGame.team2_seed;
         }

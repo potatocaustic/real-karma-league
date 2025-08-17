@@ -1,19 +1,18 @@
-
 // /js/legacyschedule.js
 
-import { generateLineupTable } from '/js/main.js';
-import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot } from '/js/firebase-init.js';
+import { generateLineupTable } from '../js/main.js';
+import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot } from '../js/firebase-init.js';
 
 const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
-
+// --- MODIFICATION: Hardcoded the season ID to 'S7' for the legacy page ---
 let activeSeasonId = 'S7';
 let allTeams = [];
 let allGamesCache = [];
 let historicalRecords = {};
 let liveGamesCache = new Map();
-let currentWeek = '1'; 
+let currentWeek = '1'; // This will be updated on page load
 
 // --- UTILITY FUNCTIONS ---
 const formatInThousands = (value) => {
@@ -47,7 +46,7 @@ function getPostseasonGameLabel(seriesName) {
     const baseSeriesId = seriesName.replace(/ Game \d+$/, '').trim();
     const seriesTypeMap = {
         'W7vW8': 'West Play-In Stage 1', 'E7vE8': 'East Play-In Stage 1',
-        'W9vW10': 'West Play-In Stage 1', 'E9vW10': 'East Play-In Stage 1',
+        'W9vW10': 'West Play-In Stage 1', 'E9vE10': 'East Play-In Stage 1',
         'W8thSeedGame': 'West Play-In Stage 2', 'E8thSeedGame': 'East Play-In Stage 2',
         'W1vW8': `West Round 1 - ${gameNumberString}`, 'W4vW5': `West Round 1 - ${gameNumberString}`,
         'W3vW6': `West Round 1 - ${gameNumberString}`, 'W2vW7': `West Round 1 - ${gameNumberString}`,
@@ -121,6 +120,7 @@ function calculateHistoricalRecords() {
 function determineInitialWeek() {
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))].sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
+    // For a legacy season, always default to the last week if no other week is active.
     currentWeek = allKnownWeeks[allKnownWeeks.length - 1] || '1';
 }
 
@@ -228,7 +228,7 @@ async function displayWeek(week) {
             const team1IconExt = team1.id && allStarTeamIds.includes(team1.id) ? 'png' : 'webp';
             const team2IconExt = team2.id && allStarTeamIds.includes(team2.id) ? 'png' : 'webp';
 
-            return `<div class="game-card ${cardClass}" data-game-id="${game.id}" data-is-live="false" data-date="${game.date}"><div class="game-teams"><div class="team ${isCompleted && game.winner === team1.id ? 'winner' : ''}"><div class="team-left"><img src="/icons/${team1.id}.${team1IconExt}" alt="${escapeHTML(team1.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team1NameHTML}</div><div class="team-record">${team1Record}</div></div></div>${team1ScoreHTML}</div><div class="team ${isCompleted && game.winner === team2.id ? 'winner' : ''}"><div class="team-left"><img src="/icons/${team2.id}.${team2IconExt}" alt="${escapeHTML(team2.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team2NameHTML}</div><div class="team-record">${team2Record}</div></div></div>${team2ScoreHTML}</div></div><div class="game-status ${cardClass}">${statusHTML}</div></div>`;
+            return `<div class="game-card ${cardClass}" data-game-id="${game.id}" data-is-live="false" data-date="${game.date}"><div class="game-teams"><div class="team ${isCompleted && game.winner === team1.id ? 'winner' : ''}"><div class="team-left"><img src="../icons/${team1.id}.${team1IconExt}" alt="${escapeHTML(team1.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team1NameHTML}</div><div class="team-record">${team1Record}</div></div></div>${team1ScoreHTML}</div><div class="team ${isCompleted && game.winner === team2.id ? 'winner' : ''}"><div class="team-left"><img src="../icons/${team2.id}.${team2IconExt}" alt="${escapeHTML(team2.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team2NameHTML}</div><div class="team-record">${team2Record}</div></div></div>${team2ScoreHTML}</div></div><div class="game-status ${cardClass}">${statusHTML}</div></div>`;
         }).join('');
         
         const dateHeaderPrefix = week === 'Finals' ? '🏆 ' : '';
@@ -300,13 +300,38 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         let titleTeam1Name = '';
         let titleTeam2Name = '';
 
-        const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
-        const lineupsCollectionName = getCollectionName(isExhibition ? 'exhibition_lineups' : (isGamePostseason ? 'post_lineups' : 'lineups'));
+        // ===================================================================
+        // BUG FIX: Fetch seasonal stats for all players in the game to get
+        // rookie and all-star status, which is not on the lineup document.
+        // ===================================================================
+        const lineupsCollectionName = getCollectionName(isGamePostseason ? 'post_lineups' : 'lineups');
         const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
         const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
-        
         const lineupsSnap = await getDocs(lineupsQuery);
-        const allLineupsForGame = lineupsSnap.docs.map(d => d.data());
+        
+        const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
+        const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
+
+        const playerStatsPromises = uniquePlayerIds.map(playerId => 
+            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
+        );
+        const playerStatsDocs = await Promise.all(playerStatsPromises);
+        
+        const playerSeasonalStats = new Map();
+        playerStatsDocs.forEach((docSnap, index) => {
+            if (docSnap.exists()) {
+                playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
+            }
+        });
+        // ===================================================================
+        // END OF BUG FIX
+        // ===================================================================
+
+        const allLineupsForGame = lineupsSnap.docs.map(d => {
+            const lineupData = d.data();
+            // Add seasonal stats to each player in the lineup
+            return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
+        });
 
         team1 = getTeamById(gameData.team1_id);
         team2 = getTeamById(gameData.team2_id);
@@ -348,6 +373,7 @@ function closeModal() {
 
 async function initializePage() {
     try {
+        // --- MODIFICATION: Removed the dynamic season fetching. 'activeSeasonId' is already hardcoded. ---
         await fetchInitialPageData(activeSeasonId);
         calculateHistoricalRecords(); 
         determineInitialWeek();     
@@ -360,6 +386,8 @@ async function initializePage() {
                 if (event.target.id === 'game-modal') closeModal();
             });
         }, 0);
+        // Live listener is not needed for a completed legacy season.
+        // listenForLiveGames();       
     } catch (error) {
         console.error("Failed to initialize page:", error);
         document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${error.message}</div>`;
