@@ -4,12 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Real Karma League S8</title>
-    <!-- Corrected stylesheet paths -->
-    <link rel="stylesheet" href="../css/global-styles.css">
-    <link rel="stylesheet" href="../css/RKL-S8.css">
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/css/RKL-S8.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
-        // Apply theme from local storage before page loads to prevent flashing
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -25,7 +23,7 @@
             <span class="moon-icon">🌙</span>
         </button>
         <h1>
-            <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+            <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
             <span class="header-text">Real Karma League</span>
         </h1>
         <nav>
@@ -52,7 +50,7 @@
                 <li><a href="transactions.html">Transactions</a></li>
                 <li><a href="teams.html">Teams</a></li>
                 <li><a href="trophy-case.html">Trophy Case</a></li>
-                <li><a href="changelog.html">Changelog</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
             </ul>
         </nav>
     </header>
@@ -129,7 +127,6 @@
         </div>
     </main>
 
-    <!-- This div will be populated with the modal HTML by the script -->
     <div id="modal-placeholder"></div>
 
     <footer>
@@ -137,10 +134,9 @@
         <a href="/common/trade-block.html">GM Portal</a>
     </footer>
 
-    <!-- Scripts -->
-    <script src="../js/firebase-init.js" type="module"></script>
-    <script src="../js/main.js" type="module"></script>
-    <script src="../js/RKL-S8.js" type="module"></script>
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/main.js" type="module"></script>
+    <script src="/js/RKL-S8.js" type="module"></script>
 
 </body>
 </html>

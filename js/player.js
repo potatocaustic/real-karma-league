@@ -308,7 +308,26 @@ async function showGameDetails(gameId) {
         );
         const lineupsSnap = await getDocs(lineupsQuery);
         
-        const allGameLineups = lineupsSnap.docs.map(d => d.data());
+        const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
+        const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
+
+        const playerStatsPromises = uniquePlayerIds.map(playerId => 
+            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), SEASON_ID))
+        );
+        const playerStatsDocs = await Promise.all(playerStatsPromises);
+        
+        const playerSeasonalStats = new Map();
+        playerStatsDocs.forEach((docSnap, index) => {
+            if (docSnap.exists()) {
+                playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
+            }
+        });
+
+        const allGameLineups = lineupsSnap.docs.map(d => {
+            const lineupData = d.data();
+            return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
+        });
+
         const team1Lineups = allGameLineups.filter(l => l.team_id === game.team1_id);
         const team2Lineups = allGameLineups.filter(l => l.team_id === game.team2_id);
 

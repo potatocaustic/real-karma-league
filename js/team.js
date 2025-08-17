@@ -344,7 +344,6 @@ function loadDraftCapital() {
         </div>`;
     }).join('');
     
-    // Summary calculation logic is unchanged
     const totalPicks = teamPicks.length;
     const summaryPendingForfeitureCount = teamPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
     const summaryOwnPicks = teamPicks.filter(p => p.original_team === teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
@@ -375,12 +374,30 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
             where("started", "==", "TRUE")
         );
         const lineupsSnap = await getDocs(q);
-        const lineupsData = lineupsSnap.docs.map(d => d.data());
         
+        const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
+        const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
+
+        const playerStatsPromises = uniquePlayerIds.map(playerId => 
+            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), ACTIVE_SEASON_ID))
+        );
+        const playerStatsDocs = await Promise.all(playerStatsPromises);
+        
+        const playerSeasonalStats = new Map();
+        playerStatsDocs.forEach((docSnap, index) => {
+            if (docSnap.exists()) {
+                playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
+            }
+        });
+
+        const lineupsData = lineupsSnap.docs.map(d => {
+            const lineupData = d.data();
+            return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
+        });
+
         const team1Lineups = lineupsData.filter(l => l.team_id === team1_id);
         const team2Lineups = lineupsData.filter(l => l.team_id === team2_id);
 
-        // Corrected: Calculate records at the time of the game for the modal
         const team1Record = getTeamRecordAtDate(team1_id, gameDate).split('-').map(Number);
         const team2Record = getTeamRecordAtDate(team2_id, gameDate).split('-').map(Number);
 

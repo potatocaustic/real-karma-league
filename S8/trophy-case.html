@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="../css/trophy-case.css" />
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
-        // Apply theme from local storage before page loads to prevent flashing
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -335,11 +334,31 @@
                 const gameRef = doc(db, getCollectionName('seasons'), SEASON_ID, gameCollection, gameId);
                 const lineupsCollectionName = gameCollection === getCollectionName('games') ? getCollectionName('lineups') : getCollectionName('post_lineups');
                 const lineupsQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, lineupsCollectionName), where("game_id", "==", gameId));
+                
                 const [gameSnap, lineupsSnap] = await Promise.all([getDoc(gameRef), getDocs(lineupsQuery)]);
                 if (!gameSnap.exists()) throw new Error("Game not found.");
                 
                 const game = gameSnap.data();
-                const allLineups = lineupsSnap.docs.map(d => d.data());
+
+                const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
+                const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
+
+                const playerStatsPromises = uniquePlayerIds.map(playerId => 
+                    getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), SEASON_ID))
+                );
+                const playerStatsDocs = await Promise.all(playerStatsPromises);
+                
+                const playerSeasonalStats = new Map();
+                playerStatsDocs.forEach((docSnap, index) => {
+                    if (docSnap.exists()) {
+                        playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
+                    }
+                });
+
+                const allLineups = lineupsSnap.docs.map(d => {
+                    const lineupData = d.data();
+                    return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
+                });
                 const team1 = { id: game.team1_id, ...allTeamRecords.get(game.team1_id) };
                 const team2 = { id: game.team2_id, ...allTeamRecords.get(game.team2_id) };
                 modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} (Week ${game.week})`;
