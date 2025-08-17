@@ -32,6 +32,11 @@ window.addEventListener('load', () => {
     const progressTitle = document.getElementById('progress-title');
     const progressStatus = document.getElementById('progress-status');
     const progressCloseBtn = document.getElementById('progress-close-btn');
+    // ===================================================================
+    // NEW ELEMENT REFERENCE
+    // ===================================================================
+    const testAutofinalizeBtn = document.getElementById('test-autofinalize-btn');
+
 
     // --- DEV ENVIRONMENT CONFIG ---
     const USE_DEV_COLLECTIONS = true;
@@ -46,6 +51,11 @@ window.addEventListener('load', () => {
     const setLiveScoringStatus = httpsCallable(functions, 'setLiveScoringStatus');
     const updateAllLiveScores = httpsCallable(functions, 'updateAllLiveScores');
     const forceLeaderboardRecalculation = httpsCallable(functions, 'forceLeaderboardRecalculation');
+    // ===================================================================
+    // NEW FUNCTION IMPORT
+    // ===================================================================
+    const test_autoFinalizeGames = httpsCallable(functions, 'test_autoFinalizeGames');
+
 
     // --- Global State ---
     let countdownIntervalId = null;
@@ -384,6 +394,29 @@ window.addEventListener('load', () => {
                 } finally {
                     recalcBtn.disabled = false;
                     recalcBtn.textContent = 'Force Leaderboard Recalc';
+                }
+            });
+        }
+        
+        // ===================================================================
+        // NEW EVENT LISTENER FOR THE TEST BUTTON
+        // ===================================================================
+        if (testAutofinalizeBtn) {
+            testAutofinalizeBtn.addEventListener('click', async () => {
+                if (!confirm("This will finalize ALL active live games, just like the 3 AM scheduled job. This is for testing only. Are you sure you want to proceed?")) {
+                    return;
+                }
+                testAutofinalizeBtn.disabled = true;
+                testAutofinalizeBtn.textContent = 'Processing...';
+                try {
+                    const result = await test_autoFinalizeGames();
+                    alert(result.data.message); // Display the success message from the function
+                } catch (error) {
+                    console.error("Error testing auto-finalize:", error);
+                    alert(`An error occurred: ${error.message}`);
+                } finally {
+                    testAutofinalizeBtn.disabled = false;
+                    testAutofinalizeBtn.textContent = 'Test Auto-Finalize Overnight Process';
                 }
             });
         }

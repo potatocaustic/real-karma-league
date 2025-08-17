@@ -2231,7 +2231,59 @@ exports.updateCurrentWeek = onSchedule({
         return null;
     }
 });
+/**
+ * On-demand function for admins to manually trigger the auto-finalization
+ * logic for all currently active live games. This is primarily for testing.
+ */
+exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (request) => {
+    // 1. Authenticate the user and check for admin privileges.
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
 
+    console.log(`Manual trigger received for auto-finalization by admin: ${request.auth.uid}`);
+
+    // 2. Re-use the exact same logic from the scheduled function.
+    // This ensures the test is accurate.
+    try {
+        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+
+        if (liveGamesSnap.empty) {
+            console.log("No live games found to auto-finalize.");
+            return { success: true, message: "No live games found to auto-finalize." };
+        }
+
+        console.log(`Found ${liveGamesSnap.size} games to auto-finalize.`);
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        for (const gameDoc of liveGamesSnap.docs) {
+            try {
+                const randomGameDelay = Math.floor(Math.random() * 201) + 200;
+                await delay(randomGameDelay);
+
+                console.log(`Manually auto-finalizing game ${gameDoc.id} after a ${randomGameDelay}ms delay.`);
+                // The 'true' flag ensures player delays are used, just like the real function.
+                await processAndFinalizeGame(gameDoc, true);
+                console.log(`Successfully auto-finalized game ${gameDoc.id}.`);
+
+            } catch (error) {
+                console.error(`Failed to auto-finalize game ${gameDoc.id}:`, error);
+                // In a real run, we might update the doc, but for a test, just log it.
+            }
+        }
+
+        console.log("Manual auto-finalization job completed.");
+        return { success: true, message: `Successfully processed ${liveGamesSnap.size} games.` };
+
+    } catch (error) {
+        console.error("Error during manual auto-finalization test:", error);
+        throw new HttpsError('internal', `An unexpected error occurred: ${error.message}`);
+    }
+});
 /**
  * ===================================================================
  * REFACTORED & NEW POSTSEASON ADVANCEMENT LOGIC
