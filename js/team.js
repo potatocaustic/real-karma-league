@@ -607,7 +607,7 @@ function generatePickItemHTML(pick) {
             // Check for a trade_id to determine if it's a linkable S7 trade or a non-linkable pre-S7 trade.
             if (pick.trade_id) {
                 // Has a trade_id, so it's a linkable S7 trade. Add teamFilter to the URL.
-                const legacyLink = `/S7/transactions.html?pick_id=${pick.pick_id}&teamFilter=${teamId}`;
+                const legacyLink = `/S7/transactions.html?pick_id=${pick.pick_id}`;
                 const verbiage = `from ${originalTeamName} <span class="pick-origin-stats">${statsText}</span>`;
                 originHTML = `<div class="pick-origin"><a href="${legacyLink}">${verbiage}</a></div>`;
             } else {
