@@ -39,7 +39,8 @@
 
       .results-table td.team-cell, .results-table td.player-cell { text-align: left; }
       .team-cell-content { display: flex; align-items: center; gap: 0.75rem; }
-      .team-logo { width: 24px; height: 24px; border-radius: 2px; flex-shrink: 0; }
+      /* MODIFIED: Increased logo size */
+      .team-logo { width: 32px; height: 32px; border-radius: 4px; flex-shrink: 0; }
       .player-link, .team-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s; }
       .player-link:hover, .team-link:hover { text-decoration: underline; }
       
@@ -61,7 +62,8 @@
       @media (max-width: 768px) {
         .results-table th, .results-table td { font-size: 0.85rem; padding: 0.6rem 0.5rem; }
         .team-cell-content { gap: 0.5rem; }
-        .team-logo { width: 20px; height: 20px; }
+        /* MODIFIED: Increased logo size for mobile */
+        .team-logo { width: 28px; height: 28px; }
         .desktop-only { display: none; }
         .mobile-only { display: table-cell; }
 
@@ -291,9 +293,11 @@
           const medRankDisplay = pick.medrank === Infinity ? '-' : Math.round(pick.medrank);
           const relDisplay = (pick.rel_median || 0).toFixed(3);
           const warDisplay = (pick.WAR || 0).toFixed(2);
+          
+          // MODIFIED: Use player_id for the link
           const playerCellHTML = pick.forfeit
             ? `<span>FORFEITED</span>`
-            : `<a href="player.html?player=${encodeURIComponent(pick.player_handle)}" class="player-link">${pick.player_handle}</a>`;
+            : `<a href="player.html?id=${encodeURIComponent(pick.player_id)}" class="player-link">${pick.player_handle}</a>`;
 
           return `
             <tr>
