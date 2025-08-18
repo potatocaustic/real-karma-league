@@ -12,7 +12,7 @@ import {
 } from './firebase-init.js';
 
 // --- CONFIGURATION ---
-const USE_DEV_COLLECTIONS = true; 
+const USE_DEV_COLLECTIONS = false; 
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 // --- DOM ELEMENT REFERENCES ---
