@@ -70,11 +70,11 @@ function generateTeamCard(team, rankInConference) {
           <div class="stat-value ${getPAMClass(pam)}">${Math.round(pam).toLocaleString()}</div>
           <div class="stat-label">PAM</div>
         </div>
-        <div class="stat-item">
+        <div class="stat-item stat-desktop-only">
           <div class="stat-value">${medStarterRank > 0 ? Math.round(medStarterRank) : '-'}</div>
           <div class="stat-label">Med Rank</div>
         </div>
-        <div class="stat-item">
+        <div class="stat-item stat-desktop-only">
           <div class="stat-value">${totalTransactions}</div>
           <div class="stat-label">Transactions</div>
         </div>
