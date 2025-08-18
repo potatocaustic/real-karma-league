@@ -80,7 +80,7 @@ async function loadPlayerData() {
         const playerData = playerSnap.data();
         document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL ${SEASON_ID}`;
         const seasonalStats = seasonalStatsSnap.exists() ? seasonalStatsSnap.data() : {};
-        currentPlayer = { id: playerId, ...playerData, ...seasonalStats };
+        currentPlayer = { id: playerId, ...seasonalStats, ...playerData };
 
         // 2. Efficiently fetch all seasonal records for all teams for the current season
         for (const teamDoc of teamsSnap.docs) {
