@@ -39,7 +39,6 @@
 
       .results-table td.team-cell, .results-table td.player-cell { text-align: left; }
       .team-cell-content { display: flex; align-items: center; gap: 0.75rem; }
-      /* MODIFIED: Increased logo size */
       .team-logo { width: 32px; height: 32px; border-radius: 4px; flex-shrink: 0; }
       .player-link, .team-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s; }
       .player-link:hover, .team-link:hover { text-decoration: underline; }
@@ -62,7 +61,6 @@
       @media (max-width: 768px) {
         .results-table th, .results-table td { font-size: 0.85rem; padding: 0.6rem 0.5rem; }
         .team-cell-content { gap: 0.5rem; }
-        /* MODIFIED: Increased logo size for mobile */
         .team-logo { width: 28px; height: 28px; }
         .desktop-only { display: none; }
         .mobile-only { display: table-cell; }
@@ -164,12 +162,11 @@
 
     <script src="../js/main.js" type="module"></script>
     <script type="module">
-      import { db, collection, getDocs, doc, getDoc } from '../js/firebase-init.js';
+      import { db, collection, getDocs, doc, getDoc, query, where } from '../js/firebase-init.js';
 
       // --- DEV ENVIRONMENT CONFIG ---
       const USE_DEV_COLLECTIONS = false;
       const getCollectionName = (baseName) => {
-          // Add other specific collection names here if they have unique logic
           if (baseName.includes('_draft_results')) {
               return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
           }
@@ -294,7 +291,7 @@
           const relDisplay = (pick.rel_median || 0).toFixed(3);
           const warDisplay = (pick.WAR || 0).toFixed(2);
           
-          // MODIFIED: Use player_id for the link
+          // CORRECTED: Use player_id for the link, which is now guaranteed to be in the pick object
           const playerCellHTML = pick.forfeit
             ? `<span>FORFEITED</span>`
             : `<a href="player.html?id=${encodeURIComponent(pick.player_id)}" class="player-link">${pick.player_handle}</a>`;
@@ -325,7 +322,8 @@
         table.style.borderRadius = '0 0 8px 8px';
       }
 
-      function handleSort(column) {
+      // Make handleSort globally accessible for the inline onclick attribute
+      window.handleSort = (column) => {
         if (sortState.column === column) {
           sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
         } else {
