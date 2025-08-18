@@ -106,6 +106,10 @@
     box-shadow: 0 8px 16px rgba(0,0,0,0.12);
 }
 
+.pick-origin-stats.unlinked {
+    color: inherit;
+}
+
 .content-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;

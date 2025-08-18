@@ -603,15 +603,16 @@ function generatePickItemHTML(pick) {
             if (originalTeamRecord) {
                  statsText = `(${originalTeamRecord.wins}-${originalTeamRecord.losses}, ${Math.round(originalTeamRecord.pam)} PAM)`;
             }
-            const verbiage = `from ${originalTeamName} <span class="pick-origin-stats">${statsText}</span>`;
-
+            
             // Check for a trade_id to determine if it's a linkable S7 trade or a non-linkable pre-S7 trade.
             if (pick.trade_id) {
-                // Has a trade_id, so it's a linkable S7 trade.
-                const legacyLink = `/S7/transactions.html?pick_id=${pick.pick_id}`;
+                // Has a trade_id, so it's a linkable S7 trade. Add teamFilter to the URL.
+                const legacyLink = `/S7/transactions.html?pick_id=${pick.pick_id}&teamFilter=${teamId}`;
+                const verbiage = `from ${originalTeamName} <span class="pick-origin-stats">${statsText}</span>`;
                 originHTML = `<div class="pick-origin"><a href="${legacyLink}">${verbiage}</a></div>`;
             } else {
-                // No trade_id, so it's a pre-S7 trade. Display text without a link.
+                // No trade_id, so it's pre-S7. Display text without a link and with a modified class for styling.
+                const verbiage = `from ${originalTeamName} <span class="pick-origin-stats unlinked">${statsText}</span>`;
                 originHTML = `<div class="pick-origin">${verbiage}</div>`;
             }
         }
