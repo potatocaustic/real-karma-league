@@ -7,6 +7,11 @@
     <link rel="stylesheet" href="/css/global-styles.css" />
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
       // Apply theme from local storage before page loads to prevent flashing
       (function() {
         const theme = localStorage.getItem('theme');
