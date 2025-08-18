@@ -235,18 +235,29 @@ async function loadData() {
     leaderboardBody.innerHTML = '<tr><td colspan="4" class="loading">Loading S8 data from Firestore...</td></tr>';
     
     try {
-        const [playerStats, teams, singleGameKarma, singleGameRank] = await Promise.all([
+        const activeSeasonQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
+        const [playerStats, teams, singleGameKarma, singleGameRank, activeSeasonSnap] = await Promise.all([
             fetchAllPlayerStats(SEASON_ID),
             fetchTeamsData(SEASON_ID),
             fetchSingleGameLeaderboard('single_game_karma'),
-            fetchSingleGameLeaderboard('single_game_rank')
+            fetchSingleGameLeaderboard('single_game_rank'),
+            getDocs(activeSeasonQuery)
         ]);
-
-        console.log(`[DEBUG] Fetched ${playerStats.length} player stat records.`);
-        console.log(`[DEBUG] Fetched ${teams.length} team records.`);
-        console.log(`[DEBUG] Fetched ${singleGameKarma.length} single-game karma records.`);
-        console.log(`[DEBUG] Fetched ${singleGameRank.length} single-game rank records.`);
         
+        // **NEW: Logic to control postseason button visibility**
+        const postseasonBtn = document.getElementById('postseason-leaderboards-btn');
+        if (postseasonBtn) {
+            const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+            let currentWeek = null;
+            if (!activeSeasonSnap.empty) {
+                currentWeek = activeSeasonSnap.docs[0].data().current_week;
+            }
+            if (!postseasonWeeks.includes(currentWeek) && currentWeek !== 'Season Complete') {
+                postseasonBtn.style.display = 'none';
+            }
+        }
+        // **END NEW LOGIC**
+
         if (!playerStats || !teams) {
             throw new Error("Failed to load critical player or team data.");
         }
@@ -254,9 +265,6 @@ async function loadData() {
         allTeamsData = teams;
         allPlayersData = playerStats;
         
-        console.log("[DEBUG] Final team data (check for team_name):", allTeamsData);
-        console.log("[DEBUG] Final merged player data:", allPlayersData);
-
         allGamePerformancesData = {
             single_game_karma: singleGameKarma.map((p, i) => ({ ...p, rank: i + 1 })),
             single_game_rank: singleGameRank.map((p, i) => ({ ...p, rank: i + 1 }))
@@ -543,17 +551,19 @@ function displayLeaderboard() {
         const rankColField = categoryConfig.cols[0].dataField;
         const rankValue = item[rankColField];
 
-        let playerHandle, teamId, isRookie, isAllStar;
+        let playerHandle, teamId, isRookie, isAllStar, playerId;
 
         if (categoryConfig.dataSourceType === 'single_game') {
             playerHandle = item.player_handle;
             const pData = allPlayersData.find(p => p.player_handle === item.player_handle);
             if (pData) {
+                playerId = pData.id;
                 teamId = pData.current_team_id;
                 isRookie = pData.rookie === '1';
                 isAllStar = pData.all_star === '1';
             }
         } else {
+            playerId = item.id;
             playerHandle = item.player_handle;
             teamId = item.current_team_id;
             isRookie = item.rookie === '1';
@@ -569,7 +579,7 @@ function displayLeaderboard() {
             <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
             <div>
                 <div class="player-name">
-                <a href="player.html?player=${encodeURIComponent(playerHandle || '')}">
+                <a href="player.html?id=${encodeURIComponent(playerId || '')}">
                     <span class="player-name-text">${playerHandle || 'N/A'}</span>${rookieBadge}${allStarBadge}
                 </a>
                 </div>
