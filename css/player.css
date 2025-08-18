@@ -26,6 +26,18 @@ main {
     margin-bottom: 1rem;
 }
 
+.player-bio {
+    font-size: 0.95rem;
+    color: #555;
+    margin-top: 0.75rem;
+    font-style: italic;
+    line-height: 1.5;
+    max-width: 60ch; 
+}
+
+.dark-mode .player-bio {
+    color: #bbb;
+}
 .team-logo-large { /* Used for player's current team logo */
     width: 120px;
     height: 120px;
