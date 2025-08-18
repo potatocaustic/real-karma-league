@@ -217,7 +217,7 @@ function getPlayerNameLink(playerHandle) {
     if (!playerHandle) return 'N/A';
     const player = allTransactions.flatMap(t => t.involved_players || []).find(p => p.player_handle === playerHandle);
     const playerId = player?.id || '';
-    return `<a href="player.html?player=${playerId}" class="player-name-link">${playerHandle}</a>`;
+    return `<a href="player.html?id=${playerId}" class="player-name-link">${playerHandle}</a>`;
 }
 
 function getVerb(teamName, verb) {
