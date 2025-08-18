@@ -104,11 +104,27 @@ async function loadPlayerData() {
 
         const seasonalStatsRef = doc(db, `${getCollectionName('v2_players')}/${finalPlayerId}/${getCollectionName('seasonal_stats')}`, SEASON_ID);
         const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
+        const activeSeasonQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
 
-        const [seasonalStatsSnap, teamsSnap] = await Promise.all([
+        const [seasonalStatsSnap, teamsSnap, activeSeasonSnap] = await Promise.all([
             getDoc(seasonalStatsRef),
-            getDocs(teamsQuery)
+            getDocs(teamsQuery),
+            getDocs(activeSeasonQuery)
         ]);
+
+        // **MODIFIED: Logic to handle postseason button visibility**
+        const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+        const postseasonBtn = document.getElementById('postseason-btn');
+        let currentWeek = null;
+        if (!activeSeasonSnap.empty) {
+            currentWeek = activeSeasonSnap.docs[0].data().current_week;
+        }
+        if (postseasonBtn) {
+            if (!postseasonWeeks.includes(currentWeek)) {
+                postseasonBtn.style.display = 'none';
+            }
+        }
+        // **END MODIFICATION**
 
         const seasonalStats = seasonalStatsSnap.exists() ? seasonalStatsSnap.data() : {};
         // The spread order here ensures player identity data takes precedence
@@ -178,7 +194,6 @@ function displayPlayerHeader() {
     const isAllStar = currentPlayer.all_star === '1';
     const isRookie = currentPlayer.rookie === '1';
 
-    // **MODIFIED: Conditionally create the bio HTML**
     const bioHTML = currentPlayer.bio
         ? `<div class="player-bio">${currentPlayer.bio}</div>`
         : '';
