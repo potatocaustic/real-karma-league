@@ -235,10 +235,10 @@ function renderTransaction(transaction) {
         case 'SIGN': {
             const player = transaction.involved_players[0];
             const team = getTeamDataFromTransaction(transaction, player.to);
-            if (team) {
+            if (team && player) {
                 details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} signed with ${getTeamNameLink(team.id)} as a free agent.`;
             } else {
-                details = `${getPlayerNameLink(player.player_handle)} signed with an unknown team.`;
+                details = `A player was signed by an unknown team.`;
             }
             break;
         }
@@ -246,10 +246,30 @@ function renderTransaction(transaction) {
             const player = transaction.involved_players[0];
             const fromTeamId = transaction.involved_teams[0]?.id;
             const team = allTeams.find(t => t.id === fromTeamId);
-            if (team) {
+            if (team && player) {
                 details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} cut by ${getTeamNameLink(team.id)}.`;
             } else {
-                details = `${getPlayerNameLink(player.player_handle)} cut by an unknown team.`;
+                details = `A player was cut by an unknown team.`;
+            }
+            break;
+        }
+        case 'RETIREMENT': {
+            const player = transaction.involved_players[0];
+            const team = transaction.involved_teams[0];
+            if (team && player) {
+                details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} retired from ${getTeamNameLink(team.id)}.`;
+            } else {
+                details = `A player retired from an unknown team.`;
+            }
+            break;
+        }
+        case 'UNRETIREMENT': {
+            const player = transaction.involved_players[0];
+            const team = transaction.involved_teams[0];
+            if (team && player) {
+                details = `${getTeamLogo(team.id)}${getPlayerNameLink(player.player_handle)}${getPlayerStatsString(player.id)} unretired and signed with ${getTeamNameLink(team.id)}.`;
+            } else {
+                details = `A player unretired and signed with an unknown team.`;
             }
             break;
         }
