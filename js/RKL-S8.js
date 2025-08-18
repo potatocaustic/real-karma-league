@@ -1,7 +1,7 @@
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup } from '../js/firebase-init.js';
 import { generateLineupTable } from './main.js';
 
-const USE_DEV_COLLECTIONS = true; // Set to false for production
+const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 let currentScoringStatus = null; // Tracks the current scoring status to prevent redundant re-renders.
 

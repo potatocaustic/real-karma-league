@@ -18,7 +18,7 @@ const ACTIVE_SEASON_ID = 'S8';
  * **Set to true to use development collections (e.g., "v2_teams_dev").**
  * This should be false for the live production site.
  */
-const USE_DEV_COLLECTIONS = true;
+const USE_DEV_COLLECTIONS = false;
 
 /**
  * **Gets the correct collection name based on the environment.**

@@ -12,7 +12,7 @@ import {
 } from "../js/firebase-init.js";
 
 // --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = true;
+const USE_DEV_COLLECTIONS = false;
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 const ACTIVE_SEASON_ID = "S8";
 

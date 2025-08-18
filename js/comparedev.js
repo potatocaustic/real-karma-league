@@ -228,9 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectorsContainer.innerHTML = `<div class="loading">Loading Season 8 data from Firestore...</div>`;
         
         try {
-            // Get active season ID (e.g., "S8")
-            // NOTE: Using _dev collections as configured in your index.js
-            const seasonsQuery = query(collection(db, "seasons_dev"), where("status", "==", "active"), limit(1));
+            const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
             const seasonsSnap = await getDocs(seasonsQuery);
             if (seasonsSnap.empty) {
                 throw new Error("An active season could not be found.");
@@ -244,10 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 seasonalStatsSnap,
                 seasonalRecordsSnap
             ] = await Promise.all([
-                getDocs(collection(db, "v2_players_dev")),
-                getDocs(query(collection(db, "v2_teams_dev"), where("conference", "in", ["Eastern", "Western"]))),
-                getDocs(collectionGroup(db, 'seasonal_stats_dev')),
-                getDocs(collectionGroup(db, 'seasonal_records_dev'))
+                getDocs(collection(db, "v2_players")),
+                getDocs(query(collection(db, "v2_teams"), where("conference", "in", ["Eastern", "Western"]))),
+                getDocs(collectionGroup(db, 'seasonal_stats')),
+                getDocs(collectionGroup(db, 'seasonal_records'))
             ]);
 
             // Create a map of seasonal stats { playerId: statsObject } for the active season

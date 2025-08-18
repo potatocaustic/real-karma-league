@@ -1,6 +1,6 @@
 import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where } from './firebase-init.js';
 
-const USE_DEV_COLLECTIONS = true; // Set to false for production
+const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 const SEASON_ID = 'S8';
 

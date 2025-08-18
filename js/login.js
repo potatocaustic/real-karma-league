@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             // User is signed in, redirect to the main page or GM portal.
             console.log('User already signed in, redirecting...');
-            window.location.href = '/S7/trade-block.html'; 
+            window.location.href = '/common/trade-block.html'; 
         }
     });
 

@@ -10,7 +10,7 @@ import {
 } from './firebase-init.js';
 
 const SEASON_ID = 'S8';
-const USE_DEV_COLLECTIONS = true;
+const USE_DEV_COLLECTIONS = false;
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 function getPlayoffIndicator(rankInConference) {

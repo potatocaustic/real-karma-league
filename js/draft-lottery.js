@@ -6,7 +6,7 @@ import { db, collection, getDocs, doc, getDoc, query, where } from './firebase-i
 // --- DATA AND CONFIGURATION ---
 const PREVIOUS_SEASON_ID = 'S8';
 const DRAFT_SEASON_ID = 'S9';
-const USE_DEV_COLLECTIONS = true; // Set to false for production
+const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 const lotteryOdds = [

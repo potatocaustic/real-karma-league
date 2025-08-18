@@ -3,7 +3,7 @@ import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup } f
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
-const USE_DEV_COLLECTIONS = true; 
+const USE_DEV_COLLECTIONS = false; 
 const SEASON_ID = 'S8';
 
 // --- Global State ---

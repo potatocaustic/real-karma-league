@@ -16,7 +16,7 @@ const BASE_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/
 const SEASON_ID = "S7";
 const SEASON_NUM = "7";
 const SEASON_STATUS = "active";
-const USE_DEV_COLLECTIONS = true;
+const USE_DEV_COLLECTIONS = false;
 
 // --- Helper to switch between dev/prod collections ---
 const getCollectionName = (baseName) => {

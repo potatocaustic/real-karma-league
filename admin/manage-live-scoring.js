@@ -39,7 +39,7 @@ window.addEventListener('load', () => {
 
 
     // --- DEV ENVIRONMENT CONFIG ---
-    const USE_DEV_COLLECTIONS = true;
+    const USE_DEV_COLLECTIONS = false;
     const getCollectionName = (baseName) => {
         if (baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('live_games')) {
             return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;

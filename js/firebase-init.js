@@ -1,7 +1,5 @@
 // /js/firebase-init.js
 
-// MODIFIED: The hardcoded flag is removed from here.
-// The script will now determine the environment dynamically.
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut, signInAnonymously, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
