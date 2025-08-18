@@ -178,12 +178,18 @@ function displayPlayerHeader() {
     const isAllStar = currentPlayer.all_star === '1';
     const isRookie = currentPlayer.rookie === '1';
 
+    // **MODIFIED: Conditionally create the bio HTML**
+    const bioHTML = currentPlayer.bio
+        ? `<div class="player-bio">${currentPlayer.bio}</div>`
+        : '';
+
     document.getElementById('player-main-info').innerHTML = `
       ${teamLogoHTML}
       <div class="player-details">
         <h2>${currentPlayer.player_handle}${isRookie ? '<span class="rookie-badge">R</span>' : ''}${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}</h2>
         <div class="player-subtitle">${currentPlayer.player_status} • ${currentPlayer.games_played || 0} games played</div>
         ${teamInfoHTML}
+        ${bioHTML}
       </div>`;
 
     const getOrdinal = (n) => {
