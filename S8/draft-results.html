@@ -296,10 +296,9 @@
           const relDisplay = (pick.rel_median || 0).toFixed(3);
           const warDisplay = (pick.WAR || 0).toFixed(2);
           
-          // CORRECTED: Use player_id for the link, which is now guaranteed to be in the pick object
           const playerCellHTML = pick.forfeit
             ? `<span>FORFEITED</span>`
-            : `<a href="player.html?id=${encodeURIComponent(pick.player_id)}" class="player-link">${pick.player_handle}</a>`;
+            : `<a href="player.html?handle=${encodeURIComponent(pick.player_handle)}" class="player-link">${pick.player_handle}</a>`;
 
           return `
             <tr>

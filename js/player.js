@@ -53,41 +53,71 @@ function generateIconStylesheet(teams) {
 /**
  * Fetches all necessary REGULAR SEASON data from Firestore to build the player page.
  */
+// js/player.js
+
 async function loadPlayerData() {
-    const playerId = new URLSearchParams(window.location.search).get('id');
-    if (!playerId) {
-        document.getElementById('player-main-info').innerHTML = '<div class="error">No player ID specified in URL.</div>';
+    const params = new URLSearchParams(window.location.search);
+    const playerId = params.get('id');
+    const playerHandle = params.get('handle');
+
+    if (!playerId && !playerHandle) {
+        document.getElementById('player-main-info').innerHTML = '<div class="error">No player ID or handle specified in URL.</div>';
         return;
     }
     
     try {
-        // 1. Fetch Player, Seasonal Stats, and All Teams in Parallel
-        const playerRef = doc(db, getCollectionName('v2_players'), playerId);
-        const seasonalStatsRef = doc(db, `${getCollectionName('v2_players')}/${playerId}/${getCollectionName('seasonal_stats')}`, SEASON_ID);
+        let playerSnap;
+        let finalPlayerId;
+
+        if (playerId) {
+            // --- If an ID is provided, fetch the player directly (current logic) ---
+            finalPlayerId = playerId;
+            const playerRef = doc(db, getCollectionName('v2_players'), finalPlayerId);
+            playerSnap = await getDoc(playerRef);
+        } else {
+            // --- If a HANDLE is provided, query to find the player ---
+            const playersRef = collection(db, getCollectionName('v2_players'));
+            const q = query(playersRef, where('player_handle', '==', playerHandle));
+            const querySnapshot = await getDocs(q);
+
+            if (querySnapshot.empty) {
+                document.getElementById('player-main-info').innerHTML = `<div class="error">Player with handle '${playerHandle}' not found.</div>`;
+                return;
+            }
+            // Get the full document snapshot from the query results
+            playerSnap = querySnapshot.docs[0];
+            // Get the player's ID from the document itself
+            finalPlayerId = playerSnap.id; 
+        }
+
+        if (!playerSnap.exists()) {
+            document.getElementById('player-main-info').innerHTML = `<div class="error">Player not found.</div>`;
+            return;
+        }
+
+        // --- The rest of the function proceeds as normal from here ---
+        // It now has the correct playerSnap and finalPlayerId regardless of how it was found.
+        
+        const playerData = playerSnap.data();
+        // Use document.title for a more robust way to set the page title
+        document.title = `${playerData.player_handle} - RKL ${SEASON_ID}`;
+
+        const seasonalStatsRef = doc(db, `${getCollectionName('v2_players')}/${finalPlayerId}/${getCollectionName('seasonal_stats')}`, SEASON_ID);
         const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
 
-        const [playerSnap, seasonalStatsSnap, teamsSnap] = await Promise.all([
-            getDoc(playerRef),
+        const [seasonalStatsSnap, teamsSnap] = await Promise.all([
             getDoc(seasonalStatsRef),
             getDocs(teamsQuery)
         ]);
 
-        if (!playerSnap.exists()) {
-            document.getElementById('player-main-info').innerHTML = `<div class="error">Player with ID '${playerId}' not found.</div>`;
-            return;
-        }
-
-        const playerData = playerSnap.data();
-        document.getElementById('page-title').textContent = `${playerData.player_handle} - RKL ${SEASON_ID}`;
         const seasonalStats = seasonalStatsSnap.exists() ? seasonalStatsSnap.data() : {};
-        currentPlayer = { id: playerId, ...seasonalStats, ...playerData };
+        // The spread order here ensures player identity data takes precedence
+        currentPlayer = { id: finalPlayerId, ...seasonalStats, ...playerData };
 
-        // 2. Efficiently fetch all seasonal records for all teams for the current season
         for (const teamDoc of teamsSnap.docs) {
             allTeamsData.set(teamDoc.id, { id: teamDoc.id, ...teamDoc.data() });
         }
         
-        // THIS IS THE CORRECTED, EFFICIENT QUERY
         const seasonalRecordsQuery = query(
             collectionGroup(db, getCollectionName('seasonal_records')),
             where('season', '==', SEASON_ID)
@@ -103,11 +133,9 @@ async function loadPlayerData() {
         
         generateIconStylesheet(allTeamsData);
 
-
-        // 3. Fetch Regular Season Lineups and Games in Parallel
         const lineupsQuery = query(
             collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups')),
-            where('player_id', '==', playerId),
+            where('player_id', '==', finalPlayerId),
             where('started', '==', 'TRUE')
         );
         const gamesQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('games')));
@@ -122,7 +150,6 @@ async function loadPlayerData() {
             allGamesData.set(gameDoc.id, { id: gameDoc.id, ...gameDoc.data() });
         });
 
-        // 4. Render all page components with the fetched regular season data
         displayPlayerHeader();
         loadPerformanceData();
         loadGameHistory();
