@@ -26,6 +26,8 @@
                     <option value="TRADE">Trade</option>
                     <option value="SIGN">Free Agent Signing</option>
                     <option value="CUT">Cut Player</option>
+                    <option value="RETIREMENT">Retirement</option>
+                    <option value="UNRETIREMENT">Unretirement</option>
                 </select>
             </div>
 
@@ -62,6 +64,33 @@
                     <select id="cut-player-select" class="player-select"></select>
                 </div>
             </div>
+
+            <div id="retirement-section" class="transaction-section" style="display: none;">
+                <h4>Retirement Details</h4>
+                <div class="form-group-admin">
+                     <label for="retire-team-filter-select">Filter by Team</label>
+                    <select id="retire-team-filter-select" class="team-select">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="retire-player-select">Player to Retire</label>
+                    <select id="retire-player-select" class="player-select"></select>
+                </div>
+            </div>
+
+            <div id="unretirement-section" class="transaction-section" style="display: none;">
+                <h4>Unretirement Details</h4>
+                 <div class="form-group-admin">
+                    <label for="unretire-player-select">Player to Unretire</label>
+                    <select id="unretire-player-select" class="player-select"></select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="unretire-team-select">Assign to Team</label>
+                    <select id="unretire-team-select" class="team-select"></select>
+                </div>
+            </div>
+
 
             <div class="form-group-admin">
                 <label for="transaction-notes">Notes (Optional)</label>

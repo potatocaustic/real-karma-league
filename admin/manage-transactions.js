@@ -13,6 +13,8 @@ const authStatusDiv = document.getElementById('auth-status');
 const transactionForm = document.getElementById('transaction-form');
 const typeSelect = document.getElementById('transaction-type-select');
 const cutTeamFilter = document.getElementById('cut-team-filter-select');
+const retireTeamFilter = document.getElementById('retire-team-filter-select');
+
 
 let allPlayers = [];
 let allTeams = [];
@@ -83,13 +85,19 @@ function populateAllDropdowns() {
     const teamOptions = allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
     document.getElementById('sign-team-select').innerHTML = `<option value="">Select team...</option>${teamOptions}`;
+    document.getElementById('unretire-team-select').innerHTML = `<option value="">Select team...</option>${teamOptions}`;
+
 
     const freeAgentDataList = document.getElementById('free-agent-list');
     const freeAgents = allPlayers.filter(p => p.current_team_id === 'FREE_AGENT' && p.player_status !== 'RETIRED');
     freeAgentDataList.innerHTML = freeAgents.map(p => `<option value="${p.player_handle}"></option>`).join('');
 
     cutTeamFilter.innerHTML = `<option value="">All Teams</option>${teamOptions}`;
+    retireTeamFilter.innerHTML = `<option value="">All Teams</option>${teamOptions}`;
+    
     populateCutPlayerDropdown();
+    populateRetirePlayerDropdown();
+    populateUnretirePlayerDropdown();
 }
 
 function populateCutPlayerDropdown(teamId = '') {
@@ -103,6 +111,26 @@ function populateCutPlayerDropdown(teamId = '') {
     cutPlayerSelect.innerHTML = `<option value="">Select player...</option>` +
         playersToDisplay.map(p => `<option value="${p.id}">${p.player_handle} (${p.current_team_id})</option>`).join('');
 }
+
+function populateRetirePlayerDropdown(teamId = '') {
+    const retirePlayerSelect = document.getElementById('retire-player-select');
+     let playersToDisplay = allPlayers.filter(p =>
+        p.current_team_id && p.current_team_id !== 'FREE_AGENT' && p.player_status !== 'RETIRED'
+    );
+    if (teamId) {
+        playersToDisplay = playersToDisplay.filter(p => p.current_team_id === teamId);
+    }
+     retirePlayerSelect.innerHTML = `<option value="">Select player...</option>` +
+        playersToDisplay.map(p => `<option value="${p.id}">${p.player_handle} (${p.current_team_id})</option>`).join('');
+}
+
+function populateUnretirePlayerDropdown() {
+    const unretirePlayerSelect = document.getElementById('unretire-player-select');
+    const retiredPlayers = allPlayers.filter(p => p.player_status === 'RETIRED');
+    unretirePlayerSelect.innerHTML = `<option value="">Select player...</option>` +
+        retiredPlayers.map(p => `<option value="${p.id}">${p.player_handle}</option>`).join('');
+}
+
 
 function setupEventListeners() {
     typeSelect.addEventListener('change', () => {
@@ -130,6 +158,10 @@ function setupEventListeners() {
 
     cutTeamFilter.addEventListener('change', (e) => {
         populateCutPlayerDropdown(e.target.value);
+    });
+
+    retireTeamFilter.addEventListener('change', (e) => {
+        populateRetirePlayerDropdown(e.target.value);
     });
 }
 
@@ -261,6 +293,18 @@ async function handleFormSubmit(e) {
             const playerToCut = allPlayers.find(p => p.id === playerId);
             transactionData.involved_teams = [playerToCut.current_team_id];
             transactionData.involved_players = [{ id: playerId, to: 'FREE_AGENT' }];
+        } else if (type === 'RETIREMENT') {
+            const playerId = document.getElementById('retire-player-select').value;
+            if (!playerId) throw new Error("A player must be selected to retire.");
+            const playerToRetire = allPlayers.find(p => p.id === playerId);
+            transactionData.involved_teams = [playerToRetire.current_team_id];
+            transactionData.involved_players = [{ id: playerId, from: playerToRetire.current_team_id, to: 'RETIRED' }];
+        } else if (type === 'UNRETIREMENT') {
+            const playerId = document.getElementById('unretire-player-select').value;
+            const teamId = document.getElementById('unretire-team-select').value;
+            if (!playerId || !teamId) throw new Error("A player and destination team must be selected.");
+             transactionData.involved_teams = [teamId];
+            transactionData.involved_players = [{ id: playerId, from: 'RETIRED', to: teamId }];
         } else {
             throw new Error("Invalid transaction type selected.");
         }
@@ -270,7 +314,12 @@ async function handleFormSubmit(e) {
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
+        
+        // Re-fetch all players after transaction to get the latest data
+        const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
+        allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         populateAllDropdowns();
+
 
     } catch (error) {
         console.error("Error logging transaction:", error);

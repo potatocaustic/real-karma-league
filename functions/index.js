@@ -1220,7 +1220,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
         return null;
     }
 
-    console.log(`V2: Processing transaction ${transactionId} for player/pick moves.`);
+    console.log(`V2: Processing transaction ${transactionId} of type ${transaction.type}.`);
 
     try {
         const batch = db.batch();
@@ -1246,7 +1246,12 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
         const teamIds = involvedTeams;
 
         const playerDocsPromises = playerIds.map(id => db.collection(getCollectionName('v2_players')).doc(id).get());
-        const teamRecordDocsPromises = teamIds.map(id => db.collection(getCollectionName('v2_teams')).doc(id).collection(getCollectionName('seasonal_records')).doc(activeSeasonId).get());
+        const teamRecordDocsPromises = teamIds.map(id => {
+            // Do not fetch records for 'RETIRED' or 'FREE_AGENT' designators
+            if (id === 'RETIRED' || id === 'FREE_AGENT') return Promise.resolve(null);
+            return db.collection(getCollectionName('v2_teams')).doc(id).collection(getCollectionName('seasonal_records')).doc(activeSeasonId).get()
+        });
+        
 
         const [playerDocsSnap, teamRecordsDocsSnap] = await Promise.all([
             Promise.all(playerDocsPromises),
@@ -1254,13 +1259,38 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
         ]);
 
         const playerHandlesMap = new Map(playerDocsSnap.map(doc => [doc.id, doc.data()?.player_handle]));
-        const teamNamesMap = new Map(teamRecordsDocsSnap.map(doc => [doc.ref.parent.parent.id, doc.data()?.team_name]));
+        // Filter out nulls before creating the map
+        const teamNamesMap = new Map(teamRecordsDocsSnap.filter(Boolean).map(doc => [doc.ref.parent.parent.id, doc.data()?.team_name]));
+
 
         // 3. Update player and pick ownership
         for (const playerMove of involvedPlayers) {
             const playerRef = db.collection(getCollectionName('v2_players')).doc(playerMove.id);
             const newTeamId = playerMove.to;
-            batch.update(playerRef, { current_team_id: newTeamId });
+            let updateData = {};
+
+            // *** MODIFIED LOGIC TO HANDLE RETIREMENT STATUS ***
+            switch (transaction.type) {
+                case 'RETIREMENT':
+                    updateData = {
+                        current_team_id: 'RETIRED',
+                        player_status: 'RETIRED'
+                    };
+                    break;
+                case 'UNRETIREMENT':
+                    updateData = {
+                        current_team_id: newTeamId,
+                        player_status: 'ACTIVE'
+                    };
+                    break;
+                default: // Handles TRADE, SIGN, CUT
+                    updateData = {
+                        current_team_id: newTeamId
+                    };
+                    break;
+            }
+            
+            batch.update(playerRef, updateData);
         }
 
         for (const pickMove of involvedPicks) {
@@ -1308,6 +1338,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
     }
     return null;
 });
+
 
 /**
  * Triggered when a new transaction is created in the admin portal.
