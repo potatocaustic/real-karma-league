@@ -28,6 +28,24 @@
     .week-btn.completed { background-color: #28a745; color: white; border-color: #28a745; }
     .week-btn.completed.active { background-color: #155724; border-color: #155724; }
     
+    .week-dropdown {
+        display: none;
+        width: 100%;
+        padding: 0.8rem;
+        font-size: 1rem;
+        border-radius: 6px;
+        border: 2px solid #ddd;
+        background-color: #f8f9fa;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23333' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592c.859 0 1.32 1.013.753 1.658l-4.796 5.482a.5.5 0 0 1-.753 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 0.7rem center;
+        background-size: 1.2em;
+        cursor: pointer;
+    }
+
     .week-standouts-section { background-color: #f0f8ff; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #cfe2f3; transition: background-color 0.3s, border-color 0.3s; }
     .week-standouts-section h4 { text-align: center; margin-bottom: 1.5rem; font-size: 1.4em; color: #0056b3; }
     .standouts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
@@ -113,9 +131,17 @@
     .dark-mode .team.winner, .dark-mode .team-score.winner { color: #66bb6a; }
     .dark-mode .winner-indicator { border-left-color: #66bb6a; }
     .dark-mode .team-record { color: #aaa; }
+    .dark-mode .week-dropdown {
+        background-color: #2c2c2c;
+        border-color: #444;
+        color: #e0e0e0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23e0e0e0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592c.859 0 1.32 1.013.753 1.658l-4.796 5.482a.5.5 0 0 1-.753 0z'/%3E%3C/svg%3E");
+    }
 
     @media (max-width: 768px) {
         .games-grid, .standouts-grid { grid-template-columns: 1fr; }
+        .week-buttons { display: none; }
+        .week-dropdown { display: block; }
     }
     
 
@@ -227,6 +253,7 @@
             <div class="week-buttons" id="week-buttons">
                 <div class="loading">Loading weeks...</div>
             </div>
+            <select class="week-dropdown" id="week-dropdown"></select>
         </div>
         
         <div id="week-standouts-section" class="week-standouts-section" style="display: none;">

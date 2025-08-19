@@ -181,6 +181,9 @@ function setupWeekSelector() {
     });
 
     const weekButtonsContainer = document.getElementById('week-buttons');
+    const weekDropdown = document.getElementById('week-dropdown');
+
+    // Populate buttons (for desktop)
     weekButtonsContainer.innerHTML = visibleWeeks.map(week => {
         const weekGames = allGamesCache.filter(g => g.week === week);
         const isCompleted = weekGames.length > 0 && weekGames.every(g => g.completed === 'TRUE');
@@ -188,18 +191,43 @@ function setupWeekSelector() {
         return `<div class="week-btn ${isCompleted ? 'completed' : ''}" data-week="${week}">${buttonText}</div>`;
     }).join('');
 
+    // Populate dropdown (for mobile)
+    weekDropdown.innerHTML = visibleWeeks.map(week => {
+        const weekGames = allGamesCache.filter(g => g.week === week);
+        const isCompleted = weekGames.length > 0 && weekGames.every(g => g.completed === 'TRUE');
+        const prefix = isCompleted ? '✓ ' : '';
+        const optionText = week === 'Finals' ? `🏆 ${escapeHTML(week)}` : (isNaN(week) ? escapeHTML(week) : `Week ${escapeHTML(week)}`);
+        return `<option value="${week}">${prefix}${optionText}</option>`;
+    }).join('');
+
     const buttons = weekButtonsContainer.querySelectorAll('.week-btn');
-    buttons.forEach(btn => {
-        btn.addEventListener('click', async () => {
-            currentWeek = btn.dataset.week;
-            buttons.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            await displayWeek(currentWeek);
-        });
-    });
     
+    const setActiveWeek = async (week) => {
+        currentWeek = week;
+        
+        // Update active state for buttons
+        buttons.forEach(b => b.classList.remove('active'));
+        const activeButton = weekButtonsContainer.querySelector(`[data-week="${currentWeek}"]`);
+        if (activeButton) {
+            activeButton.classList.add('active');
+        }
+
+        // Update selected option for dropdown
+        weekDropdown.value = currentWeek;
+
+        await displayWeek(currentWeek);
+    };
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => setActiveWeek(btn.dataset.week));
+    });
+
+    weekDropdown.addEventListener('change', () => setActiveWeek(weekDropdown.value));
+    
+    // Set initial active week on both controls
     const initialButton = weekButtonsContainer.querySelector(`[data-week="${currentWeek}"]`);
     if (initialButton) initialButton.classList.add('active');
+    weekDropdown.value = currentWeek;
 }
 
 async function displayWeek(week) {
