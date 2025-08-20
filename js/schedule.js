@@ -13,7 +13,7 @@ let allGamesCache = [];
 let historicalRecords = {};
 let liveGamesCache = new Map();
 let currentWeek = '1'; // This will be updated on page load
-let selectedTeamId = 'all'; // Add this line
+let selectedTeamId = 'all';
 
 // --- UTILITY FUNCTIONS ---
 const formatInThousands = (value) => {
@@ -164,9 +164,17 @@ function determineInitialWeek() {
 function listenForLiveGames() {
     const liveQuery = query(collection(db, getCollectionName('live_games')));
     onSnapshot(liveQuery, (snapshot) => {
+        const liveGamesChanged = snapshot.docChanges().length > 0;
         liveGamesCache.clear();
         snapshot.forEach(doc => liveGamesCache.set(doc.id, doc.data()));
-        displayWeek(currentWeek);
+
+        if (liveGamesChanged) {
+            if (selectedTeamId === 'all') {
+                displayWeek(currentWeek);
+            } else {
+                displayGamesForTeam(selectedTeamId);
+            }
+        }
     });
 }
 
@@ -184,7 +192,6 @@ function setupWeekSelector() {
     const weekButtonsContainer = document.getElementById('week-buttons');
     const weekDropdown = document.getElementById('week-dropdown');
 
-    // Populate buttons (for desktop)
     weekButtonsContainer.innerHTML = visibleWeeks.map(week => {
         const weekGames = allGamesCache.filter(g => g.week === week);
         const isCompleted = weekGames.length > 0 && weekGames.every(g => g.completed === 'TRUE');
@@ -192,7 +199,6 @@ function setupWeekSelector() {
         return `<div class="week-btn ${isCompleted ? 'completed' : ''}" data-week="${week}">${buttonText}</div>`;
     }).join('');
 
-    // Populate dropdown (for mobile)
     weekDropdown.innerHTML = visibleWeeks.map(week => {
         const weekGames = allGamesCache.filter(g => g.week === week);
         const isCompleted = weekGames.length > 0 && weekGames.every(g => g.completed === 'TRUE');
@@ -204,28 +210,26 @@ function setupWeekSelector() {
     const buttons = weekButtonsContainer.querySelectorAll('.week-btn');
     
     const setActiveWeek = async (week) => {
-        currentWeek = week;
-        
-        // Update active state for buttons
-        buttons.forEach(b => b.classList.remove('active'));
-        const activeButton = weekButtonsContainer.querySelector(`[data-week="${currentWeek}"]`);
-        if (activeButton) {
-            activeButton.classList.add('active');
+        const teamFilterDropdown = document.getElementById('team-filter-dropdown');
+        if (selectedTeamId !== 'all') {
+            teamFilterDropdown.value = 'all';
+            selectedTeamId = 'all';
+            document.querySelector('.week-selector').style.display = 'block';
         }
 
-        // Update selected option for dropdown
+        currentWeek = week;
+        
+        buttons.forEach(b => b.classList.remove('active'));
+        const activeButton = weekButtonsContainer.querySelector(`[data-week="${currentWeek}"]`);
+        if (activeButton) activeButton.classList.add('active');
         weekDropdown.value = currentWeek;
 
         await displayWeek(currentWeek);
     };
 
-    buttons.forEach(btn => {
-        btn.addEventListener('click', () => setActiveWeek(btn.dataset.week));
-    });
-
+    buttons.forEach(btn => btn.addEventListener('click', () => setActiveWeek(btn.dataset.week)));
     weekDropdown.addEventListener('change', () => setActiveWeek(weekDropdown.value));
     
-    // Set initial active week on both controls
     const initialButton = weekButtonsContainer.querySelector(`[data-week="${currentWeek}"]`);
     if (initialButton) initialButton.classList.add('active');
     weekDropdown.value = currentWeek;
@@ -238,7 +242,7 @@ function setupTeamFilter() {
     const sortedTeams = [...allTeams].sort((a, b) => a.team_name.localeCompare(b.team_name));
 
     const teamOptions = sortedTeams
-        .filter(team => team.conference) // Only include teams that are part of a conference
+        .filter(team => team.conference)
         .map(team => `<option value="${team.id}">${escapeHTML(team.team_name)}</option>`)
         .join('');
 
@@ -246,9 +250,96 @@ function setupTeamFilter() {
 
     teamFilterDropdown.addEventListener('change', () => {
         selectedTeamId = teamFilterDropdown.value;
-        displayWeek(currentWeek); // Re-render the schedule with the filter applied
+        if (selectedTeamId === 'all') {
+            document.querySelector('.week-selector').style.display = 'block';
+            displayWeek(currentWeek);
+        } else {
+            document.querySelector('.week-selector').style.display = 'none';
+            document.getElementById('week-standouts-section').style.display = 'none';
+            displayGamesForTeam(selectedTeamId);
+        }
     });
 }
+
+async function displayGamesForTeam(teamId) {
+    const gamesTitle = document.getElementById('games-title');
+    const gamesContent = document.getElementById('games-content');
+    const team = getTeamById(teamId);
+
+    gamesTitle.textContent = `Full Schedule for ${escapeHTML(team.team_name)}`;
+    
+    const teamGames = allGamesCache
+        .filter(g => g.team1_id === teamId || g.team2_id === teamId)
+        .sort((a, b) => new Date(a.date.split('/').reverse().join('-')) - new Date(b.date.split('/').reverse().join('-')));
+
+    if (teamGames.length === 0) {
+        gamesContent.innerHTML = `<div class="no-games">No games found for ${escapeHTML(team.team_name)}.</div>`;
+        return;
+    }
+
+    const gamesByDate = teamGames.reduce((acc, game) => {
+        (acc[game.date] = acc[game.date] || []).push(game);
+        return acc;
+    }, {});
+    const sortedDates = Object.keys(gamesByDate).sort((a, b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
+
+    gamesContent.innerHTML = sortedDates.map(date => {
+        const dateGamesHTML = gamesByDate[date].map(game => {
+            const team1 = getTeamById(game.team1_id);
+            const team2 = getTeamById(game.team2_id);
+            const isLive = liveGamesCache.has(game.id);
+            const isCompleted = game.completed === 'TRUE';
+            let cardClass = 'upcoming', statusText = 'Upcoming', team1ScoreHTML = '', team2ScoreHTML = '';
+            let team1NameHTML = escapeHTML(team1.team_name), team2NameHTML = escapeHTML(team2.team_name);
+            let team1Record, team2Record;
+            const isWeekPostseason = isPostseason(game.week);
+
+            if (isWeekPostseason) {
+                if (game.team1_seed) team1NameHTML += ` (${game.team1_seed})`;
+                if (game.team2_seed) team2NameHTML += ` (${game.team2_seed})`;
+                team1Record = `${game.team1_wins || 0} - ${game.team2_wins || 0}`;
+                team2Record = `${game.team2_wins || 0} - ${game.team1_wins || 0}`;
+            } else {
+                team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
+                team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
+            }
+
+            if (isLive) {
+                const liveGameData = liveGamesCache.get(game.id);
+                cardClass = 'live'; statusText = 'Live';
+                const team1Total = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+                const team2Total = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+                team1ScoreHTML = `<div class="score-container"><div class="team-score">${formatInThousands(team1Total)}</div></div>`;
+                team2ScoreHTML = `<div class="score-container"><div class="team-score">${formatInThousands(team2Total)}</div></div>`;
+            } else if (isCompleted) {
+                cardClass = 'completed'; statusText = 'Final';
+                const winnerId = game.winner;
+                const t1Indicator = winnerId === team1.id ? '<span class="winner-indicator"></span>' : '', t2Indicator = winnerId === team2.id ? '<span class="winner-indicator"></span>' : '';
+                team1ScoreHTML = `<div class="score-container">${t1Indicator}<div class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(game.team1_score)}</div></div>`;
+                team2ScoreHTML = `<div class="score-container">${t2Indicator}<div class="team-score ${winnerId === team2.id ? 'winner' : ''}">${formatInThousands(game.team2_score)}</div></div>`;
+            }
+            
+            const statusPrefix = isWeekPostseason ? getPostseasonGameLabel(game.series_name) : `Week ${game.week}`;
+            const finalStatusText = statusPrefix ? `${statusPrefix} - ${statusText}` : statusText;
+            const statusIndicator = isLive ? `<span class="live-indicator"></span>` : '';
+            const statusHTML = `${statusIndicator}${finalStatusText}`;
+
+            const allStarTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+            const team1IconExt = team1.id && allStarTeamIds.includes(team1.id) ? 'png' : 'webp';
+            const team2IconExt = team2.id && allStarTeamIds.includes(team2.id) ? 'png' : 'webp';
+
+            return `<div class="game-card ${cardClass}" data-game-id="${game.id}" data-is-live="${isLive}" data-date="${game.date}"><div class="game-teams"><div class="team ${isCompleted && game.winner === team1.id ? 'winner' : ''}"><div class="team-left"><img src="../icons/${team1.id}.${team1IconExt}" alt="${escapeHTML(team1.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team1NameHTML}</div><div class="team-record">${team1Record}</div></div></div>${team1ScoreHTML}</div><div class="team ${isCompleted && game.winner === team2.id ? 'winner' : ''}"><div class="team-left"><img src="../icons/${team2.id}.${team2IconExt}" alt="${escapeHTML(team2.team_name)}" class="team-logo" onerror="this.style.display='none'"><div class="team-info"><div class="team-name">${team2NameHTML}</div><div class="team-record">${team2Record}</div></div></div>${team2ScoreHTML}</div></div><div class="game-status ${cardClass}">${statusHTML}</div></div>`;
+        }).join('');
+        
+        const dateHeaderPrefix = ''; // No prefix in team view
+        return `<div class="date-section"><div class="date-header">${dateHeaderPrefix}${formatDate(date)}</div><div class="games-grid">${dateGamesHTML}</div></div>`;
+    }).join('');
+
+    document.querySelectorAll('.game-card.completed, .game-card.live').forEach(card => {
+        card.addEventListener('click', () => showGameDetails(card.dataset.gameId, card.dataset.isLive === 'true', card.dataset.date));
+    });
+}
+
 
 async function displayWeek(week) {
     const gamesTitle = document.getElementById('games-title');
@@ -261,28 +352,13 @@ async function displayWeek(week) {
     const weekStandoutsSection = document.getElementById('week-standouts-section');
     
     const isWeekPostseason = isPostseason(week);
-    
-    // START: Modify this section to apply the filter
-    let weekGamesSource = allGamesCache.filter(g => g.week === week);
-    if (selectedTeamId && selectedTeamId !== 'all') {
-        weekGamesSource = weekGamesSource.filter(g => g.team1_id === selectedTeamId || g.team2_id === selectedTeamId);
-    }
-    let weekGames = weekGamesSource;
-    // END: Modification
-
+    let weekGames = allGamesCache.filter(g => g.week === week);
     if (isWeekPostseason) {
         weekGames = weekGames.filter(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
     }
 
     if (weekGames.length === 0) {
-        // START: Update the "no games" message to be more helpful
-        if (selectedTeamId && selectedTeamId !== 'all') {
-            const team = getTeamById(selectedTeamId);
-            gamesContent.innerHTML = `<div class="no-games">No games scheduled for ${escapeHTML(team.team_name)} in this timeframe.</div>`;
-        } else {
-            gamesContent.innerHTML = '<div class="no-games">No games scheduled for this week.</div>';
-        }
-        // END: Update
+        gamesContent.innerHTML = '<div class="no-games">No games scheduled for this week.</div>';
         if (weekStandoutsSection) weekStandoutsSection.style.display = 'none';
         return;
     }
@@ -543,7 +619,7 @@ async function initializePage() {
         
         setTimeout(async () => {
             setupWeekSelector();
-            setupTeamFilter(); // Add this line
+            setupTeamFilter();
             await displayWeek(currentWeek);
             document.getElementById('close-modal-btn').addEventListener('click', closeModal);
             window.addEventListener('click', (event) => {
