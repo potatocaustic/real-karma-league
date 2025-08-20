@@ -395,6 +395,9 @@ function getRankDisplay(rank) {
 
 async function initializePage() {
     try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewParam = urlParams.get('view');
+
         const seasonData = await getActiveSeason();
         await fetchAllTeamsAndRecords();
         await fetchAllPowerRankings();
@@ -428,12 +431,20 @@ async function initializePage() {
             switchView(targetView);
         });
         
-        switchView('conferences');
+        if (viewParam === 'powerRankings') {
+            switchView('powerRankings');
+        } else if (viewParam === 'fullLeague') {
+            switchView('fullLeague');
+        } else {
+            switchView('conferences');
+        }
 
     } catch (error) {
         console.error("Failed to initialize standings page:", error);
         document.querySelector('main').innerHTML = `<div class="error">Could not load standings data. Please try again later.</div>`;
     }
 }
+
+document.addEventListener('DOMContentLoaded', initializePage);
 
 document.addEventListener('DOMContentLoaded', initializePage);
