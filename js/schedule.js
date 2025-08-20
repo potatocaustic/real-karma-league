@@ -13,6 +13,7 @@ let allGamesCache = [];
 let historicalRecords = {};
 let liveGamesCache = new Map();
 let currentWeek = '1'; // This will be updated on page load
+let selectedTeamId = 'all'; // Add this line
 
 // --- UTILITY FUNCTIONS ---
 const formatInThousands = (value) => {
@@ -230,6 +231,25 @@ function setupWeekSelector() {
     weekDropdown.value = currentWeek;
 }
 
+function setupTeamFilter() {
+    const teamFilterDropdown = document.getElementById('team-filter-dropdown');
+    if (!teamFilterDropdown) return;
+
+    const sortedTeams = [...allTeams].sort((a, b) => a.team_name.localeCompare(b.team_name));
+
+    const teamOptions = sortedTeams
+        .filter(team => team.conference) // Only include teams that are part of a conference
+        .map(team => `<option value="${team.id}">${escapeHTML(team.team_name)}</option>`)
+        .join('');
+
+    teamFilterDropdown.innerHTML = `<option value="all">All Teams</option>${teamOptions}`;
+
+    teamFilterDropdown.addEventListener('change', () => {
+        selectedTeamId = teamFilterDropdown.value;
+        displayWeek(currentWeek); // Re-render the schedule with the filter applied
+    });
+}
+
 async function displayWeek(week) {
     const gamesTitle = document.getElementById('games-title');
     if (week === 'Relegation') {
@@ -241,13 +261,28 @@ async function displayWeek(week) {
     const weekStandoutsSection = document.getElementById('week-standouts-section');
     
     const isWeekPostseason = isPostseason(week);
-    let weekGames = allGamesCache.filter(g => g.week === week);
+    
+    // START: Modify this section to apply the filter
+    let weekGamesSource = allGamesCache.filter(g => g.week === week);
+    if (selectedTeamId && selectedTeamId !== 'all') {
+        weekGamesSource = weekGamesSource.filter(g => g.team1_id === selectedTeamId || g.team2_id === selectedTeamId);
+    }
+    let weekGames = weekGamesSource;
+    // END: Modification
+
     if (isWeekPostseason) {
         weekGames = weekGames.filter(g => g.team1_id !== 'TBD' || g.team2_id !== 'TBD');
     }
 
     if (weekGames.length === 0) {
-        gamesContent.innerHTML = '<div class="no-games">No games scheduled for this week.</div>';
+        // START: Update the "no games" message to be more helpful
+        if (selectedTeamId && selectedTeamId !== 'all') {
+            const team = getTeamById(selectedTeamId);
+            gamesContent.innerHTML = `<div class="no-games">No games scheduled for ${escapeHTML(team.team_name)} in this timeframe.</div>`;
+        } else {
+            gamesContent.innerHTML = '<div class="no-games">No games scheduled for this week.</div>';
+        }
+        // END: Update
         if (weekStandoutsSection) weekStandoutsSection.style.display = 'none';
         return;
     }
@@ -508,6 +543,7 @@ async function initializePage() {
         
         setTimeout(async () => {
             setupWeekSelector();
+            setupTeamFilter(); // Add this line
             await displayWeek(currentWeek);
             document.getElementById('close-modal-btn').addEventListener('click', closeModal);
             window.addEventListener('click', (event) => {
