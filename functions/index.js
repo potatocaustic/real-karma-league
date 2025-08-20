@@ -41,7 +41,6 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
     try {
         const batch = db.batch();
 
-        // 1. Duplicate team document and subcollections
         const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
         if (activeSeasonSnap.empty) {
             throw new HttpsError('failed-precondition', 'No active season found.');
@@ -55,7 +54,6 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         }
 
         const newTeamRef = db.collection(getCollectionName('v2_teams')).doc(newTeamId);
-        // Carry over the gm_player_id from the old document to the new one.
         const newTeamData = { ...oldTeamDoc.data(), team_id: newTeamId, gm_player_id: oldTeamDoc.data().gm_player_id || null };
         batch.set(newTeamRef, newTeamData);
 
@@ -70,7 +68,6 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
             batch.set(newRecordRef, recordData);
         });
         
-        // 2. Update players
         const playersQuery = db.collection(getCollectionName('v2_players')).where('current_team_id', '==', oldTeamId);
         const playersSnap = await playersQuery.get();
         playersSnap.forEach(doc => {
@@ -78,7 +75,6 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         });
         console.log(`Found and updated ${playersSnap.size} players.`);
 
-        // 3. Update draft picks
         const picksOwnerQuery = db.collection(getCollectionName('draftPicks')).where('current_owner', '==', oldTeamId);
         const picksOriginalQuery = db.collection(getCollectionName('draftPicks')).where('original_team', '==', oldTeamId);
 
@@ -91,8 +87,6 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         for (const [pickId, pickData] of allPicksToUpdate.entries()) {
             const oldPickRef = db.collection(getCollectionName('draftPicks')).doc(pickId);
             
-            // *** MODIFIED LOGIC ***
-            // Check and update pick_description
             if (pickData.pick_description && pickData.pick_description.includes(oldTeamId)) {
                 pickData.pick_description = pickData.pick_description.replace(oldTeamId, newTeamId);
             }
@@ -111,7 +105,6 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
                 if (pickData.current_owner === oldTeamId) updateData.current_owner = newTeamId;
                 if (pickData.original_team === oldTeamId) updateData.original_team = newTeamId;
                 if (pickData.base_owner === oldTeamId) updateData.base_owner = newTeamId;
-                // Add the updated description to the update object if it was changed
                 if (pickData.pick_description) {
                     updateData.pick_description = pickData.pick_description;
                 }
@@ -122,7 +115,6 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
 
         await batch.commit();
 
-        // Final step: Delete old team document after successful commit
         const deleteBatch = db.batch();
         const oldTeamRecordsToDeleteSnap = await oldTeamRef.collection(getCollectionName('seasonal_records')).get();
         oldTeamRecordsToDeleteSnap.forEach(doc => {
@@ -169,7 +161,6 @@ async function performFullUpdate() {
                 const data = await response.json();
                 const rawScore = parseFloat(data?.stats?.karmaDelta || 0);
                 
-                // --- NEW: Fetch and add the global rank ---
                 const globalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
                 
                 const adjustedScore = rawScore - (player.deductions || 0);
@@ -179,7 +170,6 @@ async function performFullUpdate() {
                 player.points_adjusted = adjustedScore;
                 player.final_score = finalScore;
                 
-                // --- NEW: Assign the rank to the player object ---
                 player.global_rank = globalRank;
 
             } catch (error) {
@@ -221,10 +211,7 @@ exports.updateAllLiveScores = onCall({ region: "us-central1" }, async (request) 
     return await performFullUpdate();
 });
 
-/**
- * Manages the state of the live scoring system. Can be set to 'active', 'paused', or 'stopped'.
- * Now also handles setting the active game date and logging the number of live games for usage stats.
- */
+
 exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
@@ -251,8 +238,6 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
             updateData.interval_minutes = interval;
         }
 
-        // When activating the system, set the sample timestamp to now.
-        // This prevents the sampler from running immediately upon activation.
         if (status === 'active') {
             updateData.last_sample_completed_at = FieldValue.serverTimestamp();
         }
@@ -274,7 +259,6 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
 });
 
 
-// This function now runs every minute to CHECK if it's time to sample.
 exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
     const statusRef = db.doc(getCollectionName('live_scoring_status') + '/status');
     const statusSnap = await statusRef.get();
@@ -287,7 +271,6 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
     const { interval_minutes, last_sample_completed_at } = statusSnap.data();
     const now = new Date();
     
-    // If a sample has never been run, or if enough time has passed, run the sample.
     if (!last_sample_completed_at || now.getTime() >= last_sample_completed_at.toDate().getTime() + (interval_minutes * 60 * 1000)) {
         
         console.log(`Interval of ${interval_minutes} minutes has passed. Performing sample.`);
@@ -305,7 +288,6 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
             return null;
         }
 
-        // --- Sampling Logic ---
         const sampledPlayers = [];
         const usedIndices = new Set();
         while (sampledPlayers.length < 3 && usedIndices.size < allStarters.length) {
@@ -316,7 +298,6 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
             }
         }
         
-        // --- MODIFIED: Track karma and rank changes separately ---
         let karmaChangesDetected = 0;
         let rankChangesDetected = 0;
         let apiRequests = 0;
@@ -324,29 +305,25 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
 
         for (const player of sampledPlayers) {
             const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
-            await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1001) + 500)); // Randomized delay
+            await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1001) + 500)); 
             
             try {
                 const response = await fetch(workerUrl);
                 apiRequests++;
                 const data = await response.json();
 
-                // Fetch new karma and rank values
                 const newRawScore = parseFloat(data?.stats?.karmaDelta || 0);
                 const newGlobalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
 
-                // Get old karma and rank values from the player document
                 const oldRawScore = player.points_raw || 0;
                 const oldGlobalRank = player.global_rank || -1;
 
-                // Check for changes in both metrics
                 const karmaHasChanged = newRawScore !== oldRawScore;
                 const rankHasChanged = newGlobalRank !== oldGlobalRank;
 
                 if (karmaHasChanged) karmaChangesDetected++;
                 if (rankHasChanged) rankChangesDetected++;
                 
-                // --- MODIFIED: Log more detailed sample results ---
                 sampleResults.push({ 
                     handle: player.player_handle, 
                     oldScore: oldRawScore, 
@@ -360,7 +337,6 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
             } catch (error) { console.error(`Sampler failed to fetch karma for ${player.player_id}`, error); }
         }
 
-        // --- Update status doc with results and the NEW completion time ---
         await statusRef.set({ 
             last_sample_results: sampleResults,
             last_sample_completed_at: FieldValue.serverTimestamp()
@@ -369,7 +345,6 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
         const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
         await usageRef.set({ api_requests_sample: FieldValue.increment(apiRequests) }, { merge: true });
 
-        // --- MODIFIED: Update trigger condition ---
         if (karmaChangesDetected >= 2 || rankChangesDetected >= 2) {
             console.log(`Sampler detected changes (Karma: ${karmaChangesDetected}, Rank: ${rankChangesDetected}). Triggering full update.`);
             await performFullUpdate();
@@ -377,7 +352,6 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
             console.log(`Sampler detected insufficient changes (Karma: ${karmaChangesDetected}, Rank: ${rankChangesDetected}). No update triggered.`);
         }
     } else {
-        // Not time to run yet, exit quietly.
         return null;
     }
     return null;
@@ -468,7 +442,7 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
             throw new HttpsError('not-found', 'The specified game is not currently live.');
         }
 
-        await processAndFinalizeGame(liveGameSnap, false); // Manual finalization has no player delays
+        await processAndFinalizeGame(liveGameSnap, false); 
 
         return { success: true, message: `Game ${gameId} has been successfully finalized and scores have been written.` };
 
@@ -484,7 +458,7 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
 
 exports.autoFinalizeGames = onSchedule({
     schedule: "every day 03:00",
-    timeZone: "America/Chicago", // Central Time
+    timeZone: "America/Chicago", 
 }, async (event) => {
     console.log("Running scheduled job to auto-finalize games.");
     const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
@@ -619,7 +593,7 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
 }
 
 exports.scheduledLiveScoringShutdown = onSchedule({
-    schedule: "30 3 * * *", // Runs at 3:30 AM daily
+    schedule: "30 3 * * *", 
     timeZone: "America/Chicago",
 }, async (event) => {
     console.log("Running scheduled job to set live scoring status to 'stopped'.");
@@ -627,12 +601,11 @@ exports.scheduledLiveScoringShutdown = onSchedule({
     try {
         const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
         
-        // Update the status to 'stopped'
         await statusRef.set({
             status: 'stopped',
             last_updated_by: 'automated_shutdown',
             last_updated: FieldValue.serverTimestamp()
-        }, { merge: true }); // Use merge: true to avoid overwriting other fields
+        }, { merge: true }); 
 
         console.log("Successfully set live scoring status to 'stopped'.");
 
@@ -681,9 +654,8 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     const teamsSnap = await db.collection(getCollectionName("v2_teams")).get();
     for (const teamDoc of teamsSnap.docs) {
         const recordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(seasonId);
-        const teamRootData = teamDoc.data(); // Get data from the root team document
+        const teamRootData = teamDoc.data(); 
 
-        // MODIFIED: Fetch the team name from the previous active season's record.
         const activeRecordRef = teamDoc.ref.collection(getCollectionName("seasonal_records")).doc(activeSeasonId);
         const activeRecordSnap = await activeRecordRef.get();
         const teamName = activeRecordSnap.exists ? activeRecordSnap.data().team_name : "Name Not Found";
@@ -697,7 +669,7 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
             tREL: 0,
             post_tREL: 0,
             team_name: teamName,
-            gm_player_id: teamRootData.gm_player_id || null // Carry forward the gm_player_id from the root doc
+            gm_player_id: teamRootData.gm_player_id || null 
         });
     }
     console.log(`Prepared empty seasonal_records for ${teamsSnap.size} teams.`);
@@ -997,8 +969,7 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
 
     try {
         const batch = db.batch();
-        
-        // MODIFIED: Create placeholder parent document for the season's awards
+
         const awardsParentDocRef = db.doc(`${getCollectionName('awards')}/season_${seasonNumber}`);
         batch.set(awardsParentDocRef, { description: `Awards for Season ${seasonNumber}` }, { merge: true });
 
@@ -1146,15 +1117,12 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
             const existingPlayerSnap = await playerRef.get();
 
             if (existingPlayerSnap.exists) {
-                // *** MODIFIED LOGIC ***
-                // If player exists in a current draft, update their bio and team.
                 console.log(`Player with ID '${newPlayerId}' already exists. Updating their bio and current team.`);
                 batch.update(playerRef, {
                     bio: bio,
                     current_team_id: team_id
                 });
             } else {
-                // Player does not exist, create them as a rookie.
                 batch.set(playerRef, {
                     player_handle: player_handle,
                     current_team_id: team_id,
@@ -1204,13 +1172,6 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
     return null;
 });
 
-
-
-/**
- * Triggered when a new transaction is created in the admin portal.
- * Updates player/pick ownership, adds season ID, player handles, and team names.
- * The transaction document is then moved to a season-specific subcollection.
- */
 exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
     const transaction = event.data.data();
     const transactionId = event.params.transactionId;
@@ -1225,7 +1186,6 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
     try {
         const batch = db.batch();
 
-        // 1. Find the active season and get its 'current_week' value
         const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
         const activeSeasonSnap = await activeSeasonQuery.get();
 
@@ -1237,7 +1197,6 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
         const activeSeasonId = activeSeasonDoc.id;
         const currentWeek = activeSeasonDoc.data().current_week || null;
 
-        // 2. Prepare data for player handles and team names
         const involvedPlayers = transaction.involved_players || [];
         const involvedPicks = transaction.involved_picks || [];
         const involvedTeams = transaction.involved_teams || [];
@@ -1247,7 +1206,6 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
 
         const playerDocsPromises = playerIds.map(id => db.collection(getCollectionName('v2_players')).doc(id).get());
         const teamRecordDocsPromises = teamIds.map(id => {
-            // Do not fetch records for 'RETIRED' or 'FREE_AGENT' designators
             if (id === 'RETIRED' || id === 'FREE_AGENT') return Promise.resolve(null);
             return db.collection(getCollectionName('v2_teams')).doc(id).collection(getCollectionName('seasonal_records')).doc(activeSeasonId).get()
         });
@@ -1259,17 +1217,14 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
         ]);
 
         const playerHandlesMap = new Map(playerDocsSnap.map(doc => [doc.id, doc.data()?.player_handle]));
-        // Filter out nulls before creating the map
         const teamNamesMap = new Map(teamRecordsDocsSnap.filter(Boolean).map(doc => [doc.ref.parent.parent.id, doc.data()?.team_name]));
 
 
-        // 3. Update player and pick ownership
         for (const playerMove of involvedPlayers) {
             const playerRef = db.collection(getCollectionName('v2_players')).doc(playerMove.id);
             const newTeamId = playerMove.to;
             let updateData = {};
 
-            // *** MODIFIED LOGIC TO HANDLE RETIREMENT STATUS ***
             switch (transaction.type) {
                 case 'RETIREMENT':
                     updateData = {
@@ -1283,7 +1238,7 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
                         player_status: 'ACTIVE'
                     };
                     break;
-                default: // Handles TRADE, SIGN, CUT
+                default: 
                     updateData = {
                         current_team_id: newTeamId
                     };
@@ -1299,7 +1254,6 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
             batch.update(pickRef, { current_owner: newOwnerId });
         }
 
-        // 4. Create the new, enhanced transaction document
         const enhancedInvolvedPlayers = involvedPlayers.map(p => ({
             ...p,
             player_handle: playerHandlesMap.get(p.id) || 'Unknown'
@@ -1314,17 +1268,15 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
             involved_players: enhancedInvolvedPlayers,
             involved_teams: enhancedInvolvedTeams,
             season: activeSeasonId,
-            week: currentWeek, // Added the week field here
+            week: currentWeek, 
             status: 'PROCESSED',
             processed_at: FieldValue.serverTimestamp()
         };
 
-        // 5. Store the transaction in the season-specific subcollection
         const seasonTransactionsRef = db.collection(getCollectionName('transactions')).doc('seasons').collection(activeSeasonId);
         const newTransactionRef = seasonTransactionsRef.doc(transactionId);
         batch.set(newTransactionRef, newTransactionData);
 
-        // 6. Delete the original transaction document
         const originalTransactionRef = event.data.ref;
         batch.delete(originalTransactionRef);
 
@@ -1339,13 +1291,6 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
     return null;
 });
 
-
-/**
- * Triggered when a new transaction is created in the admin portal.
- * This is the same trigger path as onTransactionCreate_V2, but for updating the transaction counter.
- * The transaction document will be deleted by onTransactionCreate_V2, but the trigger will still fire.
- * We must now look for the relevant transaction in the season-specific subcollection.
- */
 exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
     const transaction = event.data.data();
     if (transaction.schema !== 'v2') {
@@ -1366,8 +1311,6 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
 
     console.log(`V2: Updating transaction counts for transaction ${transactionId} in season ${seasonId}`);
     
-    // NOTE: The transaction document has not been moved to the season subcollection yet at this point.
-    // So we can directly read the involved teams from the event data.
     const involvedTeams = new Set(transaction.involved_teams || []);
     if (involvedTeams.size === 0) {
         console.log("No teams involved. Skipping transaction count update.");
@@ -1377,10 +1320,8 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
     const batch = db.batch();
     const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
 
-    // 1. Increment the total transaction count for the active season document
     batch.update(seasonRef, { season_trans: FieldValue.increment(1) });
     
-    // 2. Increment the total transaction count for each involved team's seasonal record
     for (const teamId of involvedTeams) {
         const teamStatsRef = db.collection(getCollectionName('v2_teams')).doc(teamId).collection(getCollectionName('seasonal_records')).doc(seasonId);
         batch.update(teamStatsRef, { total_transactions: FieldValue.increment(1) });
@@ -1417,11 +1358,6 @@ function calculateGeometricMean(numbers) {
     const product = nonZeroNumbers.reduce((prod, num) => prod * num, 1);
     return Math.pow(product, 1 / nonZeroNumbers.length);
 }
-
-
-// ===================================================================
-// STAT CALCULATION REFACTOR
-// ===================================================================
 
 async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch, dailyAveragesMap, newPlayerLineups) {
     const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
@@ -1623,7 +1559,6 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
     rankAndSort(calculatedStats, 'pam', false, `${prefix}pam_rank`);
 
     if (!isPostseason) {
-        // NEW: Check if the regular season is complete
         const incompleteGamesSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('completed', '!=', 'TRUE').limit(1).get();
         const isRegularSeasonComplete = incompleteGamesSnap.empty;
 
@@ -1633,14 +1568,12 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
         [eastConf, westConf].forEach(conf => {
             if (conf.length === 0) return;
             
-            // Sort by sortscore to determine postseed regardless of logic path
             conf.sort((a, b) => b.sortscore - a.sortscore).forEach((t, i) => t.postseed = i + 1);
 
             if (isRegularSeasonComplete) {
                 console.log(`Regular season for ${conf[0].conference} conference is complete. Using sortscore for clinching.`);
-                // Logic for a completed regular season (based on final sortscore)
                 conf.forEach((team, index) => {
-                    const rank = index + 1; // Rank is 1-based index
+                    const rank = index + 1; 
                     if (rank <= 6) {
                         team.playoffs = 1;
                         team.playin = 0;
@@ -1657,7 +1590,6 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
                 });
             } else {
                 console.log(`Regular season for ${conf[0].conference} conference is ongoing. Using win thresholds for clinching.`);
-                // Original logic for an incomplete regular season (based on win thresholds)
                 const maxPotWinsSorted = [...conf].sort((a, b) => b.MaxPotWins - a.MaxPotWins);
                 const winsSorted = [...conf].sort((a, b) => b.wins - a.wins);
                 const playoffWinsThreshold = maxPotWinsSorted[6]?.MaxPotWins ?? 0;
@@ -1722,7 +1654,6 @@ async function processCompletedGame(event) {
 
     const isPostseason = !/^\d+$/.test(after.week) && after.week !== "All-Star" && after.week !== "Relegation";
 
-    // --- MODIFIED: Postseason Series Win Tracking Logic ---
     if (isPostseason) {
         const winnerId = after.winner;
         if (winnerId) {
@@ -1736,7 +1667,6 @@ async function processCompletedGame(event) {
                 newTeam2Wins++;
             }
             
-            // Determine if the series is over
             if (after.week !== 'Play-In') {
                 const winConditions = { 'Round 1': 2, 'Round 2': 2, 'Conf Finals': 3, 'Finals': 4 };
                 const winsNeeded = winConditions[after.week];
@@ -1748,7 +1678,6 @@ async function processCompletedGame(event) {
                 }
             }
 
-            // Update all games in the same series
             const seriesGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('series_id', '==', after.series_id);
             const seriesGamesSnap = await seriesGamesQuery.get();
             
@@ -1761,7 +1690,6 @@ async function processCompletedGame(event) {
             });
         }
     }
-    // --- END MODIFICATION ---
 
     const regGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).get();
     const postGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).get();
@@ -1776,7 +1704,7 @@ async function processCompletedGame(event) {
     
     if (incompleteGames.length > 0) {
         console.log(`Not all games for ${gameDate} are complete. Deferring calculations. Incomplete count: ${incompleteGames.length}`);
-        await batch.commit(); // Commit the series win updates even if calculations are deferred
+        await batch.commit(); 
         return null;
     }
     
@@ -1876,13 +1804,9 @@ async function processCompletedGame(event) {
     let totalKarmaChangeForGame = 0;
 
     for (const [pid, newPlayerLineups] of lineupsByPlayer.entries()) {
-        // This calculates and updates the detailed seasonal stats for the player.
-        // This part remains necessary to keep individual player stats correct.
+
         await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, fullDailyAveragesMap, newPlayerLineups);
 
-        // CORRECTED: Instead of comparing old and new totals, we directly sum the points
-        // from the lineups that were just processed for this game date. This is the
-        // actual karma change and avoids the bug entirely.
         const pointsFromThisUpdate = newPlayerLineups.reduce((sum, lineup) => sum + (lineup.points_adjusted || 0), 0);
         totalKarmaChangeForGame += pointsFromThisUpdate;
     }
@@ -1915,13 +1839,11 @@ exports.onPostGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}
 function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = false, gpMinimum = 0, excludeZeroes = false) {
     const rankedMap = new Map();
 
-    // The primary filter is now a multi-stage process
     let eligiblePlayers = players.filter(p => {
         const gamesPlayedField = primaryStat.startsWith('post_') ? 'post_games_played' : 'games_played';
         return (p[gamesPlayedField] || 0) >= gpMinimum;
     });
 
-    // NEW: Conditionally filter out players with a zero value for the stat being ranked.
     if (excludeZeroes) {
         eligiblePlayers = eligiblePlayers.filter(p => (p[primaryStat] || 0) !== 0);
     }
@@ -1935,7 +1857,7 @@ function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = fal
         if (tiebreakerStat) {
             const aSecondary = a[tiebreakerStat] || 0;
             const bSecondary = b[tiebreakerStat] || 0;
-            return bSecondary - aSecondary; // Tiebreakers are always descending
+            return bSecondary - aSecondary; 
         }
         return 0;
     });
@@ -1959,7 +1881,7 @@ async function performPlayerRankingUpdate() {
     const seasonId = activeSeasonDoc.id;
     const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
     const regSeasonGpMinimum = seasonGamesPlayed >= 60 ? 3 : 0;
-    const postSeasonGpMinimum = 0; // No GP minimum for postseason
+    const postSeasonGpMinimum = 0; 
     const playersSnap = await db.collection(getCollectionName('v2_players')).get();
     const statPromises = playersSnap.docs.map(playerDoc => 
         playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
@@ -1983,11 +1905,10 @@ async function performPlayerRankingUpdate() {
         return;
     }
 
-    // List of base stat names that should not rank zero values
     const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
 
     const leaderboards = {
-        // Regular Season Ranks
+
         total_points: getRanks(allPlayerStats, 'total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
         rel_mean: getRanks(allPlayerStats, 'rel_mean', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
         rel_median: getRanks(allPlayerStats, 'rel_median', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
@@ -1999,7 +1920,7 @@ async function performPlayerRankingUpdate() {
         aag_median: getRanks(allPlayerStats, 'aag_median', 'aag_median_pct'),
         t100: getRanks(allPlayerStats, 't100', 't100_pct'),
         t50: getRanks(allPlayerStats, 't50', 't50_pct'),
-        // Postseason Ranks
+
         post_total_points: getRanks(allPlayerStats, 'post_total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
         post_rel_mean: getRanks(allPlayerStats, 'post_rel_mean', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
         post_rel_median: getRanks(allPlayerStats, 'post_rel_median', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
@@ -2027,11 +1948,6 @@ async function performPlayerRankingUpdate() {
     console.log(`Player ranking update complete for season ${seasonId}.`);
 }
 
-/**
- * Core logic to update single game performance leaderboards.
- * This function now creates separate leaderboards for regular season and postseason,
- * and ensures parent documents have placeholder fields.
- */
 async function performPerformanceRankingUpdate() {
     console.log("Starting single-performance leaderboard update...");
     const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
@@ -2041,7 +1957,6 @@ async function performPerformanceRankingUpdate() {
     }
     const seasonId = activeSeasonSnap.docs[0].id;
 
-    // --- SEPARATE REGULAR AND POSTSEASON DATA FETCHING ---
     const lineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('lineups'));
     const postLineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_lineups'));
 
@@ -2052,7 +1967,6 @@ async function performPerformanceRankingUpdate() {
 
     const batch = db.batch();
 
-    // --- PROCESS AND WRITE REGULAR SEASON LEADERBOARDS ---
     if (!lineupsSnap.empty) {
         const regularSeasonPerformances = lineupsSnap.docs.map(d => d.data());
 
@@ -2067,7 +1981,6 @@ async function performPerformanceRankingUpdate() {
 
         const leaderboardsCollection = getCollectionName('leaderboards');
 
-        // MODIFIED: Create placeholder parent documents
         const karmaDocRef = db.collection(leaderboardsCollection).doc('single_game_karma');
         const rankDocRef = db.collection(leaderboardsCollection).doc('single_game_rank');
         batch.set(karmaDocRef, { description: "Regular season single game karma leaderboard." }, { merge: true });
@@ -2085,8 +1998,6 @@ async function performPerformanceRankingUpdate() {
         console.log(`No regular season performances found for season ${seasonId}. Skipping regular season leaderboard update.`);
     }
 
-
-    // --- PROCESS AND WRITE POSTSEASON LEADERBOARDS ---
     if (!postLineupsSnap.empty) {
         const postseasonPerformances = postLineupsSnap.docs.map(d => d.data());
 
@@ -2101,7 +2012,6 @@ async function performPerformanceRankingUpdate() {
 
         const postLeaderboardsCollection = getCollectionName('post_leaderboards');
 
-        // MODIFIED: Create placeholder parent documents
         const postKarmaDocRef = db.collection(postLeaderboardsCollection).doc('post_single_game_karma');
         const postRankDocRef = db.collection(postLeaderboardsCollection).doc('post_single_game_rank');
         batch.set(postKarmaDocRef, { description: "Postseason single game karma leaderboard." }, { merge: true });
@@ -2122,10 +2032,6 @@ async function performPerformanceRankingUpdate() {
     console.log("Single-performance leaderboard update process complete.");
 }
 
-
-/**
- * Scheduled function to update player ranks daily.
- */
 exports.updatePlayerRanks = onSchedule({
     schedule: "30 3 * * *",
     timeZone: "America/Chicago",
@@ -2134,9 +2040,6 @@ exports.updatePlayerRanks = onSchedule({
     return null;
 });
 
-/**
- * Scheduled function to update performance leaderboards daily.
- */
 exports.updatePerformanceLeaderboards = onSchedule({
     schedule: "30 3 * * *",
     timeZone: "America/Chicago",
@@ -2187,10 +2090,12 @@ exports.updateCurrentWeek = onSchedule({
         let nextGameWeek = null;
 
         const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
+        
         const incompleteGamesQuery = gamesRef
             .where('completed', '!=', 'TRUE')
-            .orderBy('date', 'asc')
+            .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
             .limit(1);
+            
         const incompleteGamesSnap = await incompleteGamesQuery.get();
 
         if (!incompleteGamesSnap.empty) {
@@ -2198,10 +2103,12 @@ exports.updateCurrentWeek = onSchedule({
         } else {
             console.log("No incomplete regular season games found. Checking postseason...");
             const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
+            
             const incompletePostGamesQuery = postGamesRef
                 .where('completed', '!=', 'TRUE')
-                .orderBy('date', 'asc')
+                .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
                 .limit(1);
+
             const incompletePostGamesSnap = await incompletePostGamesQuery.get();
 
             if (!incompletePostGamesSnap.empty) {
@@ -2331,16 +2238,13 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
         const winnerId = game.winner;
         const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
 
-        // --- WINNER ADVANCEMENT LOGIC ---
         if (rule.winnerTo && winnerId) {
-            // Default behavior: The winner carries their current seed forward.
             let winnerSeed = winnerId === game.team1_id ? game.team1_seed : game.team2_seed;
 
-            // --- CORRECTED: OVERRIDE seed for special Play-In cases ---
             if (game.series_id === "E7vE8" || game.series_id === "W7vW8") {
-                winnerSeed = '7'; // Winner of 7v8 game BECOMES the 7 seed.
+                winnerSeed = '7'; 
             } else if (game.series_id.includes('8thSeedGame')) {
-                winnerSeed = '8'; // Winner of the final 8th seed game BECOMES the 8 seed.
+                winnerSeed = '8'; 
             }
 
             const winnerSeedField = rule.winnerField.replace('_id', '_seed');
@@ -2356,9 +2260,7 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
             shouldCommit = true;
         }
 
-        // --- LOSER ADVANCEMENT LOGIC (Play-In Only) ---
         if (rule.loserTo && loserId) {
-            // Loser always carries their original seed to the next play-in game.
             const loserSeed = loserId === game.team1_id ? game.team1_seed : game.team2_seed;
             const loserSeedField = rule.loserField.replace('_id', '_seed');
             const loserNextSeriesSnap = await postGamesRef.where('series_id', '==', rule.loserTo).get();
@@ -2373,7 +2275,6 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
             shouldCommit = true;
         }
 
-        // --- MULTI-GAME SERIES COMPLETION LOGIC ---
         if (game.week !== 'Play-In' && game.series_winner) {
             const incompleteGamesSnap = await postGamesRef.where('series_id', '==', game.series_id).where('completed', '==', 'FALSE').get();
             if (!incompleteGamesSnap.empty) {
@@ -2388,9 +2289,7 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
         }
     }
 }
-/**
- * Scheduled function that runs daily to update the playoff bracket based on yesterday's games.
- */
+
 exports.updatePlayoffBracket = onSchedule({
     schedule: "30 3 * * *", // Runs at 3:30 AM Central Time daily
     timeZone: "America/Chicago",
@@ -2405,7 +2304,6 @@ exports.updatePlayoffBracket = onSchedule({
     const seasonId = activeSeasonSnap.docs[0].id;
     const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
 
-    // Get yesterday's date in M/D/YYYY format
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
@@ -2423,9 +2321,6 @@ exports.updatePlayoffBracket = onSchedule({
     return null;
 });
 
-/**
- * On-demand test function to update the playoff bracket based on the most recent day of completed games.
- */
 exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -2444,8 +2339,8 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
     const seasonId = activeSeasonSnap.docs[0].id;
     const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
 
-    // Find the most recent date among completed postseason games
-    const mostRecentGameQuery = postGamesRef.where('completed', '==', 'TRUE').orderBy('date', 'desc').limit(1);
+    const mostRecentGameQuery = postGamesRef.where('completed', '==', 'TRUE').orderBy(admin.firestore.FieldPath.documentId(), 'desc').limit(1);
+    
     const mostRecentGameSnap = await mostRecentGameQuery.get();
 
     if (mostRecentGameSnap.empty) {
@@ -2454,7 +2349,6 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
     const mostRecentDate = mostRecentGameSnap.docs[0].data().date;
     console.log(`Found most recent completed game date: ${mostRecentDate}`);
 
-    // Get all completed games from that most recent date
     const gamesToProcessSnap = await postGamesRef.where('date', '==', mostRecentDate).where('completed', '==', 'TRUE').get();
 
     console.log(`Processing ${gamesToProcessSnap.size} games from ${mostRecentDate} for bracket advancement.`);
@@ -2464,15 +2358,10 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
     return { success: true, message: `Processed ${gamesToProcessSnap.size} games from ${mostRecentDate}.` };
 });
 
-
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
 // ===================================================================
 
-/**
- * Triggered when a transaction is created in the new admin portal.
- * Updates player and draft pick ownership based on the transaction type.
- */
 exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", async (event) => {
     const transaction = event.data.data();
     if (transaction.schema === 'v2') {
@@ -2502,14 +2391,12 @@ exports.onTransactionCreate = onDocumentCreated("transactions/{transactionId}", 
                 }
             }
             if (transaction.involved_picks) {
-                // Get the current date for the notes field
                 const today = new Date();
                 const dateString = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
 
                 for (const pickMove of transaction.involved_picks) {
                     const pickRef = db.collection('draftPicks').doc(pickMove.id);
 
-                    // MODIFIED: Create the notes string and add the new fields to the update
                     const tradeNotes = `${pickMove.from}/${pickMove.to} ${dateString}`;
                     batch.update(pickRef, {
                         current_owner: pickMove.to,
@@ -2536,7 +2423,7 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
     const after = event.data.after.data();
 
     if (before.completed === 'TRUE' || after.completed !== 'TRUE') {
-        return null; // The game wasn't newly completed.
+        return null; 
     }
     console.log(`LEGACY: Processing game: ${event.params.gameId}`);
 
@@ -2552,22 +2439,18 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
     const loserRef = db.collection('teams').doc(loserId);
 
     try {
-        // --- Step 1: Update Team Win/Loss Records (Existing Logic) ---
         await db.runTransaction(async (transaction) => {
             transaction.update(winnerRef, { wins: admin.firestore.FieldValue.increment(1) });
             transaction.update(loserRef, { losses: admin.firestore.FieldValue.increment(-1) });
         });
         console.log(`Successfully updated team records for game ${event.params.gameId}.`);
 
-        // --- Step 2: NEW - Process Player Stats ---
         const gameDate = after.date;
         const teamIds = [after.team1_id, after.team2_id];
 
-        // Fetch all lineup entries for the two teams on the game date.
         const lineupsQuery = db.collection('lineups').where('date', '==', gameDate).where('team_id', 'in', teamIds);
         const lineupsSnap = await lineupsQuery.get();
 
-        // Filter for only players who started the game.
         const startingLineups = lineupsSnap.docs
             .map(doc => doc.data())
             .filter(lineup => lineup.started === 'TRUE');
@@ -2577,25 +2460,19 @@ exports.onLegacyGameUpdate = onDocumentUpdated("schedule/{gameId}", async (event
             return null;
         }
 
-        // Use a batched write to update all players efficiently.
         const batch = db.batch();
 
         for (const lineup of startingLineups) {
             const playerRef = db.collection('players').doc(lineup.player_handle);
 
-            // Increment basic counting stats.
             const statsUpdate = {
                 games_played: admin.firestore.FieldValue.increment(1),
                 total_points: admin.firestore.FieldValue.increment(Number(lineup.points_final) || 0)
             };
 
-            // FUTURE ENHANCEMENT: This is where more complex stat calculations (REL, WAR, etc.)
-            // would be performed by fetching weekly averages and adding to value-over-replacement tallies.
-
             batch.update(playerRef, statsUpdate);
         }
 
-        // Commit all the player updates at once.
         await batch.commit();
         console.log(`Successfully updated stats for ${startingLineups.length} players.`);
 
@@ -2619,7 +2496,6 @@ async function deleteCollection(db, collectionPath, batchSize) {
 
     let snapshot = await query.get();
 
-    // When there are no documents left, the snapshot will be empty.
     while (snapshot.size > 0) {
         const batch = db.batch();
         snapshot.docs.forEach((doc) => {
@@ -2627,7 +2503,6 @@ async function deleteCollection(db, collectionPath, batchSize) {
         });
         await batch.commit();
 
-        // Get the next batch of documents
         snapshot = await query.get();
     }
 }
@@ -2639,20 +2514,16 @@ async function deleteCollection(db, collectionPath, batchSize) {
  * @returns {Array<Object>} An array of objects representing the CSV rows.
  */
 function parseCSV(csvText) {
-    // Filter out any blank lines or lines that only contain commas and whitespace.
     const lines = csvText.trim().split('\n').filter(line => line.trim() !== '' && line.replace(/,/g, '').trim() !== '');
     if (lines.length === 0) {
         return [];
     }
     const headerLine = lines.shift();
-    // Clean headers of any quotes and extra whitespace.
     const headers = headerLine.split(',').map(h => h.replace(/"/g, '').trim());
     const data = lines.map(line => {
-        // Regex to handle values that might be wrapped in quotes.
         const values = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
         const row = {};
         for (let i = 0; i < headers.length; i++) {
-            // Ensure header exists before assigning
             if (headers[i]) {
                 const value = (values[i] || '').replace(/"/g, '').trim();
                 row[headers[i]] = value;
@@ -2693,12 +2564,10 @@ function getSafeDateString(dateString) {
 }
 
 
-// UPDATED: Changed to V2 onRequest function
 exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req, res) => {
     try {
         const SPREADSHEET_ID = "12EembQnztbdKx2-buv00--VDkEFSTuSXTRdOnTnRxq4";
 
-        // Helper to fetch and parse a single sheet from Google Sheets.
         const fetchAndParseSheet = async (sheetName) => {
             const gvizUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
             const response = await fetch(gvizUrl);
@@ -2733,7 +2602,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         ]);
         console.log("All sheets fetched successfully.");
 
-        // --- Clear and Sync Players collection ---
         console.log("Clearing the 'players' collection...");
         await deleteCollection(db, 'players', 200);
         console.log("'players' collection cleared successfully.");
@@ -2758,7 +2626,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await playersBatch.commit();
         console.log(`Successfully synced ${playersRaw.length} players.`);
 
-        // --- Clear and Sync 'draftPicks' collection ---
         console.log("Clearing the 'draftPicks' collection for a fresh sync...");
         await deleteCollection(db, 'draftPicks', 200);
         const draftPicksBatch = db.batch();
@@ -2776,7 +2643,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await draftPicksBatch.commit();
         console.log(`Successfully synced ${draftPicksRaw.length} draft picks to the 'draftPicks' collection.`);
 
-        // --- Clear and Sync Teams collection ---
         console.log("Clearing the 'teams' collection...");
         await deleteCollection(db, 'teams', 200);
         const teamsBatch = db.batch();
@@ -2789,7 +2655,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await teamsBatch.commit();
         console.log(`Successfully synced ${teamsRaw.length} teams.`);
 
-        // --- Clear and Sync Schedule collection ---
         console.log("Clearing the 'schedule' collection...");
         await deleteCollection(db, 'schedule', 200);
         const scheduleBatch = db.batch();
@@ -2807,7 +2672,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await scheduleBatch.commit();
         console.log(`Successfully synced ${scheduleRaw.length} schedule games.`);
 
-        // --- Clear and Sync Lineups collection ---
         console.log("Clearing the 'lineups' collection...");
         await deleteCollection(db, 'lineups', 200);
         const lineupsBatch = db.batch();
@@ -2826,7 +2690,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await lineupsBatch.commit();
         console.log(`Successfully synced ${lineupsRaw.length} lineup entries.`);
 
-        // --- Clear and Sync Weekly Averages collection ---
         console.log("Clearing the 'weekly_averages' collection...");
         await deleteCollection(db, 'weekly_averages', 200);
         const weeklyAveragesBatch = db.batch();
@@ -2843,7 +2706,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await weeklyAveragesBatch.commit();
         console.log(`Successfully synced ${weeklyAveragesRaw.length} weekly average entries.`);
 
-        // --- ADDED: Clear and Sync Postseason Schedule collection ---
         console.log("Clearing the 'post_schedule' collection...");
         await deleteCollection(db, 'post_schedule', 200);
         const postScheduleBatch = db.batch();
@@ -2861,7 +2723,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await postScheduleBatch.commit();
         console.log(`Successfully synced ${postScheduleRaw.length} postseason schedule games.`);
 
-        // --- ADDED: Clear and Sync Postseason Lineups collection ---
         console.log("Clearing the 'post_lineups' collection...");
         await deleteCollection(db, 'post_lineups', 200);
         const postLineupsBatch = db.batch();
@@ -2880,7 +2741,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
         await postLineupsBatch.commit();
         console.log(`Successfully synced ${postLineupsRaw.length} postseason lineup entries.`);
 
-        // --- ADDED: Clear and Sync Postseason Weekly Averages collection ---
         console.log("Clearing the 'post_weekly_averages' collection...");
         await deleteCollection(db, 'post_weekly_averages', 200);
         const postWeeklyAveragesBatch = db.batch();
@@ -2906,7 +2766,6 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 });
 
 
-// Replace the empty 'clearAllTradeBlocks' function with this:
 exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -2938,7 +2797,6 @@ exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) 
     }
 });
 
-// Replace the empty 'reopenTradeBlocks' function with this:
 exports.reopenTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
