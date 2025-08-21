@@ -196,7 +196,7 @@ async function fetchTeamsData(seasonId) {
 }
 
 async function fetchAllPlayerStats(seasonId) {
-    const playersQuery = query(collection(db, getCollectionName('v2_players')), where('player_status', '==', 'ACTIVE'));
+    const playersQuery = query(collection(db, getCollectionName('v2_players')));
     const statsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
 
     const [playersSnap, statsSnap] = await Promise.all([
@@ -244,19 +244,28 @@ async function loadData() {
             getDocs(activeSeasonQuery)
         ]);
         
-        // **NEW: Logic to control postseason button visibility**
+        let currentWeek = null;
+        if (!activeSeasonSnap.empty) {
+            currentWeek = activeSeasonSnap.docs[0].data().current_week;
+        }
+
         const postseasonBtn = document.getElementById('postseason-leaderboards-btn');
         if (postseasonBtn) {
             const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
-            let currentWeek = null;
-            if (!activeSeasonSnap.empty) {
-                currentWeek = activeSeasonSnap.docs[0].data().current_week;
-            }
             if (!postseasonWeeks.includes(currentWeek) && currentWeek !== 'Season Complete') {
                 postseasonBtn.style.display = 'none';
             }
         }
-        // **END NEW LOGIC**
+        
+        const minGamesInput = document.getElementById('min-games');
+        if (minGamesInput) {
+            const parsedWeek = parseInt(currentWeek, 10);
+            if (!isNaN(parsedWeek) && parsedWeek < 5) {
+                minGamesInput.value = '1';
+            } else {
+                minGamesInput.value = '3';
+            }
+        }
 
         if (!playerStats || !teams) {
             throw new Error("Failed to load critical player or team data.");
