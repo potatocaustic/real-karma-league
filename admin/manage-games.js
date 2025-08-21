@@ -207,6 +207,12 @@ async function populateWeeks(seasonId) {
 
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
+
+    // Fetch live game IDs to determine game status
+    const liveGamesRef = collection(db, getCollectionName('live_games'));
+    const liveGamesSnap = await getDocs(liveGamesRef);
+    const liveGameIds = new Set(liveGamesSnap.docs.map(doc => doc.id));
+
     const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation';
     const isExhibition = week === 'All-Star' || week === 'Relegation';
 
@@ -228,13 +234,20 @@ async function fetchAndDisplayGames(seasonId, week) {
             const game = { id: doc.id, ...doc.data() };
             const team1 = allTeams.get(game.team1_id);
             const team2 = allTeams.get(game.team2_id);
+
+            // Determine game status: Completed, Live, or Pending
+            const isLive = liveGameIds.has(game.id);
+            const gameStatus = game.completed === 'TRUE' 
+                ? `${game.team1_score} - ${game.team2_score}` 
+                : (isLive ? 'Live' : 'Pending');
+
             gamesHTML += `
                 <div class="game-entry" data-game-id="${game.id}" data-collection="${collectionName}">
                     <span class="game-details">
                         <span class="game-teams"><strong>${team1?.team_name || game.team1_id}</strong> vs <strong>${team2?.team_name || game.team2_id}</strong></span>
                         <span class="game-date">Date: ${game.date || 'N/A'}</span>
                     </span>
-                    <span class="game-score">${game.completed === 'TRUE' ? `${game.team1_score} - ${game.team2_score}` : 'Pending'}</span>
+                    <span class="game-score">${gameStatus}</span>
                     <button class="btn-admin-edit">Enter/Edit Score</button>
                 </div>`;
         });
@@ -483,8 +496,9 @@ async function handleLineupFormSubmit(e) {
     ['team1', 'team2'].forEach(prefix => {
         const section = document.getElementById(`${prefix}-section`);
         const starterCount = document.querySelectorAll(`#${prefix}-starters .starter-card`).length;
-        const captainCount = document.querySelectorAll(`input[name="${prefix}-captain"]:checked`).length;
-        if (starterCount !== 6 || captainCount !== 1) {
+        
+        // **CHANGE 1**: Captain requirement removed. Only starter count is checked.
+        if (starterCount !== 6) {
             isValid = false;
             section.classList.add('validation-error');
         } else {
@@ -493,7 +507,8 @@ async function handleLineupFormSubmit(e) {
     });
 
     if (!isValid) {
-        alert("Validation failed. Each team must have exactly 6 starters and 1 captain selected.");
+        // **CHANGE 1**: Updated alert message.
+        alert("Validation failed. Each team must have exactly 6 starters selected.");
         submitButton.disabled = false;
         submitButton.textContent = 'Save Lineups & Final Score';
         return;
@@ -648,6 +663,8 @@ async function handleSubmitForLiveScoring(e) {
         });
         alert('Live scoring activated successfully!');
         lineupModal.classList.remove('is-visible');
+        // **CHANGE 2**: Refresh the games list to show the new "Live" status.
+        fetchAndDisplayGames(currentSeasonId, weekSelect.value);
     } catch (error) {
         console.error("Error activating live scoring:", error);
         alert(`Failed to activate live scoring: ${error.message}`);
