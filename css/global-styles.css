@@ -14,13 +14,14 @@ main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
 /* Header, Navigation & Auth Status    */
 /* ================================== */
 header { background-color: #333; color: #fff; padding: 1rem; text-align: center; position: relative; }
-header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.75rem; }
+header h1 { color: white !important; font-size: 2rem; margin: 0; display: flex; align-items: center; justify-content: center; }
 .header-logo { width: 40px; height: 40px; object-fit: cover; }
 h1 a.header-link, h1 a.header-link:hover {
     text-decoration: none;
     color: inherit;
     display: inline-flex;
     align-items: center;
+    gap: 0.75rem;
 }
 #auth-status { position: absolute; top: 0.5rem; left: 1rem; font-size: 0.9rem; color: #ccc; z-index: 103; }
 #auth-status a { color: #fff; text-decoration: underline; cursor: pointer; margin-left: 0.5rem; }
