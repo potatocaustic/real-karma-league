@@ -218,6 +218,7 @@ function initializeGamesSection(seasonData) {
 function loadLiveGames() {
     const gamesList = document.getElementById('recent-games');
     const gamesHeader = document.getElementById('games-header-title');
+    const infoIconContainer = document.getElementById('live-scoring-info-icon-container');
     if (!gamesList || !gamesHeader) return;
 
     if (gamesList.dataset.liveInitialized === 'true') {
@@ -231,6 +232,11 @@ function loadLiveGames() {
             <circle cx="12" cy="12" r="5" fill="#dc3545"/>
         </svg>
         Live Games`;
+    
+    if (infoIconContainer) {
+        infoIconContainer.style.display = 'block';
+    }
+    
     gamesList.innerHTML = '<div class="loading">Connecting to live games...</div>';
 
     const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
@@ -365,7 +371,12 @@ function loadLiveGames() {
 async function loadRecentGames() {
     const gamesList = document.getElementById('recent-games');
     const gamesHeader = document.getElementById('games-header-title');
+    const infoIconContainer = document.getElementById('live-scoring-info-icon-container');
     if (!gamesList || !gamesHeader) return;
+
+    if (infoIconContainer) {
+        infoIconContainer.style.display = 'none';
+    }
 
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
@@ -664,6 +675,7 @@ async function initializePage() {
         
         placeholder.innerHTML = await response.text();
         
+        // Game Details Modal Listeners
         const closeModalBtn = document.getElementById('close-modal-btn');
         const gameModal = document.getElementById('game-modal');
 
@@ -675,7 +687,29 @@ async function initializePage() {
                 }
             });
         } else {
-            console.warn("Modal component was loaded, but its internal elements (like the close button) were not found. Clicks inside the modal may not work correctly.");
+            console.warn("Game modal component was loaded, but its internal elements were not found.");
+        }
+
+        // Live Scoring Info Modal Listeners
+        const infoModal = document.getElementById('live-scoring-info-modal');
+        const infoIcon = document.getElementById('live-scoring-info-icon-container');
+        const closeInfoModalBtn = document.querySelector('.close-info-modal-btn');
+
+        if (infoIcon && infoModal && closeInfoModalBtn) {
+            const closeInfoModal = () => infoModal.style.display = 'none';
+
+            infoIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                infoModal.style.display = 'block';
+            });
+            closeInfoModalBtn.addEventListener('click', closeInfoModal);
+            infoModal.addEventListener('click', (event) => {
+                if (event.target === infoModal) {
+                    closeInfoModal();
+                }
+            });
+        } else {
+            console.warn("Info modal elements not found. The info icon may not work.");
         }
 
         const seasonData = await getActiveSeason();
