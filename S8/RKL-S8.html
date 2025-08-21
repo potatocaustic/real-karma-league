@@ -125,7 +125,14 @@
             </div>
 
             <div class="recent-games">
-                <div class="games-header"><h3 id="games-header-title">Recent Games</h3></div>
+                <div class="games-header">
+                    <h3 id="games-header-title">Recent Games</h3>
+                    <div id="live-scoring-info-icon-container" style="display: none;" title="Live scoring info">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="24" height="24">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
                 <div class="games-list" id="recent-games"><div class="loading">Loading recent games...</div></div>
                 <div class="view-full"><a href="schedule.html">View Full Schedule →</a></div>
             </div>
@@ -133,6 +140,20 @@
     </main>
 
     <div id="modal-placeholder"></div>
+
+    <!-- Live Scoring Info Modal -->
+    <div id="live-scoring-info-modal" class="info-modal">
+        <div class="info-modal-content">
+            <span class="close-info-modal-btn">&times;</span>
+            <h2>Live scoring info</h2>
+            <ul>
+                <li>To limit the number of requests being made to Real’s servers, live scoring data is collected on a delay.</li>
+                <li>At minimum, scores will update within 5-10 minutes of every major karma dump on Real.</li>
+                <li>Live games will be automatically processed and finalized between 3-4a ET every morning.</li>
+                <li>Final scores posted in the RKL group are still the official records of the league. Karma earned after official scores are posted will not affect the result of a matchup, regardless of what the website says. When necessary, manual adjustments to website scores will be made the following morning.</li>
+            </ul>
+        </div>
+    </div>
 
     <footer>
         <p>@caustic on Real</p>
