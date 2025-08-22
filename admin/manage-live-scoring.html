@@ -59,10 +59,20 @@
                     <button id="save-interval-btn" class="btn-admin-secondary">Save Interval</button>
                 </div>
             </div>
+            <hr style="margin: 1.5rem 0;">
+
+            <h4>Scheduled Job Times</h4>
+            <div class="form-group-admin">
+                <label for="autofinalize-time">Auto-Finalize Games Time (Central Time)</label>
+                <input type="time" id="autofinalize-time-input" value="03:00">
+            </div>
+            <div class="form-group-admin">
+                <label for="stat-update-time">Daily Stat Updates Time (Central Time)</label>
+                <input type="time" id="stat-update-time-input" value="03:30">
+            </div>
+            <button id="save-schedule-btn" class="btn-admin-save" style="margin-top:1rem; width:100%;">Save Schedule Times</button>
+    
             <button id="manual-update-btn" class="btn-admin-edit" style="margin-top:1rem; width:100%;">Run Full Update Manually</button>
-            <!-- =================================================================== -->
-            <!-- NEW TEST BUTTON ADDED HERE                                          -->
-            <!-- =================================================================== -->
             <button id="test-autofinalize-btn" class="btn-admin-secondary" style="margin-top:1rem; width:100%;">Test Auto-Finalize Overnight Process</button>
             <button id="force-recalc-btn" class="btn-admin-edit" style="margin-top:1rem; width:100%;">Force Leaderboard Recalc</button>
             <hr style="margin: 1.5rem 0;">

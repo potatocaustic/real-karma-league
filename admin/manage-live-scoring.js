@@ -2,7 +2,6 @@
 
 import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, setDoc, query, collection, getDocs, limit } from '/js/firebase-init.js';
 
-// The entire script is wrapped in this event listener to ensure the HTML is fully loaded first.
 window.addEventListener('load', () => {
 
     // --- Page Elements ---
@@ -32,10 +31,10 @@ window.addEventListener('load', () => {
     const progressTitle = document.getElementById('progress-title');
     const progressStatus = document.getElementById('progress-status');
     const progressCloseBtn = document.getElementById('progress-close-btn');
-    // ===================================================================
-    // NEW ELEMENT REFERENCE
-    // ===================================================================
     const testAutofinalizeBtn = document.getElementById('test-autofinalize-btn');
+    const autofinalizeTimeInput = document.getElementById('autofinalize-time-input');
+    const statUpdateTimeInput = document.getElementById('stat-update-time-input');
+    const saveScheduleBtn = document.getElementById('save-schedule-btn');
 
 
     // --- DEV ENVIRONMENT CONFIG ---
@@ -51,11 +50,8 @@ window.addEventListener('load', () => {
     const setLiveScoringStatus = httpsCallable(functions, 'setLiveScoringStatus');
     const updateAllLiveScores = httpsCallable(functions, 'updateAllLiveScores');
     const forceLeaderboardRecalculation = httpsCallable(functions, 'forceLeaderboardRecalculation');
-    // ===================================================================
-    // NEW FUNCTION IMPORT
-    // ===================================================================
     const test_autoFinalizeGames = httpsCallable(functions, 'test_autoFinalizeGames');
-
+    const updateScheduledJobTimes = httpsCallable(functions, 'updateScheduledJobTimes');
 
     // --- Global State ---
     let countdownIntervalId = null;
@@ -398,9 +394,36 @@ window.addEventListener('load', () => {
             });
         }
         
-        // ===================================================================
-        // NEW EVENT LISTENER FOR THE TEST BUTTON
-        // ===================================================================
+        if (saveScheduleBtn) {
+            saveScheduleBtn.addEventListener('click', async () => {
+                const autoFinalizeTime = autofinalizeTimeInput.value;
+                const statUpdateTime = statUpdateTimeInput.value;
+
+                if (!autoFinalizeTime || !statUpdateTime) {
+                    alert("Please select a valid time for both fields.");
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to set these times?\n\nAuto-Finalize: ${autoFinalizeTime} CT\nStat Updates: ${statUpdateTime} CT`)) {
+                    return;
+                }
+                
+                saveScheduleBtn.disabled = true;
+                saveScheduleBtn.textContent = 'Saving...';
+                
+                try {
+                    const result = await updateScheduledJobTimes({ autoFinalizeTime, statUpdateTime });
+                    alert(result.data.message);
+                } catch (error) {
+                    console.error("Error updating schedule times:", error);
+                    alert(`An error occurred: ${error.message}`);
+                } finally {
+                    saveScheduleBtn.disabled = false;
+                    saveScheduleBtn.textContent = 'Save Schedule Times';
+                }
+            });
+        }
+
         if (testAutofinalizeBtn) {
             testAutofinalizeBtn.addEventListener('click', async () => {
                 if (!confirm("This will finalize ALL active live games, just like the 3 AM scheduled job. This is for testing only. Are you sure you want to proceed?")) {

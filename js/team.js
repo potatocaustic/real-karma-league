@@ -206,7 +206,7 @@ function displayTeamHeader() {
             <div class="stat-card">
                 <div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div>
                 <div class="stat-label">Record</div>
-                <div class="stat-rank">${getOrdinal(postseed)} in ${teamData.conference}</div>
+                <div class="stat-rank">${getOrdinal(postseed)} in ${teamData.conference} Conference</div>
             </div>
         </a>
         <a href="standings.html?view=fullLeague&sortBy=pam&sortDirection=desc" class="stat-card-link">

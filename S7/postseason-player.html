@@ -982,13 +982,21 @@
             <span class="moon-icon">🌙</span>
         </button>
         <h1>
-            <img src="icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
-            <span class="header-text">Real Karma League</span>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <span class="header-text">Real Karma League</span>
+            </a>
         </h1>
         <nav>
             <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
             <ul id="nav-menu">
-                <li><a href="RKL-S7.html">S7 Home</a></li>
+                <li class="dropdown">
+                    <a href="RKL-S7.html" class="dropbtn">S7 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
                 <li><a href="standings.html">Standings & Rankings</a></li>
                 <li class="dropdown">
                     <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>

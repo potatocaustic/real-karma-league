@@ -6,6 +6,8 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
+const { CloudSchedulerClient } = require("@google-cloud/scheduler");
+const schedulerClient = new CloudSchedulerClient();
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -14,6 +16,88 @@ const db = admin.firestore();
 // DEVELOPMENT ENVIRONMENT CONFIGURATION
 // ===================================================================
 const USE_DEV_COLLECTIONS = false;
+
+exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
+    // 1. Security: Ensure the user is an admin
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    // 2. Get and validate the times from the frontend
+    const { autoFinalizeTime, statUpdateTime } = request.data;
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/; // Validates HH:MM format
+    if (!autoFinalizeTime || !statUpdateTime || !timeRegex.test(autoFinalizeTime) || !timeRegex.test(statUpdateTime)) {
+        throw new HttpsError('invalid-argument', 'Please provide valid times in HH:MM format.');
+    }
+
+    // 3. Define the jobs to be updated
+    const projectId = process.env.GCLOUD_PROJECT;
+    const location = 'us-central1';
+    const timeZone = 'America/Chicago';
+
+    const jobsToUpdate = {
+        autoFinalize: {
+            name: 'autoFinalizeGames',
+            time: autoFinalizeTime
+        },
+        statUpdates: {
+            names: [
+                'scheduledLiveScoringShutdown',
+                'updatePlayerRanks',
+                'updatePerformanceLeaderboards',
+                'updateCurrentWeek',
+                'updatePlayoffBracket'
+            ],
+            time: statUpdateTime
+        }
+    };
+
+    try {
+        const updatePromises = [];
+
+        const getCronSchedule = (time) => {
+            const [hour, minute] = time.split(':');
+            return `${parseInt(minute)} ${parseInt(hour)} * * *`;
+        };
+
+        const autoFinalizeJobName = `firebase-schedule-${jobsToUpdate.autoFinalize.name}-${location}`;
+        const autoFinalizeJobPath = schedulerClient.jobPath(projectId, location, autoFinalizeJobName);
+        updatePromises.push(schedulerClient.updateJob({
+            job: {
+                name: autoFinalizeJobPath,
+                schedule: getCronSchedule(jobsToUpdate.autoFinalize.time),
+                timeZone: timeZone,
+            },
+            updateMask: { paths: ['schedule', 'time_zone'] }
+        }));
+
+        jobsToUpdate.statUpdates.names.forEach(name => {
+            const jobName = `firebase-schedule-${name}-${location}`;
+            const jobPath = schedulerClient.jobPath(projectId, location, jobName);
+            updatePromises.push(schedulerClient.updateJob({
+                job: {
+                    name: jobPath,
+                    schedule: getCronSchedule(jobsToUpdate.statUpdates.time),
+                    timeZone: timeZone,
+                },
+                updateMask: { paths: ['schedule', 'time_zone'] }
+            }));
+        });
+
+        await Promise.all(updatePromises);
+
+        console.log(`Successfully updated schedules. Finalize: ${autoFinalizeTime}, Stats: ${statUpdateTime}`);
+        return { success: true, message: "Scheduled job times have been successfully updated!" };
+
+    } catch (error) {
+        console.error("Error updating Cloud Scheduler jobs:", error);
+        throw new HttpsError('internal', `Failed to update schedules: ${error.message}`);
+    }
+});
 
 const getCollectionName = (baseName) => {
     if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats')) {

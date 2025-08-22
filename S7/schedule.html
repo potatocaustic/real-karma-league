@@ -183,41 +183,49 @@
 </head>
   <body>
     <header>
-      <button id="theme-toggle-btn" aria-label="Toggle Theme">
-        <span class="sun-icon">☀️</span>
-        <span class="moon-icon">🌙</span>
-      </button>
-      <h1>
-        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
-        <span class="header-text">Real Karma League</span>
-      </h1>
-      <nav>
-        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-        <ul id="nav-menu">
-            <li><a href="RKL-S7.html">S7 Home</a></li>
-            <li><a href="standings.html">Standings & Rankings</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="leaderboards.html">Leaderboards</a>
-                    <a href="compare.html">Comparison Tool</a>
-                </div>
-            </li>
-            <li><a href="schedule.html">Schedule</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="draft-capital.html">Draft Capital</a>
-                    <a href="draft-results.html">Draft Results</a>
-                    <a href="draft-lottery.html">Draft Lottery</a>
-                </div>
-            </li>
-            <li><a href="transactions.html">Transactions</a></li>
-            <li><a href="teams.html">Teams</a></li>
-            <li><a href="trophy-case.html">Trophy Case</a></li>
-            <li><a href="changelog.html">Changelog</a></li>
-        </ul>
-      </nav>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <span class="header-text">Real Karma League</span>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S7.html" class="dropbtn">S7 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
     </header>
 
     <main>
