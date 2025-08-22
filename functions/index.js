@@ -23,7 +23,7 @@ exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (reque
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
     const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
-    if (!userDoc.exists() || userDoc.data().role !== 'admin') {
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
         throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
     }
 

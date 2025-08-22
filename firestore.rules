@@ -43,7 +43,10 @@ service cloud.firestore {
         allow write: if isUserAdmin();
       }
     }
-
+    match /usage_stats/{doc=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+    }
     match /v2_players/{document=**} {
       allow read: if true;
       allow write: if isUserAdmin();
