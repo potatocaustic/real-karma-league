@@ -274,13 +274,13 @@ async function calculateAndDisplayStandouts(week) {
     });
     
     const bestTeamEl = document.getElementById('best-team-perf');
-    if (bestTeamEl) bestTeamEl.innerHTML = bestTeam.id ? `<a href="team.html?id=${bestTeam.id}" class="team-link">${escapeHTML(bestTeam.name)}</a>: <span class="detail-positive">+${bestTeam.pct_diff.toFixed(1)}% vs median</span>` : 'Not enough data.';
+    if (bestTeamEl) bestTeamEl.innerHTML = bestTeam.id ? `<a href="/S7/team.html?id=${bestTeam.id}" class="team-link">${escapeHTML(bestTeam.name)}</a>: <span class="detail-positive">+${bestTeam.pct_diff.toFixed(1)}% vs median</span>` : 'Not enough data.';
     const worstTeamEl = document.getElementById('worst-team-perf');
-    if (worstTeamEl) worstTeamEl.innerHTML = worstTeam.id && worstTeam.pct_diff !== Infinity ? `<a href="team.html?id=${worstTeam.id}" class="team-link">${escapeHTML(worstTeam.name)}</a>: <span class="detail-negative">${worstTeam.pct_diff.toFixed(1)}% vs median</span>` : 'No team significantly below median.';
+    if (worstTeamEl) worstTeamEl.innerHTML = worstTeam.id && worstTeam.pct_diff !== Infinity ? `<a href="/S7/team.html?id=${worstTeam.id}" class="team-link">${escapeHTML(worstTeam.name)}</a>: <span class="detail-negative">${worstTeam.pct_diff.toFixed(1)}% vs median</span>` : 'No team significantly below median.';
     const bestPlayerEl = document.getElementById('best-player-perf');
-    if (bestPlayerEl) bestPlayerEl.innerHTML = bestPlayer.handle ? `<a href="player.html?player=${encodeURIComponent(bestPlayer.handle)}" class="player-link">${escapeHTML(bestPlayer.handle)}</a>: <span class="detail-positive">Rank ${bestPlayer.rank}</span>` : 'No ranked player data.';
+    if (bestPlayerEl) bestPlayerEl.innerHTML = bestPlayer.handle ? `<a href="/S7/player.html?player=${encodeURIComponent(bestPlayer.handle)}" class="player-link">${escapeHTML(bestPlayer.handle)}</a>: <span class="detail-positive">Rank ${bestPlayer.rank}</span>` : 'No ranked player data.';
     const worstPlayerEl = document.getElementById('worst-player-perf');
-    if (worstPlayerEl) worstPlayerEl.innerHTML = worstPlayer.handle ? `<a href="player.html?player=${encodeURIComponent(worstPlayer.handle)}" class="player-link">${escapeHTML(worstPlayer.handle)}</a>: <span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span>` : 'No ranked player data.';
+    if (worstPlayerEl) worstPlayerEl.innerHTML = worstPlayer.handle ? `<a href="/S7/player.html?player=${encodeURIComponent(worstPlayer.handle)}" class="player-link">${escapeHTML(worstPlayer.handle)}</a>: <span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span>` : 'No ranked player data.';
 }
 
 async function showGameDetails(gameId, isLive, gameDate = null) {
