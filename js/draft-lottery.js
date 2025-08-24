@@ -219,7 +219,14 @@ async function initializeApp() {
 
         // 2. Fetch all necessary data in parallel
         const teamsQuery = query(collection(db, getCollectionName('v2_teams')), where('conference', 'in', ['Eastern', 'Western']));
-        const draftPicksQuery = query(collection(db, getCollectionName('draftPicks')), where('season', '==', Number(DRAFT_SEASON_ID.replace('S',''))), where('round', '==', 1));
+        
+        // ***** FIX: Query for draft picks using strings for season and round *****
+        const draftPicksQuery = query(
+            collection(db, getCollectionName('draftPicks')), 
+            where('season', '==', DRAFT_SEASON_ID.replace('S','')), 
+            where('round', '==', '1')
+        );
+        
         const postGamesQuery = collection(db, getCollectionName('seasons'), PREVIOUS_SEASON_ID, getCollectionName('post_games'));
 
         const [teamsSnap, draftPicksSnap, postseasonGamesSnap] = await Promise.all([
@@ -274,7 +281,7 @@ async function initializeApp() {
             if (!game || !game.winner) return null;
             return game.team1_id === game.winner ? game.team2_id : game.team1_id;
         };
-        const lotteryLoserIds = new Set(['E9vE10', 'W9vW10', 'E8thSeedGame', 'W8thSeedGame'].map(findGameLoser).filter(Boolean));
+        const lotteryLoserIds = new Set(['E9vE10', 'W9vE10', 'E8thSeedGame', 'W8thSeedGame'].map(findGameLoser).filter(Boolean));
 
         // 6. Finalize Lottery Team List
         const lotteryTeamsFromStandings = allTeamsWithRecords
