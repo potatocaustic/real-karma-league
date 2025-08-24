@@ -38,6 +38,7 @@ const getTeamById = (teamId) => allTeams.find(t => t.id === teamId) || { team_na
 const escapeHTML = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 
 const isPostseason = (week) => !/^\d+$/.test(week) && week !== "All-Star" && week !== "Relegation";
+const isExhibition = (week) => week === "All-Star" || week === "Relegation";
 
 function getPostseasonGameLabel(seriesName) {
     if (!seriesName) return seriesName;
@@ -175,7 +176,7 @@ async function displayWeek(week) {
 
     if (weekStandoutsSection) {
         const allGamesInWeekCompleted = weekGames.every(g => g.completed === 'TRUE');
-        if (allGamesInWeekCompleted && !isWeekPostseason && week !== 'All-Star' && week !== 'Relegation') {
+        if (allGamesInWeekCompleted && !isWeekPostseason && !isExhibition(week)) {
             await calculateAndDisplayStandouts(week);
             weekStandoutsSection.style.display = 'block';
         } else {
@@ -295,16 +296,20 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         
         gameData = allGamesCache.find(g => g.id === gameId);
         if (!gameData) throw new Error("Game not found in cache.");
-        const isGamePostseason = isPostseason(gameData.week);
 
         let titleTeam1Name = '';
         let titleTeam2Name = '';
 
-        // ===================================================================
-        // BUG FIX: Fetch seasonal stats for all players in the game to get
-        // rookie and all-star status, which is not on the lineup document.
-        // ===================================================================
-        const lineupsCollectionName = getCollectionName(isGamePostseason ? 'post_lineups' : 'lineups');
+        // --- FIX: Determine the correct lineups collection based on the game's week type ---
+        let lineupsCollectionName;
+        if (isExhibition(gameData.week)) {
+            lineupsCollectionName = getCollectionName('exhibition_lineups');
+        } else if (isPostseason(gameData.week)) {
+            lineupsCollectionName = getCollectionName('post_lineups');
+        } else {
+            lineupsCollectionName = getCollectionName('lineups');
+        }
+        
         const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
         const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
         const lineupsSnap = await getDocs(lineupsQuery);
@@ -323,13 +328,9 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
             }
         });
-        // ===================================================================
-        // END OF BUG FIX
-        // ===================================================================
 
         const allLineupsForGame = lineupsSnap.docs.map(d => {
             const lineupData = d.data();
-            // Add seasonal stats to each player in the lineup
             return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
         });
 
@@ -340,7 +341,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
         titleTeam1Name = escapeHTML(team1.team_name);
         titleTeam2Name = escapeHTML(team2.team_name);
-        if (isGamePostseason) {
+        if (isPostseason(gameData.week)) {
             if (gameData.team1_seed) titleTeam1Name = `(${gameData.team1_seed}) ${titleTeam1Name}`;
             if (gameData.team2_seed) titleTeam2Name = `(${gameData.team2_seed}) ${titleTeam2Name}`;
         }
@@ -349,7 +350,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         let modalTeam1 = { ...team1 };
         let modalTeam2 = { ...team2 };
 
-        if (isGamePostseason) {
+        if (isPostseason(gameData.week)) {
             modalTeam1.wins = gameData.team1_wins || 0;
             modalTeam1.losses = gameData.team2_wins || 0;
             modalTeam2.wins = gameData.team2_wins || 0;
