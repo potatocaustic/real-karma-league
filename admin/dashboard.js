@@ -1,6 +1,6 @@
 // /admin/dashboard.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = false;
@@ -22,21 +22,34 @@ document.addEventListener('DOMContentLoaded', () => {
             const userRef = doc(db, getCollectionName("users"), user.uid);
             const userDoc = await getDoc(userRef);
 
-            if (userDoc.exists() && userDoc.data().role === 'admin') {
-                loadingContainer.style.display = 'none';
-                adminContainer.style.display = 'block';
-                authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
-                addLogoutListener();
-                addSeasonManagementListeners();
+            if (userDoc.exists()) {
+                const userRole = userDoc.data().role;
+                if (userRole === 'admin') {
+                    loadingContainer.style.display = 'none';
+                    adminContainer.style.display = 'block';
+                    authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
+                    addLogoutListener();
+                    addSeasonManagementListeners();
+                } else if (userRole === 'scorekeeper') {
+                    // Redirect scorekeepers to their specific dashboard
+                    window.location.href = '/admin/scorekeeper-dashboard.html';
+                } else {
+                    displayAccessDenied(authStatusDiv);
+                }
             } else {
-                loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
-                authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
-                addLogoutListener();
+                 displayAccessDenied(authStatusDiv);
             }
         } else {
             window.location.href = '/login.html';
         }
     });
+    
+    function displayAccessDenied(authStatusDiv) {
+        loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
+        authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
+        addLogoutListener();
+    }
+
 
     function addSeasonManagementListeners() {
         const createSeasonBtn = document.getElementById('create-season-btn');
