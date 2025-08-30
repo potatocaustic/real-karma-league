@@ -1,4 +1,4 @@
-// /scorekeeper/scorekeeper-live-scoring.js
+// /scorekeeper/live-scoring.js
 
 import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, query, collection, getDocs } from '/js/firebase-init.js';
 
@@ -193,38 +193,47 @@ window.addEventListener('load', () => {
             }
         });
 
-        finalizeBtn.addEventListener('click', () => {
-            let secondsLeft = 30;
-            finalizeContainer.innerHTML = `
-                <button id="cancel-finalize-btn" class="btn-admin-secondary" style="width: 100%;">
-                    Cancel <span class="countdown-timer">${secondsLeft}s</span>
-                </button>
-            `;
-            
-            finalizeCountdownInterval = setInterval(async () => {
-                secondsLeft--;
-                if (secondsLeft <= 0) {
-                    clearInterval(finalizeCountdownInterval);
-                    finalizeContainer.innerHTML = `<button class="btn-admin-delete" style="width:100%;" disabled>Processing...</button>`;
-                    try {
-                        await runFullUpdateWithProgress(true);
-                    } catch (error) {
-                        alert(`Error during finalization: ${error.message}`);
-                        // Reset button on error
-                        finalizeContainer.innerHTML = `<button id="finalize-btn" class="btn-admin-delete" style="width:100%;">Stop Scoring and Process Games</button>`;
-                    }
-                } else {
-                    finalizeContainer.querySelector('.countdown-timer').textContent = `${secondsLeft}s`;
-                }
-            }, 1000);
+        const setupFinalizeListener = () => {
+            const currentFinalizeBtn = document.getElementById('finalize-btn');
+            if(currentFinalizeBtn) {
+                currentFinalizeBtn.addEventListener('click', () => {
+                    let secondsLeft = 30;
+                    finalizeContainer.innerHTML = `
+                        <button id="cancel-finalize-btn" class="btn-admin-secondary" style="width: 100%;">
+                            Cancel <span class="countdown-timer">${secondsLeft}s</span>
+                        </button>
+                    `;
+                    
+                    finalizeCountdownInterval = setInterval(async () => {
+                        secondsLeft--;
+                        if (secondsLeft < 0) {
+                            clearInterval(finalizeCountdownInterval);
+                            finalizeContainer.innerHTML = `<button class="btn-admin-delete" style="width:100%;" disabled>Processing...</button>`;
+                            try {
+                                await runFullUpdateWithProgress(true);
+                            } catch (error) {
+                                alert(`Error during finalization: ${error.message}`);
+                                // Reset button on error
+                                finalizeContainer.innerHTML = `<button id="finalize-btn" class="btn-admin-delete" style="width:100%;">Stop Scoring and Process Games</button>`;
+                                setupFinalizeListener();
+                            }
+                        } else {
+                            const timerSpan = finalizeContainer.querySelector('.countdown-timer');
+                            if (timerSpan) timerSpan.textContent = `${secondsLeft}s`;
+                        }
+                    }, 1000);
 
-            document.getElementById('cancel-finalize-btn').addEventListener('click', () => {
-                clearInterval(finalizeCountdownInterval);
-                finalizeContainer.innerHTML = `<button id="finalize-btn" class="btn-admin-delete" style="width:100%;">Stop Scoring and Process Games</button>`;
-                 // Re-add the main listener since the button was replaced
-                document.getElementById('finalize-btn').addEventListener('click', finalizeBtn.click);
-            }, { once: true });
-        });
+                    document.getElementById('cancel-finalize-btn').addEventListener('click', () => {
+                        clearInterval(finalizeCountdownInterval);
+                        finalizeContainer.innerHTML = `<button id="finalize-btn" class="btn-admin-delete" style="width:100%;">Stop Scoring and Process Games</button>`;
+                        setupFinalizeListener();
+                    }, { once: true });
+                }, { once: true });
+            }
+        };
+
+        setupFinalizeListener();
+
 
         progressCloseBtn.addEventListener('click', () => {
             progressModal.style.display = 'none';

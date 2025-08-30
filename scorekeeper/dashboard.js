@@ -1,4 +1,4 @@
-// /scorekeeper/scorekeeper-dashboard.js
+// /scorekeeper/dashboard.js
 
 import { auth, db, onAuthStateChanged, signOut, doc, getDoc } from '/js/firebase-init.js';
 

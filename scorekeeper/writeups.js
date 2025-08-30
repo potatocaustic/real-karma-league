@@ -1,4 +1,4 @@
-// /scorekeeper/manage-writeups.js
+// /scorekeeper/writeups.js
 
 import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, httpsCallable } from '/js/firebase-init.js';
 
