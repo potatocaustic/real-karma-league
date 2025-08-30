@@ -17,6 +17,23 @@ const db = admin.firestore();
 // ===================================================================
 const USE_DEV_COLLECTIONS = false;
 
+// New helper function to check for admin or scorekeeper roles
+async function isScorekeeperOrAdmin(auth) {
+    if (!auth) return false;
+    const userDoc = await db.collection(getCollectionName('users')).doc(auth.uid).get();
+    if (!userDoc.exists) return false;
+    const role = userDoc.data().role;
+    return role === 'admin' || role === 'scorekeeper';
+}
+
+// New helper function to get user role
+async function getUserRole(auth) {
+    if (!auth) return null;
+    const userDoc = await db.collection(getCollectionName('users')).doc(auth.uid).get();
+    return userDoc.exists ? userDoc.data().role : null;
+}
+
+
 exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
     // 1. Security: Ensure the user is an admin
     if (!request.auth) {
@@ -100,7 +117,7 @@ exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (reque
 });
 
 const getCollectionName = (baseName) => {
-    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats')) {
+    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('archived_live_games') || baseName.includes('scorekeeper_activity_log')) {
         return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
     }
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -285,12 +302,8 @@ async function performFullUpdate() {
 
 
 exports.updateAllLiveScores = onCall({ region: "us-central1" }, async (request) => {
-    if (!request.auth) {
-        throw new HttpsError('unauthenticated', 'Authentication required.');
-    }
-    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    if (!(await isScorekeeperOrAdmin(request.auth))) {
+        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
     return await performFullUpdate();
 });
@@ -541,7 +554,7 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
 
 
 exports.autoFinalizeGames = onSchedule({
-    schedule: "every day 03:00",
+    schedule: "every day 05:00",
     timeZone: "America/Chicago", 
 }, async (event) => {
     console.log("Running scheduled job to auto-finalize games.");
@@ -677,7 +690,7 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
 }
 
 exports.scheduledLiveScoringShutdown = onSchedule({
-    schedule: "30 3 * * *", 
+    schedule: "15 5 * * *", 
     timeZone: "America/Chicago",
 }, async (event) => {
     console.log("Running scheduled job to set live scoring status to 'stopped'.");
@@ -2117,7 +2130,7 @@ async function performPerformanceRankingUpdate() {
 }
 
 exports.updatePlayerRanks = onSchedule({
-    schedule: "30 3 * * *",
+    schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
     await performPlayerRankingUpdate();
@@ -2125,7 +2138,7 @@ exports.updatePlayerRanks = onSchedule({
 });
 
 exports.updatePerformanceLeaderboards = onSchedule({
-    schedule: "30 3 * * *",
+    schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
     await performPerformanceRankingUpdate();
@@ -2151,20 +2164,16 @@ exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async 
     }
 });
 
-exports.updateCurrentWeek = onSchedule({
-    schedule: "every day 03:30",
-    timeZone: "America/Chicago",
-}, async (event) => {
-    console.log("Running scheduled function to update current week...");
-
+async function performWeekUpdate() {
+    console.log("Running logic to update current week...");
     try {
         const seasonsRef = db.collection(getCollectionName('seasons'));
         const activeSeasonQuery = seasonsRef.where("status", "==", "active").limit(1);
         const activeSeasonSnap = await activeSeasonQuery.get();
 
         if (activeSeasonSnap.empty) {
-            console.log("No active season found. Exiting function.");
-            return null;
+            console.log("No active season found. Exiting week update.");
+            return;
         }
 
         const activeSeasonDoc = activeSeasonSnap.docs[0];
@@ -2221,14 +2230,19 @@ exports.updateCurrentWeek = onSchedule({
                 }, { merge: true });
             }
         }
-
         console.log("Successfully updated the current week.");
-        return null;
-
     } catch (error) {
         console.error("Error updating current week:", error);
-        return null;
     }
+}
+
+
+exports.updateCurrentWeek = onSchedule({
+    schedule: "15 5 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    await performWeekUpdate();
+    return null;
 });
 
 exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (request) => {
@@ -2374,33 +2388,35 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
     }
 }
 
-exports.updatePlayoffBracket = onSchedule({
-    schedule: "30 3 * * *", // Runs at 3:30 AM Central Time daily
-    timeZone: "America/Chicago",
-}, async (event) => {
-    console.log("Running daily job to update playoff bracket...");
-
+async function performBracketUpdate(gameDateStr) {
+    console.log(`Running logic to update playoff bracket for games on ${gameDateStr}...`);
     const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
     if (activeSeasonSnap.empty) {
         console.log("No active season found. Exiting bracket update.");
-        return null;
+        return;
     }
     const seasonId = activeSeasonSnap.docs[0].id;
     const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
 
+    const gamesPlayedSnap = await postGamesRef.where('date', '==', gameDateStr).where('completed', '==', 'TRUE').get();
+    if (gamesPlayedSnap.empty) {
+        console.log(`No completed postseason games were played on ${gameDateStr}. Exiting bracket update.`);
+        return;
+    }
+    console.log(`Processing ${gamesPlayedSnap.size} games from ${gameDateStr} for bracket advancement.`);
+    await advanceBracket(gamesPlayedSnap.docs, postGamesRef);
+}
+
+
+exports.updatePlayoffBracket = onSchedule({
+    schedule: "15 5 * * *", 
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running daily job to update playoff bracket...");
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
-
-    const gamesPlayedYesterdaySnap = await postGamesRef.where('date', '==', yesterdayStr).where('completed', '==', 'TRUE').get();
-    if (gamesPlayedYesterdaySnap.empty) {
-        console.log(`No completed postseason games were played on ${yesterdayStr}. Exiting bracket update.`);
-        return null;
-    }
-
-    console.log(`Processing ${gamesPlayedYesterdaySnap.size} games from ${yesterdayStr} for bracket advancement.`);
-    await advanceBracket(gamesPlayedYesterdaySnap.docs, postGamesRef);
-
+    await performBracketUpdate(yesterdayStr);
     console.log("Playoff bracket update job finished.");
     return null;
 });
@@ -2441,6 +2457,173 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
     console.log("On-demand playoff bracket update job finished.");
     return { success: true, message: `Processed ${gamesToProcessSnap.size} games from ${mostRecentDate}.` };
 });
+
+
+// ===================================================================
+// NEW SCOREKEEPER & WRITEUP FUNCTIONS
+// ===================================================================
+
+exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async (request) => {
+    if (!(await isScorekeeperOrAdmin(request.auth))) {
+        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
+    }
+
+    console.log(`Manual finalization triggered by user: ${request.auth.uid}`);
+    
+    try {
+        // 1. Log the activity
+        await db.collection(getCollectionName('scorekeeper_activity_log')).add({
+            userId: request.auth.uid,
+            timestamp: FieldValue.serverTimestamp(),
+            action: 'finalizeAndProcess'
+        });
+
+        // 2. Backup and process live games
+        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+        if (liveGamesSnap.empty) {
+            return { success: true, message: "No live games found to process." };
+        }
+        
+        console.log(`Found ${liveGamesSnap.size} games to process.`);
+        
+        // Backup to a new collection
+        const backupBatch = db.batch();
+        const timestamp = new Date().toISOString();
+        const gameDates = new Set();
+        liveGamesSnap.forEach(doc => {
+            const backupRef = db.doc(`${getCollectionName('archived_live_games')}/${timestamp}/${doc.id}`);
+            backupBatch.set(backupRef, doc.data());
+            gameDates.add(doc.data().date);
+        });
+        await backupBatch.commit();
+        console.log(`Successfully backed up ${liveGamesSnap.size} live games to archive.`);
+
+        // Process each game
+        for (const gameDoc of liveGamesSnap.docs) {
+            await processAndFinalizeGame(gameDoc, true); // Use auto-finalize logic
+        }
+        console.log("All live games have been processed and finalized.");
+
+        // 3. Cascade updates
+        console.log("Starting cascaded updates...");
+        await performPlayerRankingUpdate();
+        await performPerformanceRankingUpdate();
+        await performWeekUpdate();
+        for (const dateStr of gameDates) {
+            await performBracketUpdate(dateStr);
+        }
+        console.log("Cascaded updates complete.");
+
+        // 4. Shutdown live scoring
+        const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
+        await statusRef.set({
+            status: 'stopped',
+            last_updated_by: `scorekeeper_finalize:${request.auth.uid}`,
+            last_updated: FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log("Live scoring system has been stopped.");
+
+        return { success: true, message: `Successfully processed ${liveGamesSnap.size} games and completed all overnight tasks.` };
+
+    } catch (error) {
+        console.error("Error during scorekeeper finalization:", error);
+        throw new HttpsError('internal', `An unexpected error occurred: ${error.message}`);
+    }
+});
+
+exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) => {
+    if (!(await isScorekeeperOrAdmin(request.auth))) {
+        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
+    }
+    
+    const { gameId, seasonId, collectionName } = request.data;
+    if (!gameId || !seasonId || !collectionName) {
+        throw new HttpsError('invalid-argument', 'Missing required parameters.');
+    }
+
+    try {
+        // Fetch all necessary data
+        const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
+        const gameSnap = await gameRef.get();
+        if (!gameSnap.exists) {
+            throw new HttpsError('not-found', 'Game not found.');
+        }
+        const game = gameSnap.data();
+
+        const lineupsCollection = getCollectionName(collectionName.replace('games', 'lineups'));
+        const lineupsQuery = db.collection(`${getCollectionName('seasons')}/${seasonId}/${lineupsCollection}`).where('game_id', '==', gameId);
+        const lineupsSnap = await lineupsQuery.get();
+        
+        const team1RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team1_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+        const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team2_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+        const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
+
+        const team1 = team1RecordSnap.data();
+        const team2 = team2RecordSnap.data();
+
+        // Prepare data for the prompt
+        const winnerId = game.winner;
+        const team1Summary = `${team1.team_name} (${team1.wins}-${team1.losses}) - ${game.team1_score.toFixed(0)} ${winnerId === game.team1_id ? '✅' : '❌'}`;
+        const team2Summary = `${team2.team_name} (${team2.wins}-${team2.losses}) - ${game.team2_score.toFixed(0)} ${winnerId === game.team2_id ? '✅' : '❌'}`;
+
+        const topPerformers = lineupsSnap.docs
+            .map(doc => doc.data())
+            .filter(p => p.global_rank > 0 && p.global_rank <= 100)
+            .sort((a, b) => a.global_rank - b.global_rank)
+            .map(p => `@${p.player_handle} (${p.global_rank}${p.is_captain === 'TRUE' ? ', captain' : ''})`)
+            .join(', ');
+
+        const promptData = `
+Matchup: ${team1Summary} vs ${team2Summary}
+Top 100 Performers: ${topPerformers || 'None'}
+`;
+        
+        const systemPrompt = `You are a sports writer for a fantasy league called the Real Karma League. You write short, engaging game summaries with a casual, slightly edgy tone. You MUST mention every player from the 'Top 100 Performers' list, putting an '@' symbol before their handle.
+
+Here are some examples of the required style:
+Example 1: Aces take a blowout win here against the Gravediggers who forgot to submit a lineup on time leading to the absence of a captain. Aces had multiple top 100s in @corbin (3rd) who exploded to a top 3 performance in the win along with @kenny_wya (17th) doing very well at captain, @flem2tuff (70th), and @jamie (94th). Gravediggers had @cry (97th) sneak into the top 100 but even with the handsome @grizzy with a top 5 on the bench the Aces take a nice win here.
+Example 2: Amigos take a nice win here over the struggling Piggies on the back of lone top 100 of the match @devonta (34th). Piggies overall had better placements, but 2 unranked players and no top 100s leads to the Amigos win here to get them above .500.
+Example 3: Hounds grab a close win over the KOCK in a great game, which sends the latter to 0-3. Hounds had 4 t100s, including @tiger (24th), @neev (25th), captain @poolepartyjp3 (30th) and @jay.p (97th). KOCK also had 4 t100s with @goated14 (23rd), captain @chazwick (30th), @ederick2442 (63rd) and @top (66th), but @cinemax cost them dearly.
+
+Now, write a new summary based on the following data:`;
+
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+        
+        const payload = {
+            contents: [{ parts: [{ text: promptData }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+        };
+
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            console.error("Gemini API Error:", error);
+            throw new HttpsError('internal', 'Failed to generate writeup from AI model.');
+        }
+
+        const result = await response.json();
+        const writeup = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!writeup) {
+             throw new HttpsError('internal', 'AI model returned an empty response.');
+        }
+
+        const fullWriteup = `${team1Summary}\n${team2Summary}\n${writeup}`;
+        return { success: true, writeup: fullWriteup };
+
+    } catch (error) {
+        console.error("Error generating game writeup:", error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'An unexpected error occurred.');
+    }
+});
+
 
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY

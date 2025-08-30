@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scorekeeper Portal</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1>Scorekeeper Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="scorekeeper-container" style="display: none;">
+        <h2>Scorekeeper Dashboard</h2>
+        <p>Select a management task below.</p>
+        <div class="dashboard-grid">
+            <a href="/scorekeeper/live-scoring.html" class="nav-card">
+                <div class="nav-card-icon">📡</div>
+                <div class="nav-card-title">Live Scoring</div>
+                <div class="nav-card-description">Monitor stats and finalize the day's games.</div>
+            </a>
+            <a href="/scorekeeper/writeups.html" class="nav-card">
+                <div class="nav-card-icon">✍️</div>
+                <div class="nav-card-title">Writeups</div>
+                <div class="nav-card-description">Generate AI-powered summaries for completed games.</div>
+            </a>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/scorekeeper/scorekeeper-dashboard.js"></script>
+</body>
+</html>

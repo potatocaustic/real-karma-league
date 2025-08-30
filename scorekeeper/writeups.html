@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Writeups - Scorekeeper</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        #writeup-container {
+            margin-top: 2rem;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: none; /* Hidden by default */
+        }
+        #writeup-output {
+            width: 100%;
+            height: 300px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .writeup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Scorekeeper Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="scorekeeper-container" style="display: none;">
+        <a href="/scorekeeper/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Game Writeup Generator</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select">Season:</label>
+                <select id="season-select"><option>Loading...</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="week-select">Week:</label>
+                <select id="week-select"><option>Select a season...</option></select>
+            </div>
+             <div class="filter-group">
+                <label for="game-select">Completed Game:</label>
+                <select id="game-select"><option>Select a week...</option></select>
+            </div>
+        </div>
+        
+        <div id="writeup-container">
+            <div class="writeup-header">
+                <h3 id="writeup-title">Generated Writeup</h3>
+                <button id="copy-writeup-btn" class="btn-admin-edit">Copy to Clipboard</button>
+            </div>
+            <textarea id="writeup-output" readonly>Select a game to generate a writeup...</textarea>
+        </div>
+        
+    </main>
+    
+    <div id="loading-container" class="loading">Authenticating...</div>
+    
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/scorekeeper/manage-writeups.js"></script>
+</body>
+</html>

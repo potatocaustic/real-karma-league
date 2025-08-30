@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Scoring - Scorekeeper</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        #progress-bar-container { width: 100%; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 1rem; }
+        #progress-bar { width: 0%; height: 20px; background-color: #007bff; transition: width 0.2s ease-in-out; }
+        #sample-progress-bar { background-color: #ffc107; transition: width 0.3s linear; }
+        .countdown-timer { font-size: 1.5rem; font-weight: bold; color: #dc3545; margin: 0 1rem; }
+    </style>
+     <script>
+        // Use production collections for live scoring data
+        window.firebasePageConfig = { useProdCollections: true };
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Scorekeeper Portal</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="scorekeeper-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Live Scoring Control Panel</h2>
+
+        <div class="form-container-admin">
+            <h4>System Status</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <p>Current Status: <strong id="system-status">LOADING...</strong></p>
+                <div>
+                    <p>Next Scheduled Sample: <strong id="next-sample-display">--:--</strong></p>
+                    <div id="sample-progress-container" style="display: none; width: 100%; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; height: 5px; margin-top: 4px;">
+                        <div id="sample-progress-bar" style="width: 0%; height: 5px;"></div>
+                    </div>
+                </div>
+                <p>Last Full Update: <strong id="last-update-display">Never</strong></p>
+            </div>
+            
+            <hr style="margin: 1.5rem 0;">
+
+            <h4>Actions</h4>
+            <button id="manual-update-btn" class="btn-admin-edit" style="width:100%;">Run Full Update Manually</button>
+            <div id="finalize-container" style="margin-top:1rem;">
+                 <button id="finalize-btn" class="btn-admin-delete" style="width:100%;">Stop Scoring and Process Games</button>
+            </div>
+            
+            <hr style="margin: 1.5rem 0;">
+
+            <h4>Last Sample Results</h4>
+            <div id="last-sample-log">
+                <p>No sample run yet.</p>
+            </div>
+        </div>
+        
+    </main>
+    
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <div id="progress-modal" class="modal-admin" style="display: none;">
+        <div class="modal-content-admin" style="max-width: 500px;">
+            <h3 id="progress-title">Performing Full Score Update...</h3>
+            <p id="progress-status">This may take a minute. Please do not close this page.</p>
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="progress-counter" style="text-align: center; margin-top: 1rem; font-weight: bold;"></p>
+            <button type="button" id="progress-close-btn" class="btn-admin-secondary" style="margin-top: 1.5rem; display: none;">Close</button>
+        </div>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/live-scoring.js"></script>
+</body>
+</html>
