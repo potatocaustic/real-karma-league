@@ -2463,74 +2463,6 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
 // NEW SCOREKEEPER & WRITEUP FUNCTIONS
 // ===================================================================
 
-exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async (request) => {
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
-        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
-    }
-
-    console.log(`Manual finalization triggered by user: ${request.auth.uid}`);
-    
-    try {
-        // 1. Log the activity
-        await db.collection(getCollectionName('scorekeeper_activity_log')).add({
-            userId: request.auth.uid,
-            timestamp: FieldValue.serverTimestamp(),
-            action: 'finalizeAndProcess'
-        });
-
-        // 2. Backup and process live games
-        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
-        if (liveGamesSnap.empty) {
-            return { success: true, message: "No live games found to process." };
-        }
-        
-        console.log(`Found ${liveGamesSnap.size} games to process.`);
-        
-        // Backup to a new collection
-        const backupBatch = db.batch();
-        const timestamp = new Date().toISOString();
-        const gameDates = new Set();
-        liveGamesSnap.forEach(doc => {
-            const backupRef = db.doc(`${getCollectionName('archived_live_games')}/${timestamp}/${doc.id}`);
-            backupBatch.set(backupRef, doc.data());
-            gameDates.add(doc.data().date);
-        });
-        await backupBatch.commit();
-        console.log(`Successfully backed up ${liveGamesSnap.size} live games to archive.`);
-
-        // Process each game
-        for (const gameDoc of liveGamesSnap.docs) {
-            await processAndFinalizeGame(gameDoc, true); // Use auto-finalize logic
-        }
-        console.log("All live games have been processed and finalized.");
-
-        // 3. Cascade updates
-        console.log("Starting cascaded updates...");
-        await performPlayerRankingUpdate();
-        await performPerformanceRankingUpdate();
-        await performWeekUpdate();
-        for (const dateStr of gameDates) {
-            await performBracketUpdate(dateStr);
-        }
-        console.log("Cascaded updates complete.");
-
-        // 4. Shutdown live scoring
-        const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
-        await statusRef.set({
-            status: 'stopped',
-            last_updated_by: `scorekeeper_finalize:${request.auth.uid}`,
-            last_updated: FieldValue.serverTimestamp()
-        }, { merge: true });
-        console.log("Live scoring system has been stopped.");
-
-        return { success: true, message: `Successfully processed ${liveGamesSnap.size} games and completed all overnight tasks.` };
-
-    } catch (error) {
-        console.error("Error during scorekeeper finalization:", error);
-        throw new HttpsError('internal', `An unexpected error occurred: ${error.message}`);
-    }
-});
-
 exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) => {
     if (!(await isScorekeeperOrAdmin(request.auth))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
@@ -2587,40 +2519,79 @@ Example 3: Hounds grab a close win over the KOCK in a great game, which sends th
 
 Now, write a new summary based on the following data:`;
 
-        const apiKey = "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-        
-        const payload = {
-            contents: [{ parts: [{ text: promptData }] }],
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-        };
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const error = await response.json();
-            console.error("Gemini API Error:", error);
-            throw new HttpsError('internal', 'Failed to generate writeup from AI model.');
-        }
-
-        const result = await response.json();
-        const writeup = result.candidates?.[0]?.content?.parts?.[0]?.text;
-        
-        if (!writeup) {
-             throw new HttpsError('internal', 'AI model returned an empty response.');
-        }
-
-        const fullWriteup = `${team1Summary}\n${team2Summary}\n${writeup}`;
-        return { success: true, writeup: fullWriteup };
+        // Return the prompts to the client-side to make the API call
+        return { success: true, promptData, systemPrompt, team1Summary, team2Summary };
 
     } catch (error) {
-        console.error("Error generating game writeup:", error);
+        console.error("Error preparing game writeup data:", error);
         if (error instanceof HttpsError) throw error;
-        throw new HttpsError('internal', 'An unexpected error occurred.');
+        throw new HttpsError('internal', 'An unexpected error occurred while gathering data for the writeup.');
+    }
+});
+
+
+exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async (request) => {
+    // 1. Security Check
+    if (!(await isScorekeeperOrAdmin(request.auth))) {
+        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
+    }
+
+    const userId = request.auth.uid;
+    console.log(`Manual finalization process initiated by user: ${userId}`);
+
+    try {
+        // 2. Database Backup (Simulated) & Archive
+        console.log("Step 1: Backing up and archiving live games...");
+        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+        if (liveGamesSnap.empty) {
+            return { success: true, message: "No live games were active. Process complete." };
+        }
+
+        const archiveBatch = db.batch();
+        const backupTimestamp = new Date().toISOString();
+        liveGamesSnap.docs.forEach(doc => {
+            const archiveRef = db.collection(getCollectionName('archived_live_games')).doc(`${backupTimestamp}-${doc.id}`);
+            archiveBatch.set(archiveRef, { ...doc.data(), archivedAt: FieldValue.serverTimestamp(), archivedBy: userId });
+        });
+        await archiveBatch.commit();
+        console.log(`Archived ${liveGamesSnap.size} games successfully.`);
+
+        // 3. Process and Finalize Games
+        console.log("Step 2: Processing and finalizing games...");
+        for (const gameDoc of liveGamesSnap.docs) {
+            await processAndFinalizeGame(gameDoc, true); // Use the existing robust finalization logic
+        }
+        console.log("All live games have been finalized.");
+
+        // 4. Run the full cascade of overnight processes
+        console.log("Step 3: Triggering stat recalculation cascade...");
+        await performPlayerRankingUpdate();
+        await performPerformanceRankingUpdate();
+        await performWeekUpdate();
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
+        await performBracketUpdate(yesterdayStr);
+        console.log("Stat recalculation cascade complete.");
+
+        // 5. Log the activity
+        console.log("Step 4: Logging scorekeeper activity...");
+        const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
+        await logRef.set({
+            action: 'finalizeAndProcess',
+            userId: userId,
+            userRole: await getUserRole(request.auth),
+            timestamp: FieldValue.serverTimestamp(),
+            details: `Processed and finalized ${liveGamesSnap.size} live games.`
+        });
+        console.log("Activity logged successfully.");
+
+        return { success: true, message: `Successfully finalized ${liveGamesSnap.size} games and updated all stats.` };
+
+    } catch (error) {
+        console.error("Error during scorekeeper finalization process:", error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', 'An unexpected error occurred during the finalization process.');
     }
 });
 
