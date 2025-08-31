@@ -8,6 +8,8 @@ const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
 const { CloudSchedulerClient } = require("@google-cloud/scheduler");
 const schedulerClient = new CloudSchedulerClient();
+const { onCall, HttpsError, runWith } = require("firebase-functions/v2/https");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -2608,6 +2610,37 @@ exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async 
     }
 });
 
+exports.getAiWriteup = onCall({ secrets: ["GOOGLE_AI_KEY"] }, async (request) => {
+    // 1. Security: Ensure the user is authenticated and is a scorekeeper or admin
+    if (!(await isScorekeeperOrAdmin(request.auth))) {
+        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
+    }
+    
+    const { systemPrompt, promptData } = request.data;
+    if (!systemPrompt || !promptData) {
+        throw new HttpsError('invalid-argument', 'The function must be called with prompt data.');
+    }
+
+    try {
+        // 2. Access the secret API key and initialize the AI client
+        const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+        const fullPrompt = `${systemPrompt}\n\n${promptData}`;
+
+        // 3. Call the AI and get the result
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        const writeup = response.text();
+
+        // 4. Return the finished writeup to the client
+        return { success: true, writeup: writeup };
+
+    } catch (error) {
+        console.error("Error calling Google AI:", error);
+        throw new HttpsError('internal', 'Failed to generate writeup from AI model.');
+    }
+});
 
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
