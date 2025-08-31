@@ -183,38 +183,40 @@ async function handleGameSelection(e) {
     if (!selectedGame) return;
 
     writeupContainer.style.display = 'block';
-    writeupOutput.value = 'Preparing writeup data from game stats... Please wait.';
+    writeupOutput.value = 'Gathering game data from database...';
     copyWriteupBtn.disabled = true;
 
     try {
-        const payload = {
+        // Step 1: Call your Cloud Function to get the prepared prompt
+        const generateGameWriteup = httpsCallable(functions, 'generateGameWriteup');
+        const promptResult = await generateGameWriteup({
             gameId: selectedGame.id,
             seasonId: currentSeasonId,
             collectionName: selectedGame.collectionName
-        };
-
-        // --- DEBUGGING LOG ---
-        console.log("SENDING PAYLOAD TO CLOUD FUNCTION:", payload);
-        console.log("FULL GAME DATA FROM CLIENT:", selectedGame);
-
-        const generateGameWriteup = httpsCallable(functions, 'generateGameWriteup');
-        const result = await generateGameWriteup(payload);
+        });
         
-        if (result.data.success) {
-            const fullPrompt = `${result.data.systemPrompt}\n\n${result.data.promptData}`;
-            writeupOutput.value = fullPrompt;
-        } else {
-            throw new Error(result.data.message || 'Unknown error from function.');
+        if (!promptResult.data.success) {
+            throw new Error(promptResult.data.message || 'Error fetching data from cloud function.');
         }
 
+        // Step 2: Call the new, secure Cloud Function with the prompt data
+        writeupOutput.value = 'Prompt received. Generating writeup with Google AI...';
+        const getAiWriteup = httpsCallable(functions, 'getAiWriteup');
+        const aiResult = await getAiWriteup({ 
+            systemPrompt: promptResult.data.systemPrompt,
+            promptData: promptResult.data.promptData 
+        });
+
+        // Step 3: Display the final writeup from the AI
+        writeupOutput.value = aiResult.data.writeup;
+
     } catch (error) {
-        console.error("Error generating writeup:", error);
+        console.error("Error during writeup generation:", error);
         writeupOutput.value = `Error: ${error.message}`;
     } finally {
         copyWriteupBtn.disabled = false;
     }
 }
-
 
 function addLogoutListener() {
     const logoutBtn = document.getElementById('logout-btn');
