@@ -2473,7 +2473,6 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
     
-    // isLive flag is a new parameter from the client
     const { gameId, seasonId, collectionName, isLive } = request.data;
     if (!gameId || !seasonId || !collectionName) {
         throw new HttpsError('invalid-argument', 'Missing required parameters.');
@@ -2483,16 +2482,13 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         let gameData, lineupsData, calculatedTeam1Score, calculatedTeam2Score, determinedWinner, team1Id, team2Id;
 
         if (isLive) {
-            // --- LOGIC FOR LIVE GAMES ---
             const liveGameRef = db.doc(`${getCollectionName('live_games')}/${gameId}`);
             const liveGameSnap = await liveGameRef.get();
             if (!liveGameSnap.exists) throw new HttpsError('not-found', 'Live game not found.');
             
             const liveGameData = liveGameSnap.data();
-            // In a live game, player objects from the lineup are the source of truth for lineups
             const fullLineupFromLiveGame = [...liveGameData.team1_lineup, ...liveGameData.team2_lineup];
 
-            // Fetch the original game document to get team IDs
             const originalGameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(liveGameData.collectionName)}/${gameId}`);
             const originalGameSnap = await originalGameRef.get();
             if (!originalGameSnap.exists) throw new HttpsError('not-found', 'Original game data not found for the live game.');
@@ -2500,8 +2496,6 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             team1Id = gameData.team1_id;
             team2Id = gameData.team2_id;
 
-            // To group players correctly, we need their team_id. The live game lineup doesn't have it.
-            // We must get it from the v2_players collection.
             const playerIds = fullLineupFromLiveGame.map(p => p.player_id);
             const playerDocs = await db.collection(getCollectionName('v2_players')).where(admin.firestore.FieldPath.documentId(), 'in', playerIds).get();
             const teamIdMap = new Map();
@@ -2514,13 +2508,11 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
                 team_id: teamIdMap.get(player.player_id)
             }));
 
-            // Calculate scores and winner on-the-fly
             calculatedTeam1Score = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             calculatedTeam2Score = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
             determinedWinner = calculatedTeam1Score > calculatedTeam2Score ? team1Id : (calculatedTeam2Score > calculatedTeam1Score ? team2Id : '');
 
         } else {
-            // --- LOGIC FOR COMPLETED GAMES (Existing Logic) ---
             const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
             const gameSnap = await gameRef.get();
             if (!gameSnap.exists) throw new HttpsError('not-found', 'Completed game not found.');
@@ -2538,7 +2530,6 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             determinedWinner = gameData.winner;
         }
 
-        // --- COMMON LOGIC FOR PROMPT GENERATION ---
         const team1RecordRef = db.doc(`${getCollectionName('v2_teams')}/${team1Id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${team2Id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
@@ -2548,11 +2539,22 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         const formatScore = (score) => (typeof score === 'number' && isFinite(score) ? score.toFixed(0) : '0');
 
         const team1Name = team1Data?.team_name ?? team1Id;
-        const team1Wins = team1Data?.wins ?? '?';
-        const team1Losses = team1Data?.losses ?? '?';
+        let team1Wins = team1Data?.wins ?? 0;
+        let team1Losses = team1Data?.losses ?? 0;
+        
         const team2Name = team2Data?.team_name ?? team2Id;
-        const team2Wins = team2Data?.wins ?? '?';
-        const team2Losses = team2Data?.losses ?? '?';
+        let team2Wins = team2Data?.wins ?? 0;
+        let team2Losses = team2Data?.losses ?? 0;
+        
+        if (isLive && determinedWinner) {
+            if (determinedWinner === team1Id) {
+                team1Wins++;
+                team2Losses++;
+            } else if (determinedWinner === team2Id) {
+                team2Wins++;
+                team1Losses++;
+            }
+        }
         
         const team1Score = formatScore(calculatedTeam1Score);
         const team2Score = formatScore(calculatedTeam2Score);
