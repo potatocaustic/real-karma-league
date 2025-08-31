@@ -29,7 +29,7 @@ document.head.insertAdjacentHTML('beforeend', `
 <style>
     .new-item-badge {
         display: inline-block;
-        background-color: #28a745; /* MODIFIED: Changed to green */
+        background-color: #28a745;
         color: white;
         padding: 2px 6px;
         font-size: 0.7rem;
@@ -39,7 +39,6 @@ document.head.insertAdjacentHTML('beforeend', `
         vertical-align: middle;
         text-transform: uppercase;
     }
-    /* NEW: Style to remove bullet points from lists */
     .trade-block-item-list {
         list-style-type: none;
         padding-left: 0;
@@ -89,33 +88,8 @@ async function getActiveSeasonId() {
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
+            // The display function now handles all button creation.
             await displayAllTradeBlocks(user.uid);
-
-            // --- ADDED BLOCK: Display Scorekeeper Portal button for authorized users ---
-            if (adminControlsContainer) {
-                const userRef = doc(db, collectionNames.users, user.uid);
-                const userDoc = await getDoc(userRef);
-
-                if (userDoc.exists()) {
-                    const userRole = userDoc.data().role;
-                    if (userRole === 'admin' || userRole === 'scorekeeper') {
-                        adminControlsContainer.style.display = 'block';
-                        const scorekeeperLink = document.createElement('a');
-                        scorekeeperLink.href = '/scorekeeper/dashboard.html';
-                        scorekeeperLink.className = 'edit-btn'; // Use existing button style
-                        scorekeeperLink.textContent = 'Scorekeeper Portal';
-                        scorekeeperLink.style.marginLeft = '1rem';
-                        
-                        // Find the admin container to append to, creating it if needed
-                        let controlsDiv = adminControlsContainer.querySelector('.admin-controls-container');
-                        if(controlsDiv) {
-                            controlsDiv.appendChild(scorekeeperLink);
-                        }
-                    }
-                }
-            }
-            // --- END OF ADDED BLOCK ---
-
         } else {
             window.location.href = '../login.html?reason=unauthorized';
         }
@@ -128,23 +102,43 @@ async function displayAllTradeBlocks(currentUserId) {
         const settingsDoc = await getDoc(settingsDocRef);
         const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
 
+        // --- REVISED LOGIC TO CHECK USER ROLE ---
         let isAdmin = false;
+        let isScorekeeper = false;
         if (currentUserId) {
-            const adminDocRef = doc(db, collectionNames.users, currentUserId);
-            const adminDoc = await getDoc(adminDocRef);
-            isAdmin = adminDoc.exists() && adminDoc.data().role === 'admin';
+            const userDocRef = doc(db, collectionNames.users, currentUserId);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+                const userRole = userDoc.data().role;
+                isAdmin = userRole === 'admin';
+                isScorekeeper = userRole === 'scorekeeper';
+            }
         }
         
-        if (isAdmin && adminControlsContainer) {
+        // --- REVISED LOGIC TO CREATE BUTTONS ---
+        if ((isAdmin || isScorekeeper) && adminControlsContainer) {
             adminControlsContainer.style.display = 'block';
-            adminControlsContainer.innerHTML = `
-                <div class="admin-controls-container">
+
+            let adminButtonsHtml = '';
+            if (isAdmin) {
+                adminButtonsHtml = `
                     <span>Admin Controls:</span>
                     <button id="deadline-btn" class="edit-btn deadline-btn">Activate Trade Deadline</button>
                     <button id="reopen-btn" class="edit-btn reopen-btn">Re-Open Trading</button>
+                `;
+            }
+
+            const scorekeeperButtonHtml = `<a href="/scorekeeper/dashboard.html" class="edit-btn" style="margin-left: 1rem;">Scorekeeper Portal</a>`;
+            
+            // The container and correct buttons are built based on the user's role
+            adminControlsContainer.innerHTML = `
+                <div class="admin-controls-container">
+                    ${adminButtonsHtml}
+                    ${scorekeeperButtonHtml}
                 </div>
             `;
         }
+        // --- END REVISED LOGIC ---
 
         if (tradeBlockStatus === 'closed') {
             container.innerHTML = '<p style="text-align: center; font-weight: bold; font-size: 1.2rem;">Trade Deadline Passed - Trade Block Unavailable</p>';
