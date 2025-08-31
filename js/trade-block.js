@@ -61,17 +61,6 @@ document.head.insertAdjacentHTML('beforeend', `
         color: #007bff;
         font-weight: bold;
     }
-    .edit-my-block-btn {
-        display: block;
-        width: fit-content;
-        margin: 1rem auto 1.5rem auto;
-        padding: 10px 20px;
-        font-size: 1rem;
-        text-align: center;
-    }
-    .dark-mode a.edit-my-block-btn {
-        color: #fff !important;
-    }
 </style>
 `);
 
@@ -88,7 +77,6 @@ async function getActiveSeasonId() {
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // The display function now handles all button creation.
             await displayAllTradeBlocks(user.uid);
         } else {
             window.location.href = '../login.html?reason=unauthorized';
@@ -102,7 +90,6 @@ async function displayAllTradeBlocks(currentUserId) {
         const settingsDoc = await getDoc(settingsDocRef);
         const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
 
-        // --- REVISED LOGIC TO CHECK USER ROLE ---
         let isAdmin = false;
         let isScorekeeper = false;
         if (currentUserId) {
@@ -115,28 +102,24 @@ async function displayAllTradeBlocks(currentUserId) {
             }
         }
         
-        // --- REVISED LOGIC TO CREATE BUTTONS ---
+        // --- REVISED: Admin and Scorekeeper Controls Logic ---
         if ((isAdmin || isScorekeeper) && adminControlsContainer) {
-            adminControlsContainer.style.display = 'block';
-
-            let adminButtonsHtml = '';
+            let buttonsHtml = '';
+            
+            // Add Admin-specific buttons
             if (isAdmin) {
-                adminButtonsHtml = `
+                buttonsHtml += `
                     <span>Admin Controls:</span>
                     <button id="deadline-btn" class="edit-btn deadline-btn">Activate Trade Deadline</button>
                     <button id="reopen-btn" class="edit-btn reopen-btn">Re-Open Trading</button>
                 `;
             }
 
-            const scorekeeperButtonHtml = `<a href="/scorekeeper/dashboard.html" class="edit-btn" style="margin-left: 1rem;">Scorekeeper Portal</a>`;
+            // Add Scorekeeper button (visible to Admins too)
+            buttonsHtml += `<a href="/scorekeeper/dashboard.html" class="edit-btn" style="color: white;">Scorekeeper Portal</a>`;
             
-            // The container and correct buttons are built based on the user's role
-            adminControlsContainer.innerHTML = `
-                <div class="admin-controls-container">
-                    ${adminButtonsHtml}
-                    ${scorekeeperButtonHtml}
-                </div>
-            `;
+            adminControlsContainer.innerHTML = `<div class="admin-controls-container">${buttonsHtml}</div>`;
+            adminControlsContainer.style.display = 'flex'; // Use flex to align items
         }
         // --- END REVISED LOGIC ---
 
@@ -200,11 +183,17 @@ async function displayAllTradeBlocks(currentUserId) {
             }
         }
         
+        // --- REVISED: GM "Edit" button logic ---
+        // This button is now created here and placed in the admin controls container
         if (currentUserTeamId && !isAdmin) {
             const myTeamData = allTeamsMap.get(currentUserTeamId);
-            const buttonHtml = `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn edit-my-block-btn">Edit ${myTeamData.team_name} Trade Block</a>`;
-            if (pageHeader) pageHeader.insertAdjacentHTML('afterend', buttonHtml);
+            const buttonHtml = `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn">${myTeamData.team_name} Trade Block</a>`;
+            if(adminControlsContainer) {
+                adminControlsContainer.innerHTML += buttonHtml;
+                adminControlsContainer.style.display = 'flex';
+            }
         }
+        // --- END REVISED LOGIC ---
 
         if (tradeBlocksSnap.empty) {
             handleEmptyState(isAdmin, currentUserTeamId, allTeamsMap);
