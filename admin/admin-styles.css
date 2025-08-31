@@ -573,8 +573,9 @@ main {
     font-weight: bold;
 }
 
+/* --- FIX: Updated rules for #last-sample-log --- */
 #last-sample-log {
-    background-color: #f2f2f2;
+    background-color: #f8f9fa; /* Lighter background for light mode */
     border: 1px solid #e0e0e0;
     padding: 1rem;
     border-radius: 4px;
@@ -583,9 +584,8 @@ main {
     font-family: monospace;
     font-size: 0.85rem;
     line-height: 1.4;
-    color: #333;
+    color: #212529; /* Darker text for better legibility */
 }
-
 #last-sample-log p {
     margin: 0;
     padding: 2px 0;
@@ -601,16 +601,17 @@ main {
     display: none;
 }
 
+/* --- FIX: Updated rules for #writeup-output --- */
 #writeup-output {
     width: 100%;
     height: 300px;
     font-family: monospace;
     white-space: pre-wrap;
-    background-color: #f9f9f9;
+    background-color: #fff; /* White background for light mode */
     border: 1px solid #ccc;
     padding: 1rem;
     border-radius: 4px;
-    color: #333;
+    color: #212529; /* Darker text for better legibility */
     resize: vertical;
 }
 
@@ -661,6 +662,11 @@ main {
 .dark-mode .team-sub-details,
 .dark-mode .modal-content-admin p {
     color: #bbb;
+}
+
+/* --- FIX: Added specific rule for description text in dark mode --- */
+.dark-mode .description-text {
+    color: #ccc;
 }
 
 .dark-mode .nav-card {
@@ -811,23 +817,32 @@ main {
     border-bottom-color: #444;
 }
 
-#last-sample-log {
-    background-color: #2a2a2a;
+/* --- FIX: Updated dark mode rules for #last-sample-log --- */
+.dark-mode #last-sample-log {
+    background-color: #1e1e1e; /* Darker background */
     border-color: #444;
+    color: #e0e0e0; /* Lighter base text */
+}
+.dark-mode #last-sample-log p {
+    color: #ccc;
+}
+.dark-mode #last-sample-log p strong {
+    color: #fff;
 }
 
-#writeup-output {
-    background-color: #2a2a2a;
+/* --- FIX: Updated dark mode rules for #writeup-output --- */
+.dark-mode #writeup-output {
+    background-color: #1e1e1e; /* Darker background */
     border-color: #444;
-    color: #eee;
+    color: #f0f0f0; /* Lighter text */
 }
 
-#progress-bar-container {
+.dark-mode #progress-bar-container {
     background-color: #444;
 }
-#progress-bar {
+.dark-mode #progress-bar {
     background-color: #90caf9;
 }
-#sample-progress-bar {
+.dark-mode #sample-progress-bar {
     background-color: #ffd740;
 }
