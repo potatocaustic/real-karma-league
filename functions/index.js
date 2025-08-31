@@ -2490,7 +2490,6 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team2_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
 
-        // **FIX**: Check for existence and provide fallbacks to prevent crashes
         const team1 = team1RecordSnap.exists() 
             ? team1RecordSnap.data() 
             : { team_name: game.team1_id, wins: '?', losses: '?' };
@@ -2500,8 +2499,12 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
 
         // Prepare data for the prompt
         const winnerId = game.winner;
-        const team1Summary = `${team1.team_name} (${team1.wins}-${team1.losses}) - ${game.team1_score.toFixed(0)} ${winnerId === game.team1_id ? '✅' : '❌'}`;
-        const team2Summary = `${team2.team_name} (${team2.wins}-${team2.losses}) - ${game.team2_score.toFixed(0)} ${winnerId === game.team2_id ? '✅' : '❌'}`;
+        // **FIX**: Safely handle potentially null, undefined, or non-numeric scores
+        const team1Score = typeof game.team1_score === 'number' ? game.team1_score.toFixed(0) : '0';
+        const team2Score = typeof game.team2_score === 'number' ? game.team2_score.toFixed(0) : '0';
+
+        const team1Summary = `${team1.team_name} (${team1.wins}-${team1.losses}) - ${team1Score} ${winnerId === game.team1_id ? '✅' : '❌'}`;
+        const team2Summary = `${team2.team_name} (${team2.wins}-${team2.losses}) - ${team2Score} ${winnerId === game.team2_id ? '✅' : '❌'}`;
 
         const topPerformers = lineupsSnap.docs
             .map(doc => doc.data())
