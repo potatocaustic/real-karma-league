@@ -187,12 +187,18 @@ async function handleGameSelection(e) {
     copyWriteupBtn.disabled = true;
 
     try {
-        const generateGameWriteup = httpsCallable(functions, 'generateGameWriteup');
-        const result = await generateGameWriteup({
+        const payload = {
             gameId: selectedGame.id,
             seasonId: currentSeasonId,
             collectionName: selectedGame.collectionName
-        });
+        };
+
+        // --- DEBUGGING LOG ---
+        console.log("SENDING PAYLOAD TO CLOUD FUNCTION:", payload);
+        console.log("FULL GAME DATA FROM CLIENT:", selectedGame);
+
+        const generateGameWriteup = httpsCallable(functions, 'generateGameWriteup');
+        const result = await generateGameWriteup(payload);
         
         if (result.data.success) {
             const fullPrompt = `${result.data.systemPrompt}\n\n${result.data.promptData}`;
