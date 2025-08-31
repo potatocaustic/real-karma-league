@@ -143,25 +143,57 @@ async function fetchAndPopulateGames(seasonId, week) {
     gameSelect.innerHTML = '<option>Loading games...</option>';
     writeupContainer.style.display = 'none';
 
-    const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation';
-    const isExhibition = week === 'All-Star' || week === 'Relegation';
-    let collectionName = isPostseason ? 'post_games' : (isExhibition ? 'exhibition_games' : 'games');
-
-    const gamesQuery = query(collection(db, getCollectionName("seasons"), seasonId, getCollectionName(collectionName)), where("week", "==", week), where("completed", "==", "TRUE"));
-
     try {
-        const querySnapshot = await getDocs(gamesQuery);
-        if (querySnapshot.empty) {
-            gameSelect.innerHTML = '<option>No completed games found</option>';
+        // --- FETCH COMPLETED GAMES (Existing Logic) ---
+        const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation';
+        const isExhibition = week === 'All-Star' || week === 'Relegation';
+        let completedCollectionName = isPostseason ? 'post_games' : (isExhibition ? 'exhibition_games' : 'games');
+        const completedGamesQuery = query(collection(db, getCollectionName("seasons"), seasonId, getCollectionName(completedCollectionName)), where("week", "==", week), where("completed", "==", "TRUE"));
+        const completedSnapshot = await getDocs(completedGamesQuery);
+        const completedGames = completedSnapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            collectionName: completedCollectionName,
+            isLive: false, 
+            ...doc.data() 
+        }));
+
+        // --- FETCH LIVE GAMES (New Logic) ---
+        const liveGamesQuery = query(collection(db, getCollectionName("live_games")), where("seasonId", "==", seasonId));
+        const liveSnapshot = await getDocs(liveGamesQuery);
+        const liveGames = [];
+        for (const liveDoc of liveSnapshot.docs) {
+             const liveData = liveDoc.data();
+             const originalGameRef = doc(db, getCollectionName("seasons"), seasonId, getCollectionName(liveData.collectionName), liveDoc.id);
+             const originalGameSnap = await getDoc(originalGameRef);
+             if (originalGameSnap.exists() && originalGameSnap.data().week === week) {
+                 const originalGameData = originalGameSnap.data();
+                 liveGames.push({ 
+                     id: liveDoc.id, 
+                     isLive: true, 
+                     // Add collectionName from the live doc to pass to the backend
+                     collectionName: liveData.collectionName,
+                     // Add other necessary fields from original game doc for the label
+                     team1_id: originalGameData.team1_id,
+                     team2_id: originalGameData.team2_id
+                 });
+             }
+        }
+
+        // --- MERGE AND POPULATE DROPDOWN ---
+        const allGames = [...liveGames, ...completedGames];
+
+        if (allGames.length === 0) {
+            gameSelect.innerHTML = '<option>No live or completed games found</option>';
             return;
         }
 
-        currentGames = querySnapshot.docs.map(doc => ({ id: doc.id, collectionName, ...doc.data() }));
+        currentGames = allGames; // Store merged list in the global cache
         
-        let gamesOptions = currentGames.map(game => {
+        let gamesOptions = allGames.map(game => {
             const team1 = allTeams.get(game.team1_id);
             const team2 = allTeams.get(game.team2_id);
-            const label = `${team1?.team_name || game.team1_id} vs ${team2?.team_name || game.team2_id}`;
+            const label = `${team1?.team_name || game.team1_id} vs ${team2?.team_name || game.team2_id} ${game.isLive ? '(Live)' : ''}`;
+            // Use game.id which is the unique game identifier
             return `<option value="${game.id}">${label}</option>`;
         }).join('');
         gameSelect.innerHTML = `<option value="">Select a game...</option>${gamesOptions}`;
@@ -187,12 +219,13 @@ async function handleGameSelection(e) {
     copyWriteupBtn.disabled = true;
 
     try {
-        // Step 1: Call your first Cloud Function to get the prepared prompt
+        // Step 1: Call your Cloud Function to get the prepared prompt
         const generateGameWriteup = httpsCallable(functions, 'generateGameWriteup');
         const promptResult = await generateGameWriteup({
             gameId: selectedGame.id,
             seasonId: currentSeasonId,
-            collectionName: selectedGame.collectionName
+            collectionName: selectedGame.collectionName,
+            isLive: selectedGame.isLive // Add this new flag
         });
         
         if (!promptResult.data.success) {

@@ -2473,65 +2473,106 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
     
-    const { gameId, seasonId, collectionName } = request.data;
+    // isLive flag is a new parameter from the client
+    const { gameId, seasonId, collectionName, isLive } = request.data;
     if (!gameId || !seasonId || !collectionName) {
         throw new HttpsError('invalid-argument', 'Missing required parameters.');
     }
 
     try {
-        const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
-        const gameSnap = await gameRef.get();
+        let gameData, lineupsData, calculatedTeam1Score, calculatedTeam2Score, determinedWinner, team1Id, team2Id;
 
-        if (!gameSnap.exists) { // Corrected: .exists property
-            throw new HttpsError('not-found', `Game document not found at path: ${gameRef.path}`);
+        if (isLive) {
+            // --- LOGIC FOR LIVE GAMES ---
+            const liveGameRef = db.doc(`${getCollectionName('live_games')}/${gameId}`);
+            const liveGameSnap = await liveGameRef.get();
+            if (!liveGameSnap.exists) throw new HttpsError('not-found', 'Live game not found.');
+            
+            const liveGameData = liveGameSnap.data();
+            // In a live game, player objects from the lineup are the source of truth for lineups
+            const fullLineupFromLiveGame = [...liveGameData.team1_lineup, ...liveGameData.team2_lineup];
+
+            // Fetch the original game document to get team IDs
+            const originalGameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(liveGameData.collectionName)}/${gameId}`);
+            const originalGameSnap = await originalGameRef.get();
+            if (!originalGameSnap.exists) throw new HttpsError('not-found', 'Original game data not found for the live game.');
+            gameData = originalGameSnap.data();
+            team1Id = gameData.team1_id;
+            team2Id = gameData.team2_id;
+
+            // To group players correctly, we need their team_id. The live game lineup doesn't have it.
+            // We must get it from the v2_players collection.
+            const playerIds = fullLineupFromLiveGame.map(p => p.player_id);
+            const playerDocs = await db.collection(getCollectionName('v2_players')).where(admin.firestore.FieldPath.documentId(), 'in', playerIds).get();
+            const teamIdMap = new Map();
+            playerDocs.forEach(doc => {
+                teamIdMap.set(doc.id, doc.data().current_team_id);
+            });
+            
+            lineupsData = fullLineupFromLiveGame.map(player => ({
+                ...player,
+                team_id: teamIdMap.get(player.player_id)
+            }));
+
+            // Calculate scores and winner on-the-fly
+            calculatedTeam1Score = liveGameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+            calculatedTeam2Score = liveGameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+            determinedWinner = calculatedTeam1Score > calculatedTeam2Score ? team1Id : (calculatedTeam2Score > calculatedTeam1Score ? team2Id : '');
+
+        } else {
+            // --- LOGIC FOR COMPLETED GAMES (Existing Logic) ---
+            const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
+            const gameSnap = await gameRef.get();
+            if (!gameSnap.exists) throw new HttpsError('not-found', 'Completed game not found.');
+            gameData = gameSnap.data();
+            team1Id = gameData.team1_id;
+            team2Id = gameData.team2_id;
+
+            const lineupsCollection = getCollectionName(collectionName.replace('games', 'lineups'));
+            const lineupsQuery = db.collection(`${getCollectionName('seasons')}/${seasonId}/${lineupsCollection}`).where('game_id', '==', gameId);
+            const lineupsSnap = await lineupsQuery.get();
+            lineupsData = lineupsSnap.docs.map(doc => doc.data());
+            
+            calculatedTeam1Score = gameData.team1_score;
+            calculatedTeam2Score = gameData.team2_score;
+            determinedWinner = gameData.winner;
         }
-        const game = gameSnap.data();
 
-        const lineupsCollection = getCollectionName(collectionName.replace('games', 'lineups'));
-        const lineupsQuery = db.collection(`${getCollectionName('seasons')}/${seasonId}/${lineupsCollection}`).where('game_id', '==', gameId);
-        const lineupsSnap = await lineupsQuery.get();
-        
-        const team1RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team1_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
-        const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team2_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+        // --- COMMON LOGIC FOR PROMPT GENERATION ---
+        const team1RecordRef = db.doc(`${getCollectionName('v2_teams')}/${team1Id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+        const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${team2Id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
-
+        
         const team1Data = team1RecordSnap.data();
         const team2Data = team2RecordSnap.data();
-
         const formatScore = (score) => (typeof score === 'number' && isFinite(score) ? score.toFixed(0) : '0');
 
-        const team1Name = team1Data?.team_name ?? game.team1_id;
+        const team1Name = team1Data?.team_name ?? team1Id;
         const team1Wins = team1Data?.wins ?? '?';
         const team1Losses = team1Data?.losses ?? '?';
-        const team2Name = team2Data?.team_name ?? game.team2_id;
+        const team2Name = team2Data?.team_name ?? team2Id;
         const team2Wins = team2Data?.wins ?? '?';
         const team2Losses = team2Data?.losses ?? '?';
         
-        const team1Score = formatScore(game.team1_score);
-        const team2Score = formatScore(game.team2_score);
+        const team1Score = formatScore(calculatedTeam1Score);
+        const team2Score = formatScore(calculatedTeam2Score);
         
-        const team1Summary = `${team1Name} (${team1Wins}-${team1Losses}) - ${team1Score} ${game.winner === game.team1_id ? '✅' : '❌'}`;
-        const team2Summary = `${team2Name} (${team2Wins}-${team2Losses}) - ${team2Score} ${game.winner === game.team2_id ? '✅' : '❌'}`;
+        const team1Summary = `${team1Name} (${team1Wins}-${team1Losses}) - ${team1Score} ${determinedWinner === team1Id ? '✅' : '❌'}`;
+        const team2Summary = `${team2Name} (${team2Wins}-${team2Losses}) - ${team2Score} ${determinedWinner === team2Id ? '✅' : '❌'}`;
 
-        // ==================== START: REVISED LOGIC ====================
-        
-        // Filter and sort all top 100 performers from the game
-        const top100Performers = lineupsSnap.docs
-            .map(doc => doc.data())
+        const top100Performers = lineupsData
             .filter(p => p && typeof p === 'object' && p.global_rank > 0 && p.global_rank <= 100)
             .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999));
 
-        // Helper function to format player info into a string
         const formatPlayerString = p => `@${p.player_handle || 'unknown'} (${p.global_rank}${p.is_captain === 'TRUE' ? ', captain' : ''})`;
 
-        // Group the performers by their team ID
         const team1PerformersString = top100Performers
-            .filter(p => p.team_id === game.team1_id)
+            .filter(p => p.team_id === team1Id)
             .map(formatPlayerString)
             .join(', ');
 
         const team2PerformersString = top100Performers
-            .filter(p => p.team_id === game.team2_id)
+            .filter(p => p.team_id === team2Id)
             .map(formatPlayerString)
             .join(', ');
 
@@ -2541,7 +2582,6 @@ Matchup: ${team1Summary} vs ${team2Summary}
 ${team1Name} Top 100 Performers: ${team1PerformersString || 'None'}
 ${team2Name} Top 100 Performers: ${team2PerformersString || 'None'}
 `;
-        // ==================== END: REVISED LOGIC ====================
         
         const systemPrompt = `You are a sports writer for a fantasy league called the Real Karma League. You write short, engaging game summaries to an audience of mostly 18-25 year olds. Voice should err on the side of dry rather than animated. You MUST mention every player from the 'Top 100 Performers' list, putting an '@' symbol before their handle.
 
