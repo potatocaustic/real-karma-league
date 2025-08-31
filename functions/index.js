@@ -2497,11 +2497,21 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             ? team2RecordSnap.data() 
             : { team_name: game.team2_id, wins: '?', losses: '?' };
 
-        // Prepare data for the prompt
+        // ==================== START: REVISED CODE ====================
+        
+        // Helper function to safely format scores, handling null, NaN, and Infinity.
+        const formatScore = (score) => {
+            if (typeof score === 'number' && isFinite(score)) {
+                return score.toFixed(0);
+            }
+            return '0'; // Default to '0' for any invalid score
+        };
+
         const winnerId = game.winner;
-        // **FIX**: Safely handle potentially null, undefined, or non-numeric scores
-        const team1Score = typeof game.team1_score === 'number' ? game.team1_score.toFixed(0) : '0';
-        const team2Score = typeof game.team2_score === 'number' ? game.team2_score.toFixed(0) : '0';
+        const team1Score = formatScore(game.team1_score);
+        const team2Score = formatScore(game.team2_score);
+        
+        // ==================== END: REVISED CODE ====================
 
         const team1Summary = `${team1.team_name} (${team1.wins}-${team1.losses}) - ${team1Score} ${winnerId === game.team1_id ? '✅' : '❌'}`;
         const team2Summary = `${team2.team_name} (${team2.wins}-${team2.losses}) - ${team2Score} ${winnerId === game.team2_id ? '✅' : '❌'}`;
