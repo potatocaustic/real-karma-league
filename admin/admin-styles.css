@@ -19,89 +19,90 @@ main {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
+    margin-top: 2rem;
 }
 
 .nav-card {
     background-color: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
     text-align: center;
-    transition: all 0.3s ease;
     text-decoration: none;
-    color: inherit;
-    border: 1px solid #ddd;
+    color: #333;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 180px;
 }
 
     .nav-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        border-color: #007bff;
+        transform: translateY(-5px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
     }
 
 .nav-card-icon {
     font-size: 3rem;
     margin-bottom: 1rem;
-    color: #007bff;
 }
 
 .nav-card-title {
-    font-size: 1.3rem;
+    font-size: 1.5rem;
     font-weight: bold;
     margin-bottom: 0.5rem;
-    color: #333;
 }
 
 .nav-card-description {
+    font-size: 0.9rem;
     color: #666;
-    font-size: 0.95rem;
 }
 
-/* /admin/admin-styles.css - ADDITIONS */
-
-/* Back link */
 .back-link {
-    display: block;
+    display: inline-block;
     margin-bottom: 1.5rem;
     color: #007bff;
     text-decoration: none;
     font-weight: bold;
 }
 
-/* Filters */
+.back-link:hover {
+    text-decoration: underline;
+}
+
 .filters-container {
     display: flex;
+    flex-wrap: wrap;
     gap: 1.5rem;
     margin-bottom: 2rem;
-    padding: 1rem;
-    background-color: #f8f9fa;
-    border-radius: 6px;
+    padding: 1.5rem;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .filter-group {
-    display: flex;
-    flex-direction: column;
+    flex: 1;
+    min-width: 200px;
 }
 
     .filter-group label {
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 0.25rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+        display: block;
+        color: #555;
     }
 
     .filter-group select {
-        padding: 0.5rem;
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid #ccc;
         border-radius: 4px;
-        border: 1px solid #ddd;
-        min-width: 200px;
+        background-color: #f9f9f9;
+        color: #333;
+        font-size: 1rem;
     }
-
-/* Game List */
-#games-list-container .placeholder-text {
-    color: #888;
-    text-align: center;
-    padding: 2rem;
-}
 
 .game-entry {
     display: flex;
@@ -114,66 +115,75 @@ main {
     background-color: #fff;
 }
 
-/* FIX: ADDED this rule */
 .game-details {
-    flex-grow: 1; /* Make the details container expand, pushing other elements to the right */
+    flex-grow: 1;
 }
 
 .game-teams {
     font-size: 1.1rem;
-    /* FIX: REMOVED flex-grow from here */
 }
 
 .game-score {
-    width: 150px; /* FIX: Use a fixed width instead of min-width for perfect alignment */
+    width: 150px;
     text-align: center;
     font-weight: bold;
     color: #555;
 }
 
-/* Admin Buttons */
-.btn-admin-edit, .btn-admin-save, .btn-admin-delete {
-    padding: 0.5rem 1rem;
+.btn-admin-primary,
+.btn-admin-secondary,
+.btn-admin-edit, 
+.btn-admin-save, 
+.btn-admin-delete {
+    padding: 0.8rem 1.5rem;
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-size: 1rem;
     font-weight: 500;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s ease;
 }
 
-.btn-admin-edit {
+.btn-admin-primary {
     background-color: #007bff;
     color: white;
 }
-
-    .btn-admin-edit:hover {
-        background-color: #0056b3;
-    }
-
+.btn-admin-primary:hover {
+    background-color: #0056b3;
+}
+.btn-admin-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+.btn-admin-secondary:hover {
+    background-color: #545b62;
+}
+.btn-admin-edit {
+    background-color: #ffc107;
+    color: #333;
+}
+.btn-admin-edit:hover {
+    background-color: #e0a800;
+}
 .btn-admin-save {
     background-color: #28a745;
     color: white;
     width: 100%;
     margin-top: 1rem;
 }
-
-    .btn-admin-save:hover {
-        background-color: #218838;
-    }
-
+.btn-admin-save:hover {
+    background-color: #218838;
+}
 .btn-admin-delete {
     background-color: #dc3545;
     color: white;
 }
+.btn-admin-delete:hover {
+    background-color: #c82333;
+}
 
-    .btn-admin-delete:hover {
-        background-color: #c82333;
-    }
-
-
-/* MODAL STYLING FIX */
 .modal-admin {
-    display: none; /* Hidden by default */
+    display: none;
     position: fixed;
     z-index: 1001;
     left: 0;
@@ -181,29 +191,39 @@ main {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.6);
-    /* Use flexbox for centering */
     align-items: center;
     justify-content: center;
-    padding: 1rem; /* Provides spacing on smaller viewports */
+    padding: 1rem;
 }
 
-    .modal-admin.is-visible {
-        display: flex;
-    }
+.modal-admin.is-visible {
+    display: flex;
+}
 
 .modal-content-admin {
     background-color: #fefefe;
-    margin: 0; /* Let flexbox handle positioning */
+    margin: 0;
     padding: 2rem;
     border-radius: 8px;
     width: 90%;
-    max-width: 500px;
+    max-width: 600px;
     position: relative;
     box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    /* Handle content overflow */
     max-height: 90vh;
     overflow-y: auto;
+    color: #333;
+    text-align: center;
 }
+.modal-content-admin h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #333;
+}
+.modal-content-admin p {
+    margin-bottom: 1.5rem;
+    color: #555;
+}
+
 
 .close-btn-admin {
     color: #aaa;
@@ -215,30 +235,22 @@ main {
     cursor: pointer;
 }
 
-.modal-content-admin h3 {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-}
-
 .form-group-admin {
     margin-bottom: 1rem;
 }
-
-    .form-group-admin label {
-        display: block;
-        margin-bottom: 0.5rem;
-    }
-
-    .form-group-admin input[type="number"],
-    .form-group-admin input[type="text"],
-    .form-group-admin input[type="date"],
-    .form-group-admin select {
-        width: 100%;
-        padding: 0.75rem;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
+.form-group-admin label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+.form-group-admin input[type="number"],
+.form-group-admin input[type="text"],
+.form-group-admin input[type="date"],
+.form-group-admin select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
 
 .form-grid {
     display: grid;
@@ -246,9 +258,6 @@ main {
     gap: 1rem;
 }
 
-/* /admin/admin-styles.css - ADDITIONS */
-
-/* Search Container */
 .search-container {
     margin-bottom: 2rem;
 }
@@ -261,8 +270,7 @@ main {
     border-radius: 6px;
 }
 
-/* Player List */
-.player-entry {
+.player-entry, .team-entry {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -273,23 +281,22 @@ main {
     background-color: #fff;
 }
 
-.player-details {
+.player-details, .team-details {
     display: flex;
     flex-direction: column;
 }
 
-.player-handle {
+.player-handle, .team-name {
     font-size: 1.1rem;
     font-weight: 500;
 }
 
-.player-sub-details {
+.player-sub-details, .team-sub-details {
     font-size: 0.85rem;
     color: #666;
     margin-top: 0.25rem;
 }
 
-/* Player Modal Form */
 .read-only-field {
     padding: 0.75rem;
     background-color: #f0f0f0;
@@ -303,14 +310,10 @@ main {
     align-items: center;
     margin-top: 0.5rem;
 }
+.checkbox-group input {
+    margin-right: 0.5rem;
+}
 
-    .checkbox-group input {
-        margin-right: 0.5rem;
-    }
-
-/* /admin/admin-styles.css - ADDITIONS */
-
-/* Transaction Form */
 .form-container-admin {
     padding: 2rem;
     background-color: #fff;
@@ -325,12 +328,12 @@ main {
     border-radius: 6px;
 }
 
-    .transaction-section h4 {
-        margin-top: 0;
-        margin-bottom: 1.5rem;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 0.5rem;
-    }
+.transaction-section h4 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+}
 
 .trade-party-block {
     padding: 1rem;
@@ -361,17 +364,8 @@ main {
     border-radius: 4px;
 }
 
-    .asset-item span {
-        font-weight: 500;
-    }
-
-.btn-admin-secondary {
-    background-color: #6c757d;
-    color: white;
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+.asset-item span {
+    font-weight: 500;
 }
 
 .btn-admin-add-asset {
@@ -395,98 +389,64 @@ main {
     cursor: pointer;
 }
 
-/* /admin/admin-styles.css - ADDITIONS */
-
-/* Team List */
-.team-entry {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 0.5rem;
-    background-color: #fff;
-}
-
-.team-details {
-    display: flex;
-    flex-direction: column;
-}
-
-.team-name {
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-
-.team-sub-details {
-    font-size: 0.85rem;
-    color: #666;
-    margin-top: 0.25rem;
-}
-
-/* --- NEW: Draft Management Styles --- */
 .draft-table-container {
-    overflow-x: auto; /* Allows horizontal scrolling on small screens */
+    overflow-x: auto;
 }
 
-.draft-table {
+.draft-table, .power-rankings-table, .schedule-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 1.5rem;
 }
 
-    .draft-table th, .draft-table td {
-        border: 1px solid #ddd;
-        padding: 0.75rem;
-        text-align: left;
-        vertical-align: middle;
-    }
+.draft-table th, .draft-table td,
+.power-rankings-table th, .power-rankings-table td,
+.schedule-table th, .schedule-table td {
+    border: 1px solid #ddd;
+    padding: 0.75rem;
+    text-align: left;
+    vertical-align: middle;
+}
 
-    .draft-table th {
-        background-color: #f2f2f2;
-    }
+.draft-table th, .power-rankings-table th, .schedule-table th {
+    background-color: #f2f2f2;
+}
 
-    .draft-table tr:nth-child(even) {
-        background-color: #f9f9f9;
-    }
+.draft-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
 
-    /* Make inputs and selects in the table take up full cell width */
-    .draft-table input[type="text"],
-    .draft-table select {
-        width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
+.draft-table input[type="text"],
+.draft-table select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
 
-    .draft-table input[type="checkbox"] {
-        width: 20px;
-        height: 20px;
-    }
+.draft-table input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+}
 
-    /* Read-only cells for overall and round numbers */
-    .draft-table td.read-only {
-        font-weight: bold;
-        background-color: #e9ecef;
-        text-align: center;
-    }
+.draft-table td.read-only {
+    font-weight: bold;
+    background-color: #e9ecef;
+    text-align: center;
+}
 
-    /* Style for forfeited rows */
-    .draft-table tr.is-forfeited {
-        background-color: #f8d7da; /* Light red */
-        text-decoration: line-through;
-        color: #721c24; /* Dark red text */
-    }
+.draft-table tr.is-forfeited {
+    background-color: #f8d7da;
+    text-decoration: line-through;
+    color: #721c24;
+}
 
-        /* FIX: Use a more specific selector to avoid disabling the checkbox itself */
-        .draft-table tr.is-forfeited input:not([type="checkbox"]),
-        .draft-table tr.is-forfeited select {
-            background-color: #f1b0b7;
-            pointer-events: none; /* Disable inputs on forfeited rows */
-        }
+.draft-table tr.is-forfeited input:not([type="checkbox"]),
+.draft-table tr.is-forfeited select {
+    background-color: #f1b0b7;
+    pointer-events: none;
+}
 
-/* --- NEW: Awards Management Styles --- */
 .awards-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -494,19 +454,19 @@ main {
     align-items: start;
 }
 
-.awards-section {
+.awards-section, .schedule-section {
     background-color: #fff;
     padding: 1.5rem;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
 }
 
-    .awards-section h3 {
-        margin-top: 0;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 0.75rem;
-        margin-bottom: 1.5rem;
-    }
+.awards-section h3, .schedule-section h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1.5rem;
+}
 
 .team-selection-grid {
     display: grid;
@@ -527,58 +487,43 @@ main {
     margin-top: 1rem;
 }
 
-    .auto-award-display p {
-        margin: 0.5rem 0;
-        font-size: 1rem;
-    }
-
-    .auto-award-display strong {
-        color: #0056b3;
-    }
-
-
-/* --- NEW: Power Rankings Styles --- */
-.power-rankings-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 1.5rem;
+.auto-award-display p {
+    margin: 0.5rem 0;
+    font-size: 1rem;
 }
 
-    .power-rankings-table th, .power-rankings-table td {
-        border: 1px solid #ddd;
-        padding: 0.75rem;
-        text-align: center;
-        vertical-align: middle;
-    }
+.auto-award-display strong {
+    color: #0056b3;
+}
 
-    .power-rankings-table th {
-        background-color: #f2f2f2;
-    }
+.power-rankings-table td {
+    text-align: center;
+}
 
-    .power-rankings-table td:first-child {
-        text-align: left;
-        font-weight: bold;
-    }
+.power-rankings-table td:first-child {
+    text-align: left;
+    font-weight: bold;
+}
 
-    .power-rankings-table .rank-select {
-        width: 80px;
-        padding: 0.5rem;
-    }
+.power-rankings-table .rank-select {
+    width: 80px;
+    padding: 0.5rem;
+}
 
-    .power-rankings-table .rank-change.positive {
-        color: #28a745;
-        font-weight: bold;
-    }
+.power-rankings-table .rank-change.positive {
+    color: #28a745;
+    font-weight: bold;
+}
 
-    .power-rankings-table .rank-change.negative {
-        color: #dc3545;
-        font-weight: bold;
-    }
+.power-rankings-table .rank-change.negative {
+    color: #dc3545;
+    font-weight: bold;
+}
 
-    .power-rankings-table tr.has-duplicate .rank-select {
-        border-color: #dc3545;
-        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
-    }
+.power-rankings-table tr.has-duplicate .rank-select {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+}
 
 .validation-message {
     margin-top: 1rem;
@@ -587,45 +532,12 @@ main {
     text-align: right;
 }
 
-/* --- Schedule Manager Styles --- */
-.schedule-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-}
-
-.schedule-section {
-    background-color: #fff;
-    padding: 1.5rem;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-}
-
-    .schedule-section h3 {
-        margin-top: 0;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 0.75rem;
-        margin-bottom: 1.5rem;
-    }
-
-.schedule-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-    .schedule-table th, .schedule-table td {
-        border: 1px solid #ddd;
-        padding: 0.75rem;
-        text-align: left;
-    }
-
 .postseason-dates-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
 }
 
-/* Collapsible week styles */
 .week-details, .round-details {
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -637,17 +549,16 @@ main {
     padding: 0.75rem;
     cursor: pointer;
     background-color: #f8f9fa;
-    list-style: none; /* Hide the default marker */
+    list-style: none;
 }
 
-    .week-summary::-webkit-details-marker, .round-summary::-webkit-details-marker {
-        display: none; /* Hide the default marker for Chrome/Safari */
-    }
+.week-summary::-webkit-details-marker, .round-summary::-webkit-details-marker {
+    display: none;
+}
 
-
-    .week-summary:hover, .round-summary:hover {
-        background-color: #e9ecef;
-    }
+.week-summary:hover, .round-summary:hover {
+    background-color: #e9ecef;
+}
 
 .week-details[open] .week-summary,
 .round-details[open] .round-summary {
@@ -658,14 +569,265 @@ main {
     padding: 1rem;
 }
 
-/* --- NEW: Live Scoring Sample Log Styles --- */
+#system-status, #next-sample-display, #last-update-display {
+    font-weight: bold;
+}
+
 #last-sample-log {
-    font-family: monospace;
-    font-size: 0.9rem;
-    max-height: 150px;
-    overflow-y: auto;
-    background-color: #f8f9fa; /* Light gray background */
-    border: 1px solid #e0e0e0;   /* Subtle border */
+    background-color: #f2f2f2;
+    border: 1px solid #e0e0e0;
     padding: 1rem;
-    border-radius: 6px;
+    border-radius: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #333;
+}
+
+#last-sample-log p {
+    margin: 0;
+    padding: 2px 0;
+}
+
+#writeup-container {
+    margin-top: 2rem;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    display: none;
+}
+
+#writeup-output {
+    width: 100%;
+    height: 300px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    border-radius: 4px;
+    color: #333;
+    resize: vertical;
+}
+
+.writeup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+#progress-bar-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+#progress-bar {
+    width: 0%;
+    height: 20px;
+    background-color: #007bff;
+    transition: width 0.2s ease-in-out;
+}
+#sample-progress-bar {
+    background-color: #ffc107;
+    transition: width 0.3s linear;
+}
+
+/* -------------------------------------- */
+/* Dark Mode Specific Styles              */
+/* -------------------------------------- */
+.dark-mode .form-container-admin,
+.dark-mode .game-entry,
+.dark-mode .player-entry,
+.dark-mode .team-entry,
+.dark-mode .transaction-section,
+.dark-mode .awards-section,
+.dark-mode .schedule-section,
+.dark-mode .filters-container,
+.dark-mode #writeup-container {
+    background-color: #2a2a2a;
+    border-color: #444;
+}
+
+.dark-mode #admin-container p,
+.dark-mode .nav-card-description,
+.dark-mode .player-sub-details,
+.dark-mode .team-sub-details,
+.dark-mode .modal-content-admin p {
+    color: #bbb;
+}
+
+.dark-mode .nav-card {
+    background-color: #2a2a2a;
+    border-color: #444;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+}
+.dark-mode .nav-card:hover {
+    border-color: #90caf9;
+}
+.dark-mode .nav-card-icon {
+    color: #90caf9;
+}
+
+.dark-mode .back-link {
+    color: #90caf9;
+}
+
+.dark-mode .filter-group label {
+    color: #bbb;
+}
+.dark-mode .filter-group select {
+    background-color: #3a3a3a;
+    border-color: #555;
+    color: #eee;
+}
+
+.dark-mode .game-score {
+    color: #ccc;
+}
+
+.dark-mode .modal-content-admin {
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #eee;
+}
+.dark-mode .modal-content-admin h3 {
+    color: #eee;
+}
+
+.dark-mode .form-group-admin input[type="number"],
+.dark-mode .form-group-admin input[type="text"],
+.dark-mode .form-group-admin input[type="date"],
+.dark-mode .form-group-admin select {
+    background-color: #3a3a3a;
+    border-color: #555;
+    color: #eee;
+}
+
+.dark-mode #player-search-input {
+    background-color: #3a3a3a;
+    border-color: #555;
+    color: #eee;
+}
+
+.dark-mode .read-only-field {
+    background-color: #3a3a3a;
+    border-color: #555;
+}
+
+.dark-mode .trade-party-block {
+    border-color: #555;
+}
+.dark-mode .assets-container {
+    border-left-color: #444;
+}
+.dark-mode .asset-item {
+    background-color: #3a3a3a;
+}
+
+.dark-mode .draft-table th, 
+.dark-mode .power-rankings-table th, 
+.dark-mode .schedule-table th {
+    background-color: #3a3a3a;
+}
+.dark-mode .draft-table td, 
+.dark-mode .power-rankings-table td, 
+.dark-mode .schedule-table td,
+.dark-mode .draft-table, 
+.dark-mode .power-rankings-table, 
+.dark-mode .schedule-table {
+    border-color: #444;
+}
+.dark-mode .draft-table tr:nth-child(even) {
+    background-color: #333;
+}
+.dark-mode .draft-table input[type="text"],
+.dark-mode .draft-table select,
+.dark-mode .power-rankings-table .rank-select {
+    background-color: #444;
+    border-color: #666;
+    color: #eee;
+}
+.dark-mode .draft-table td.read-only {
+    background-color: #444;
+}
+.dark-mode .draft-table tr.is-forfeited {
+    background-color: #5d1c21;
+    color: #f8d7da;
+}
+.dark-mode .draft-table tr.is-forfeited input:not([type="checkbox"]),
+.dark-mode .draft-table tr.is-forfeited select {
+    background-color: #721c24;
+}
+
+.dark-mode .transaction-section h4 {
+    border-bottom-color: #444;
+}
+
+.dark-mode .awards-section h3, 
+.dark-mode .schedule-section h3 {
+    border-bottom-color: #444;
+}
+
+.dark-mode .auto-award-display {
+    background-color: #3a3a3a;
+}
+.dark-mode .auto-award-display strong {
+    color: #90caf9;
+}
+
+.dark-mode .power-rankings-table .rank-change.positive {
+    color: #4caf50;
+}
+.dark-mode .power-rankings-table .rank-change.negative {
+    color: #f44336;
+}
+.dark-mode .power-rankings-table tr.has-duplicate .rank-select {
+    border-color: #f44336;
+    box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.25);
+}
+
+.dark-mode .validation-message {
+    color: #f44336;
+}
+
+.dark-mode .week-details, .dark-mode .round-details {
+    border-color: #444;
+}
+.dark-mode .week-summary, .dark-mode .round-summary {
+    background-color: #3a3a3a;
+}
+.dark-mode .week-summary:hover, .dark-mode .round-summary:hover {
+    background-color: #444;
+}
+.dark-mode .week-details[open] .week-summary,
+.dark-mode .round-details[open] .round-summary {
+    border-bottom-color: #444;
+}
+
+#last-sample-log {
+    background-color: #2a2a2a;
+    border-color: #444;
+}
+
+#writeup-output {
+    background-color: #2a2a2a;
+    border-color: #444;
+    color: #eee;
+}
+
+#progress-bar-container {
+    background-color: #444;
+}
+#progress-bar {
+    background-color: #90caf9;
+}
+#sample-progress-bar {
+    background-color: #ffd740;
 }
