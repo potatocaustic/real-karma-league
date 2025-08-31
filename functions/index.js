@@ -2470,70 +2470,56 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
     
-    // --- DEBUGGING LOG ---
-    console.log("generateGameWriteup function triggered.");
-    console.log("Received data from client:", JSON.stringify(request.data, null, 2));
-
     const { gameId, seasonId, collectionName } = request.data;
     if (!gameId || !seasonId || !collectionName) {
         throw new HttpsError('invalid-argument', 'Missing required parameters.');
     }
 
     try {
-        // Step 1: Fetch game data
         const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
         const gameSnap = await gameRef.get();
-        console.log(`Step 1: Game document exists: ${gameSnap.exists}`);
-        if (!gameSnap.exists) {
-            throw new HttpsError('not-found', 'Game not found.');
+
+        if (!gameSnap.exists()) {
+            throw new HttpsError('not-found', `Game document not found at path: ${gameRef.path}`);
         }
         const game = gameSnap.data();
-        console.log("Successfully fetched game data.");
 
-        // Step 2: Fetch lineup data
         const lineupsCollection = getCollectionName(collectionName.replace('games', 'lineups'));
         const lineupsQuery = db.collection(`${getCollectionName('seasons')}/${seasonId}/${lineupsCollection}`).where('game_id', '==', gameId);
         const lineupsSnap = await lineupsQuery.get();
-        console.log(`Step 2: Found ${lineupsSnap.size} lineup documents.`);
         
-        // Step 3: Fetch team records
         const team1RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team1_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team2_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+        
+        // --- THIS IS THE CORRECTED LINE ---
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
-        console.log(`Step 3: Team 1 record exists: ${team1RecordSnap.exists()}, Team 2 record exists: ${team2RecordSnap.exists()}`);
 
-        const team1 = team1RecordSnap.exists() 
-            ? team1RecordSnap.data() 
-            : { team_name: game.team1_id, wins: '?', losses: '?' };
-        const team2 = team2RecordSnap.exists() 
-            ? team2RecordSnap.data() 
-            : { team_name: game.team2_id, wins: '?', losses: '?' };
-        console.log("Successfully fetched team record data.");
+        const team1Data = team1RecordSnap.data();
+        const team2Data = team2RecordSnap.data();
 
-        // Step 4: Prepare data for the prompt
-        const formatScore = (score) => {
-            if (typeof score === 'number' && isFinite(score)) {
-                return score.toFixed(0);
-            }
-            return '0';
-        };
+        const formatScore = (score) => (typeof score === 'number' && isFinite(score) ? score.toFixed(0) : '0');
 
-        const winnerId = game.winner;
+        const team1Name = team1Data?.team_name ?? game.team1_id;
+        const team1Wins = team1Data?.wins ?? '?';
+        const team1Losses = team1Data?.losses ?? '?';
+
+        const team2Name = team2Data?.team_name ?? game.team2_id;
+        const team2Wins = team2Data?.wins ?? '?';
+        const team2Losses = team2Data?.losses ?? '?';
+        
         const team1Score = formatScore(game.team1_score);
         const team2Score = formatScore(game.team2_score);
-        console.log("Step 4: Scores formatted successfully.");
-
-        const team1Summary = `${team1.team_name} (${team1.wins}-${team1.losses}) - ${team1Score} ${winnerId === game.team1_id ? '✅' : '❌'}`;
-        const team2Summary = `${team2.team_name} (${team2.wins}-${team2.losses}) - ${team2Score} ${winnerId === game.team2_id ? '✅' : '❌'}`;
+        
+        const team1Summary = `${team1Name} (${team1Wins}-${team1Losses}) - ${team1Score} ${game.winner === game.team1_id ? '✅' : '❌'}`;
+        const team2Summary = `${team2Name} (${team2Wins}-${team2Losses}) - ${team2Score} ${game.winner === game.team2_id ? '✅' : '❌'}`;
 
         const topPerformers = lineupsSnap.docs
             .map(doc => doc.data())
-            .filter(p => p.global_rank > 0 && p.global_rank <= 100)
-            .sort((a, b) => a.global_rank - b.global_rank)
-            .map(p => `@${p.player_handle} (${p.global_rank}${p.is_captain === 'TRUE' ? ', captain' : ''})`)
+            .filter(p => p && typeof p === 'object' && p.global_rank > 0 && p.global_rank <= 100)
+            .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
+            .map(p => `@${p.player_handle || 'unknown'} (${p.global_rank}${p.is_captain === 'TRUE' ? ', captain' : ''})`)
             .join(', ');
-        console.log("Successfully constructed summary strings and performers list.");
-        
+
         const promptData = `
 Matchup: ${team1Summary} vs ${team2Summary}
 Top 100 Performers: ${topPerformers || 'None'}
@@ -2547,20 +2533,16 @@ Example 2: Amigos take a nice win here over the struggling Piggies on the back o
 Example 3: Hounds grab a close win over the KOCK in a great game, which sends the latter to 0-3. Hounds had 4 t100s, including @tiger (24th), @neev (25th), captain @poolepartyjp3 (30th) and @jay.p (97th). KOCK also had 4 t100s with @goated14 (23rd), captain @chazwick (30th), @ederick2442 (63rd) and @top (66th), but @cinemax cost them dearly.
 
 Now, write a new summary based on the following data:`;
-
-        console.log("Function complete. Returning success.");
+        
         return { success: true, promptData, systemPrompt, team1Summary, team2Summary };
 
     } catch (error) {
-        // --- CRITICAL DEBUGGING LOG ---
-        // This will log the actual error object and its stack trace, revealing the true cause.
-        console.error("!!!!!!!!!! CAUGHT UNEXPECTED ERROR !!!!!!!!!!");
-        console.error("Error preparing game writeup data:", error);
-        
-        if (error instanceof HttpsError) throw error;
-        throw new HttpsError('internal', 'An unexpected error occurred while gathering data for the writeup.');
+        console.error("CRITICAL ERROR in generateGameWriteup:", error);
+        throw new HttpsError('internal', `An unexpected error occurred. Check the function logs. Error: ${error.message}`);
     }
 });
+
+
 
 
 exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async (request) => {
