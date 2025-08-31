@@ -37,6 +37,7 @@ window.addEventListener('load', () => {
     // --- Firebase Callable Functions ---
     const updateAllLiveScores = httpsCallable(functions, 'updateAllLiveScores');
     const scorekeeperFinalizeAndProcess = httpsCallable(functions, 'scorekeeperFinalizeAndProcess');
+    // Note: The 'logScorekeeperActivity' function is defined in initializeControlPanel
 
     // --- Global State ---
     let countdownIntervalId = null;
@@ -79,7 +80,7 @@ window.addEventListener('load', () => {
         const liveGamesSnap = await getDocs(liveGamesQuery);
         const playerCount = liveGamesSnap.docs.reduce((sum, doc) => sum + doc.data().team1_lineup.length + doc.data().team2_lineup.length, 0);
 
-        if (playerCount === 0) {
+        if (playerCount === 0 && !isFinalizing) {
             alert("No active live games found. Cannot run an update.");
             return;
         }
@@ -134,6 +135,7 @@ window.addEventListener('load', () => {
     }
 
     function initializeControlPanel() {
+        const logScorekeeperActivity = httpsCallable(functions, 'logScorekeeperActivity');
         const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
 
         onSnapshot(statusRef, (docSnap) => {
@@ -183,13 +185,21 @@ window.addEventListener('load', () => {
         });
     
         manualUpdateBtn.addEventListener('click', async () => {
-            manualUpdateBtn.disabled = true;
-            try {
-                await runFullUpdateWithProgress(false);
-            } catch (error) {
-                alert(`Error during manual update: ${error.message}`);
-            } finally {
-                manualUpdateBtn.disabled = false;
+            const isConfirmed = window.confirm("Are you sure you want to run a full manual update? This action will be logged.");
+
+            if (isConfirmed) {
+                manualUpdateBtn.disabled = true;
+                try {
+                    await logScorekeeperActivity({
+                        action: 'manual_update',
+                        details: 'User triggered a full manual score update from the live scoring panel.'
+                    });
+                    await runFullUpdateWithProgress(false);
+                } catch (error) {
+                    alert(`Error during manual update: ${error.message}`);
+                } finally {
+                    manualUpdateBtn.disabled = false;
+                }
             }
         });
 
@@ -232,8 +242,9 @@ window.addEventListener('load', () => {
             }
         };
 
-        setupFinalizeListener();
-
+        if (finalizeContainer) {
+            setupFinalizeListener();
+        }
 
         progressCloseBtn.addEventListener('click', () => {
             progressModal.style.display = 'none';

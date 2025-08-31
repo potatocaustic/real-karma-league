@@ -34,6 +34,34 @@ async function getUserRole(auth) {
     return userDoc.exists ? userDoc.data().role : null;
 }
 
+exports.logScorekeeperActivity = onCall({ region: "us-central1" }, async (request) => {
+    if (!(await isScorekeeperOrAdmin(request.auth))) {
+        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to log an action.');
+    }
+
+    const { action, details } = request.data;
+    if (!action) {
+        throw new HttpsError('invalid-argument', 'An "action" must be provided.');
+    }
+
+    const userId = request.auth.uid;
+
+    try {
+        const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
+        await logRef.set({
+            action: action,
+            userId: userId,
+            userRole: await getUserRole(request.auth),
+            timestamp: FieldValue.serverTimestamp(),
+            details: details || null
+        });
+        return { success: true, message: "Activity logged successfully." };
+
+    } catch (error) {
+        console.error("Error logging scorekeeper activity:", error);
+        throw new HttpsError('internal', 'Could not log activity.');
+    }
+});
 
 exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
     // 1. Security: Ensure the user is an admin
