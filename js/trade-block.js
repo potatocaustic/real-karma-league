@@ -90,6 +90,32 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             await displayAllTradeBlocks(user.uid);
+
+            // --- ADDED BLOCK: Display Scorekeeper Portal button for authorized users ---
+            if (adminControlsContainer) {
+                const userRef = doc(db, collectionNames.users, user.uid);
+                const userDoc = await getDoc(userRef);
+
+                if (userDoc.exists()) {
+                    const userRole = userDoc.data().role;
+                    if (userRole === 'admin' || userRole === 'scorekeeper') {
+                        adminControlsContainer.style.display = 'block';
+                        const scorekeeperLink = document.createElement('a');
+                        scorekeeperLink.href = '/scorekeeper/dashboard.html';
+                        scorekeeperLink.className = 'edit-btn'; // Use existing button style
+                        scorekeeperLink.textContent = 'Scorekeeper Portal';
+                        scorekeeperLink.style.marginLeft = '1rem';
+                        
+                        // Find the admin container to append to, creating it if needed
+                        let controlsDiv = adminControlsContainer.querySelector('.admin-controls-container');
+                        if(controlsDiv) {
+                            controlsDiv.appendChild(scorekeeperLink);
+                        }
+                    }
+                }
+            }
+            // --- END OF ADDED BLOCK ---
+
         } else {
             window.location.href = '../login.html?reason=unauthorized';
         }
@@ -129,17 +155,14 @@ async function displayAllTradeBlocks(currentUserId) {
         const activeSeasonId = await getActiveSeasonId();
         const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
 
-        // MODIFIED: Removed the inefficient fetching of all draft picks here.
         const [tradeBlocksSnap, teamsSnap] = await Promise.all([
             getDocs(tradeBlocksQuery),
             getDocs(collection(db, collectionNames.teams)),
         ]);
 
-        // 1. Get all Player and Pick IDs from the trade blocks first.
         const allPlayerIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => (doc.data().on_the_block || []).map(p => p.id)))];
         const allPickIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => (doc.data().picks_available_ids || []).map(p => p.id)))];
         
-        // 2. Fetch Player data on-demand in chunks (already efficient).
         let playersMap = new Map();
         let statsMap = new Map();
         if (allPlayerIds.length > 0) {
@@ -155,7 +178,6 @@ async function displayAllTradeBlocks(currentUserId) {
             }
         }
         
-        // 3. NEW: Fetch Draft Pick data on-demand in chunks (now efficient).
         let draftPicksMap = new Map();
         if (allPickIds.length > 0) {
             const CHUNK_SIZE = 30;
@@ -167,7 +189,6 @@ async function displayAllTradeBlocks(currentUserId) {
             }
         }
 
-        // 4. The rest of the function proceeds as normal with the efficiently fetched data.
         const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
         const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
         
