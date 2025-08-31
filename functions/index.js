@@ -45,12 +45,14 @@ exports.logScorekeeperActivity = onCall({ region: "us-central1" }, async (reques
     }
 
     const userId = request.auth.uid;
+    const userEmail = request.auth.token.email || null; 
 
     try {
         const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
         await logRef.set({
             action: action,
             userId: userId,
+            userEmail: userEmail,
             userRole: await getUserRole(request.auth),
             timestamp: FieldValue.serverTimestamp(),
             details: details || null

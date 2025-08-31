@@ -12,6 +12,7 @@
         #progress-bar { width: 0%; height: 20px; background-color: #007bff; transition: width 0.2s ease-in-out; }
         #sample-progress-bar { background-color: #ffc107; transition: width 0.3s linear; }
         .countdown-timer { font-size: 1.5rem; font-weight: bold; color: #dc3545; margin: 0 1rem; }
+        .description-text { font-size: 0.9rem; color: #555; margin-top: 0; margin-bottom: 1.5rem; line-height: 1.5; }
     </style>
      <script>
         // Use production collections for live scoring data
@@ -47,7 +48,11 @@
             <button id="manual-update-btn" class="btn-admin-edit" style="width:100%;">Run Full Update Manually</button>
             
             <hr style="margin: 1.5rem 0;">
-
+            
+            <p class="description-text">
+                The automated system periodically checks for score changes. Every few minutes, it samples three random players from all active games. If two or more of those players show a change in their karma score or daily rank, a full, system-wide update is automatically triggered for every player.
+            </p>
+            
             <h4>Last Sample Results</h4>
             <div id="last-sample-log">
                 <p>No sample run yet.</p>
