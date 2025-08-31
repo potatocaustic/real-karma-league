@@ -2490,8 +2490,13 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team2_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
 
-        const team1 = team1RecordSnap.data();
-        const team2 = team2RecordSnap.data();
+        // **FIX**: Check for existence and provide fallbacks to prevent crashes
+        const team1 = team1RecordSnap.exists() 
+            ? team1RecordSnap.data() 
+            : { team_name: game.team1_id, wins: '?', losses: '?' };
+        const team2 = team2RecordSnap.exists() 
+            ? team2RecordSnap.data() 
+            : { team_name: game.team2_id, wins: '?', losses: '?' };
 
         // Prepare data for the prompt
         const winnerId = game.winner;
