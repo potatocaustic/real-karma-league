@@ -183,7 +183,7 @@ async function handleGameSelection(e) {
     if (!selectedGame) return;
 
     writeupContainer.style.display = 'block';
-    writeupOutput.value = 'Generating writeup with Gemini... Please wait.';
+    writeupOutput.value = 'Preparing writeup data from game stats... Please wait.';
     copyWriteupBtn.disabled = true;
 
     try {
@@ -195,7 +195,8 @@ async function handleGameSelection(e) {
         });
         
         if (result.data.success) {
-            writeupOutput.value = result.data.writeup;
+            const fullPrompt = `${result.data.systemPrompt}\n\n${result.data.promptData}`;
+            writeupOutput.value = fullPrompt;
         } else {
             throw new Error(result.data.message || 'Unknown error from function.');
         }
