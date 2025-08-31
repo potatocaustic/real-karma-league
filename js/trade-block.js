@@ -90,12 +90,23 @@ async function displayAllTradeBlocks(currentUserId) {
         const settingsDoc = await getDoc(settingsDocRef);
         const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
 
+        // --- MODIFICATION START ---
+        // Fetch all team data (static and seasonal) at the beginning
+        const activeSeasonId = await getActiveSeasonId();
+        const teamsSnap = await getDocs(collection(db, collectionNames.teams));
+        const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
+        const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
+
+        const allTeamsMap = new Map(teamsSnap.docs.map(doc => {
+            const staticData = doc.data();
+            const seasonalData = teamsRecordMap.get(doc.id) || {};
+            return [doc.id, { ...staticData, ...seasonalData }];
+        }));
+        // --- MODIFICATION END ---
+
         let isAdmin = false;
         let isScorekeeper = false;
         let currentUserTeamId = null;
-
-        const teamsSnap = await getDocs(collection(db, collectionNames.teams));
-        const allTeamsMapBasic = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
 
         if (currentUserId) {
             const userDocRef = doc(db, collectionNames.users, currentUserId);
@@ -105,7 +116,8 @@ async function displayAllTradeBlocks(currentUserId) {
                 isAdmin = userRole === 'admin';
                 isScorekeeper = userRole === 'scorekeeper';
             }
-            for (const [teamId, teamData] of allTeamsMapBasic.entries()) {
+            // Use the complete allTeamsMap to find the user's team
+            for (const [teamId, teamData] of allTeamsMap.entries()) {
                 if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
             }
         }
@@ -129,11 +141,19 @@ async function displayAllTradeBlocks(currentUserId) {
             hasControls = true;
         }
 
+        // --- MODIFICATION START ---
+        // Use the complete allTeamsMap to get the team name
         if (currentUserTeamId && !isAdmin) {
-            const myTeamData = allTeamsMapBasic.get(currentUserTeamId);
-            buttonsHtml += `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn">${myTeamData.team_name} Trade Block</a>`;
+            const myTeamData = allTeamsMap.get(currentUserTeamId);
+            // Ensure myTeamData exists before trying to access its properties
+            if (myTeamData && myTeamData.team_name) {
+                buttonsHtml += `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn">${myTeamData.team_name} Trade Block</a>`;
+            } else {
+                 buttonsHtml += `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn">My Trade Block</a>`;
+            }
             hasControls = true;
         }
+        // --- MODIFICATION END ---
 
         if (hasControls && adminControlsContainer) {
             adminControlsContainer.innerHTML = `<div class="admin-controls-container">${buttonsHtml}</div>`;
@@ -148,7 +168,6 @@ async function displayAllTradeBlocks(currentUserId) {
             return;
         }
 
-        const activeSeasonId = await getActiveSeasonId();
         const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
 
         const tradeBlocksSnap = await getDocs(tradeBlocksQuery);
@@ -181,15 +200,6 @@ async function displayAllTradeBlocks(currentUserId) {
                 picksDataSnap.forEach(doc => draftPicksMap.set(doc.id, doc.data()));
             }
         }
-
-        const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
-        const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
-        
-        const allTeamsMap = new Map(teamsSnap.docs.map(doc => {
-            const staticData = doc.data();
-            const seasonalData = teamsRecordMap.get(doc.id) || {};
-            return [doc.id, { ...staticData, ...seasonalData }];
-        }));
 
         container.innerHTML = '';
 
