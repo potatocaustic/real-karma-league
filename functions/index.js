@@ -8,7 +8,6 @@ const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
 const { CloudSchedulerClient } = require("@google-cloud/scheduler");
 const schedulerClient = new CloudSchedulerClient();
-const { onCall, HttpsError, runWith } = require("firebase-functions/v2/https");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 admin.initializeApp();
