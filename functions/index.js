@@ -2482,8 +2482,7 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
         const gameSnap = await gameRef.get();
 
-        // --- FIX: Changed gameSnap.exists() to gameSnap.exists ---
-        if (!gameSnap.exists) {
+        if (!gameSnap.exists) { // Corrected: .exists property
             throw new HttpsError('not-found', `Game document not found at path: ${gameRef.path}`);
         }
         const game = gameSnap.data();
@@ -2496,33 +2495,53 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team2_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
 
-        // --- FIX: Changed .exists() to .exists ---
-        const team1 = team1RecordSnap.exists 
-            ? team1RecordSnap.data() 
-            : { team_name: game.team1_id, wins: '?', losses: '?' };
-        const team2 = team2RecordSnap.exists 
-            ? team2RecordSnap.data() 
-            : { team_name: game.team2_id, wins: '?', losses: '?' };
+        const team1Data = team1RecordSnap.data();
+        const team2Data = team2RecordSnap.data();
 
         const formatScore = (score) => (typeof score === 'number' && isFinite(score) ? score.toFixed(0) : '0');
+
+        const team1Name = team1Data?.team_name ?? game.team1_id;
+        const team1Wins = team1Data?.wins ?? '?';
+        const team1Losses = team1Data?.losses ?? '?';
+        const team2Name = team2Data?.team_name ?? game.team2_id;
+        const team2Wins = team2Data?.wins ?? '?';
+        const team2Losses = team2Data?.losses ?? '?';
         
         const team1Score = formatScore(game.team1_score);
         const team2Score = formatScore(game.team2_score);
         
-        const team1Summary = `${team1.team_name} (${team1.wins}-${team1.losses}) - ${team1Score} ${game.winner === game.team1_id ? '✅' : '❌'}`;
-        const team2Summary = `${team2.team_name} (${team2.wins}-${team2.losses}) - ${team2Score} ${game.winner === game.team2_id ? '✅' : '❌'}`;
+        const team1Summary = `${team1Name} (${team1Wins}-${team1Losses}) - ${team1Score} ${game.winner === game.team1_id ? '✅' : '❌'}`;
+        const team2Summary = `${team2Name} (${team2Wins}-${team2Losses}) - ${team2Score} ${game.winner === game.team2_id ? '✅' : '❌'}`;
 
-        const topPerformers = lineupsSnap.docs
+        // ==================== START: REVISED LOGIC ====================
+        
+        // Filter and sort all top 100 performers from the game
+        const top100Performers = lineupsSnap.docs
             .map(doc => doc.data())
             .filter(p => p && typeof p === 'object' && p.global_rank > 0 && p.global_rank <= 100)
-            .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
-            .map(p => `@${p.player_handle || 'unknown'} (${p.global_rank}${p.is_captain === 'TRUE' ? ', captain' : ''})`)
+            .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999));
+
+        // Helper function to format player info into a string
+        const formatPlayerString = p => `@${p.player_handle || 'unknown'} (${p.global_rank}${p.is_captain === 'TRUE' ? ', captain' : ''})`;
+
+        // Group the performers by their team ID
+        const team1PerformersString = top100Performers
+            .filter(p => p.team_id === game.team1_id)
+            .map(formatPlayerString)
             .join(', ');
 
+        const team2PerformersString = top100Performers
+            .filter(p => p.team_id === game.team2_id)
+            .map(formatPlayerString)
+            .join(', ');
+
+        // Create the new, more structured prompt data
         const promptData = `
 Matchup: ${team1Summary} vs ${team2Summary}
-Top 100 Performers: ${topPerformers || 'None'}
+${team1Name} Top 100 Performers: ${team1PerformersString || 'None'}
+${team2Name} Top 100 Performers: ${team2PerformersString || 'None'}
 `;
+        // ==================== END: REVISED LOGIC ====================
         
         const systemPrompt = `You are a sports writer for a fantasy league called the Real Karma League. You write short, engaging game summaries with a casual, slightly edgy tone. You MUST mention every player from the 'Top 100 Performers' list, putting an '@' symbol before their handle.
 
