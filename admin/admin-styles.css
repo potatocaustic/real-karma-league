@@ -880,9 +880,29 @@ main {
 }
 
 #admin-controls {
+    /* Hidden by default, shown by JS when it has content */
     display: none;
+    /* Use flexbox to center the buttons */
     justify-content: center;
     align-items: center;
     gap: 1rem;
     margin-bottom: 2rem;
+}
+
+/* Specific styles for buttons inside the controls container */
+#admin-controls .edit-btn {
+    padding: 10px 20px;
+    text-decoration: none;
+    font-size: 1rem;
+    background-color: #007bff;
+    /* Use !important to override general dark-mode link styles and ensure text is white */
+    color: white !important; 
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+    border: 1px solid #007bff;
+}
+
+#admin-controls .edit-btn:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
 }

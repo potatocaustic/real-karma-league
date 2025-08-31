@@ -92,6 +92,11 @@ async function displayAllTradeBlocks(currentUserId) {
 
         let isAdmin = false;
         let isScorekeeper = false;
+        let currentUserTeamId = null;
+
+        const teamsSnap = await getDocs(collection(db, collectionNames.teams));
+        const allTeamsMapBasic = new Map(teamsSnap.docs.map(doc => [doc.id, doc.data()]));
+
         if (currentUserId) {
             const userDocRef = doc(db, collectionNames.users, currentUserId);
             const userDoc = await getDoc(userDocRef);
@@ -100,28 +105,42 @@ async function displayAllTradeBlocks(currentUserId) {
                 isAdmin = userRole === 'admin';
                 isScorekeeper = userRole === 'scorekeeper';
             }
+            for (const [teamId, teamData] of allTeamsMapBasic.entries()) {
+                if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
+            }
         }
         
-        // --- REVISED: Admin and Scorekeeper Controls Logic ---
-        if ((isAdmin || isScorekeeper) && adminControlsContainer) {
-            let buttonsHtml = '';
-            
-            // Add Admin-specific buttons
-            if (isAdmin) {
-                buttonsHtml += `
-                    <span>Admin Controls:</span>
-                    <button id="deadline-btn" class="edit-btn deadline-btn">Activate Trade Deadline</button>
-                    <button id="reopen-btn" class="edit-btn reopen-btn">Re-Open Trading</button>
-                `;
-            }
+        // --- FINALIZED BUTTON LOGIC ---
+        // This block now creates all buttons and places them in the #admin-controls container
+        let buttonsHtml = '';
+        let hasControls = false;
 
-            // Add Scorekeeper button (visible to Admins too)
-            buttonsHtml += `<a href="/scorekeeper/dashboard.html" class="edit-btn" style="color: white;">Scorekeeper Portal</a>`;
-            
-            adminControlsContainer.innerHTML = `<div class="admin-controls-container">${buttonsHtml}</div>`;
-            adminControlsContainer.style.display = 'flex'; // Use flex to align items
+        if (isAdmin) {
+            buttonsHtml += `
+                <span>Admin Controls:</span>
+                <button id="deadline-btn" class="edit-btn deadline-btn">Activate Trade Deadline</button>
+                <button id="reopen-btn" class="edit-btn reopen-btn">Re-Open Trading</button>
+            `;
+            hasControls = true;
         }
-        // --- END REVISED LOGIC ---
+        
+        if (isAdmin || isScorekeeper) {
+            buttonsHtml += `<a href="/scorekeeper/dashboard.html" class="edit-btn">Scorekeeper Portal</a>`;
+            hasControls = true;
+        }
+
+        if (currentUserTeamId && !isAdmin) {
+            const myTeamData = allTeamsMapBasic.get(currentUserTeamId);
+            buttonsHtml += `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn">${myTeamData.team_name} Trade Block</a>`;
+            hasControls = true;
+        }
+
+        if (hasControls && adminControlsContainer) {
+            adminControlsContainer.innerHTML = `<div class="admin-controls-container">${buttonsHtml}</div>`;
+            // Set display to flex to activate the centering styles from the CSS
+            adminControlsContainer.style.display = 'flex';
+        }
+        // --- END FINALIZED LOGIC ---
 
         if (tradeBlockStatus === 'closed') {
             container.innerHTML = '<p style="text-align: center; font-weight: bold; font-size: 1.2rem;">Trade Deadline Passed - Trade Block Unavailable</p>';
@@ -132,10 +151,7 @@ async function displayAllTradeBlocks(currentUserId) {
         const activeSeasonId = await getActiveSeasonId();
         const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
 
-        const [tradeBlocksSnap, teamsSnap] = await Promise.all([
-            getDocs(tradeBlocksQuery),
-            getDocs(collection(db, collectionNames.teams)),
-        ]);
+        const tradeBlocksSnap = await getDocs(tradeBlocksQuery);
 
         const allPlayerIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => (doc.data().on_the_block || []).map(p => p.id)))];
         const allPickIds = [...new Set(tradeBlocksSnap.docs.flatMap(doc => (doc.data().picks_available_ids || []).map(p => p.id)))];
@@ -176,24 +192,6 @@ async function displayAllTradeBlocks(currentUserId) {
         }));
 
         container.innerHTML = '';
-        let currentUserTeamId = null;
-        if (currentUserId) {
-            for (const [teamId, teamData] of allTeamsMap.entries()) {
-                if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
-            }
-        }
-        
-        // --- REVISED: GM "Edit" button logic ---
-        // This button is now created here and placed in the admin controls container
-        if (currentUserTeamId && !isAdmin) {
-            const myTeamData = allTeamsMap.get(currentUserTeamId);
-            const buttonHtml = `<a href="/common/edit-trade-block.html?team=${currentUserTeamId}" class="edit-btn">${myTeamData.team_name} Trade Block</a>`;
-            if(adminControlsContainer) {
-                adminControlsContainer.innerHTML += buttonHtml;
-                adminControlsContainer.style.display = 'flex';
-            }
-        }
-        // --- END REVISED LOGIC ---
 
         if (tradeBlocksSnap.empty) {
             handleEmptyState(isAdmin, currentUserTeamId, allTeamsMap);
@@ -208,6 +206,7 @@ async function displayAllTradeBlocks(currentUserId) {
         container.innerHTML = `<div class="error">Could not load trade blocks. ${error.message}</div>`;
     }
 }
+
 function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
     container.innerHTML = '<p style="text-align: center; margin-bottom: 1.5rem;">No trade blocks have been set up yet.</p>';
     
