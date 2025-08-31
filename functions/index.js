@@ -2465,6 +2465,8 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
 
 // functions/index.js
 
+// functions/index.js
+
 exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) => {
     if (!(await isScorekeeperOrAdmin(request.auth))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
@@ -2479,7 +2481,8 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
         const gameSnap = await gameRef.get();
 
-        if (!gameSnap.exists()) {
+        // --- FIX: Changed gameSnap.exists() to gameSnap.exists ---
+        if (!gameSnap.exists) {
             throw new HttpsError('not-found', `Game document not found at path: ${gameRef.path}`);
         }
         const game = gameSnap.data();
@@ -2490,28 +2493,23 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         
         const team1RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team1_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
         const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${game.team2_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
-        
-        // --- THIS IS THE CORRECTED LINE ---
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
 
-        const team1Data = team1RecordSnap.data();
-        const team2Data = team2RecordSnap.data();
+        // --- FIX: Changed .exists() to .exists ---
+        const team1 = team1RecordSnap.exists 
+            ? team1RecordSnap.data() 
+            : { team_name: game.team1_id, wins: '?', losses: '?' };
+        const team2 = team2RecordSnap.exists 
+            ? team2RecordSnap.data() 
+            : { team_name: game.team2_id, wins: '?', losses: '?' };
 
         const formatScore = (score) => (typeof score === 'number' && isFinite(score) ? score.toFixed(0) : '0');
-
-        const team1Name = team1Data?.team_name ?? game.team1_id;
-        const team1Wins = team1Data?.wins ?? '?';
-        const team1Losses = team1Data?.losses ?? '?';
-
-        const team2Name = team2Data?.team_name ?? game.team2_id;
-        const team2Wins = team2Data?.wins ?? '?';
-        const team2Losses = team2Data?.losses ?? '?';
         
         const team1Score = formatScore(game.team1_score);
         const team2Score = formatScore(game.team2_score);
         
-        const team1Summary = `${team1Name} (${team1Wins}-${team1Losses}) - ${team1Score} ${game.winner === game.team1_id ? '✅' : '❌'}`;
-        const team2Summary = `${team2Name} (${team2Wins}-${team2Losses}) - ${team2Score} ${game.winner === game.team2_id ? '✅' : '❌'}`;
+        const team1Summary = `${team1.team_name} (${team1.wins}-${team1.losses}) - ${team1Score} ${game.winner === game.team1_id ? '✅' : '❌'}`;
+        const team2Summary = `${team2.team_name} (${team2.wins}-${team2.losses}) - ${team2Score} ${game.winner === game.team2_id ? '✅' : '❌'}`;
 
         const topPerformers = lineupsSnap.docs
             .map(doc => doc.data())
