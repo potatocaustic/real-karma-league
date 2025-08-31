@@ -2623,7 +2623,10 @@ exports.getAiWriteup = onCall({ secrets: ["GOOGLE_AI_KEY"] }, async (request) =>
     try {
         // 2. Access the secret API key and initialize the AI client
         const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        
+        // --- THIS IS THE CORRECTED LINE ---
+        // Changed "gemini-pro" to the current, recommended model "gemini-1.5-flash-latest"
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
         const fullPrompt = `${systemPrompt}\n\n${promptData}`;
 
