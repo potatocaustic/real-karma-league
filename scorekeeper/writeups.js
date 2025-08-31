@@ -187,7 +187,7 @@ async function handleGameSelection(e) {
     copyWriteupBtn.disabled = true;
 
     try {
-        // Step 1: Call your Cloud Function to get the prepared prompt
+        // Step 1: Call your first Cloud Function to get the prepared prompt
         const generateGameWriteup = httpsCallable(functions, 'generateGameWriteup');
         const promptResult = await generateGameWriteup({
             gameId: selectedGame.id,
