@@ -174,7 +174,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'Otters': ' 🦦',
             'Empire': ' 💤',
             'Demons': ' 😈',
-            'Hounds': ' 🐶'
+            'Hounds': ' 🐶',
+            'Legion': ' 🥷'
         };
 
         // MODIFICATION: Updated function to accept teamName and use the emoji map.
