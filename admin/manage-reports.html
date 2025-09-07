@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reports - RKL Admin Portal</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+        <h1><a href="/admin/dashboard.html">RKL Admin Portal</a> &gt; Reports</h1>
+        <div id="auth-status"></div>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <div class="content-container">
+            <h2>Generate Reports</h2>
+            <p>Select a report to generate. Outputs can be copied and pasted.</p>
+        </div>
+
+        <div class="content-container">
+            <h3>Lineups Deadline Report</h3>
+            <div class="form-group">
+                <label for="deadline-date">Game Date:</label>
+                <input type="date" id="deadline-date">
+            </div>
+            <div class="form-group">
+                <label for="deadline-time">Deadline Time (e.g., 12:05p ET):</label>
+                <input type="text" id="deadline-time" placeholder="12:05p ET">
+            </div>
+            <button id="generate-deadline-report" class="standard-btn">Generate Report</button>
+        </div>
+
+        <div class="content-container">
+            <h3>Vote GOTD Report</h3>
+            <div class="form-group">
+                <label for="gotd-date">Game Date:</label>
+                <input type="date" id="gotd-date">
+            </div>
+            <button id="generate-gotd-report" class="standard-btn">Generate Report</button>
+        </div>
+        
+        <div class="content-container">
+            <h3>Daily Lineups Report</h3>
+             <div id="gotd-selector-container" style="display: none;">
+                <p><strong>Step 1: Select the Game of the Day (GOTD)</strong></p>
+                <div id="gotd-game-list" class="form-group"></div>
+            </div>
+            <button id="generate-lineups-report" class="standard-btn">Generate Report</button>
+        </div>
+
+
+        <div id="report-output-container" class="content-container" style="display:none;">
+            <h3>Report Output</h3>
+            <pre id="report-output"></pre>
+            <button id="copy-report-btn" class="standard-btn">Copy to Clipboard</button>
+        </div>
+
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/admin/manage-reports.js"></script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Awards - RKL Admin</title>
+    <title>RKL Admin Portal</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
@@ -15,125 +15,80 @@
     </header>
 
     <main id="admin-container" style="display: none;">
-        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
-        <h2>Manage Seasonal Awards</h2>
-
-        <div class="filters-container">
-            <div class="filter-group">
-                <label for="season-select">Select Season:</label>
-                <select id="season-select">
-                    <!-- Seasons will be populated by JS -->
-                </select>
-            </div>
+        <h2>Admin Dashboard</h2>
+        <p>Select a management task below.</p>
+        <div class="dashboard-grid">
+            <a href="/admin/manage-games.html" class="nav-card">
+                <div class="nav-card-icon">📅</div>
+                <div class="nav-card-title">Manage Games & Scores</div>
+                <div class="nav-card-description">Enter weekly scores and lineups.</div>
+            </a>
+            <a href="/admin/manage-transactions.html" class="nav-card">
+                <div class="nav-card-icon">🔄</div>
+                <div class="nav-card-title">Manage Transactions</div>
+                <div class="nav-card-description">Log trades, signings, and other roster moves.</div>
+            </a>
+            <a href="/admin/manage-live-scoring.html" class="nav-card">
+                <div class="nav-card-icon">📡</div>
+                <div class="nav-card-title">Manage Live Scoring</div>
+                <div class="nav-card-description">Start, stop, and monitor the live scoring system.</div>
+            </a>   
+            <a href="/admin/manage-players.html" class="nav-card">
+                <div class="nav-card-icon">👥</div>
+                <div class="nav-card-title">Manage Players</div>
+                <div class="nav-card-description">Edit player details and team assignments.</div>
+            </a>
+            <a href="/admin/manage-teams.html" class="nav-card">
+                <div class="nav-card-icon">🏆</div>
+                <div class="nav-card-title">Manage Teams</div>
+                <div class="nav-card-description">Update team information and GM roles.</div>
+            </a>
+            <a href="/admin/manage-schedule.html" class="nav-card">
+                <div class="nav-card-icon">🗓️</div>
+                <div class="nav-card-title">Schedule Manager</div>
+                <div class="nav-card-description">Add, remove, and generate playoff schedules.</div>
+            </a>
+            <a href="/admin/manage-reports.html" class="nav-card">
+                <div class="nav-card-icon">📄</div>
+                <div class="nav-card-title">Reports</div>
+                <div class="nav-card-description">Generate lineups, deadlines, and GOTD reports.</div>
+            </a>
+            <a href="/admin/manage-power-rankings.html" class="nav-card">
+                <div class="nav-card-icon">📊</div>
+                <div class="nav-card-title">Enter Power Rankings</div>
+                <div class="nav-card-description">Submit and update seasonal team power rankings.</div>
+            </a>
+            <a href="/admin/manage-awards.html" class="nav-card">
+                <div class="nav-card-icon">🏅</div>
+                <div class="nav-card-title">Manage Awards</div>
+                <div class="nav-card-description">Assign winners for seasonal awards and honors.</div>
+            </a>
+            <a href="/admin/manage-draft.html" class="nav-card">
+                <div class="nav-card-icon">📝</div>
+                <div class="nav-card-title">Enter Draft Results</div>
+                <div class="nav-card-description">Log official rookie draft selections.</div>
+            </a>
+            <a href="/admin/manage-lottery.html" class="nav-card">
+                <div class="nav-card-icon">🎲</div>
+                <div class="nav-card-title">Manage Draft Lottery</div>
+                <div class="nav-card-description">Enter the official draft lottery results.</div>
+            </a>
+            <a href="#" id="create-season-btn" class="nav-card">
+                <div class="nav-card-icon">🚀</div>
+                <div class="nav-card-title">Create New Season</div>
+                <div class="nav-card-description">Advance the league to the next season (e.g., S7 to S8).</div>
+            </a>
+            <a href="#" id="create-historical-season-btn" class="nav-card">
+                <div class="nav-card-icon">📚</div>
+                <div class="nav-card-title">Create Historical Season</div>
+                <div class="nav-card-description">Backfill the structure for a past season.</div>
+            </a>         
         </div>
-
-        <form id="awards-form">
-            <!-- Datalist for player suggestions -->
-            <datalist id="player-datalist"></datalist>
-            <!-- NEW: Datalist for GM suggestions -->
-            <datalist id="gm-datalist"></datalist>
-
-            <div class="awards-grid">
-                <!-- Manual Awards Section -->
-                <div class="awards-section">
-                    <h3>Individual & Team Awards</h3>
-                    <div class="form-group-admin">
-                        <label for="award-league-champion">League Champion (Team)</label>
-                        <select id="award-league-champion" class="team-select"></select>
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="award-finals-mvp">Finals MVP</label>
-                        <input type="text" id="award-finals-mvp" list="player-datalist" autocomplete="off">
-                    </div>
-                    <!-- NEWLY ADDED MVP FIELD -->
-                    <div class="form-group-admin">
-                        <label for="award-mvp">League MVP</label>
-                        <input type="text" id="award-mvp" list="player-datalist" autocomplete="off">
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="award-regular-season-title">Regular Season Title (Team)</label>
-                        <select id="award-regular-season-title" class="team-select"></select>
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="award-gm-of-the-year">GM of the Year</label>
-                        <input type="text" id="award-gm-of-the-year" list="gm-datalist" autocomplete="off">
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="award-rookie-of-the-year">Rookie of the Year</label>
-                        <input type="text" id="award-rookie-of-the-year" list="player-datalist" autocomplete="off">
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="award-sixth-man">Sixth Man of the Year</label>
-                        <input type="text" id="award-sixth-man" list="player-datalist" autocomplete="off">
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="award-most-improved">Most Improved Player</label>
-                        <input type="text" id="award-most-improved" list="player-datalist" autocomplete="off">
-                    </div>
-                    <div class="form-group-admin">
-                        <label for="award-lvp">League LVP</label>
-                        <input type="text" id="award-lvp" list="player-datalist" autocomplete="off">
-                    </div>
-                </div>
-
-                <!-- Auto-Calculated Awards -->
-                <div class="awards-section">
-                    <h3>Calculated Awards</h3>
-                    <p>These awards are calculated automatically by a server process.</p>
-                    <div id="auto-awards-display">
-                        <div class="auto-award-display">
-                            <h4>Best Performance (Player)</h4>
-                            <p id="best-player-performance-display">Not yet calculated.</p>
-                        </div>
-                        <div class="auto-award-display">
-                            <h4>Best Performance (Team)</h4>
-                            <p id="best-team-performance-display">Not yet calculated.</p>
-                        </div>
-                    </div>
-                    <button type="button" id="calculate-awards-btn" class="btn-admin-secondary" style="width: 100%; margin-top: 1rem;">Run Performance Calculation</button>
-                </div>
-
-                <!-- All-Stars Section -->
-                <div class="awards-section">
-                    <h3>All-Star Selections</h3>
-                    <div class="team-selection-grid">
-                        <div>
-                            <h4>Eastern Conference</h4>
-                            <div id="all-stars-eastern" class="player-list-input-group"></div>
-                        </div>
-                        <div>
-                            <h4>Western Conference</h4>
-                            <div id="all-stars-western" class="player-list-input-group"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Rising Stars Section -->
-                <div class="awards-section">
-                    <h3>Rising Stars Selections</h3>
-                    <div class="team-selection-grid">
-                        <div>
-                            <h4>Eastern Conference</h4>
-                            <div id="rising-stars-eastern" class="player-list-input-group"></div>
-                        </div>
-                        <div>
-                            <h4>Western Conference</h4>
-                            <div id="rising-stars-western" class="player-list-input-group"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div style="text-align: right; margin-top: 2rem;">
-                <button type="submit" class="btn-admin-save">Save All Manual Awards</button>
-            </div>
-        </form>
     </main>
 
     <div id="loading-container" class="loading">Authenticating...</div>
 
-    <!-- Firebase -->
     <script type="module" src="/js/firebase-init.js"></script>
-    <script type="module" src="/admin/manage-awards.js"></script>
+    <script type="module" src="/admin/dashboard.js"></script>
 </body>
 </html>
