@@ -165,15 +165,33 @@ document.addEventListener('DOMContentLoaded', () => {
         let output = `Lineups ${formattedDate}\n\n`;
         let gotdOutput = '';
 
-        const formatPlayerLine = (player) => {
+        // MODIFICATION: Added map for custom captain emojis.
+        const captainEmojis = {
+            'Hornets': ' 🐝',
+            'Vipers': ' 🐍',
+            'MLB': ' 👼',
+            'Aces': ' ♠️',
+            'Otters': ' 🦦',
+            'Empire': ' 💤',
+            'Demons': ' 😈',
+            'Hounds': ' 🐶'
+        };
+
+        // MODIFICATION: Updated function to accept teamName and use the emoji map.
+        const formatPlayerLine = (player, teamName) => {
             let line = ` @${player.player_handle}`;
-            if (player.is_captain) line += ' (c)';
+            if (player.is_captain) {
+                const emoji = captainEmojis[teamName] || ' (c)';
+                line += emoji;
+            }
             return line;
         };
 
         gamesData.forEach(game => {
-            const team1Lineup = game.team1_lineup.map(formatPlayerLine).join('\n ');
-            const team2Lineup = game.team2_lineup.map(formatPlayerLine).join('\n ');
+            // MODIFICATION: Pass the team name to the formatting function.
+            const team1Lineup = game.team1_lineup.map(p => formatPlayerLine(p, game.team1_name)).join('\n ');
+            const team2Lineup = game.team2_lineup.map(p => formatPlayerLine(p, game.team2_name)).join('\n ');
+            
             const gameBlock = `${game.team1_name} (${game.team1_record})\n ${team1Lineup}\nvs \n${game.team2_name} (${game.team2_record})\n ${team2Lineup}\n\n`;
 
             if (game.gameId === gotdId) {
