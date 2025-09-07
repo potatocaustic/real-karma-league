@@ -2784,21 +2784,20 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
             if (liveGamesSnap.empty) {
                 return { success: true, games: [] };
             }
-            // MODIFICATION: Use Promise.all to handle asynchronous fetching of original game data.
             const gamesPromises = liveGamesSnap.docs.map(async (doc) => {
                 const liveGame = doc.data();
-                // MODIFICATION: Fetch the original game document to get the correct team IDs.
                 const originalGameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(liveGame.collectionName)}/${doc.id}`);
                 const originalGameSnap = await originalGameRef.get();
 
                 let team1_id, team2_id;
-                if (originalGameSnap.exists()) {
+                // MODIFICATION: Changed from .exists() to the .exists property for the Admin SDK.
+                if (originalGameSnap.exists) { 
                     const originalGameData = originalGameSnap.data();
                     team1_id = originalGameData.team1_id;
                     team2_id = originalGameData.team2_id;
                 } else {
                     console.warn(`Could not find original game doc for live game ${doc.id}`);
-                    return null; // Skip this game if the original is missing.
+                    return null; 
                 }
 
                 const team1 = teamDataMap.get(team1_id) || { name: `Team ${team1_id}`, record: '?-?' };
@@ -2826,6 +2825,7 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
         throw new HttpsError('internal', `Failed to generate report: ${error.message}`);
     }
 });
+
 
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
