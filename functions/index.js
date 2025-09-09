@@ -1178,6 +1178,8 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
 
     try {
         const batch = db.batch();
+        let playerIdToWrite = null; // This will hold the player's ID to write back to the draft doc
+
         const activeSeasonQuery = db.collection(getCollectionName("seasons")).where("status", "==", "active").limit(1);
         const [activeSeasonSnap, teamRecordSnap] = await Promise.all([
             activeSeasonQuery.get(),
@@ -1240,6 +1242,8 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
                 newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
                 console.warn(`Using fallback generated ID for ${player_handle}: ${newPlayerId}`);
             }
+            
+            playerIdToWrite = newPlayerId; // Set the ID to be written back
 
             const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
             const existingPlayerSnap = await playerRef.get();
@@ -1262,7 +1266,7 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
             }
 
-        } else {
+        } else { // Historical draft
             console.log(`Historical draft (${draftSeason}). Checking for existing player: ${player_handle}.`);
             const existingPlayerQuery = db.collection(getCollectionName('v2_players')).where('player_handle', '==', player_handle).limit(1);
             const existingPlayerSnap = await existingPlayerQuery.get();
@@ -1271,6 +1275,7 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
                 console.log(`Player not found. Creating new player for historical draft.`);
                 const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
+                playerIdToWrite = newPlayerId; // Set the ID to be written back
                 const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
 
                 batch.set(playerRef, {
@@ -1284,11 +1289,19 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
             } else {
                 console.log(`Existing player found. Updating bio only.`);
-                const playerRef = existingPlayerSnap.docs[0].ref;
+                const playerDoc = existingPlayerSnap.docs[0];
+                playerIdToWrite = playerDoc.id; // Set the ID to be written back
+                const playerRef = playerDoc.ref;
                 batch.update(playerRef, { bio: bio });
                 const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
             }
+        }
+
+        // **NEW**: Write the determined player_id back to the draft result document
+        if (playerIdToWrite) {
+            console.log(`Updating draft result for pick ${overall} with player_id: ${playerIdToWrite}`);
+            batch.update(event.data.ref, { player_id: playerIdToWrite });
         }
 
         await batch.commit();
@@ -1299,6 +1312,7 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
     }
     return null;
 });
+
 
 exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
     const transaction = event.data.data();
