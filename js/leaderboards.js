@@ -249,11 +249,11 @@ async function loadData() {
             currentWeek = activeSeasonSnap.docs[0].data().current_week;
         }
 
-        const postseasonBtn = document.getElementById('postseason-leaderboards-btn');
-        if (postseasonBtn) {
-            const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
-            if (!postseasonWeeks.includes(currentWeek) && currentWeek !== 'Season Complete') {
-                postseasonBtn.style.display = 'none';
+        const postseasonContainer = document.getElementById('postseason-btn-container');
+        if (postseasonContainer) {
+            const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
+            if (postseasonWeeks.includes(currentWeek)) {
+                postseasonContainer.style.display = 'block';
             }
         }
         
