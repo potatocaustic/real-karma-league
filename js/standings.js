@@ -326,7 +326,7 @@ function switchView(view) {
         viewToggleButton2.textContent = 'Show Power Rankings';
     } else if (isPowerRankings) {
         standingsPageTitle.textContent = 'Power Rankings';
-        pageDescription.textContent = 'Subjective rankings based on team performance and outlook.';
+        pageDescription.textContent = 'Subjective rankings based on team performance and outlook, made by a committee of volunteers.';
         viewToggleButton1.textContent = 'Show Conferences';
         viewToggleButton2.textContent = 'Show Full League';
     }
