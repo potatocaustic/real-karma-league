@@ -32,33 +32,33 @@ const categories = {
     rel_mean: {
         title: 'REL Mean Leaders',
         cols: [
-            { header: 'Rank', dataField: 'rel_mean_rank', sortable: true, type: 'number', formatFn: formatRank },
+            { header: 'Rank', dataField: 'rel_mean', sortable: true, type: 'number', formatFn: formatRank },
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
             { header: 'REL Mean', dataField: 'rel_mean', sortable: true, type: 'number', formatFn: (v) => parseFloat(v || 0).toFixed(3) },
             { header: 'Games', dataField: 'games_played', sortable: true, type: 'number' }
         ],
-        defaultSortField: 'rel_mean_rank', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
+        defaultSortField: 'rel_mean', defaultSortDescending: true, dataSourceType: 'players', hasMinGamesFilter: true
     },
     rel_median: {
         title: 'REL Median Leaders',
         cols: [
-            { header: 'Rank', dataField: 'rel_median_rank', sortable: true, type: 'number', formatFn: formatRank },
+            { header: 'Rank', dataField: 'rel_median', sortable: true, type: 'number', formatFn: formatRank },
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
             { header: 'REL Median', dataField: 'rel_median', sortable: true, type: 'number', formatFn: (v) => parseFloat(v || 0).toFixed(3) },
             { header: 'Games', dataField: 'games_played', sortable: true, type: 'number' }
         ],
-        defaultSortField: 'rel_median_rank', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
+        defaultSortField: 'rel_median', defaultSortDescending: true, dataSourceType: 'players', hasMinGamesFilter: true
     },
     gem: {
         title: 'GEM Leaders',
         subtitle: 'Geometric Mean of Gameday Rank',
         cols: [
-            { header: 'Rank', dataField: 'GEM_rank', sortable: true, type: 'number', formatFn: formatRank },
+            { header: 'Rank', dataField: 'GEM', sortable: true, type: 'number', formatFn: formatRank },
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
             { header: 'GEM', dataField: 'GEM', sortable: true, type: 'number', formatFn: (v) => parseFloat(v || 0).toFixed(1) },
             { header: 'Games', dataField: 'games_played', sortable: true, type: 'number' }
         ],
-        defaultSortField: 'GEM_rank', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
+        defaultSortField: 'GEM', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
     },
     war: {
         title: 'WAR Leaders',
@@ -74,22 +74,22 @@ const categories = {
     median_gameday_rank: {
         title: 'Median Gameday Rank Leaders',
         cols: [
-            { header: 'Rank', dataField: 'medrank_rank', sortable: true, type: 'number', formatFn: formatRank },
+            { header: 'Rank', dataField: 'medrank', sortable: true, type: 'number', formatFn: formatRank },
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
             { header: 'Median Rank', dataField: 'medrank', sortable: true, type: 'number', formatFn: formatRank },
             { header: 'Games', dataField: 'games_played', sortable: true, type: 'number' }
         ],
-        defaultSortField: 'medrank_rank', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
+        defaultSortField: 'medrank', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
     },
     avg_gameday_rank: {
         title: 'Average Gameday Rank Leaders',
         cols: [
-            { header: 'Rank', dataField: 'meanrank_rank', sortable: true, type: 'number', formatFn: formatRank },
+            { header: 'Rank', dataField: 'meanrank', sortable: true, type: 'number', formatFn: formatRank },
             { header: 'Player', dataField: 'player_handle', sortable: true, type: 'string' },
             { header: 'Avg Rank', dataField: 'meanrank', sortable: true, type: 'number', formatFn: (v) => (v === null || typeof v === 'undefined' || isNaN(parseFloat(String(v)))) ? '-' : parseFloat(String(v)).toFixed(1) },
             { header: 'Games', dataField: 'games_played', sortable: true, type: 'number' }
         ],
-        defaultSortField: 'meanrank_rank', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
+        defaultSortField: 'meanrank', defaultSortDescending: false, dataSourceType: 'players', hasMinGamesFilter: true
     },
     aag_mean: {
         title: 'Games Above Mean Leaders',
@@ -559,8 +559,8 @@ function displayLeaderboard() {
     }
 
     const tableHTML = itemsToShow.map((item, index) => {
-        const rankColField = categoryConfig.cols[0].dataField;
-        const rankValue = item[rankColField];
+        // The displayed rank is now its position in the filtered/sorted list, not the static rank from Firestore.
+        const dynamicRank = index + 1;
 
         let playerHandle, teamId, isRookie, isAllStar, playerId;
 
@@ -595,7 +595,7 @@ function displayLeaderboard() {
         const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
         const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
         
-        let rowCells = `<td class="rank-cell">${getRankIndicator(rankValue)}</td>
+        let rowCells = `<td class="rank-cell">${getRankIndicator(dynamicRank)}</td>
             <td class="player-cell">
             <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
             <div>
