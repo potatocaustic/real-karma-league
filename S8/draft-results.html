@@ -218,11 +218,13 @@
 
           // 3. Fetch all required team and player data in parallel
           const teamPromises = [...teamIds].map(id => getDoc(doc(db, getCollectionName('v2_teams'), id, getCollectionName('seasonal_records'), CURRENT_SEASON_ID)));
-          const playerPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id, getCollectionName('seasonal_stats'), CURRENT_SEASON_ID)));
+          const playerStatsPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id, getCollectionName('seasonal_stats'), CURRENT_SEASON_ID)));
+          const playerInfoPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id)));
           
-          const [teamDocs, playerDocs] = await Promise.all([
+          const [teamDocs, playerStatsDocs, playerInfoDocs] = await Promise.all([
               Promise.all(teamPromises),
-              Promise.all(playerPromises)
+              Promise.all(playerStatsPromises),
+              Promise.all(playerInfoPromises)
           ]);
 
           // 4. Create maps for easy data lookup
@@ -233,19 +235,30 @@
               }
           });
           
-          const playersMap = new Map();
-          playerDocs.forEach(doc => {
+          const playersStatsMap = new Map();
+          playerStatsDocs.forEach(doc => {
               if (doc.exists()) {
-                  playersMap.set(doc.ref.parent.parent.id, doc.data());
+                  playersStatsMap.set(doc.ref.parent.parent.id, doc.data());
+              }
+          });
+          
+          const playerInfoMap = new Map();
+          playerInfoDocs.forEach(doc => {
+              if (doc.exists()) {
+                  playerInfoMap.set(doc.id, doc.data());
               }
           });
 
           // 5. Combine all data into a single array for rendering
           allDraftData = draftPicks.map(pick => {
-            const playerStats = playersMap.get(pick.player_id);
+            const playerStats = playersStatsMap.get(pick.player_id);
+            const playerInfo = playerInfoMap.get(pick.player_id);
+            const displayHandle = playerInfo?.player_handle || pick.player_handle;
+
             return {
               ...pick,
               team_name: teamsMap.get(pick.team_id) || pick.team_id,
+              display_handle: displayHandle,
               games_played: playerStats?.games_played || 0,
               medrank: playerStats?.medrank || Infinity,
               rel_median: playerStats?.rel_median || 0,
@@ -306,7 +319,7 @@
           
           const playerCellHTML = pick.forfeit
             ? `<span>FORFEITED</span>`
-            : `<a href="player.html?handle=${encodeURIComponent(pick.player_handle)}" class="player-link">${pick.player_handle}</a>`;
+            : `<a href="player.html?handle=${encodeURIComponent(pick.display_handle)}" class="player-link">${pick.display_handle}</a>`;
 
           return `
             <tr>
