@@ -113,15 +113,15 @@ async function loadPlayerData() {
         ]);
 
         // **MODIFIED: Logic to handle postseason button visibility**
-        const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
         const postseasonBtn = document.getElementById('postseason-btn');
-        let currentWeek = null;
-        if (!activeSeasonSnap.empty) {
-            currentWeek = activeSeasonSnap.docs[0].data().current_week;
-        }
         if (postseasonBtn) {
-            if (!postseasonWeeks.includes(currentWeek)) {
-                postseasonBtn.style.display = 'none';
+            const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
+            let currentWeek = null;
+            if (!activeSeasonSnap.empty) {
+                currentWeek = activeSeasonSnap.docs[0].data().current_week;
+            }
+            if (postseasonWeeks.includes(currentWeek)) {
+                postseasonBtn.style.display = 'inline-block';
             }
         }
         // **END MODIFICATION**
