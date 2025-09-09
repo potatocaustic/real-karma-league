@@ -508,8 +508,10 @@ function displayLeaderboard() {
     const selectedTeamValues = Array.from(selectedTeamCheckboxes).map(cb => cb.value);
     if (!selectedTeamValues.includes('all') && selectedTeamValues.length > 0) {
         if (categoryConfig.dataSourceType === 'single_game') {
-            const playerTeamMap = new Map(allPlayersData.map(p => [p.player_handle, p.current_team_id]));
-            filteredData = filteredData.filter(game => selectedTeamValues.includes(playerTeamMap.get(game.player_handle)));
+            // Create a map from player_id to current_team_id for efficient lookup
+            const playerTeamMap = new Map(allPlayersData.map(p => [p.id, p.current_team_id]));
+            // Filter game performances based on the current team of the player involved
+            filteredData = filteredData.filter(game => selectedTeamValues.includes(playerTeamMap.get(game.player_id)));
         } else {
             filteredData = filteredData.filter(player => selectedTeamValues.includes(player.current_team_id));
         }
@@ -563,15 +565,25 @@ function displayLeaderboard() {
         let playerHandle, teamId, isRookie, isAllStar, playerId;
 
         if (categoryConfig.dataSourceType === 'single_game') {
-            playerHandle = item.player_handle;
-            const pData = allPlayersData.find(p => p.player_handle === item.player_handle);
+            // Use the player_id from the leaderboard entry to find the most current player data
+            const pData = allPlayersData.find(p => p.id === item.player_id);
             if (pData) {
+                // If found, use the current data from the v2_players collection
                 playerId = pData.id;
+                playerHandle = pData.player_handle; // Use the fresh handle
                 teamId = pData.current_team_id;
                 isRookie = pData.rookie === '1';
                 isAllStar = pData.all_star === '1';
+            } else {
+                // Fallback to the (potentially stale) data in the leaderboard entry if player not found
+                playerId = item.player_id;
+                playerHandle = item.player_handle;
+                teamId = 'N/A'; // Cannot determine current team
+                isRookie = false;
+                isAllStar = false;
             }
         } else {
+            // This logic handles player-based leaderboards and remains the same
             playerId = item.id;
             playerHandle = item.player_handle;
             teamId = item.current_team_id;
