@@ -120,32 +120,45 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data && data.games && data.games.length > 0) {
             const container = document.getElementById('gotd-selector-container');
             const list = document.getElementById('gotd-game-list');
-            list.innerHTML = ''; 
-            list.style.display = 'block'; // Override .form-group styles to fix alignment
+            list.innerHTML = '';
+            list.style.display = 'block';
 
             data.games.forEach(game => {
-                const label = document.createElement('label');
-                label.style.display = 'flex';
-                label.style.alignItems = 'center';
-                label.style.marginBottom = '8px';
-                
-                const radio = document.createElement('input');
-                radio.type = 'radio';
-                radio.name = 'gotd_game';
-                radio.value = game.gameId;
-                radio.dataset.team1Name = game.team1_name;
-                radio.dataset.team2Name = game.team2_name;
-                radio.style.marginRight = '10px';
-                
-                label.appendChild(radio);
-                label.append(`${game.team1_name} vs ${game.team2_name}`);
-                list.appendChild(label);
+                const gameOption = document.createElement('div');
+                gameOption.className = 'gotd-game-option'; // For selection logic
+                gameOption.textContent = `${game.team1_name} vs ${game.team2_name}`;
+                gameOption.dataset.gameId = game.gameId;
+
+                // Basic styling for clickable items
+                Object.assign(gameOption.style, {
+                    padding: '10px',
+                    margin: '5px 0',
+                    border: '1px solid #555',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s, border-color 0.2s'
+                });
+
+                gameOption.addEventListener('click', () => {
+                    // Deselect all other options
+                    document.querySelectorAll('.gotd-game-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                        opt.style.backgroundColor = '';
+                        opt.style.borderColor = '#555';
+                    });
+                    // Select the clicked option
+                    gameOption.classList.add('selected');
+                    gameOption.style.backgroundColor = '#004a7c';
+                    gameOption.style.borderColor = '#007bff';
+                });
+
+                list.appendChild(gameOption);
             });
             
             const submitButton = document.createElement('button');
             submitButton.textContent = 'Confirm GOTD & Generate';
             submitButton.className = 'btn-admin-edit';
-            submitButton.style.marginTop = '10px';
+            submitButton.style.marginTop = '15px';
             submitButton.onclick = () => generateLineupsReport(data.games);
             list.appendChild(submitButton);
 
@@ -156,13 +169,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateLineupsReport(gamesData) {
-        const selectedRadio = document.querySelector('input[name="gotd_game"]:checked');
-        if (!selectedRadio) {
+        const selectedGame = document.querySelector('.gotd-game-option.selected');
+        if (!selectedGame) {
             alert("Please select a Game of the Day.");
             return;
         }
         
-        const gotdId = selectedRadio.value;
+        const gotdId = selectedGame.dataset.gameId;
         const today = new Date();
         const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
         
