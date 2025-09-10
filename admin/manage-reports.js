@@ -121,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const container = document.getElementById('gotd-selector-container');
             const list = document.getElementById('gotd-game-list');
             list.innerHTML = ''; 
+            list.style.display = 'block'; // Override .form-group styles to fix alignment
 
             data.games.forEach(game => {
                 const label = document.createElement('label');
@@ -143,7 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const submitButton = document.createElement('button');
             submitButton.textContent = 'Confirm GOTD & Generate';
-            submitButton.className = 'standard-btn';
+            submitButton.className = 'btn-admin-edit';
+            submitButton.style.marginTop = '10px';
             submitButton.onclick = () => generateLineupsReport(data.games);
             list.appendChild(submitButton);
 
@@ -256,3 +258,4 @@ document.addEventListener('DOMContentLoaded', () => {
         adminContainer.style.display = 'none';
     }
 });
+
