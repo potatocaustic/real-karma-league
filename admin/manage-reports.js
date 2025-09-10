@@ -124,7 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             data.games.forEach(game => {
                 const label = document.createElement('label');
-                label.style.display = 'block';
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
                 label.style.marginBottom = '8px';
                 
                 const radio = document.createElement('input');
@@ -133,9 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 radio.value = game.gameId;
                 radio.dataset.team1Name = game.team1_name;
                 radio.dataset.team2Name = game.team2_name;
+                radio.style.marginRight = '10px';
                 
                 label.appendChild(radio);
-                label.append(` ${game.team1_name} vs ${game.team2_name}`);
+                label.append(`${game.team1_name} vs ${game.team2_name}`);
                 list.appendChild(label);
             });
             
@@ -165,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let output = `Lineups ${formattedDate}\n\n`;
         let gotdOutput = '';
 
-        // MODIFICATION: Added map for custom captain emojis.
         const captainEmojis = {
             'Hornets': ' 🐝',
             'Vipers': ' 🐍',
@@ -178,9 +179,19 @@ document.addEventListener('DOMContentLoaded', () => {
             'Legion': ' 🥷'
         };
 
-        // MODIFICATION: Updated function to accept teamName and use the emoji map.
+        const usa_diabetics = ['PJPB7G3y', 'QvDP2zgv', 'k3LgQL4v', 'rnejGZ2J', 'V3yAQ6Y3'];
+        const can_diabetics = ['BJ0r9gL3', 'AnzRoOpn', 'kJwL5b8v'];
+
         const formatPlayerLine = (player, teamName) => {
-            let line = ` @${player.player_handle}`;
+            let line = '';
+            if (teamName === 'Diabetics') {
+                if (usa_diabetics.includes(player.player_id)) {
+                    line += '🇺🇸 ';
+                } else if (can_diabetics.includes(player.player_id)) {
+                    line += '🇨🇦 ';
+                }
+            }
+            line += `@${player.player_handle}`;
             if (player.is_captain) {
                 const emoji = captainEmojis[teamName] || ' (c)';
                 line += emoji;
@@ -189,7 +200,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         gamesData.forEach(game => {
-            // MODIFICATION: Pass the team name to the formatting function.
             const team1Lineup = game.team1_lineup.map(p => formatPlayerLine(p, game.team1_name)).join('\n ');
             const team2Lineup = game.team2_lineup.map(p => formatPlayerLine(p, game.team2_name)).join('\n ');
             
