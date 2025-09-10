@@ -14,6 +14,7 @@ let historicalRecords = {};
 let liveGamesCache = new Map();
 let currentWeek = '1'; // This will be updated on page load
 let selectedTeamId = 'all';
+let liveScoringStatus = 'stopped'; // Tracks the live_scoring_status
 
 // --- UTILITY FUNCTIONS ---
 const formatInThousands = (value) => {
@@ -178,6 +179,22 @@ function listenForLiveGames() {
     });
 }
 
+function listenForScoringStatus() {
+    const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+    onSnapshot(statusRef, (docSnap) => {
+        const newStatus = docSnap.exists() ? docSnap.data().status : 'stopped';
+        if (newStatus !== liveScoringStatus) {
+            liveScoringStatus = newStatus;
+            // A change in scoring status requires a re-render to show/hide live indicators
+            if (selectedTeamId === 'all') {
+                displayWeek(currentWeek);
+            } else {
+                displayGamesForTeam(selectedTeamId);
+            }
+        }
+    });
+}
+
 function setupWeekSelector() {
     const allKnownWeeks = [...new Set(allGamesCache.map(g => g.week))];
     const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', 'All-Star', '9', '10', '11', '12', '13', '14', '15', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Relegation'];
@@ -287,7 +304,7 @@ async function displayGamesForTeam(teamId) {
         const dateGamesHTML = gamesByDate[date].map(game => {
             const team1 = getTeamById(game.team1_id);
             const team2 = getTeamById(game.team2_id);
-            const isLive = liveGamesCache.has(game.id);
+            const isLive = liveScoringStatus === 'active' && liveGamesCache.has(game.id);
             const isCompleted = game.completed === 'TRUE';
             let cardClass = 'upcoming', statusText = 'Upcoming', team1ScoreHTML = '', team2ScoreHTML = '';
             let team1NameHTML = escapeHTML(team1.team_name), team2NameHTML = escapeHTML(team2.team_name);
@@ -383,7 +400,7 @@ async function displayWeek(week) {
         const dateGamesHTML = gamesByDate[date].map(game => {
             const team1 = getTeamById(game.team1_id);
             const team2 = getTeamById(game.team2_id);
-            const isLive = liveGamesCache.has(game.id);
+            const isLive = liveScoringStatus === 'active' && liveGamesCache.has(game.id);
             const isCompleted = game.completed === 'TRUE';
             let cardClass = 'upcoming', statusText = 'Upcoming', team1ScoreHTML = '', team2ScoreHTML = '';
             let team1NameHTML = escapeHTML(team1.team_name), team2NameHTML = escapeHTML(team2.team_name);
@@ -635,3 +652,4 @@ async function initializePage() {
 }
 
 document.addEventListener('DOMContentLoaded', initializePage);
+}
