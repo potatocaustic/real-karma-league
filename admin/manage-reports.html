@@ -55,6 +55,7 @@
     </header>
 
     <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <div class="content-container">
             <h2>Generate Reports</h2>
             <p>Select a report to generate. Outputs can be copied and pasted.</p>
@@ -70,8 +71,9 @@
                 <label for="deadline-time">Deadline Time (e.g., 12:05p ET):</label>
                 <input type="text" id="deadline-time" placeholder="12:05p ET">
             </div>
-            <button id="generate-deadline-report" class="standard-btn">Generate Report</button>
+            <button id="generate-deadline-report" class="btn-admin-edit">Generate Report</button>
         </div>
+        <br>
 
         <div class="content-container">
             <h3>Vote GOTD Report</h3>
@@ -79,8 +81,9 @@
                 <label for="gotd-date">Game Date:</label>
                 <input type="date" id="gotd-date">
             </div>
-            <button id="generate-gotd-report" class="standard-btn">Generate Report</button>
+            <button id="generate-gotd-report" class="btn-admin-edit">Generate Report</button>
         </div>
+        <br>
         
         <div class="content-container">
             <h3>Daily Lineups Report</h3>
@@ -88,7 +91,7 @@
                 <p><strong>Step 1: Select the Game of the Day (GOTD)</strong></p>
                 <div id="gotd-game-list" class="form-group"></div>
             </div>
-            <button id="generate-lineups-report" class="standard-btn">Generate Report</button>
+            <button id="generate-lineups-report" class="btn-admin-edit">Generate Report</button>
         </div>
 
 
