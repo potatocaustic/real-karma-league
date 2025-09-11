@@ -381,30 +381,40 @@ async function loadRecentGames() {
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1));
-        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(1));
+        // TEMP FIX: Fetch a larger batch of games to sort client-side
+        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(30));
+        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(30));
 
         const [regSnap, postSnap] = await Promise.all([getDocs(regularSeasonGamesQuery), getDocs(postSeasonGamesQuery)]);
 
-        const mostRecentRegGame = !regSnap.empty ? regSnap.docs[0].data() : null;
-        const mostRecentPostGame = !postSnap.empty ? postSnap.docs[0].data() : null;
+        const allRecentGames = [
+            ...regSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+            ...postSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+        ];
 
-        let mostRecentDate;
-        let collectionToQuery;
-
-        if (mostRecentPostGame && (!mostRecentRegGame || new Date(mostRecentPostGame.date) >= new Date(mostRecentRegGame.date))) {
-            mostRecentDate = mostRecentPostGame.date;
-            collectionToQuery = getCollectionName('post_games');
-        } else if (mostRecentRegGame) {
-            mostRecentDate = mostRecentRegGame.date;
-            collectionToQuery = getCollectionName('games');
-        } else {
+        if (allRecentGames.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
 
-        const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
-        const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // TEMP FIX: Find the actual most recent date using JS Date objects
+        let mostRecentDateObj = null;
+        let mostRecentDateString = '';
+
+        allRecentGames.forEach(game => {
+            // Mitigate potential invalid date strings before creating a Date object
+            if (game.date && typeof game.date === 'string' && game.date.includes('/')) {
+                const gameDateObj = new Date(game.date);
+                if (!mostRecentDateObj || gameDateObj > mostRecentDateObj) {
+                    mostRecentDateObj = gameDateObj;
+                    mostRecentDateString = game.date;
+                }
+            }
+        });
+        
+        // TEMP FIX: Filter the fetched games to only include those on the true most recent date
+        const games = allRecentGames.filter(game => game.date === mostRecentDateString);
+
 
         if (games.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games found.</div>';
