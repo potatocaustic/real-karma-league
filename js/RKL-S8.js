@@ -1,4 +1,4 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup } from '../js/firebase-init.js';
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId } from '../js/firebase-init.js';
 import { generateLineupTable } from './main.js';
 
 const USE_DEV_COLLECTIONS = false; // Set to false for production
@@ -381,40 +381,32 @@ async function loadRecentGames() {
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        // TEMP FIX: Fetch a larger batch of games to sort client-side
-        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(30));
-        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy('date', 'desc'), limit(30));
+        // CORRECTED QUERY: Sort by the document ID, which is in a sortable YYYY-MM-DD format.
+        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
+        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
 
         const [regSnap, postSnap] = await Promise.all([getDocs(regularSeasonGamesQuery), getDocs(postSeasonGamesQuery)]);
 
-        const allRecentGames = [
-            ...regSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-            ...postSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-        ];
+        const mostRecentRegGameDoc = !regSnap.empty ? regSnap.docs[0] : null;
+        const mostRecentPostGameDoc = !postSnap.empty ? postSnap.docs[0] : null;
 
-        if (allRecentGames.length === 0) {
+        let mostRecentDate;
+        let collectionToQuery;
+
+        // Compare document IDs to find the truly most recent game
+        if (mostRecentPostGameDoc && (!mostRecentRegGameDoc || mostRecentPostGameDoc.id > mostRecentRegGameDoc.id)) {
+            mostRecentDate = mostRecentPostGameDoc.data().date;
+            collectionToQuery = getCollectionName('post_games');
+        } else if (mostRecentRegGameDoc) {
+            mostRecentDate = mostRecentRegGameDoc.data().date;
+            collectionToQuery = getCollectionName('games');
+        } else {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
 
-        // TEMP FIX: Find the actual most recent date using JS Date objects
-        let mostRecentDateObj = null;
-        let mostRecentDateString = '';
-
-        allRecentGames.forEach(game => {
-            // Mitigate potential invalid date strings before creating a Date object
-            if (game.date && typeof game.date === 'string' && game.date.includes('/')) {
-                const gameDateObj = new Date(game.date);
-                if (!mostRecentDateObj || gameDateObj > mostRecentDateObj) {
-                    mostRecentDateObj = gameDateObj;
-                    mostRecentDateString = game.date;
-                }
-            }
-        });
-        
-        // TEMP FIX: Filter the fetched games to only include those on the true most recent date
-        const games = allRecentGames.filter(game => game.date === mostRecentDateString);
-
+        const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
+        const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (games.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games found.</div>';
