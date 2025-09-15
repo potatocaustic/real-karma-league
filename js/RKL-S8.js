@@ -306,7 +306,6 @@ function loadLiveGames() {
 
             let gameItem = gamesList.querySelector(`.game-item[data-game-id="${gameId}"]`);
             
-            // Determine the correct logo extension for each team, defaulting to 'webp'
             const team1LogoExt = team1.logo_ext || 'webp';
             const team2LogoExt = team2.logo_ext || 'webp';
 
@@ -314,6 +313,14 @@ function loadLiveGames() {
                 const teamScores = gameItem.querySelectorAll('.team-score');
                 const teamBars = gameItem.querySelectorAll('.team-bar');
                 const teamRecords = gameItem.querySelectorAll('.team-record');
+                const teamLogos = gameItem.querySelectorAll('.team-logo'); // Get logos
+                
+                // --- ADDED THIS BLOCK TO FIX LOGOS ON UPDATE ---
+                if (teamLogos.length === 2) {
+                    teamLogos[0].src = `../icons/${team1.id}.${team1LogoExt}`;
+                    teamLogos[1].src = `../icons/${team2.id}.${team2LogoExt}`;
+                }
+                // ----------------------------------------------
 
                 teamScores[0].textContent = formatInThousands(team1_total);
                 teamScores[1].textContent = formatInThousands(team2_total);
