@@ -118,6 +118,8 @@ async function updateAwardsCache(seasonId) {
 
 async function updateTeamCache(seasonId) {
     allTeams.clear();
+    allGms.clear(); 
+
     const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
 
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
@@ -133,6 +135,14 @@ async function updateTeamCache(seasonId) {
             teamData.team_name = seasonRecordSnap.data().team_name;
         } else {
             teamData.team_name = "Name Not Found";
+        }
+        
+        if (teamData.current_gm_handle && teamData.gm_player_id && teamData.conference) {
+            allGms.set(teamData.gm_player_id, {
+                id: teamData.gm_player_id,
+                player_handle: teamData.current_gm_handle,
+                conference: teamData.conference
+            });
         }
         return teamData;
     });
@@ -276,11 +286,21 @@ async function handleOpenModalClick(e) {
 
 function getRosterForTeam(teamId, week) {
     if (week === 'All-Star') {
+        // Handle the GM game specifically
+        if (teamId === 'EGM') {
+            return Array.from(allGms.values()).filter(gm => gm.conference === 'Eastern');
+        }
+        if (teamId === 'WGM') {
+            return Array.from(allGms.values()).filter(gm => gm.conference === 'Western');
+        }
+
+        // Handle the regular All-Star player game
         const eastPlayers = awardSelections.get('all-stars-eastern')?.players || [];
         const westPlayers = awardSelections.get('all-stars-western')?.players || [];
-        if (teamId.includes('EAST')) return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-        if (teamId.includes('WEST')) return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-    } else if (week === 'Rising Stars') {
+        if (teamId === 'EAST') return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        if (teamId === 'WEST') return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+    } 
+    else if (week === 'Rising Stars') {
         const eastPlayers = awardSelections.get('rising-stars-eastern')?.players || [];
         const westPlayers = awardSelections.get('rising-stars-western')?.players || [];
         if (teamId.includes('EAST')) return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
@@ -327,8 +347,8 @@ async function openLineupModal(game) {
 
     if (liveGameSnap.exists()) {
         const liveData = liveGameSnap.data();
-        team1Roster = liveData.team1_lineup.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-        team2Roster = liveData.team2_lineup.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        team1Roster = liveData.team1_lineup.map(p => allPlayers.get(p.player_id) || allGms.get(p.player_id)).filter(Boolean);
+        team2Roster = liveData.team2_lineup.map(p => allPlayers.get(p.player_id) || allGms.get(p.player_id)).filter(Boolean);
 
         const allLivePlayers = [...liveData.team1_lineup, ...liveData.team2_lineup];
         allLivePlayers.forEach(player => {
@@ -352,9 +372,9 @@ async function openLineupModal(game) {
                 const lineupData = d.data();
                 if (playerIdsInGame.has(lineupData.player_id)) {
                     if (lineupData.team_id === game.team1_id) {
-                        team1PlayersForGame.push(allPlayers.get(lineupData.player_id));
+                        team1PlayersForGame.push(allPlayers.get(lineupData.player_id) || allGms.get(lineupData.player_id));
                     } else if (lineupData.team_id === game.team2_id) {
-                        team2PlayersForGame.push(allPlayers.get(lineupData.player_id));
+                        team2PlayersForGame.push(allPlayers.get(lineupData.player_id) || allGms.get(lineupData.player_id));
                     }
                     existingLineups.set(lineupData.player_id, lineupData);
                 }
@@ -633,7 +653,7 @@ async function handleSubmitForLiveScoring(e) {
         const captainId = lineupForm.querySelector(`input[name="${prefix}-captain"]:checked`)?.value;
         document.querySelectorAll(`#${prefix}-starters .starter-card`).forEach(card => {
             const playerId = card.id.replace('starter-card-', '');
-            const player = allPlayers.get(playerId);
+            const player = allPlayers.get(playerId) || allGms.get(playerId);
             const lineupPlayer = {
                 player_id: playerId,
                 player_handle: player.player_handle,
