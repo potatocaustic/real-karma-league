@@ -279,11 +279,26 @@ function loadLiveGames() {
         snapshot.docs.forEach(gameDoc => {
             const gameId = gameDoc.id;
             const liveGameData = gameDoc.data();
-            const team1 = allTeams.find(t => t.id === liveGameData.team1_lineup[0]?.team_id);
-            const team2 = allTeams.find(t => t.id === liveGameData.team2_lineup[0]?.team_id);
-            if (!team1 || !team2) return;
-            
             const originalGame = allGamesCache.find(g => g.id === gameId);
+            
+            // --- MODIFIED TEAM LOOKUP LOGIC ---
+            // First, try to find the team based on the player's team_id in the live game data.
+            let team1 = allTeams.find(t => t.id === liveGameData.team1_lineup[0]?.team_id);
+            let team2 = allTeams.find(t => t.id === liveGameData.team2_lineup[0]?.team_id);
+
+            // If that fails (e.g., for the GM game), fall back to using the IDs from the cached original game data.
+            if ((!team1 || !team2) && originalGame) {
+                team1 = allTeams.find(t => t.id === originalGame.team1_id);
+                team2 = allTeams.find(t => t.id === originalGame.team2_id);
+            }
+            // ------------------------------------
+
+            if (!team1 || !team2) {
+                // If teams still not found, skip rendering this game tile to avoid errors.
+                console.warn(`Could not find team data for live game ID: ${gameId}`);
+                return;
+            }
+            
             const gameIsPostseason = originalGame ? isPostseasonWeek(originalGame.week) : false;
             let team1Record, team2Record;
 
@@ -313,14 +328,12 @@ function loadLiveGames() {
                 const teamScores = gameItem.querySelectorAll('.team-score');
                 const teamBars = gameItem.querySelectorAll('.team-bar');
                 const teamRecords = gameItem.querySelectorAll('.team-record');
-                const teamLogos = gameItem.querySelectorAll('.team-logo'); // Get logos
+                const teamLogos = gameItem.querySelectorAll('.team-logo');
                 
-                // --- ADDED THIS BLOCK TO FIX LOGOS ON UPDATE ---
                 if (teamLogos.length === 2) {
                     teamLogos[0].src = `../icons/${team1.id}.${team1LogoExt}`;
                     teamLogos[1].src = `../icons/${team2.id}.${team2LogoExt}`;
                 }
-                // ----------------------------------------------
 
                 teamScores[0].textContent = formatInThousands(team1_total);
                 teamScores[1].textContent = formatInThousands(team2_total);
