@@ -109,18 +109,23 @@ async function fetchAllGames(seasonId) {
         console.error("fetchAllGames was called without a seasonId.");
         return;
     }
+    // Add a reference to the exhibition_games collection
     const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
     const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
+    const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
 
-    // The typo was here. Corrected postGamesSnap to postGamesRef.
-    const [gamesSnap, postGamesSnap] = await Promise.all([
+    // Fetch all three collections simultaneously
+    const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
         getDocs(gamesRef),
-        getDocs(postGamesRef), 
+        getDocs(postGamesRef),
+        getDocs(exhibitionGamesRef),
     ]);
 
+    // Combine the results from all three collections into the cache
     allGamesCache = [
         ...gamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })),
-        ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() }))
+        ...postGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })),
+        ...exhibitionGamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() }))
     ];
     console.log(`Successfully cached ${allGamesCache.length} total games.`);
 }
@@ -163,12 +168,15 @@ function loadStandingsPreview() {
             } else if (team.elim === 1 || team.elim === '1') {
                 clinchBadgeHtml = '<span class="clinch-badge clinch-eliminated">e</span>';
             }
+            
+            // Determine the correct logo extension, defaulting to 'webp'
+            const logoExt = team.logo_ext || 'webp';
 
             return `
                 <tr>
                     <td>
                         <a href="team.html?id=${team.id}" class="team-link">
-                            <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <img src="../icons/${team.id}.${logoExt}" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
                             <span>${team.team_name}</span>
                             ${clinchBadgeHtml}
                         </a>
@@ -297,6 +305,10 @@ function loadLiveGames() {
             const team2_bar_percent = (team2_total / maxScore) * 100;
 
             let gameItem = gamesList.querySelector(`.game-item[data-game-id="${gameId}"]`);
+            
+            // Determine the correct logo extension for each team, defaulting to 'webp'
+            const team1LogoExt = team1.logo_ext || 'webp';
+            const team2LogoExt = team2.logo_ext || 'webp';
 
             if (gameItem) { // UPDATE EXISTING
                 const teamScores = gameItem.querySelectorAll('.team-score');
@@ -321,7 +333,7 @@ function loadLiveGames() {
                     <div class="game-item" data-game-id="${gameId}" data-is-live="true">
                         <div class="game-matchup">
                             <div class="team">
-                                <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <img src="../icons/${team1.id}.${team1LogoExt}" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
                                     <span class="team-name">${team1.team_name}</span>
                                     <span class="team-record">${team1Record}</span>
@@ -333,7 +345,7 @@ function loadLiveGames() {
                                 <span class="team-score">${formatInThousands(team1_total)}</span>
                             </div>
                             <div class="team">
-                                <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <img src="../icons/${team2.id}.${team2LogoExt}" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
                                 <div class="team-info">
                                     <span class="team-name">${team2.team_name}</span>
                                     <span class="team-record">${team2Record}</span>
@@ -447,11 +459,15 @@ async function loadRecentGames() {
             const team1_indicator = winnerId === team1.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
             const team2_indicator = winnerId === team2.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
 
+            // Determine the correct logo extension for each team, defaulting to 'webp'
+            const team1LogoExt = team1.logo_ext || 'webp';
+            const team2LogoExt = team2.logo_ext || 'webp';
+
             return `
                 <div class="game-item completed" data-game-id="${game.id}" data-game-date="${game.date}">
                     <div class="game-matchup">
                         <div class="team">
-                            <img src="../icons/${team1.id}.webp" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <img src="../icons/${team1.id}.${team1LogoExt}" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
                             <div class="team-info">
                                 <span class="team-name">${team1NameHTML}</span>
                                 <span class="team-record">${team1Record}</span>
@@ -463,7 +479,7 @@ async function loadRecentGames() {
                             <span class="team-score ${winnerId === team1.id ? 'winner' : ''}">${formatInThousands(team1_total)}</span>
                         </div>
                         <div class="team">
-                            <img src="../icons/${team2.id}.webp" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <img src="../icons/${team2.id}.${team2LogoExt}" alt="${team2.team_name}" class="team-logo" onerror="this.style.display='none'">
                             <div class="team-info">
                                 <span class="team-name">${team2NameHTML}</span>
                                 <span class="team-record">${team2Record}</span>
