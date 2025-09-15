@@ -644,7 +644,8 @@ async function initializePage() {
             });
         }, 0);
 
-        listenForLiveGames();       
+        listenForLiveGames();
+        listenForScoringStatus(); // Add this line
     } catch (error) {
         console.error("Failed to initialize page:", error);
         document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${error.message}</div>`;
