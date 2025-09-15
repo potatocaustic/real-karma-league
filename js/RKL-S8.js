@@ -298,6 +298,12 @@ function loadLiveGames() {
                 console.warn(`Could not find team data for live game ID: ${gameId}`);
                 return;
             }
+
+            // START OF FIX
+            const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+            const team1LogoExt = team1.logo_ext || (specialTeamIds.includes(team1.id) ? 'png' : 'webp');
+            const team2LogoExt = team2.logo_ext || (specialTeamIds.includes(team2.id) ? 'png' : 'webp');
+            // END OF FIX
             
             const gameIsPostseason = originalGame ? isPostseasonWeek(originalGame.week) : false;
             let team1Record, team2Record;
@@ -320,9 +326,6 @@ function loadLiveGames() {
             const team2_bar_percent = (team2_total / maxScore) * 100;
 
             let gameItem = gamesList.querySelector(`.game-item[data-game-id="${gameId}"]`);
-            
-            const team1LogoExt = team1.logo_ext || 'webp';
-            const team2LogoExt = team2.logo_ext || 'webp';
 
             if (gameItem) { // UPDATE EXISTING
                 const teamScores = gameItem.querySelectorAll('.team-score');
