@@ -416,29 +416,35 @@ async function loadRecentGames() {
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        // CORRECTED QUERY: Sort by the document ID, which is in a sortable YYYY-MM-DD format.
+        // --- MODIFICATION START ---
+        // 1. Query all three game collections for the most recent completed game.
         const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
         const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
+        const exhibitionGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('exhibition_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
 
-        const [regSnap, postSnap] = await Promise.all([getDocs(regularSeasonGamesQuery), getDocs(postSeasonGamesQuery)]);
+        const [regSnap, postSnap, exhSnap] = await Promise.all([
+            getDocs(regularSeasonGamesQuery),
+            getDocs(postSeasonGamesQuery),
+            getDocs(exhibitionGamesQuery)
+        ]);
 
-        const mostRecentRegGameDoc = !regSnap.empty ? regSnap.docs[0] : null;
-        const mostRecentPostGameDoc = !postSnap.empty ? postSnap.docs[0] : null;
+        // 2. Consolidate results and find the absolute most recent game by comparing document IDs.
+        const potentialGames = [];
+        if (!regSnap.empty) potentialGames.push({ doc: regSnap.docs[0], collection: getCollectionName('games') });
+        if (!postSnap.empty) potentialGames.push({ doc: postSnap.docs[0], collection: getCollectionName('post_games') });
+        if (!exhSnap.empty) potentialGames.push({ doc: exhSnap.docs[0], collection: getCollectionName('exhibition_games') });
 
-        let mostRecentDate;
-        let collectionToQuery;
-
-        // Compare document IDs to find the truly most recent game
-        if (mostRecentPostGameDoc && (!mostRecentRegGameDoc || mostRecentPostGameDoc.id > mostRecentRegGameDoc.id)) {
-            mostRecentDate = mostRecentPostGameDoc.data().date;
-            collectionToQuery = getCollectionName('post_games');
-        } else if (mostRecentRegGameDoc) {
-            mostRecentDate = mostRecentRegGameDoc.data().date;
-            collectionToQuery = getCollectionName('games');
-        } else {
+        if (potentialGames.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
+
+        potentialGames.sort((a, b) => b.doc.id.localeCompare(a.doc.id));
+        const mostRecentGameInfo = potentialGames[0];
+        
+        const mostRecentDate = mostRecentGameInfo.doc.data().date;
+        const collectionToQuery = mostRecentGameInfo.collection;
+        // --- MODIFICATION END ---
 
         const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -454,22 +460,32 @@ async function loadRecentGames() {
             const team1 = allTeams.find(t => t.id === game.team1_id);
             const team2 = allTeams.find(t => t.id === game.team2_id);
             if (!team1 || !team2) return '';
-
-            const gameIsPostseason = isPostseasonWeek(game.week);
+            
+            // --- MODIFICATION START ---
+            // 3. Set header and determine record format based on the collection the games came from.
+            const isThisGamePostseason = collectionToQuery.includes('post_games');
             if (game === games[0]) {
-                 gamesHeader.textContent = gameIsPostseason ? 'Recent Postseason Games' : 'Recent Games';
+                if (isThisGamePostseason) {
+                    gamesHeader.textContent = 'Recent Postseason Games';
+                } else if (collectionToQuery.includes('exhibition_games')) {
+                    gamesHeader.textContent = 'Recent Exhibition Games';
+                } else {
+                    gamesHeader.textContent = 'Recent Games';
+                }
             }
+            // --- MODIFICATION END ---
 
             const team1NameHTML = escapeHTML(team1.team_name);
             const team2NameHTML = escapeHTML(team2.team_name);
             let team1Record, team2Record;
             
-            if (gameIsPostseason) {
+            if (isThisGamePostseason) {
                 const team1SeedHTML = game.team1_seed ? `<strong>(${game.team1_seed})</strong> ` : '';
                 const team2SeedHTML = game.team2_seed ? `<strong>(${game.team2_seed})</strong> ` : '';
                 team1Record = `${team1SeedHTML}${game.team1_wins || 0}-${game.team2_wins || 0}`;
                 team2Record = `${team2SeedHTML}${game.team2_wins || 0}-${game.team1_wins || 0}`;
             } else {
+                // Regular season W-L record is appropriate for both regular and exhibition games.
                 team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
                 team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
             }
@@ -482,7 +498,6 @@ async function loadRecentGames() {
             const team1_indicator = winnerId === team1.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
             const team2_indicator = winnerId === team2.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
 
-            // Determine the correct logo extension for each team, defaulting to 'webp'
             const team1LogoExt = team1.logo_ext || 'webp';
             const team2LogoExt = team2.logo_ext || 'webp';
 
