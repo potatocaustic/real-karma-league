@@ -164,7 +164,8 @@ async function loadExistingAwards() {
     const seasonNumber = currentSeasonId.replace('S', '');
     const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
     const awardsSnap = await getDocs(awardsCollectionRef);
-
+    const awardsParentDocRef = doc(db, `${getCollectionName('awards')}/season_${seasonNumber}`);
+    
     if (awardsSnap.empty) {
         console.log("No existing awards found for this season.");
         document.getElementById('best-player-performance-display').textContent = 'Not yet calculated.';
@@ -285,6 +286,9 @@ async function handleFormSubmit(e) {
 
         // --- BATCH WRITES ---
         const batch = writeBatch(db);
+        batch.set(awardsParentDocRef, {
+            description: `Awards for Season ${seasonNumber}`
+        }, { merge: true });
         const allStarPlayerIds = new Set();
 
         const singleAwards = ['finals-mvp', 'mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
@@ -315,7 +319,7 @@ async function handleFormSubmit(e) {
         const teamAwards = ['league-champion', 'regular-season-title'];
         for (const id of teamAwards) {
             const teamId = document.getElementById(`award-${id}`).value;
-            const docRef = doc(awardsCollectionRef, id);
+            const docRef = doc(, id);
             if (teamId) {
                 const team = allTeams.find(t => t.id === teamId);
                 let data = { award_name: id.replace(/-/g, ' '), team_id: team.id, team_name: team.team_name };
@@ -342,7 +346,7 @@ async function handleFormSubmit(e) {
                     }
                 }
             });
-            const docRef = doc(awardsCollectionRef, id);
+            const docRef = doc(, id);
             if (players.length > 0) {
                 batch.set(docRef, { award_name: id.replace(/-/g, ' '), players: players });
             } else {
