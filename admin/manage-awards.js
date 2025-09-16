@@ -164,8 +164,7 @@ async function loadExistingAwards() {
     const seasonNumber = currentSeasonId.replace('S', '');
     const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
     const awardsSnap = await getDocs(awardsCollectionRef);
-    const awardsParentDocRef = doc(db, `${getCollectionName('awards')}/season_${seasonNumber}`);
-    
+
     if (awardsSnap.empty) {
         console.log("No existing awards found for this season.");
         document.getElementById('best-player-performance-display').textContent = 'Not yet calculated.';
@@ -286,9 +285,6 @@ async function handleFormSubmit(e) {
 
         // --- BATCH WRITES ---
         const batch = writeBatch(db);
-        batch.set(awardsParentDocRef, {
-            description: `Awards for Season ${seasonNumber}`
-        }, { merge: true });
         const allStarPlayerIds = new Set();
 
         const singleAwards = ['finals-mvp', 'mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
