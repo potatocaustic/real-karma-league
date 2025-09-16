@@ -7,6 +7,7 @@ let currentScoringStatus = null; // Tracks the current scoring status to prevent
 
 let activeSeasonId = '';
 let allTeams = [];
+let allPlayers = new Map(); // START OF FIX: Add player cache
 let allGamesCache = []; // Caches all games for the season
 let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
 
@@ -103,6 +104,17 @@ async function fetchAllTeams(seasonId) {
     allTeams = teams.filter(t => t !== null);
     console.log(`Successfully loaded ${allTeams.length} teams with seasonal records.`);
 }
+
+// START OF FIX
+// Add a function to fetch and cache all player data
+async function fetchAllPlayers() {
+    const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
+    playersSnap.forEach(doc => {
+        allPlayers.set(doc.id, { id: doc.id, ...doc.data() });
+    });
+    console.log(`Successfully cached ${allPlayers.size} players.`);
+}
+// END OF FIX
 
 async function fetchAllGames(seasonId) {
     if (!seasonId) {
@@ -299,11 +311,9 @@ function loadLiveGames() {
                 return;
             }
 
-            // START OF FIX
             const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
             const team1LogoExt = team1.logo_ext || (specialTeamIds.includes(team1.id) ? 'png' : 'webp');
             const team2LogoExt = team2.logo_ext || (specialTeamIds.includes(team2.id) ? 'png' : 'webp');
-            // END OF FIX
             
             const gameIsPostseason = originalGame ? isPostseasonWeek(originalGame.week) : false;
             let team1Record, team2Record;
@@ -599,6 +609,12 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
         
         const gameIsPostseason = isPostseasonWeek(originalGame.week);
         
+        // START OF FIX
+        const exhibitionTeamIds = ["EGM", "WGM", "RSE", "RSW", "EAST", "WEST"];
+        // A game is an exhibition game for this feature if it uses special team IDs AND is NOT the Relegation game.
+        const isExhibitionGame = exhibitionTeamIds.includes(originalGame.team1_id) && originalGame.week !== 'Relegation';
+        // END OF FIX
+        
         team1 = allTeams.find(t => t.id === originalGame.team1_id);
         team2 = allTeams.find(t => t.id === originalGame.team2_id);
         
@@ -619,7 +635,7 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
                 liveData.team2_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
             }
         } else {
-            const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
+            const lineupsCollectionName = isExhibitionGame ? getCollectionName('exhibition_lineups') : (gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups'));
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
@@ -645,24 +661,31 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
             if (!gameSnap.exists()) throw new Error("Live game data not found.");
             
             const liveGameData = gameSnap.data();
-            // Add seasonal stats to each player in the lineup
             team1Lineups = liveGameData.team1_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
             team2Lineups = liveGameData.team2_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
         } else {
-            const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
+            const lineupsCollectionName = isExhibitionGame ? getCollectionName('exhibition_lineups') : (gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups'));
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
             const allLineupsForGame = lineupsSnap.docs.map(d => {
                 const lineupData = d.data();
-                // Add seasonal stats to each player in the lineup
                 return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
             });
 
             team1Lineups = allLineupsForGame.filter(l => l.team_id === team1.id && l.started === "TRUE");
             team2Lineups = allLineupsForGame.filter(l => l.team_id === team2.id && l.started === "TRUE");
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - ${formatDateShort(gameDate)}`;
+        }
+        
+        if (isExhibitionGame) {
+            const augmentLineup = (lineup) => {
+                const fullPlayerData = allPlayers.get(lineup.player_id);
+                lineup.playerTeamId = fullPlayerData ? fullPlayerData.current_team_id : null;
+            };
+            team1Lineups.forEach(augmentLineup);
+            team2Lineups.forEach(augmentLineup);
         }
 
         let team1ForModal = { ...team1 };
@@ -681,8 +704,8 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
         
         contentArea.innerHTML = `
             <div class="game-details-grid">
-                ${generateLineupTable(team1Lineups, team1ForModal, !isLiveGame && winnerId === team1.id, isLiveGame)}
-                ${generateLineupTable(team2Lineups, team2ForModal, !isLiveGame && winnerId === team2.id, isLiveGame)}
+                ${generateLineupTable(team1Lineups, team1ForModal, !isLiveGame && winnerId === team1.id, isLiveGame, isExhibitionGame)}
+                ${generateLineupTable(team2Lineups, team2ForModal, !isLiveGame && winnerId === team2.id, isLiveGame, isExhibitionGame)}
             </div>
         `;
 
@@ -755,6 +778,7 @@ async function initializePage() {
 
         const seasonData = await getActiveSeason();
         await fetchAllTeams(activeSeasonId);
+        await fetchAllPlayers(); // START OF FIX: Call the new function
         await fetchAllGames(activeSeasonId);
 
         loadStandingsPreview();

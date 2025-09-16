@@ -59,7 +59,7 @@ function getPostseasonGameLabel(seriesName) {
         'W7vW8': 'West Play-In Stage 1',
         'E7vE8': 'East Play-In Stage 1',
         'W9vW10': 'West Play-In Stage 1',
-        'E9vE10': 'East Play-In Stage 1',
+        'E9vW10': 'East Play-In Stage 1',
         'W8thSeedGame': 'West Play-In Stage 2',
         'E8thSeedGame': 'East Play-In Stage 2',
         'W1vW8': `West Round 1 - ${gameNumberString}`,
@@ -514,6 +514,12 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         if (!gameData) throw new Error("Game not found in cache.");
         const isGamePostseason = isPostseason(gameData.week);
 
+        // START OF FIX
+        const exhibitionTeamIds = ["EGM", "WGM", "RSE", "RSW", "EAST", "WEST"];
+        // A game is an exhibition game for this feature if it uses special team IDs AND is NOT the Relegation game.
+        const isExhibitionGame = exhibitionTeamIds.includes(gameData.team1_id) && gameData.week !== 'Relegation';
+        // END OF FIX
+
         let titleTeam1Name = '';
         let titleTeam2Name = '';
 
@@ -526,7 +532,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 liveGameData.team2_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
             }
         } else {
-            const lineupsCollectionName = getCollectionName(isGamePostseason ? 'post_lineups' : 'lineups');
+            const lineupsCollectionName = getCollectionName(isExhibitionGame ? 'exhibition_lineups' : (isGamePostseason ? 'post_lineups' : 'lineups'));
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
@@ -545,9 +551,6 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
             }
         });
-        // ===================================================================
-        // END OF BUG FIX
-        // ===================================================================
 
         if (isLive) {
             const liveGameData = liveGamesCache.get(gameId);
@@ -555,7 +558,6 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             
             team1 = getTeamById(gameData.team1_id);
             team2 = getTeamById(gameData.team2_id);
-            // Add seasonal stats to each player in the lineup
             team1Lineups = liveGameData.team1_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) }));
             team2Lineups = liveGameData.team2_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) }));
             
@@ -569,15 +571,13 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
 
         } else {
-            const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
-            const lineupsCollectionName = getCollectionName(isExhibition ? 'exhibition_lineups' : (isGamePostseason ? 'post_lineups' : 'lineups'));
+            const lineupsCollectionName = getCollectionName(isExhibitionGame ? 'exhibition_lineups' : (isGamePostseason ? 'post_lineups' : 'lineups'));
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             
             const lineupsSnap = await getDocs(lineupsQuery);
             const allLineupsForGame = lineupsSnap.docs.map(d => {
                 const lineupData = d.data();
-                // Add seasonal stats to each player in the lineup
                 return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
             });
 
@@ -594,6 +594,19 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             }
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - ${formatDateShort(gameDate)}`;
         }
+        
+        if (isExhibitionGame) {
+            const allPlayersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
+            const allPlayersMap = new Map();
+            allPlayersSnap.forEach(doc => allPlayersMap.set(doc.id, doc.data()));
+
+            const augmentLineup = (lineup) => {
+                const fullPlayerData = allPlayersMap.get(lineup.player_id);
+                lineup.playerTeamId = fullPlayerData ? fullPlayerData.current_team_id : null;
+            };
+            team1Lineups.forEach(augmentLineup);
+            team2Lineups.forEach(augmentLineup);
+        }
 
         let modalTeam1 = { ...team1 };
         let modalTeam2 = { ...team2 };
@@ -608,7 +621,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
         }
 
         const winnerId = isLive ? null : gameData.winner;
-        contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id, isLive)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id, isLive)}</div>`;
+        contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id, isLive, isExhibitionGame)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id, isLive, isExhibitionGame)}</div>`;
         
         if (isLive) {
             const teamTotalElements = contentArea.querySelectorAll('.team-total');
@@ -645,7 +658,7 @@ async function initializePage() {
         }, 0);
 
         listenForLiveGames();
-        listenForScoringStatus(); // Add this line
+        listenForScoringStatus();
     } catch (error) {
         console.error("Failed to initialize page:", error);
         document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${error.message}</div>`;

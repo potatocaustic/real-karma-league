@@ -128,9 +128,11 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {Array} lineups - The array of player lineup objects.
  * @param {Object} team - The team's data object.
  * @param {boolean} isWinner - Whether this team is the winner.
+ * @param {boolean} isLive - Whether the game is currently live.
+ * @param {boolean} isExhibitionGame - Whether this is a special exhibition game.
  * @returns {string} The HTML string for the team breakdown.
  */
-export function generateLineupTable(lineups, team, isWinner, isLive = false) {
+export function generateLineupTable(lineups, team, isWinner, isLive = false, isExhibitionGame = false) {
     if (!team) return '<div>Team data not found</div>';
     const totalPoints = lineups.reduce((sum, p) => sum + (p.final_score || 0), 0);
     const winnerCheck = isWinner ? '✅ ' : '';
@@ -172,9 +174,20 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
                         const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
                         const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
 
+                        // START OF FIX
+                        // For exhibition games, show the player's actual team logo
+                        const playerTeamLogoHTML = isExhibitionGame && p.playerTeamId
+                            ? `<img src="../icons/${p.playerTeamId}.webp" alt="" class="player-team-logo-inline" onerror="this.style.display='none'">`
+                            : '';
+                        // END OF FIX
+
                         return `
                             <tr class="${isCaptain ? 'captain-row' : ''}">
-                                <td class="player-name-cell"><a href="player.html?id=${encodeURIComponent(p.player_id)}" class="player-link">${p.player_handle}</a>${captainBadge}${rookieBadge}${allStarBadge}</td>
+                                <td class="player-name-cell">
+                                    ${playerTeamLogoHTML}
+                                    <a href="player.html?id=${encodeURIComponent(p.player_id)}" class="player-link">${p.player_handle}</a>
+                                    ${captainBadge}${rookieBadge}${allStarBadge}
+                                </td>
                                 <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
                                 <td class="rank-cell">${p.global_rank || '-'}</td>
                             </tr>
