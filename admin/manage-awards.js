@@ -232,6 +232,11 @@ async function handleFormSubmit(e) {
         const seasonNumber = currentSeasonId.replace('S', '');
         const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
 
+        // START OF FIX
+        // Get a reference to the parent document for the season's awards.
+        const awardsParentDocRef = doc(db, `${getCollectionName('awards')}/season_${seasonNumber}`);
+        // END OF FIX
+
         // --- PRE-CALCULATIONS (READS) ---
         let championExtraStats = {};
         const championTeamId = document.getElementById('award-league-champion').value;
@@ -285,6 +290,15 @@ async function handleFormSubmit(e) {
 
         // --- BATCH WRITES ---
         const batch = writeBatch(db);
+        
+        // START OF FIX
+        // Add a placeholder field to the parent document to ensure it's visible.
+        // Using { merge: true } is a safeguard against overwriting other fields if they exist.
+        batch.set(awardsParentDocRef, {
+            description: `Awards for Season ${seasonNumber}`
+        }, { merge: true });
+        // END OF FIX
+
         const allStarPlayerIds = new Set();
 
         const singleAwards = ['finals-mvp', 'mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
@@ -364,22 +378,5 @@ async function handleFormSubmit(e) {
     } finally {
         saveButton.disabled = false;
         saveButton.textContent = 'Save All Manual Awards';
-    }
-}
-
-async function handleCalculationTrigger() {
-    calculateBtn.disabled = true;
-    calculateBtn.textContent = 'Calculating...';
-    try {
-        const calculatePerformanceAwards = httpsCallable(functions, 'calculatePerformanceAwards');
-        const result = await calculatePerformanceAwards({ seasonId: currentSeasonId });
-        alert(result.data.message);
-        await loadExistingAwards();
-    } catch (error) {
-        console.error("Error triggering award calculation:", error);
-        alert(`Error: ${error.message}`);
-    } finally {
-        calculateBtn.disabled = false;
-        calculateBtn.textContent = 'Run Performance Calculation';
     }
 }
