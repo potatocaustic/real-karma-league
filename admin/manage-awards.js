@@ -319,7 +319,7 @@ async function handleFormSubmit(e) {
         const teamAwards = ['league-champion', 'regular-season-title'];
         for (const id of teamAwards) {
             const teamId = document.getElementById(`award-${id}`).value;
-            const docRef = doc(, id);
+            const docRef = doc(awardsCollectionRef, id);
             if (teamId) {
                 const team = allTeams.find(t => t.id === teamId);
                 let data = { award_name: id.replace(/-/g, ' '), team_id: team.id, team_name: team.team_name };
@@ -346,7 +346,7 @@ async function handleFormSubmit(e) {
                     }
                 }
             });
-            const docRef = doc(, id);
+            const docRef = doc(awardsCollectionRef, id);
             if (players.length > 0) {
                 batch.set(docRef, { award_name: id.replace(/-/g, ' '), players: players });
             } else {
