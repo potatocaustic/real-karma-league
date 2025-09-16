@@ -294,18 +294,21 @@ function getRosterForTeam(teamId, week) {
             return Array.from(allGms.values()).filter(gm => gm.conference === 'Western');
         }
 
-        // Handle the regular All-Star player game
+        if (teamId === 'RSE') {
+            const eastPlayers = awardSelections.get('rising-stars-eastern')?.players || [];
+            return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        }
+        if (teamId === 'RSW') {
+            const westPlayers = awardSelections.get('rising-stars-western')?.players || [];
+            return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        }
+
         const eastPlayers = awardSelections.get('all-stars-eastern')?.players || [];
         const westPlayers = awardSelections.get('all-stars-western')?.players || [];
         if (teamId === 'EAST') return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
         if (teamId === 'WEST') return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
     } 
-    else if (week === 'Rising Stars') {
-        const eastPlayers = awardSelections.get('rising-stars-eastern')?.players || [];
-        const westPlayers = awardSelections.get('rising-stars-western')?.players || [];
-        if (teamId.includes('EAST')) return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-        if (teamId.includes('WEST')) return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-    } else if (week === 'GM Game') {
+    else if (week === 'GM Game') {
         return Array.from(allGms.values());
     }
 
