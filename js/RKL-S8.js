@@ -416,8 +416,6 @@ async function loadRecentGames() {
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        // --- MODIFICATION START ---
-        // 1. Query all three game collections for the most recent completed game.
         const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
         const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
         const exhibitionGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('exhibition_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
@@ -428,7 +426,6 @@ async function loadRecentGames() {
             getDocs(exhibitionGamesQuery)
         ]);
 
-        // 2. Consolidate results and find the absolute most recent game by comparing document IDs.
         const potentialGames = [];
         if (!regSnap.empty) potentialGames.push({ doc: regSnap.docs[0], collection: getCollectionName('games') });
         if (!postSnap.empty) potentialGames.push({ doc: postSnap.docs[0], collection: getCollectionName('post_games') });
@@ -444,7 +441,6 @@ async function loadRecentGames() {
         
         const mostRecentDate = mostRecentGameInfo.doc.data().date;
         const collectionToQuery = mostRecentGameInfo.collection;
-        // --- MODIFICATION END ---
 
         const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -460,9 +456,7 @@ async function loadRecentGames() {
             const team1 = allTeams.find(t => t.id === game.team1_id);
             const team2 = allTeams.find(t => t.id === game.team2_id);
             if (!team1 || !team2) return '';
-            
-            // --- MODIFICATION START ---
-            // 3. Set header and determine record format based on the collection the games came from.
+
             const isThisGamePostseason = collectionToQuery.includes('post_games');
             if (game === games[0]) {
                 if (isThisGamePostseason) {
@@ -473,7 +467,6 @@ async function loadRecentGames() {
                     gamesHeader.textContent = 'Recent Games';
                 }
             }
-            // --- MODIFICATION END ---
 
             const team1NameHTML = escapeHTML(team1.team_name);
             const team2NameHTML = escapeHTML(team2.team_name);
@@ -485,7 +478,6 @@ async function loadRecentGames() {
                 team1Record = `${team1SeedHTML}${game.team1_wins || 0}-${game.team2_wins || 0}`;
                 team2Record = `${team2SeedHTML}${game.team2_wins || 0}-${game.team1_wins || 0}`;
             } else {
-                // Regular season W-L record is appropriate for both regular and exhibition games.
                 team1Record = `${team1.wins || 0}-${team1.losses || 0}`;
                 team2Record = `${team2.wins || 0}-${team2.losses || 0}`;
             }
@@ -498,11 +490,15 @@ async function loadRecentGames() {
             const team1_indicator = winnerId === team1.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
             const team2_indicator = winnerId === team2.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
 
-            const team1LogoExt = team1.logo_ext || 'webp';
-            const team2LogoExt = team2.logo_ext || 'webp';
+            // --- MODIFICATION START ---
+            // 1. Added logo logic for special teams, mirroring the live game logic.
+            const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+            const team1LogoExt = team1.logo_ext || (specialTeamIds.includes(team1.id) ? 'png' : 'webp');
+            const team2LogoExt = team2.logo_ext || (specialTeamIds.includes(team2.id) ? 'png' : 'webp');
+            // --- MODIFICATION END ---
 
             return `
-                <div class="game-item completed" data-game-id="${game.id}" data-game-date="${game.date}">
+                <div class="game-item completed" data-game-id="${game.id}" data-game-date="${game.date}" data-collection-name="${collectionToQuery}">
                     <div class="game-matchup">
                         <div class="team">
                             <img src="../icons/${team1.id}.${team1LogoExt}" alt="${team1.team_name}" class="team-logo" onerror="this.style.display='none'">
@@ -534,10 +530,13 @@ async function loadRecentGames() {
                     </div>
                 </div>`;
         }).join('');
-
+        
+        // --- MODIFICATION START ---
+        // 2. Pass the collection name to the modal click handler.
         document.querySelectorAll('.game-item').forEach(item => {
-            item.addEventListener('click', () => showGameDetails(item.dataset.gameId, false, item.dataset.gameDate));
+            item.addEventListener('click', () => showGameDetails(item.dataset.gameId, false, item.dataset.gameDate, item.dataset.collectionName));
         });
+        // --- MODIFICATION END ---
     } catch (error) {
         console.error("Error fetching recent games:", error);
         gamesList.innerHTML = '<div class="error">Could not load recent games. See console for details.</div>';
@@ -593,7 +592,7 @@ function loadSeasonInfo(seasonData) {
     }
 }
 
-async function showGameDetails(gameId, isLiveGame, gameDate = null) {
+async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionName = null) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
     const contentArea = document.getElementById('game-details-content-area');
@@ -634,7 +633,18 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
                 liveData.team2_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
             }
         } else {
-            const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
+            // --- MODIFICATION START ---
+            // 3. Determine the correct lineups collection using the passed-in collectionName.
+            let lineupsCollectionName;
+            if (collectionName && collectionName.includes('exhibition')) {
+                lineupsCollectionName = getCollectionName('exhibition_lineups');
+            } else if (collectionName && collectionName.includes('post')) {
+                lineupsCollectionName = getCollectionName('post_lineups');
+            } else {
+                lineupsCollectionName = getCollectionName('lineups');
+            }
+            // --- MODIFICATION END ---
+            
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
@@ -660,18 +670,24 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null) {
             if (!gameSnap.exists()) throw new Error("Live game data not found.");
             
             const liveGameData = gameSnap.data();
-            // Add seasonal stats to each player in the lineup
             team1Lineups = liveGameData.team1_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
             team2Lineups = liveGameData.team2_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
         } else {
-            const lineupsCollectionName = gameIsPostseason ? getCollectionName('post_lineups') : getCollectionName('lineups');
+            let lineupsCollectionName;
+            if (collectionName && collectionName.includes('exhibition')) {
+                lineupsCollectionName = getCollectionName('exhibition_lineups');
+            } else if (collectionName && collectionName.includes('post')) {
+                lineupsCollectionName = getCollectionName('post_lineups');
+            } else {
+                lineupsCollectionName = getCollectionName('lineups');
+            }
+
             const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
             const allLineupsForGame = lineupsSnap.docs.map(d => {
                 const lineupData = d.data();
-                // Add seasonal stats to each player in the lineup
                 return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
             });
 
