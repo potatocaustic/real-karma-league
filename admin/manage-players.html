@@ -120,6 +120,17 @@
                         <label for="player-allstar-checkbox">All-Star</label>
                     </div>
                 </div>
+
+                <div id="danger-zone-container" style="display: none; border-top: 2px solid #dc3545; margin-top: 20px; padding-top: 15px;">
+                    <h4>Danger Zone</h4>
+                    <p class="small-text">This is a destructive action for correcting a player's external ID. Do not use this for routine changes.</p>
+                    <div class="form-group-admin">
+                        <label for="player-new-id-input">New Player ID</label>
+                        <input type="text" id="player-new-id-input" placeholder="Enter the new, correct ID">
+                    </div>
+                    <button type="button" id="migrate-player-id-btn" class="btn-admin-danger">Migrate to New ID</button>
+                </div>
+
                 <button type="submit" class="btn-admin-save">Save Player Changes</button>
             </form>
         </div>
@@ -129,3 +140,4 @@
     <script type="module" src="/js/main.js"></script>
     <script type="module" src="/admin/manage-players.js"></script>
 </body>
+</html>

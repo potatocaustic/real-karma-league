@@ -18,6 +18,126 @@ const db = admin.firestore();
 // ===================================================================
 const USE_DEV_COLLECTIONS = false;
 
+exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request) => {
+    // Step 1: Security and Validation
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    const { oldPlayerId, newPlayerId } = request.data;
+    if (!oldPlayerId || !newPlayerId) {
+        throw new HttpsError('invalid-argument', 'Missing oldPlayerId or newPlayerId.');
+    }
+    if (oldPlayerId === newPlayerId) {
+        throw new HttpsError('invalid-argument', 'Old and new IDs cannot be the same.');
+    }
+
+    console.log(`ADMIN ACTION: User ${request.auth.uid} initiated player ID migration from ${oldPlayerId} to ${newPlayerId}.`);
+
+    const oldPlayerRef = db.collection(getCollectionName('v2_players')).doc(oldPlayerId);
+    const newPlayerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
+
+    try {
+        // Step 2: Pre-flight Checks
+        const oldPlayerDoc = await oldPlayerRef.get();
+        if (!oldPlayerDoc.exists) {
+            throw new HttpsError('not-found', `Player to migrate (ID: ${oldPlayerId}) does not exist.`);
+        }
+        const newPlayerDoc = await newPlayerRef.get();
+        if (newPlayerDoc.exists) {
+            throw new HttpsError('already-exists', `A player with the new ID (${newPlayerId}) already exists. Aborting.`);
+        }
+
+        const playerData = oldPlayerDoc.data();
+
+        // Step 3: Migrate Player Document and Subcollections
+        const primaryBatch = db.batch();
+        primaryBatch.set(newPlayerRef, playerData);
+
+        const statsSnap = await oldPlayerRef.collection(getCollectionName('seasonal_stats')).get();
+        statsSnap.forEach(doc => {
+            const newStatRef = newPlayerRef.collection(getCollectionName('seasonal_stats')).doc(doc.id);
+            primaryBatch.set(newStatRef, doc.data());
+        });
+        await primaryBatch.commit();
+        console.log(`Successfully created new player doc ${newPlayerId} and copied stats.`);
+
+        // Step 4: Update All References
+        const referenceUpdateBatch = db.batch();
+        const seasonsSnap = await db.collection(getCollectionName('seasons')).get();
+
+        for (const seasonDoc of seasonsSnap.docs) {
+            const seasonId = seasonDoc.id;
+            const collectionTypes = ['lineups', 'post_lineups', 'exhibition_lineups'];
+
+            for (const type of collectionTypes) {
+                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type));
+                const lineupsQuery = lineupsRef.where('player_id', '==', oldPlayerId);
+                const lineupsSnap = await lineupsQuery.get();
+                lineupsSnap.forEach(doc => {
+                    const lineupData = doc.data();
+                    lineupData.player_id = newPlayerId;
+                    const newDocId = doc.id.replace(oldPlayerId, newPlayerId);
+                    referenceUpdateBatch.set(lineupsRef.doc(newDocId), lineupData);
+                    referenceUpdateBatch.delete(doc.ref);
+                });
+            }
+        }
+        
+        // Update draft results references
+        const draftResultsQuery = db.collectionGroup(getCollectionName('draft_results')).where('player_id', '==', oldPlayerId);
+        const draftResultsSnap = await draftResultsQuery.get();
+        draftResultsSnap.forEach(doc => {
+            referenceUpdateBatch.update(doc.ref, { player_id: newPlayerId });
+        });
+
+        // Update GM references on teams
+        const gmTeamsQuery = db.collection(getCollectionName('v2_teams')).where('gm_player_id', '==', oldPlayerId);
+        const gmTeamsSnap = await gmTeamsQuery.get();
+        gmTeamsSnap.forEach(doc => {
+            referenceUpdateBatch.update(doc.ref, { gm_player_id: newPlayerId });
+        });
+
+        await referenceUpdateBatch.commit();
+        console.log('Successfully updated all lineup, draft, and GM references.');
+
+        // Step 5: Final Deletion of Old Player Document
+        const deletionBatch = db.batch();
+        statsSnap.forEach(doc => {
+            deletionBatch.delete(oldPlayerRef.collection(getCollectionName('seasonal_stats')).doc(doc.id));
+        });
+        deletionBatch.delete(oldPlayerRef);
+        await deletionBatch.commit();
+        console.log(`Successfully deleted old player document ${oldPlayerId}.`);
+
+
+        // Step 6: Log the action and return success
+        const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
+        await logRef.set({
+            action: 'admin_migrate_player_id',
+            userId: request.auth.uid,
+            userRole: userDoc.data().role,
+            timestamp: FieldValue.serverTimestamp(),
+            details: {
+                oldPlayerId: oldPlayerId,
+                newPlayerId: newPlayerId,
+                playerHandle: playerData.player_handle
+            }
+        });
+
+        return { success: true, message: `Player ${playerData.player_handle} successfully migrated from ${oldPlayerId} to ${newPlayerId}.` };
+
+    } catch (error) {
+        console.error("CRITICAL ERROR during player ID migration:", error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', `Migration failed: ${error.message}`);
+    }
+});
+
 // New helper function to check for admin or scorekeeper roles
 async function isScorekeeperOrAdmin(auth) {
     if (!auth) return false;
