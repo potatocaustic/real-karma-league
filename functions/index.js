@@ -18,6 +18,73 @@ const db = admin.firestore();
 // ===================================================================
 const USE_DEV_COLLECTIONS = false;
 
+exports.admin_retroactivelyFixLineupIds = onCall({ region: "us-central1" }, async (request) => {
+    // Security Check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    const { oldPlayerId, newPlayerId } = request.data;
+    if (!oldPlayerId || !newPlayerId) {
+        throw new HttpsError('invalid-argument', 'Missing oldPlayerId or newPlayerId.');
+    }
+
+    console.log(`RETROACTIVE FIX: Starting lineup migration for ${oldPlayerId} -> ${newPlayerId}`);
+
+    try {
+        let batch = db.batch();
+        let operationCount = 0;
+        let totalFixed = 0;
+        const BATCH_LIMIT = 490;
+
+        const seasonsSnap = await db.collection(getCollectionName('seasons')).get();
+        for (const seasonDoc of seasonsSnap.docs) {
+            const collectionTypes = ['lineups', 'post_lineups', 'exhibition_lineups'];
+            for (const type of collectionTypes) {
+                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type));
+                const lineupsQuery = lineupsRef.where('player_id', '==', oldPlayerId);
+                const lineupsSnap = await lineupsQuery.get();
+                
+                if (lineupsSnap.empty) continue;
+
+                console.log(`Found ${lineupsSnap.size} orphaned docs in ${seasonDoc.id}/${type}`);
+
+                for (const doc of lineupsSnap.docs) {
+                    const lineupData = doc.data();
+                    const newDocId = doc.id.replace(oldPlayerId, newPlayerId);
+                    const newDocRef = lineupsRef.doc(newDocId);
+
+                    batch.set(newDocRef, lineupData);
+                    batch.delete(doc.ref);
+                    totalFixed++;
+                    operationCount += 2;
+
+                    if (operationCount >= BATCH_LIMIT) {
+                        await batch.commit();
+                        batch = db.batch();
+                        operationCount = 0;
+                    }
+                }
+            }
+        }
+
+        if (operationCount > 0) {
+            await batch.commit();
+        }
+
+        console.log(`RETROACTIVE FIX: Successfully fixed ${totalFixed} lineup documents.`);
+        return { success: true, message: `Retroactive fix complete. Migrated ${totalFixed} lineup documents for the player.` };
+
+    } catch (error) {
+        console.error("CRITICAL ERROR during retroactive lineup fix:", error);
+        throw new HttpsError('internal', `Retroactive fix failed: ${error.message}`);
+    }
+});
+
 exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request) => {
     // Step 1: Security and Validation
     if (!request.auth) {
@@ -66,43 +133,70 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
         await primaryBatch.commit();
         console.log(`Successfully created new player doc ${newPlayerId} and copied stats.`);
 
-        // Step 4: Update All References
-        const referenceUpdateBatch = db.batch();
+        // Step 4: Update All References (WITH BATCHING LOGIC)
+        // ======================= MODIFICATION START =======================
+        let referenceUpdateBatch = db.batch();
+        let operationCount = 0;
+        const BATCH_LIMIT = 490; // Keep it safely under 500
+        let totalLineupsMigrated = 0;
+        // ======================= MODIFICATION END =======================
+
         const seasonsSnap = await db.collection(getCollectionName('seasons')).get();
 
         for (const seasonDoc of seasonsSnap.docs) {
-            const seasonId = seasonDoc.id;
             const collectionTypes = ['lineups', 'post_lineups', 'exhibition_lineups'];
 
             for (const type of collectionTypes) {
                 const lineupsRef = seasonDoc.ref.collection(getCollectionName(type));
                 const lineupsQuery = lineupsRef.where('player_id', '==', oldPlayerId);
                 const lineupsSnap = await lineupsQuery.get();
-                lineupsSnap.forEach(doc => {
+
+                for (const doc of lineupsSnap.docs) {
                     const lineupData = doc.data();
                     lineupData.player_id = newPlayerId;
                     const newDocId = doc.id.replace(oldPlayerId, newPlayerId);
-                    referenceUpdateBatch.set(lineupsRef.doc(newDocId), lineupData);
+                    
+                    const newDocRef = lineupsRef.doc(newDocId);
+
+                    referenceUpdateBatch.set(newDocRef, lineupData);
                     referenceUpdateBatch.delete(doc.ref);
-                });
+                    totalLineupsMigrated++;
+                    
+                    // ======================= MODIFICATION START =======================
+                    operationCount += 2; // 1 set + 1 delete
+
+                    if (operationCount >= BATCH_LIMIT) {
+                        console.log(`Committing batch of ${operationCount} operations...`);
+                        await referenceUpdateBatch.commit();
+                        referenceUpdateBatch = db.batch();
+                        operationCount = 0;
+                    }
+                    // ======================= MODIFICATION END =======================
+                }
             }
         }
+        console.log(`Total lineups to migrate: ${totalLineupsMigrated}`);
         
-        // Update draft results references
+        // Update draft results and GM references (these are low volume and can be in the same batch)
         const draftResultsQuery = db.collectionGroup(getCollectionName('draft_results')).where('player_id', '==', oldPlayerId);
         const draftResultsSnap = await draftResultsQuery.get();
         draftResultsSnap.forEach(doc => {
             referenceUpdateBatch.update(doc.ref, { player_id: newPlayerId });
+            operationCount++;
         });
 
-        // Update GM references on teams
         const gmTeamsQuery = db.collection(getCollectionName('v2_teams')).where('gm_player_id', '==', oldPlayerId);
         const gmTeamsSnap = await gmTeamsQuery.get();
         gmTeamsSnap.forEach(doc => {
             referenceUpdateBatch.update(doc.ref, { gm_player_id: newPlayerId });
+            operationCount++;
         });
 
-        await referenceUpdateBatch.commit();
+        if (operationCount > 0) {
+            console.log(`Committing final batch of ${operationCount} operations.`);
+            await referenceUpdateBatch.commit();
+        }
+
         console.log('Successfully updated all lineup, draft, and GM references.');
 
         // Step 5: Final Deletion of Old Player Document
@@ -114,8 +208,8 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
         await deletionBatch.commit();
         console.log(`Successfully deleted old player document ${oldPlayerId}.`);
 
-
         // Step 6: Log the action and return success
+        // ... (rest of the function is the same)
         const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
         await logRef.set({
             action: 'admin_migrate_player_id',
