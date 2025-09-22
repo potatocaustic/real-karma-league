@@ -18,8 +18,8 @@ const db = admin.firestore();
 // ===================================================================
 const USE_DEV_COLLECTIONS = false;
 
-exports.admin_retroactivelyFixLineupIds = onCall({ region: "us-central1" }, async (request) => {
-    // Security Check
+exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (request) => {
+    // 1. Security Check
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -28,60 +28,104 @@ exports.admin_retroactivelyFixLineupIds = onCall({ region: "us-central1" }, asyn
         throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
     }
 
-    const { oldPlayerId, newPlayerId } = request.data;
-    if (!oldPlayerId || !newPlayerId) {
-        throw new HttpsError('invalid-argument', 'Missing oldPlayerId or newPlayerId.');
+    const { playerId, seasonId } = request.data;
+    if (!playerId || !seasonId) {
+        throw new HttpsError('invalid-argument', 'Missing playerId or seasonId.');
     }
 
-    console.log(`RETROACTIVE FIX: Starting lineup migration for ${oldPlayerId} -> ${newPlayerId}`);
+    console.log(`RECALCULATION: Starting stats recalculation for player ${playerId} in season ${seasonId}.`);
 
     try {
-        let batch = db.batch();
-        let operationCount = 0;
-        let totalFixed = 0;
-        const BATCH_LIMIT = 490;
+        const seasonNum = seasonId.replace('S', '');
+        const batch = db.batch();
 
-        const seasonsSnap = await db.collection(getCollectionName('seasons')).get();
-        for (const seasonDoc of seasonsSnap.docs) {
-            const collectionTypes = ['lineups', 'post_lineups', 'exhibition_lineups'];
-            for (const type of collectionTypes) {
-                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type));
-                const lineupsQuery = lineupsRef.where('player_id', '==', oldPlayerId);
-                const lineupsSnap = await lineupsQuery.get();
-                
-                if (lineupsSnap.empty) continue;
+        // 2. Fetch all necessary data (lineups and daily averages for the season)
+        const regLineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('lineups'))
+            .where('player_id', '==', playerId).where('started', '==', 'TRUE').get();
+        
+        const postLineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_lineups'))
+            .where('player_id', '==', playerId).where('started', '==', 'TRUE').get();
 
-                console.log(`Found ${lineupsSnap.size} orphaned docs in ${seasonDoc.id}/${type}`);
+        const regAveragesSnap = await db.collection(getCollectionName('daily_averages')).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_daily_averages`)).get();
+        const postAveragesSnap = await db.collection(getCollectionName('post_daily_averages')).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_post_daily_averages`)).get();
+        
+        const dailyAveragesMap = new Map();
+        regAveragesSnap.forEach(doc => dailyAveragesMap.set(doc.data().date, doc.data()));
+        postAveragesSnap.forEach(doc => dailyAveragesMap.set(doc.data().date, doc.data()));
 
-                for (const doc of lineupsSnap.docs) {
-                    const lineupData = doc.data();
-                    const newDocId = doc.id.replace(oldPlayerId, newPlayerId);
-                    const newDocRef = lineupsRef.doc(newDocId);
+        const allLineups = {
+            regular: regLineupsSnap.docs.map(doc => doc.data()),
+            postseason: postLineupsSnap.docs.map(doc => doc.data())
+        };
+        
+        const statsUpdate = {};
 
-                    batch.set(newDocRef, lineupData);
-                    batch.delete(doc.ref);
-                    totalFixed++;
-                    operationCount += 2;
+        // 3. Process both regular and postseason stats
+        for (const [seasonType, lineups] of Object.entries(allLineups)) {
+            if (lineups.length === 0) continue; // Skip if no games played
 
-                    if (operationCount >= BATCH_LIMIT) {
-                        await batch.commit();
-                        batch = db.batch();
-                        operationCount = 0;
-                    }
+            const isPostseason = (seasonType === 'postseason');
+            const prefix = isPostseason ? 'post_' : '';
+            
+            const games_played = lineups.length;
+            const total_points = lineups.reduce((sum, l) => sum + (l.points_adjusted || 0), 0);
+            const WAR = lineups.reduce((sum, l) => sum + (l.SingleGameWar || 0), 0);
+            const aag_mean = lineups.reduce((sum, l) => sum + (l.AboveAvg || 0), 0);
+            const aag_median = lineups.reduce((sum, l) => sum + (l.AboveMed || 0), 0);
+            const globalRanks = lineups.map(l => l.global_rank || 0).filter(r => r > 0);
+            const medrank = calculateMedian(globalRanks);
+            const meanrank = calculateMean(globalRanks);
+            const GEM = calculateGeometricMean(globalRanks);
+            const t100 = lineups.filter(l => l.global_rank > 0 && l.global_rank <= 100).length;
+            const t50 = lineups.filter(l => l.global_rank > 0 && l.global_rank <= 50).length;
+            
+            let meansum = 0;
+            let medsum = 0;
+            const uniqueDates = [...new Set(lineups.map(l => l.date))];
+            uniqueDates.forEach(date => {
+                const dailyAvgData = dailyAveragesMap.get(date);
+                if (dailyAvgData) {
+                    meansum += dailyAvgData.mean_score || 0;
+                    medsum += dailyAvgData.median_score || 0;
                 }
-            }
+            });
+
+            statsUpdate[`${prefix}games_played`] = games_played;
+            statsUpdate[`${prefix}total_points`] = total_points;
+            statsUpdate[`${prefix}medrank`] = medrank;
+            statsUpdate[`${prefix}meanrank`] = meanrank;
+            statsUpdate[`${prefix}aag_mean`] = aag_mean;
+            statsUpdate[`${prefix}aag_mean_pct`] = games_played > 0 ? aag_mean / games_played : 0;
+            statsUpdate[`${prefix}meansum`] = meansum;
+            statsUpdate[`${prefix}rel_mean`] = meansum > 0 ? total_points / meansum : 0;
+            statsUpdate[`${prefix}aag_median`] = aag_median;
+            statsUpdate[`${prefix}aag_median_pct`] = games_played > 0 ? aag_median / games_played : 0;
+            statsUpdate[`${prefix}medsum`] = medsum;
+            statsUpdate[`${prefix}rel_median`] = medsum > 0 ? total_points / medsum : 0;
+            statsUpdate[`${prefix}GEM`] = GEM;
+            statsUpdate[`${prefix}WAR`] = WAR;
+            statsUpdate[`${prefix}t100`] = t100;
+            statsUpdate[`${prefix}t100_pct`] = games_played > 0 ? t100 / games_played : 0;
+            statsUpdate[`${prefix}t50`] = t50;
+            statsUpdate[`${prefix}t50_pct`] = games_played > 0 ? t50 / games_played : 0;
         }
 
-        if (operationCount > 0) {
-            await batch.commit();
-        }
+        // 4. Write the updated stats to the database
+        const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(playerId).collection(getCollectionName('seasonal_stats')).doc(seasonId);
+        batch.set(playerStatsRef, statsUpdate, { merge: true });
+        await batch.commit();
+        console.log(`Recalculation complete for player ${playerId}. Wrote updated stats.`);
 
-        console.log(`RETROACTIVE FIX: Successfully fixed ${totalFixed} lineup documents.`);
-        return { success: true, message: `Retroactive fix complete. Migrated ${totalFixed} lineup documents for the player.` };
+        // 5. Trigger a full ranking update to ensure ranks are correct
+        console.log("Triggering leaderboard rank update to reflect changes...");
+        await performPlayerRankingUpdate();
+        console.log("Leaderboard rank update complete.");
+
+        return { success: true, message: `Successfully recalculated all seasonal stats for player ${playerId}.` };
 
     } catch (error) {
-        console.error("CRITICAL ERROR during retroactive lineup fix:", error);
-        throw new HttpsError('internal', `Retroactive fix failed: ${error.message}`);
+        console.error(`CRITICAL ERROR during stats recalculation for player ${playerId}:`, error);
+        throw new HttpsError('internal', `Recalculation failed: ${error.message}`);
     }
 });
 
