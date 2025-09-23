@@ -405,6 +405,10 @@ async function openLineupModal(game) {
     const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (game.collectionName === 'post_games' ? 'post_lineups' : 'lineups');
 
     const existingLineups = new Map();
+
+    let team1StartersOrdered = [];
+    let team2StartersOrdered = [];
+
     
     const team1Roster = getRosterForTeam(game.team1_id, game.week);
     const team2Roster = getRosterForTeam(game.team2_id, game.week);
@@ -415,29 +419,31 @@ async function openLineupModal(game) {
 
     if (pendingGameSnap.exists()) {
         const pendingData = pendingGameSnap.data();
-        const allPendingPlayers = [...(pendingData.team1_lineup || []), ...(pendingData.team2_lineup || [])];
-        allPendingPlayers.forEach(player => {
+
+        team1StartersOrdered = pendingData.team1_lineup || [];
+        team2StartersOrdered = pendingData.team2_lineup || [];
+        [...team1StartersOrdered, ...team2StartersOrdered].forEach(player => {
             existingLineups.set(player.player_id, {
                 started: 'TRUE',
                 is_captain: player.is_captain ? 'TRUE' : 'FALSE',
                 adjustments: player.deductions || 0,
-                raw_score: 0,
-                global_rank: 0,
             });
         });
+
     }
     else if (liveGameSnap.exists()) {
         const liveData = liveGameSnap.data();
-        const allLivePlayers = [...liveData.team1_lineup, ...liveData.team2_lineup];
-        allLivePlayers.forEach(player => {
+
+        team1StartersOrdered = liveData.team1_lineup || [];
+        team2StartersOrdered = liveData.team2_lineup || [];
+        [...team1StartersOrdered, ...team2StartersOrdered].forEach(player => {
             existingLineups.set(player.player_id, {
                 started: 'TRUE',
                 is_captain: player.is_captain ? 'TRUE' : 'FALSE',
                 adjustments: player.deductions || 0,
-                raw_score: 0,
-                global_rank: 0,
             });
         });
+
     } else {
         const lineupsQuery = query(collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(lineupsCollectionName)), where("game_id", "==", game.id));
         const lineupsSnap = await getDocs(lineupsQuery);
@@ -452,16 +458,17 @@ async function openLineupModal(game) {
     const team1 = allTeams.get(game.team1_id) || { team_name: game.team1_id };
     const team2 = allTeams.get(game.team2_id) || { team_name: game.team2_id };
 
-    renderTeamUI('team1', team1, team1Roster, existingLineups);
-    renderTeamUI('team2', team2, team2Roster, existingLineups);
+
+    renderTeamUI('team1', team1, team1Roster, existingLineups, team1StartersOrdered);
+    renderTeamUI('team2', team2, team2Roster, existingLineups, team2StartersOrdered);
+
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} vs ${team2.team_name}`;
     calculateAllScores();
     lineupModal.classList.add('is-visible');
 }
 
-
-function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
+function renderTeamUI(teamPrefix, teamData, roster, existingLineups, startersOrdered = []) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
     rosterContainer.innerHTML = '';
@@ -480,11 +487,25 @@ function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
 
     rosterContainer.querySelectorAll('.starter-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', handleStarterChange);
-        if (checkbox.checked) {
+    });
+
+
+    if (startersOrdered.length > 0) {
+
+        startersOrdered.forEach(starter => {
+            const checkbox = rosterContainer.querySelector(`.starter-checkbox[data-player-id="${starter.player_id}"]`);
+            if (checkbox) {
+                const lineupData = existingLineups.get(starter.player_id);
+                addStarterCard(checkbox, lineupData);
+            }
+        });
+    } else {
+
+        rosterContainer.querySelectorAll('.starter-checkbox:checked').forEach(checkbox => {
             const lineupData = existingLineups.get(checkbox.dataset.playerId);
             addStarterCard(checkbox, lineupData);
-        }
-    });
+        });
+    }
 }
 
 function handleStarterChange(event) {
