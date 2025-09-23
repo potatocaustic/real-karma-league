@@ -406,7 +406,7 @@ exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (reque
 });
 
 const getCollectionName = (baseName) => {
-    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('archived_live_games') || baseName.includes('scorekeeper_activity_log') || baseName.includes('pending_lineups')) {
+    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('archived_live_games') || baseName.includes('scorekeeper_activity_log') || baseName.includes('pending_lineups') || baseName.includes('pending_transactions')) {
         return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
     }
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -2006,7 +2006,91 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
     return null;
 });
 
+exports.admin_processTransaction = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth || !request.auth.uid) {
+        throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to process transactions.');
+    }
 
+    const transactionData = request.data;
+    const involvedPlayerIds = (transactionData.involved_players || []).map(p => p.id);
+
+    if (involvedPlayerIds.length === 0) {
+        // Not a player transaction (e.g., draft pick only trade), process immediately
+        await db.collection(getCollectionName("transactions")).add({ ...transactionData, date: FieldValue.serverTimestamp() });
+        return { success: true, message: "Transaction logged successfully and will be processed immediately." };
+    }
+
+    try {
+        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+        const livePlayerIds = new Set();
+        liveGamesSnap.forEach(doc => {
+            const gameData = doc.data();
+            [...(gameData.team1_lineup || []), ...(gameData.team2_lineup || [])].forEach(player => {
+                livePlayerIds.add(player.player_id);
+            });
+        });
+
+        const isPlayerInLiveGame = involvedPlayerIds.some(id => livePlayerIds.has(id));
+
+        if (isPlayerInLiveGame) {
+            // Player is in a live game, so hold the transaction
+            await db.collection(getCollectionName('pending_transactions')).add({ ...transactionData, date: FieldValue.serverTimestamp() });
+            return { success: true, message: "A player in this transaction is in a live game. The transaction is now pending and will be processed overnight." };
+        } else {
+            // No live players, process immediately
+            await db.collection(getCollectionName('transactions')).add({ ...transactionData, date: FieldValue.serverTimestamp() });
+            return { success: true, message: "Transaction logged successfully and will be processed immediately." };
+        }
+
+    } catch (error) {
+        console.error("Error processing transaction:", error);
+        throw new HttpsError('internal', 'An unexpected error occurred while processing the transaction.');
+    }
+});
+
+/**
+ * NEW SCHEDULED FUNCTION
+ * Runs daily at 6:20 AM Central Time to process pending transactions.
+ */
+exports.releasePendingTransactions = onSchedule({
+    schedule: "20 6 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled job to release pending transactions.");
+    const pendingTransSnap = await db.collection(getCollectionName('pending_transactions')).get();
+
+    if (pendingTransSnap.empty) {
+        console.log("No pending transactions to release.");
+        return null;
+    }
+
+    console.log(`Found ${pendingTransSnap.size} pending transactions to release.`);
+    const batch = db.batch();
+
+    for (const doc of pendingTransSnap.docs) {
+        const transactionData = doc.data();
+        
+        // Create a new document in the main transactions collection
+        const newTransactionRef = db.collection(getCollectionName('transactions')).doc();
+        batch.set(newTransactionRef, transactionData);
+
+        // Delete the old document from the pending collection
+        batch.delete(doc.ref);
+    }
+
+    try {
+        await batch.commit();
+        console.log("Successfully released all pending transactions.");
+    } catch (error) {
+        console.error("Error releasing pending transactions:", error);
+    }
+    
+    return null;
+});
 
 function calculateMedian(numbers) {
     if (numbers.length === 0) return 0;

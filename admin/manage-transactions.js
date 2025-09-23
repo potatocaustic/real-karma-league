@@ -1,6 +1,6 @@
 // /admin/manage-transactions.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, addDoc, serverTimestamp, query, where } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, functions, serverTimestamp, query, where } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = false;
@@ -250,7 +250,8 @@ function addAssetToTrade(event) {
 async function handleFormSubmit(e) {
     e.preventDefault();
     const type = typeSelect.value;
-    let transactionData = { type, schema: 'v2', notes: document.getElementById('transaction-notes').value.trim(), date: serverTimestamp(), status: 'PENDING' };
+    // We remove serverTimestamp() from here because the backend will add it.
+    let transactionData = { type, schema: 'v2', notes: document.getElementById('transaction-notes').value.trim(), status: 'PENDING' };
 
     try {
         if (type === 'TRADE') {
@@ -309,17 +310,19 @@ async function handleFormSubmit(e) {
             throw new Error("Invalid transaction type selected.");
         }
 
-        await addDoc(collection(db, getCollectionName("transactions")), transactionData);
-        alert('Transaction logged successfully! Player data will update automatically.');
+        // MODIFICATION: Call the cloud function instead of writing directly to DB
+        const admin_processTransaction = httpsCallable(functions, 'admin_processTransaction');
+        const result = await admin_processTransaction(transactionData);
+
+        alert(result.data.message); // Show the dynamic message from the backend
+        
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
         
-        // Re-fetch all players after transaction to get the latest data
         const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         populateAllDropdowns();
-
 
     } catch (error) {
         console.error("Error logging transaction:", error);
