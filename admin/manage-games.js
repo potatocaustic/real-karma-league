@@ -1,13 +1,13 @@
 // /admin/manage-games.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, deleteDoc, httpsCallable, query, where } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, deleteDoc, httpsCallable, query, where, documentId } from '/js/firebase-init.js';
 import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = false;
 const getCollectionName = (baseName) => {
     // Handle dynamically generated collection names
-    if (baseName.includes('_awards') || baseName.includes('_lineups') || baseName.includes('_games')) {
+    if (baseName.includes('_awards') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('pending_lineups')) {
         return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
     }
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -100,7 +100,7 @@ async function initializePage() {
     if (liveScoringControls) {
         liveScoringControls.addEventListener('click', (e) => {
             if (e.target.id === 'submit-live-lineups-btn') {
-                handleStageLiveLineups(e); // Use the new staging function
+                handleStageLiveLineups(e);
             } else if (e.target.id === 'finalize-live-game-btn') {
                 handleFinalizeLiveGame(e);
             }
@@ -189,10 +189,49 @@ async function populateSeasons() {
     }
 }
 
+/**
+ * NEW HELPER FUNCTION
+ * Iterates through all weeks of a season to find the first one with incomplete games.
+ * @param {string} seasonId The ID of the season to check (e.g., 'S8').
+ * @returns {Promise<string>} The value of the earliest week with incomplete games, or '1' as a fallback.
+ */
+async function findEarliestIncompleteWeek(seasonId) {
+    const weeksInOrder = [
+        '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15',
+        'All-Star', 'Relegation', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'
+    ];
+
+    for (const week of weeksInOrder) {
+        const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation';
+        const isExhibition = week === 'All-Star' || week === 'Relegation';
+
+        let collectionName = 'games';
+        if (isPostseason) collectionName = 'post_games';
+        if (isExhibition) collectionName = 'exhibition_games';
+
+        const gamesCollectionRef = collection(db, getCollectionName("seasons"), seasonId, getCollectionName(collectionName));
+        const q = query(gamesCollectionRef, where("week", "==", week), where("completed", "==", "FALSE"), limit(1));
+        
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            console.log(`Found incomplete games in week: ${week}. Setting as default.`);
+            return week;
+        }
+    }
+
+    console.log("No incomplete games found in any week. Defaulting to Week 1.");
+    return '1'; // Fallback if no incomplete games are found
+}
+
+/**
+ * MODIFICATION: This function now automatically finds and selects the earliest
+ * week with incomplete games instead of defaulting to Week 1.
+ */
 async function handleSeasonChange() {
     if (currentSeasonId) {
         await populateWeeks(currentSeasonId);
-        const defaultWeek = "1";
+        // Find the earliest week with an incomplete game
+        const defaultWeek = await findEarliestIncompleteWeek(currentSeasonId);
         weekSelect.value = defaultWeek;
         await fetchAndDisplayGames(currentSeasonId, defaultWeek);
     } else {
@@ -215,20 +254,20 @@ async function populateWeeks(seasonId) {
     weekSelect.innerHTML = `<option value="">Select a week...</option>${weekOptions}`;
 }
 
+/**
+ * MODIFICATION: This function now fetches pending lineup data to display
+ * a submission status indicator (✅/❌) next to each team's name for pending games.
+ */
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
 
-    // Fetch live game IDs to determine game status
     const liveGamesRef = collection(db, getCollectionName('live_games'));
     const liveGamesSnap = await getDocs(liveGamesRef);
     const liveGameIds = new Set(liveGamesSnap.docs.map(doc => doc.id));
 
     const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation';
     const isExhibition = week === 'All-Star' || week === 'Relegation';
-
-    let collectionName = 'games';
-    if (isPostseason) collectionName = 'post_games';
-    if (isExhibition) collectionName = 'exhibition_games';
+    let collectionName = isPostseason ? 'post_games' : isExhibition ? 'exhibition_games' : 'games';
 
     const gamesQuery = query(collection(db, getCollectionName("seasons"), seasonId, getCollectionName(collectionName)), where("week", "==", week));
 
@@ -239,22 +278,44 @@ async function fetchAndDisplayGames(seasonId, week) {
             return;
         }
 
+        const gameIds = querySnapshot.docs.map(doc => doc.id);
+        const pendingLineups = new Map();
+
+        // Fetch pending lineup statuses for the games being displayed
+        if (gameIds.length > 0) {
+            const pendingQuery = query(collection(db, getCollectionName('pending_lineups')), where(documentId(), 'in', gameIds));
+            const pendingSnap = await getDocs(pendingQuery);
+            pendingSnap.forEach(doc => {
+                pendingLineups.set(doc.id, doc.data());
+            });
+        }
+
         let gamesHTML = '';
-        querySnapshot.forEach(doc => {
+        querySnapshot.docs.forEach(doc => {
             const game = { id: doc.id, ...doc.data() };
             const team1 = allTeams.get(game.team1_id);
             const team2 = allTeams.get(game.team2_id);
 
-            // Determine game status: Completed, Live, or Pending
             const isLive = liveGameIds.has(game.id);
-            const gameStatus = game.completed === 'TRUE' 
-                ? `${game.team1_score} - ${game.team2_score}` 
-                : (isLive ? 'Live' : 'Pending');
+            const isComplete = game.completed === 'TRUE';
+            const gameStatus = isComplete ? `${game.team1_score} - ${game.team2_score}` : (isLive ? 'Live' : 'Pending');
+
+            // Determine indicators for pending games
+            let team1Indicator = '';
+            let team2Indicator = '';
+            if (!isComplete && !isLive) {
+                const pendingStatus = pendingLineups.get(game.id);
+                team1Indicator = pendingStatus?.team1_submitted ? '✅' : '❌';
+                team2Indicator = pendingStatus?.team2_submitted ? '✅' : '❌';
+            }
 
             gamesHTML += `
                 <div class="game-entry" data-game-id="${game.id}" data-collection="${collectionName}">
                     <span class="game-details">
-                        <span class="game-teams"><strong>${team1?.team_name || game.team1_id}</strong> vs <strong>${team2?.team_name || game.team2_id}</strong></span>
+                        <span class="game-teams">
+                            <strong>${team1?.team_name || game.team1_id} ${team1Indicator}</strong> vs 
+                            <strong>${team2?.team_name || game.team2_id} ${team2Indicator}</strong>
+                        </span>
                         <span class="game-date">Date: ${game.date || 'N/A'}</span>
                     </span>
                     <span class="game-score">${gameStatus}</span>
@@ -321,17 +382,15 @@ async function openLineupModal(game) {
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
     document.querySelectorAll('.team-lineup-section').forEach(el => el.classList.remove('validation-error'));
 
-    // MODIFICATION 1: Allow live scoring staging up to 2 days in advance.
     if (liveScoringControls) {
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // Normalize today's date
+        today.setHours(0, 0, 0, 0); 
         const gameDateParts = game.date.split('/');
         const gameDate = new Date(+gameDateParts[2], gameDateParts[0] - 1, +gameDateParts[1]);
 
         const timeDiff = gameDate.getTime() - today.getTime();
         const dayDiff = timeDiff / (1000 * 3600 * 24);
 
-        // Show controls if the game is today or up to 2 days in the future.
         liveScoringControls.style.display = (dayDiff >= 0 && dayDiff <= 2) ? 'block' : 'none';
         document.getElementById('submit-live-lineups-btn').textContent = 'Stage Lineups for Live Scoring';
     }
@@ -346,17 +405,14 @@ async function openLineupModal(game) {
     const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (game.collectionName === 'post_games' ? 'post_lineups' : 'lineups');
 
     const existingLineups = new Map();
-
-    // MODIFICATION 2: ALWAYS fetch the full roster first. This fulfills request #3.
+    
     const team1Roster = getRosterForTeam(game.team1_id, game.week);
     const team2Roster = getRosterForTeam(game.team2_id, game.week);
 
-    // Now, fetch any existing lineup data to check the boxes and create starter cards
     const liveGameRef = doc(db, getCollectionName('live_games'), game.id);
     const pendingGameRef = doc(db, getCollectionName('pending_lineups'), game.id);
     const [liveGameSnap, pendingGameSnap] = await Promise.all([getDoc(liveGameRef), getDoc(pendingGameRef)]);
 
-    // Check for staged lineups first
     if (pendingGameSnap.exists()) {
         const pendingData = pendingGameSnap.data();
         const allPendingPlayers = [...(pendingData.team1_lineup || []), ...(pendingData.team2_lineup || [])];
@@ -370,7 +426,6 @@ async function openLineupModal(game) {
             });
         });
     }
-    // Check for live game data
     else if (liveGameSnap.exists()) {
         const liveData = liveGameSnap.data();
         const allLivePlayers = [...liveData.team1_lineup, ...liveData.team2_lineup];
@@ -383,9 +438,7 @@ async function openLineupModal(game) {
                 global_rank: 0,
             });
         });
-    }
-    // Check for completed game data
-    else {
+    } else {
         const lineupsQuery = query(collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(lineupsCollectionName)), where("game_id", "==", game.id));
         const lineupsSnap = await getDocs(lineupsQuery);
         if (!lineupsSnap.empty) {
@@ -406,6 +459,7 @@ async function openLineupModal(game) {
     calculateAllScores();
     lineupModal.classList.add('is-visible');
 }
+
 
 function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
@@ -525,7 +579,6 @@ async function handleLineupFormSubmit(e) {
         const section = document.getElementById(`${prefix}-section`);
         const starterCount = document.querySelectorAll(`#${prefix}-starters .starter-card`).length;
         
-        // **CHANGE 1**: Captain requirement removed. Only starter count is checked.
         if (starterCount !== 6) {
             isValid = false;
             section.classList.add('validation-error');
@@ -535,7 +588,6 @@ async function handleLineupFormSubmit(e) {
     });
 
     if (!isValid) {
-        // **CHANGE 1**: Updated alert message.
         alert("Validation failed. Each team must have exactly 6 starters selected.");
         submitButton.disabled = false;
         submitButton.textContent = 'Save Lineups & Final Score';
@@ -693,8 +745,8 @@ async function handleStageLiveLineups(e) {
             seasonId: currentSeasonId,
             collectionName,
             gameDate,
-            team1_lineup, // Can be null
-            team2_lineup  // Can be null
+            team1_lineup,
+            team2_lineup
         });
         alert('Lineup(s) staged successfully! The game will go live on the morning of its scheduled date if both lineups are submitted.');
         lineupModal.classList.remove('is-visible');
