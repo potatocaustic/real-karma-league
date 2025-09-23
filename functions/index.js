@@ -1068,15 +1068,27 @@ exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => 
     }
 
     try {
+        // Use a batch to perform an atomic write and delete
+        const batch = db.batch();
+
+        // Set the new document in the live_games collection
         const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
-        await liveGameRef.set({
+        batch.set(liveGameRef, {
             seasonId,
             collectionName,
             team1_lineup,
             team2_lineup,
             activatedAt: FieldValue.serverTimestamp()
         });
-        return { success: true, message: "Game activated for live scoring." };
+
+        // Delete the now-obsolete document from the pending_lineups collection
+        const pendingGameRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
+        batch.delete(pendingGameRef);
+
+        // Commit both operations
+        await batch.commit();
+
+        return { success: true, message: "Game activated for live scoring and pending entry was cleared." };
     } catch (error) {
         console.error(`Error activating live game ${gameId}:`, error);
         throw new HttpsError('internal', 'Could not activate live game.');

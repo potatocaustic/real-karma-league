@@ -392,7 +392,7 @@ async function openLineupModal(game) {
         const dayDiff = timeDiff / (1000 * 3600 * 24);
 
         liveScoringControls.style.display = (dayDiff >= 0 && dayDiff <= 2) ? 'block' : 'none';
-        document.getElementById('submit-live-lineups-btn').textContent = 'Stage Lineups for Live Scoring';
+        document.getElementById('submit-live-lineups-btn').textContent = 'Submit Lineups for Live Scoring';
     }
 
 
@@ -597,30 +597,71 @@ async function handleLineupFormSubmit(e) {
     try {
         const batch = writeBatch(db);
         const { id: gameId, date: gameDate, collectionName, week, team1_id, team2_id } = currentGameData;
+        
+        const liveGameRef = doc(db, getCollectionName('live_games'), gameId);
+        const liveGameSnap = await getDoc(liveGameRef);
+
+        if (liveGameSnap.exists()) {
+            console.log("Live game detected. Overwriting lineup with changes.");
+
+            // 1. Get the most current score data for all players in the original live game.
+            const liveGameData = liveGameSnap.data();
+            const oldPlayerScores = new Map();
+            [...liveGameData.team1_lineup, ...liveGameData.team2_lineup].forEach(p => {
+                oldPlayerScores.set(p.player_id, {
+                    points_raw: p.points_raw || 0,
+                    points_adjusted: p.points_adjusted || 0,
+                    final_score: p.final_score || 0,
+                    global_rank: p.global_rank || 0
+                });
+            });
+
+            // 2. Build the new lineups from the UI.
+            let new_team1_lineup = [];
+            const captainId1 = lineupForm.querySelector('input[name="team1-captain"]:checked')?.value;
+            document.querySelectorAll('#team1-starters .starter-card').forEach(card => {
+                const playerId = card.id.replace('starter-card-', '');
+                const player = allPlayers.get(playerId) || allGms.get(playerId);
+                new_team1_lineup.push({
+                    player_id: playerId,
+                    player_handle: player.player_handle,
+                    is_captain: playerId === captainId1,
+                    deductions: parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0,
+                });
+            });
+
+            let new_team2_lineup = [];
+            const captainId2 = lineupForm.querySelector('input[name="team2-captain"]:checked')?.value;
+            document.querySelectorAll('#team2-starters .starter-card').forEach(card => {
+                const playerId = card.id.replace('starter-card-', '');
+                const player = allPlayers.get(playerId) || allGms.get(playerId);
+                new_team2_lineup.push({
+                    player_id: playerId,
+                    player_handle: player.player_handle,
+                    is_captain: playerId === captainId2,
+                    deductions: parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0,
+                });
+            });
+
+            // 3. Merge the new lineup structure with any old scores to preserve them.
+            const merged_team1_lineup = new_team1_lineup.map(p => ({ ...(oldPlayerScores.get(p.player_id) || {}), ...p }));
+            const merged_team2_lineup = new_team2_lineup.map(p => ({ ...(oldPlayerScores.get(p.player_id) || {}), ...p }));
+
+            // 4. Update the document in the `live_games` collection.
+            await updateDoc(liveGameRef, {
+                team1_lineup: merged_team1_lineup,
+                team2_lineup: merged_team2_lineup
+            });
+
+            alert('Live game lineup updated successfully!');
+            lineupModal.classList.remove('is-visible');
+            fetchAndDisplayGames(currentSeasonId, weekSelect.value);
+            return; // Exit the function since the live game update is complete.
+        }
+
         const isExhibition = collectionName === 'exhibition_games';
         const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (collectionName === 'post_games' ? 'post_lineups' : 'lineups');
         const lineupsCollectionRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(lineupsCollectionName));
-
-        const liveGameRef = doc(db, getCollectionName('live_games'), gameId);
-        const liveGameSnap = await getDoc(liveGameRef);
-        if (liveGameSnap.exists()) {
-            const liveGameData = liveGameSnap.data();
-            ['team1', 'team2'].forEach(prefix => {
-                document.querySelectorAll(`#${prefix}-starters .starter-card`).forEach(card => {
-                    const playerId = card.id.replace('starter-card-', '');
-                    const reductions = parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0;
-                    const teamArrayName = (prefix === 'team1') ? 'team1_lineup' : 'team2_lineup';
-                    const playerInLineup = liveGameData[teamArrayName].find(p => p.player_id === playerId);
-                    if (playerInLineup) {
-                        playerInLineup.deductions = reductions;
-                    }
-                });
-            });
-            await setDoc(liveGameRef, liveGameData);
-            alert('Deductions for live game updated successfully!');
-            lineupModal.classList.remove('is-visible');
-            return;
-        }
 
         const team1Roster = getRosterForTeam(team1_id, week);
         const team2Roster = getRosterForTeam(team2_id, week);
@@ -685,11 +726,12 @@ async function handleLineupFormSubmit(e) {
     }
 }
 
+
 async function handleStageLiveLineups(e) {
     e.preventDefault();
     const button = e.target;
     button.disabled = true;
-    button.textContent = 'Staging...';
+    button.textContent = 'Processing...';
 
     const team1Starters = document.querySelectorAll('#team1-starters .starter-card');
     const team2Starters = document.querySelectorAll('#team2-starters .starter-card');
@@ -697,14 +739,15 @@ async function handleStageLiveLineups(e) {
     const isTeam1LineupValid = team1Starters.length === 6;
     const isTeam2LineupValid = team2Starters.length === 6;
 
+    // Ensure at least one team has a valid lineup to submit anything.
     if (!isTeam1LineupValid && !isTeam2LineupValid) {
-        alert("Validation failed. At least one team must have exactly 6 starters selected to stage a lineup.");
+        alert("Validation failed. At least one team must have exactly 6 starters selected to submit a lineup.");
         button.disabled = false;
-        button.textContent = 'Stage Lineups for Live Scoring';
+        button.textContent = 'Submit Lineups for Live Scoring';
         return;
     }
 
-    const { id: gameId, collectionName, date: gameDate, team1_id, team2_id } = currentGameData;
+    const { id: gameId, collectionName, date: gameDateStr } = currentGameData;
     let team1_lineup = null;
     let team2_lineup = null;
 
@@ -738,27 +781,59 @@ async function handleStageLiveLineups(e) {
         });
     }
     
+    // --- NEW LOGIC: Check if the game is today and both lineups are ready ---
+    const gameDateParts = gameDateStr.split('/');
+    const gameDateObj = new Date(+gameDateParts[2], gameDateParts[0] - 1, +gameDateParts[1]);
+    gameDateObj.setHours(0, 0, 0, 0);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const isGameToday = gameDateObj.getTime() === today.getTime();
+    const canActivateImmediately = isGameToday && isTeam1LineupValid && isTeam2LineupValid;
+
     try {
-        const stageLiveLineups = httpsCallable(functions, 'stageLiveLineups');
-        await stageLiveLineups({
-            gameId,
-            seasonId: currentSeasonId,
-            collectionName,
-            gameDate,
-            team1_lineup,
-            team2_lineup
-        });
-        alert('Lineup(s) staged successfully! The game will go live on the morning of its scheduled date if both lineups are submitted.');
+        if (canActivateImmediately) {
+            // If the game is today and both teams are submitted, activate it directly.
+            button.textContent = 'Activating...';
+            const activateLiveGame = httpsCallable(functions, 'activateLiveGame');
+            await activateLiveGame({
+                gameId,
+                seasonId: currentSeasonId,
+                collectionName,
+                team1_lineup,
+                team2_lineup
+            });
+            alert('Game is today and both lineups are complete. Activated for live scoring immediately!');
+        } else {
+            // Otherwise, stage the lineup(s) in the pending collection.
+            button.textContent = 'Staging...';
+            const stageLiveLineups = httpsCallable(functions, 'stageLiveLineups');
+            await stageLiveLineups({
+                gameId,
+                seasonId: currentSeasonId,
+                collectionName,
+                gameDate: gameDateStr,
+                team1_lineup,
+                team2_lineup
+            });
+            alert('Lineup(s) staged successfully! The game will go live on its scheduled date if both lineups are submitted.');
+        }
+
         lineupModal.classList.remove('is-visible');
         fetchAndDisplayGames(currentSeasonId, weekSelect.value);
+
     } catch (error) {
-        console.error("Error staging live lineups:", error);
-        alert(`Failed to stage lineups: ${error.message}`);
+        console.error("Error submitting lineups:", error);
+        alert(`Failed to submit lineups: ${error.message}`);
     } finally {
         button.disabled = false;
-        button.textContent = 'Stage Lineups for Live Scoring';
+        button.textContent = 'Submit Lineups for Live Scoring';
     }
 }
+// ===================================================================
+// MODIFICATION END
+// ===================================================================
 
 async function handleFinalizeLiveGame(e) {
     e.preventDefault();
