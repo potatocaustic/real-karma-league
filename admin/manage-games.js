@@ -465,7 +465,7 @@ function renderTeamUI(teamPrefix, teamData, roster, existingLineups) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
     rosterContainer.innerHTML = '';
-
+    roster.sort((a, b) => a.player_handle.localeCompare(b.player_handle));
     roster.forEach(player => {
         const lineupData = existingLineups.get(player.id);
         const isStarter = lineupData?.started === 'TRUE';
