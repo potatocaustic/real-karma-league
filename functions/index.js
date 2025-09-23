@@ -406,7 +406,7 @@ exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (reque
 });
 
 const getCollectionName = (baseName) => {
-    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('archived_live_games') || baseName.includes('scorekeeper_activity_log')) {
+    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('archived_live_games') || baseName.includes('scorekeeper_activity_log') || baseName.includes('pending_lineups')) {
         return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
     }
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -783,6 +783,100 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
     }
 });
 
+exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => {
+    if (!(await isScorekeeperOrAdmin(request.auth))) {
+        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to stage lineups.');
+    }
+
+    const { gameId, seasonId, collectionName, gameDate, team1_lineup, team2_lineup } = request.data;
+
+    if (!gameId || !seasonId || !collectionName || !gameDate) {
+        throw new HttpsError('invalid-argument', 'Missing required game parameters.');
+    }
+    if (!team1_lineup && !team2_lineup) {
+        throw new HttpsError('invalid-argument', 'At least one team lineup must be provided.');
+    }
+
+    try {
+        const pendingRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
+
+        const dataToSet = {
+            seasonId,
+            collectionName,
+            gameDate,
+            stagedBy: request.auth.uid,
+            lastUpdated: FieldValue.serverTimestamp()
+        };
+
+        if (team1_lineup && team1_lineup.length === 6) {
+            dataToSet.team1_lineup = team1_lineup;
+            dataToSet.team1_submitted = true;
+        }
+        if (team2_lineup && team2_lineup.length === 6) {
+            dataToSet.team2_lineup = team2_lineup;
+            dataToSet.team2_submitted = true;
+        }
+
+        await pendingRef.set(dataToSet, { merge: true });
+
+        return { success: true, message: "Lineup(s) have been successfully staged." };
+
+    } catch (error) {
+        console.error(`Error staging lineups for game ${gameId}:`, error);
+        throw new HttpsError('internal', `Could not stage lineups: ${error.message}`);
+    }
+});
+
+
+exports.processPendingLiveGames = onSchedule({
+    schedule: "15 6 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled job to process pending live games.");
+
+    const today = new Date();
+    const dateString = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+
+    const pendingGamesQuery = db.collection(getCollectionName('pending_lineups'))
+        .where('gameDate', '==', dateString)
+        .where('team1_submitted', '==', true)
+        .where('team2_submitted', '==', true);
+
+    try {
+        const pendingGamesSnap = await pendingGamesQuery.get();
+        if (pendingGamesSnap.empty) {
+            console.log(`No pending games with both lineups submitted for ${dateString}.`);
+            return null;
+        }
+
+        console.log(`Found ${pendingGamesSnap.size} games to activate for live scoring.`);
+        const activationBatch = db.batch();
+
+        for (const doc of pendingGamesSnap.docs) {
+            const gameId = doc.id;
+            const data = doc.data();
+
+            const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
+            activationBatch.set(liveGameRef, {
+                seasonId: data.seasonId,
+                collectionName: data.collectionName,
+                team1_lineup: data.team1_lineup,
+                team2_lineup: data.team2_lineup,
+                activatedAt: FieldValue.serverTimestamp()
+            });
+
+
+            activationBatch.delete(doc.ref);
+        }
+
+        await activationBatch.commit();
+        console.log("Successfully activated and cleared pending games.");
+
+    } catch (error) {
+        console.error("Error during scheduled processing of pending games:", error);
+    }
+    return null;
+});
 
 exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth || !request.auth.uid) {

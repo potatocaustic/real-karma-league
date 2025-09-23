@@ -26,8 +26,13 @@ service cloud.firestore {
     // =======================================================
     // V2 RULES (PRODUCTION & DEVELOPMENT)
     // =======================================================
+    match /pending_lineups/{gameId} {
+        allow read, write: if isScorekeeperOrAdmin();
+    }
+    match /pending_lineups_dev/{gameId} {
+        allow read, write: if isScorekeeperOrAdmin();
+    }
 
-    // NEW rules for scorekeeper logs and archives
     match /scorekeeper_activity_log/{docId} {
         allow read, list: if isUserAdmin();
         allow write: if false; // Only backend can write
