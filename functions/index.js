@@ -2856,8 +2856,9 @@ async function performWeekUpdate() {
 
         const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
         
+        // MODIFICATION: Changed '!=' to '==' for a more efficient and valid query.
         const incompleteGamesQuery = gamesRef
-            .where('completed', '!=', 'TRUE')
+            .where('completed', '==', 'FALSE') 
             .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
             .limit(1);
             
@@ -2869,8 +2870,9 @@ async function performWeekUpdate() {
             console.log("No incomplete regular season games found. Checking postseason...");
             const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
             
+            // MODIFICATION: Changed '!=' to '==' here as well.
             const incompletePostGamesQuery = postGamesRef
-                .where('completed', '!=', 'TRUE')
+                .where('completed', '==', 'FALSE')
                 .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
                 .limit(1);
 
