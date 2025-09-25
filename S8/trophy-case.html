@@ -234,7 +234,7 @@
                         cardData = { name: teamName, detail: '(Combined Record)', nameLink: teamLink, logoId: awardData.team_id, stats: `Record: ${awardData.champ_wins}-${awardData.champ_losses} | PAM: ${Math.round(awardData.champ_pam || 0).toLocaleString()} | Med Rank: ${Math.round(awardData.champ_medrank || 0)}`};
                         break;
                     case 'finals-mvp':
-                        cardData = { name: awardData.player_handle, detail: teamName, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`, detailLink: teamLink, logoId: awardData.team_id, stats: `REL Median: ${(awardData.fmvp_rel_median || 0).toFixed(3)} | Med Rank: ${Math.round(awardData.fmvp_medrank || 0)}`};
+                        cardData = { name: awardData.player_handle, detail: teamName, nameLink: `player.html?handle=${encodeURIComponent(awardData.player_handle)}`, detailLink: teamLink, logoId: awardData.team_id, stats: `REL Median: ${(awardData.fmvp_rel_median || 0).toFixed(3)} | Med Rank: ${Math.round(awardData.fmvp_medrank || 0)}`};
                         break;
                     case 'regular-season-title':
                         cardData = { name: teamName, detail: 'Best Record', nameLink: teamLink, logoId: awardData.team_id, stats: `Record: ${teamRecord?.wins}-${teamRecord?.losses} | PAM: ${Math.round(teamRecord?.pam || 0).toLocaleString()} | Med Rank: ${Math.round(teamRecord?.med_starter_rank || 0)}`};
@@ -258,13 +258,13 @@
                         if (lineupSnap.empty) { foundIn = 'postseason'; lineupSnap = await getDocs(query(postLineupsRef, where("date", "==", awardData.date), where("player_id", "==", awardData.player_id), limit(1))); }
                         const lineupData = lineupSnap.empty ? {} : lineupSnap.docs[0].data();
                         const gameCollection = foundIn === 'regular season' ? getCollectionName('games') : getCollectionName('post_games');
-                        cardData = { name: awardData.player_handle, detail: `Week ${lineupData.week || '?'} - ${Math.round(lineupData.points_adjusted || 0).toLocaleString()} Points`, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`, logoId: awardData.team_id, stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`, modalOnClick: lineupData.game_id ? `showGameDetails('${lineupData.game_id}', '${gameCollection}'); return false;` : `alert('Game data not found.'); return false;`};
+                        cardData = { name: awardData.player_handle, detail: `Week ${lineupData.week || '?'} - ${Math.round(lineupData.points_adjusted || 0).toLocaleString()} Points`, nameLink: `player.html?handle=${encodeURIComponent(awardData.player_handle)}`, logoId: awardData.team_id, stats: `<span class="detail-positive">+${(awardData.value * 100).toFixed(1)}%</span> over median`, modalOnClick: lineupData.game_id ? `showGameDetails('${lineupData.game_id}', '${gameCollection}'); return false;` : `alert('Game data not found.'); return false;`};
                         break;
                     }
                     default: {
                         const playerStats = getPlayerSeasonalStats(awardData.player_id);
                         const statsString = playerStats ? `REL Median: ${playerStats.rel_median.toFixed(3)} | Med Rank: ${Math.round(playerStats.medrank)}` : '';
-                        cardData = { name: awardData.player_handle, detail: teamName, nameLink: `player.html?player=${encodeURIComponent(awardData.player_handle)}`, detailLink: teamLink, logoId: awardData.team_id, stats: awardInfo.id === 'lvp' ? `<span class="detail-negative">${statsString}</span>` : statsString};
+                        cardData = { name: awardData.player_handle, detail: teamName, nameLink: `player.html?handle=${encodeURIComponent(awardData.player_handle)}`, detailLink: teamLink, logoId: awardData.team_id, stats: awardInfo.id === 'lvp' ? `<span class="detail-negative">${statsString}</span>` : statsString};
                     }
                 }
                 html += createAwardCard(awardInfo.title, cardData);
@@ -293,7 +293,7 @@
                     <li class="all-star-item">
                         <img src="../icons/${p.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
                         <div class="all-star-player-info">
-                            <a href="player.html?player=${encodeURIComponent(p.player_handle)}">${p.player_handle} ${badgesHTML}</a>
+                            <a href="player.html?handle=${encodeURIComponent(p.player_handle)}">${p.player_handle} ${badgesHTML}</a>
                             <div class="all-star-stats">Med Rank: ${medRank}</div>
                         </div>
                         <div class="all-star-stat">${relMedian}</div>
