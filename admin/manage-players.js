@@ -181,7 +181,8 @@ function openPlayerModal(player = null) {
     playerForm.reset();
     isEditMode = !!player;
 
-    const dangerZone = document.getElementById('danger-zone-container');
+    const dangerZoneWrapper = document.getElementById('danger-zone-wrapper');
+    const dangerZoneContainer = document.getElementById('danger-zone-container');
 
     document.getElementById('modal-title-player').textContent = isEditMode ? 'Edit Player' : 'Create New Player';
     document.getElementById('player-id-input').readOnly = isEditMode;
@@ -192,13 +193,19 @@ function openPlayerModal(player = null) {
         document.getElementById('player-status-select').value = player.player_status || 'ACTIVE';
         document.getElementById('player-rookie-checkbox').checked = player.season_stats?.rookie === '1';
         document.getElementById('player-allstar-checkbox').checked = player.season_stats?.all_star === '1';
-        dangerZone.style.display = 'block'; 
+        
+        // MODIFICATION: Show the wrapper, but hide the content initially
+        dangerZoneWrapper.style.display = 'block'; 
+        dangerZoneContainer.style.display = 'none';
+        document.getElementById('toggle-danger-zone-btn').textContent = 'Show Danger Zone';
+
     } else {
         document.getElementById('player-id-input').readOnly = false;
         document.getElementById('player-id-input').placeholder = "Enter a new unique ID (e.g. jdoe123)";
         document.getElementById('player-rookie-checkbox').checked = true;
         document.getElementById('player-allstar-checkbox').checked = false;
-        dangerZone.style.display = 'none'; 
+
+        dangerZoneWrapper.style.display = 'none'; 
     }
 
     const teamSelect = document.getElementById('player-team-select');
@@ -221,6 +228,14 @@ closeModalBtn.addEventListener('click', () => {
 });
 
 playerModal.addEventListener('click', async (e) => {
+    if (e.target.id === 'toggle-danger-zone-btn') {
+        const dangerZoneContainer = document.getElementById('danger-zone-container');
+        const isVisible = dangerZoneContainer.style.display === 'block';
+        dangerZoneContainer.style.display = isVisible ? 'none' : 'block';
+        e.target.textContent = isVisible ? 'Show Danger Zone' : 'Hide Danger Zone';
+        return; 
+    }
+
     if (e.target.id !== 'migrate-player-id-btn') return;
 
     const migrateBtn = e.target;
