@@ -167,6 +167,35 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- UI Rendering ---
 
     /**
+     * Helper function to filter and update dropdown options.
+     * @param {number} index - The selector index (1 or 2).
+     * @param {string} searchTerm - The text to filter by.
+     */
+    function filterDropdownOptions(index, searchTerm) {
+        const selectEl = document.getElementById(`select-${index}`);
+        const currentVal = selectEl.value;
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+        const data = currentComparisonType === 'players' ? allPlayersData : allTeamsData;
+        const valueField = currentComparisonType === 'players' ? 'player_handle' : 'team_id';
+        const textField = currentComparisonType === 'players' ? 'player_handle' : 'team_name';
+
+        const filteredData = data.filter(item => item[textField].toLowerCase().includes(lowerCaseSearchTerm));
+        
+        const sortedData = [...filteredData].sort((a, b) => a[textField].localeCompare(b[textField]));
+
+        let optionsHTML = '<option value="">Select...</option>';
+        optionsHTML += sortedData.map(item => `<option value="${item[valueField]}">${item[textField]}</option>`).join('');
+        
+        selectEl.innerHTML = optionsHTML;
+
+        // Restore the previous selection if it's still in the list
+        if (sortedData.some(item => item[valueField] === currentVal)) {
+            selectEl.value = currentVal;
+        }
+    }
+
+    /**
      * Renders the selection dropdowns based on the comparison type.
      * @param {string} type - 'players' or 'teams'.
      */
@@ -188,11 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="selectors-grid">
                 <div class="selector-box">
                     <label for="select-1">${type === 'players' ? 'Player 1' : 'Team 1'}</label>
+                    <input type="text" id="search-1" class="search-input" placeholder="Search by name..." autocomplete="off">
                     <select id="select-1">${optionsHTML}</select>
                 </div>
                 <div class="vs-separator">VS</div>
                 <div class="selector-box">
                     <label for="select-2">${type === 'players' ? 'Player 2' : 'Team 2'}</label>
+                    <input type="text" id="search-2" class="search-input" placeholder="Search by name..." autocomplete="off">
                     <select id="select-2">${optionsHTML}</select>
                 </div>
             </div>
@@ -203,6 +234,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('select-1').addEventListener('change', checkSelections);
         document.getElementById('select-2').addEventListener('change', checkSelections);
+
+        document.getElementById('search-1').addEventListener('input', (e) => filterDropdownOptions(1, e.target.value));
+        document.getElementById('search-2').addEventListener('input', (e) => filterDropdownOptions(2, e.target.value));
     }
 
     /**
