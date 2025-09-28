@@ -1,0 +1,307 @@
+/* /css/postseason-player.css */
+
+/* Page-specific styles for player profile */
+main {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Player header */
+.player-header {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.player-main-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 1rem;
+}
+
+.player-bio {
+    font-size: 0.95rem;
+    color: #555;
+    margin-top: 0.75rem;
+    font-style: italic;
+    line-height: 1.5;
+    max-width: 60ch; 
+}
+
+.dark-mode .player-bio {
+    color: #bbb;
+}
+
+.season-indicator {
+    color: inherit;
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.team-logo-large {
+    width: 120px;
+    height: 120px;
+    border-radius: 50% !important;
+    border: 3px solid #ddd;
+    object-fit: cover;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    transition: border-color 0.3s;
+}
+
+.player-details h2 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.player-subtitle {
+    font-size: 1.2rem;
+    color: #666;
+    margin-bottom: 0.5rem;
+    transition: color 0.3s;
+}
+
+.team-info {
+    font-size: 1.1rem;
+    color: #007bff;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    margin-bottom: 0.3rem;
+}
+
+    .team-info:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+
+/* Player stats grid */
+.player-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.stat-card {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 6px;
+    text-align: center;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        border-color: #007bff;
+    }
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #333;
+    transition: color 0.3s;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.5rem;
+    flex-grow: 1;
+    transition: color 0.3s;
+}
+
+.stat-rank {
+    font-size: 0.8rem;
+    color: #007bff;
+    margin-top: 0.3rem;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.stat-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    border-radius: 6px;
+    height: 100%;
+}
+
+    .stat-card-link:hover .stat-card {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+    }
+
+/* Content grid */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+    align-items: start;
+}
+
+/* Performance section */
+.performance-section {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.section-header {
+    background-color: #333;
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+    .section-header h3 {
+        color: white;
+        margin: 0;
+        font-size: 1.4rem;
+    }
+
+.performance-table-container, .game-history {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.performance-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .performance-table th, .performance-table td {
+        padding: 1rem 0.5rem;
+        border-bottom: 1px solid #eee;
+        text-align: center;
+        transition: border-color 0.3s, background-color 0.3s;
+    }
+    .performance-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        border-bottom-width: 2px;
+        border-bottom-color: #ddd;
+        font-size: 0.9rem;
+    }
+     .performance-table th:first-child, .performance-table td:first-child {
+        text-align: left;
+    }
+    .performance-table tr.clickable-row:hover {
+        background-color: #e9ecef;
+        cursor: pointer;
+    }
+    .captain-row {
+        background-color: #fff3cd !important;
+        font-weight: bold;
+    }
+
+.captain-badge-small { background-color: #ffc107; color: #333; padding: 0.1rem 0.3rem; border-radius: 8px; font-size: 0.6rem; font-weight: bold; margin-left: 0.3rem; }
+.rank-badge { display: inline-block; padding: 0.2em 0.5em; border-radius: 0.25em; color: white; font-weight: bold; font-size: 0.85em; min-width: 20px; text-align: center; }
+.rank-gold { background-color: gold; color: black; }
+.rank-silver { background-color: silver; color: black; }
+.rank-bronze { background-color: #cd7f32; }
+.rank-skyblue { background-color: #87CEEB; color: black; }
+
+/* Game history section */
+.game-history { padding: 1.5rem; }
+.game-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; transition: background-color 0.2s, border-color 0.3s; cursor: pointer; }
+.game-item:hover { background-color: #f8f9fa; }
+.game-item:last-child { border-bottom: none; }
+.game-history-main-content { display: flex; flex-direction: column; flex-grow: 1; min-width: 0; }
+.game-history-matchup-teams { display: flex; flex-direction: row; align-items: center; gap: 0.5rem; }
+.game-history-team-entry { display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 0; }
+.game-history-team-logo { width: 20px; height: 20px; border-radius: 3px; flex-shrink: 0; }
+.game-history-team-name { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.game-result-indicator { font-weight: bold; font-size: 0.9rem; margin-left: 0.25rem; }
+.game-result-w { color: #28a745; }
+.game-result-l { color: #dc3545; }
+.game-history-vs-separator { font-size: 0.9rem; color: #6c757d; font-weight: bold; padding: 0 0.25rem; flex-shrink: 0; }
+.game-history-date { font-size: 0.8rem; color: #666; margin-top: 0.3rem; text-align: left; }
+.game-performance { text-align: right; min-width: 100px; flex-shrink: 0; }
+.performance-score { font-weight: bold; font-size: 1.1rem; }
+.performance-rank { font-size: 0.8rem; color: #666; margin-top: 0.2rem; }
+.captain-performance { color: #ffc107; font-weight: bold; }
+
+.back-button { background-color: #007bff; color: white; padding: 0.8rem 1.5rem; border: none; border-radius: 4px; text-decoration: none; font-size: 1rem; display: inline-block; margin-bottom: 2rem; transition: background-color 0.3s; }
+.back-button:hover { background-color: #0056b3; text-decoration: none; color: white; }
+
+/* Scrollbar Styles */
+.performance-table-container, .game-history { scrollbar-width: thin; scrollbar-color: #ccc #f1f1f1; }
+.performance-table-container::-webkit-scrollbar, .game-history::-webkit-scrollbar { width: 10px; }
+.performance-table-container::-webkit-scrollbar-track, .game-history::-webkit-scrollbar-track { background: #f1f1f1; }
+.performance-table-container::-webkit-scrollbar-thumb, .game-history::-webkit-scrollbar-thumb { background: #bbb; border-radius: 5px; }
+.performance-table-container::-webkit-scrollbar-thumb:hover, .game-history::-webkit-scrollbar-thumb:hover { background: #999; }
+
+/* Dark Mode */
+.dark-mode .back-button { background-color: #3b82f6; }
+.dark-mode .back-button:hover { background-color: #60a5fa; }
+.dark-mode .player-header, .dark-mode .performance-section { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+.dark-mode .team-logo-large { border-color: #444; }
+.dark-mode .player-subtitle, .dark-mode .player-previous-teams a { color: #aaa; }
+.dark-mode .team-info { color: #8ab4f8; }
+.dark-mode .team-info:hover { color: #a7c7fa; }
+.dark-mode .stat-card { background-color: #2c2c2c; border-color: #444; }
+.dark-mode .stat-card:hover { border-color: #bb86fc; }
+.dark-mode .stat-value { color: #e0e0e0; }
+.dark-mode .stat-label { color: #aaa; }
+.dark-mode .stat-rank { color: #bb86fc; }
+.dark-mode .performance-table th { background-color: #2c2c2c; border-bottom-color: #444; }
+.dark-mode .performance-table td { border-bottom-color: #333; }
+.dark-mode .performance-table tr:hover, .dark-mode .game-item:hover { background-color: #2c2c2c; }
+.dark-mode .performance-table tr.clickable-row:hover { background-color: #383838; }
+.dark-mode .captain-row { background-color: #4a4100 !important; }
+.dark-mode .captain-badge-small { background-color: #ffe082; color: #121212; }
+.dark-mode .game-history-vs-separator { color: #888; }
+.dark-mode .game-history-date, .dark-mode .performance-rank { color: #aaa; }
+.dark-mode .captain-performance { color: #ffe082; }
+
+/* Dark Mode Scrollbar */
+.dark-mode .performance-table-container, .dark-mode .game-history { scrollbar-color: #555 #2c2c2c; }
+.dark-mode .performance-table-container::-webkit-scrollbar-track, .dark-mode .game-history::-webkit-scrollbar-track { background: #2c2c2c; }
+.dark-mode .performance-table-container::-webkit-scrollbar-thumb, .dark-mode .game-history::-webkit-scrollbar-thumb { background: #555; }
+.dark-mode .performance-table-container::-webkit-scrollbar-thumb:hover, .dark-mode .game-history::-webkit-scrollbar-thumb:hover { background: #6e6e6e; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .content-grid { grid-template-columns: 1fr; }
+    .player-main-info { flex-direction: column; gap: 1rem; }
+    .team-logo-large { width: 80px; height: 80px; }
+    .player-stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+    .performance-table th, .performance-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem; }
+    .game-history-matchup-teams { flex-direction: column; align-items: flex-start; gap: 0.2rem; }
+    .game-history-vs-separator { display: none; }
+    .game-history-team-entry { width: 100%; }
+}
+@media (max-width: 480px) {
+    .player-stats-grid { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+    .performance-table th:nth-child(4), .performance-table td:nth-child(4) { display: none; }
+    .game-history-team-name { font-size: 0.85rem; }
+    .game-history-date { font-size: 0.75rem; }
+    .performance-score { font-size: 0.9rem; }
+    .performance-rank { font-size: 0.75rem; }
+    .game-performance { min-width: 70px; }
+}
