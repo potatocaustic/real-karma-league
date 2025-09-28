@@ -80,37 +80,64 @@
         .selector-box {
             display: flex;
             flex-direction: column;
+            position: relative;
         }
         .selector-box label {
             margin-bottom: 0.5rem;
             font-weight: 500;
         }
-        .selector-box select {
+        .selector-box input[type="text"] {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #ddd;
             border-radius: 6px;
             font-size: 1rem;
-            background-color: #fff;
-        }
-        .selector-box .search-input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
             box-sizing: border-box;
         }
-        .dark-mode .selector-box .search-input {
+        .dark-mode .selector-box input[type="text"] {
             background-color: #2c2c2c;
             border-color: #444;
             color: #e0e0e0;
         }
-        .dark-mode .selector-box select {
+        .options-container {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        .dark-mode .options-container {
             background-color: #2c2c2c;
             border-color: #444;
-            color: #e0e0e0;
+        }
+        .options-container.visible {
+            display: block;
+        }
+        .option {
+            padding: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .option:hover, .option.highlighted {
+            background-color: #f0f0f0;
+        }
+        .dark-mode .option:hover, .dark-mode .option.highlighted {
+            background-color: #3a3a3a;
+        }
+        .option-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            object-fit: cover;
         }
         .vs-separator {
             font-size: 1.5rem;
@@ -141,7 +168,6 @@
             background-color: #6c757d;
             cursor: not-allowed;
         }
-
         .results-container {
             margin-top: 2rem;
             opacity: 0;
