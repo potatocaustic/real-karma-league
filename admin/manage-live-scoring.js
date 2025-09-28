@@ -64,11 +64,12 @@ window.addEventListener('load', () => {
         try {
             const result = await getScheduledJobTimes();
             if (result.data.success) {
-                // If a time is null (meaning it couldn't be fetched), the input will retain its default value.
-                if (result.data.autoFinalizeTime) {
+                // MODIFICATION: Only update the input's value if the fetched time is a valid, non-empty string.
+                // Otherwise, leave the default value from the HTML untouched.
+                if (result.data.autoFinalizeTime && typeof result.data.autoFinalizeTime === 'string') {
                     autofinalizeTimeInput.value = result.data.autoFinalizeTime;
                 }
-                if (result.data.statUpdateTime) {
+                if (result.data.statUpdateTime && typeof result.data.statUpdateTime === 'string') {
                     statUpdateTimeInput.value = result.data.statUpdateTime;
                 }
             } else {
