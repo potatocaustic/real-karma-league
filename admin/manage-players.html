@@ -83,17 +83,17 @@
             <span class="close-btn-admin">&times;</span>
             <h3 id="modal-title-player">Edit Player</h3>
             <form id="player-form">
-
+    
                 <div class="form-group-admin">
                     <label for="player-id-input">Player ID (Cannot be changed)</label>
                     <input type="text" id="player-id-input" class="read-only-field" readonly>
                 </div>
-
+    
                 <div class="form-group-admin">
                     <label for="player-handle-input">Player Handle</label>
                     <input type="text" id="player-handle-input" required>
                 </div>
-
+    
                 <div class="form-grid">
                     <div class="form-group-admin">
                         <label for="player-team-select">Current Team</label>
@@ -120,17 +120,19 @@
                         <label for="player-allstar-checkbox">All-Star</label>
                     </div>
                 </div>
-
-                <div id="danger-zone-container" style="display: none; border-top: 2px solid #dc3545; margin-top: 20px; padding-top: 15px;">
-                    <h4>Danger Zone</h4>
-                    <p class="small-text">This is a destructive action for correcting a player's external ID. Do not use this for routine changes.</p>
-                    <div class="form-group-admin">
-                        <label for="player-new-id-input">New Player ID</label>
-                        <input type="text" id="player-new-id-input" placeholder="Enter the new, correct ID">
+    
+                <div id="danger-zone-wrapper" style="display: none; border-top: 2px solid #dc3545; margin-top: 20px; padding-top: 15px;">
+                    <button type="button" id="toggle-danger-zone-btn" class="btn-admin-secondary">Show Danger Zone</button>
+                    <div id="danger-zone-container" style="display: none; border: none; margin-top: 15px; padding-top: 0;">
+                        <h4>Danger Zone</h4>
+                        <p class="small-text">This is a destructive action for correcting a player's external ID. Do not use this for routine changes.</p>
+                        <div class="form-group-admin">
+                            <label for="player-new-id-input">New Player ID</label>
+                            <input type="text" id="player-new-id-input" placeholder="Enter the new, correct ID">
+                        </div>
+                        <button type="button" id="migrate-player-id-btn" class="btn-admin-danger">Migrate to New ID</button>
                     </div>
-                    <button type="button" id="migrate-player-id-btn" class="btn-admin-danger">Migrate to New ID</button>
                 </div>
-
                 <button type="submit" class="btn-admin-save">Save Player Changes</button>
             </form>
         </div>
