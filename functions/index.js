@@ -743,6 +743,8 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
     return null;
 });
 
+// functions/index.js
+
 exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (request) => {
     // 1. Security Check & Validation
     if (!request.auth) {
@@ -761,15 +763,32 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
     console.log(`ADMIN ACTION: Updating details for player ${playerId} to handle: ${newPlayerHandle}`);
 
     try {
+        const playerRef = db.collection(getCollectionName('v2_players')).doc(playerId);
+        
+        // Fetch the existing player data to get the old handle
+        const playerDoc = await playerRef.get();
+        if (!playerDoc.exists) {
+            throw new HttpsError('not-found', `Player with ID ${playerId} could not be found.`);
+        }
+        const oldPlayerHandle = playerDoc.data().player_handle;
+
         const mainBatch = db.batch();
 
-        // 2. Update the main player document
-        const playerRef = db.collection(getCollectionName('v2_players')).doc(playerId);
-        mainBatch.update(playerRef, {
+        // 2. Prepare the main player document update
+        const playerUpdateData = {
             player_handle: newPlayerHandle,
             current_team_id: newTeamId,
             player_status: newStatus
-        });
+        };
+
+        // If the handle has changed, add the old one to the aliases array
+        if (oldPlayerHandle && oldPlayerHandle !== newPlayerHandle) {
+            console.log(`Adding alias '${oldPlayerHandle}' for player ${playerId}.`);
+            playerUpdateData.aliases = FieldValue.arrayUnion(oldPlayerHandle);
+        }
+        
+        mainBatch.update(playerRef, playerUpdateData);
+
 
         // 3. Update seasonal accolades (rookie/all-star status)
         const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(seasonId);
