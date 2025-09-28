@@ -52,11 +52,29 @@ window.addEventListener('load', () => {
     const forceLeaderboardRecalculation = httpsCallable(functions, 'forceLeaderboardRecalculation');
     const test_autoFinalizeGames = httpsCallable(functions, 'test_autoFinalizeGames');
     const updateScheduledJobTimes = httpsCallable(functions, 'updateScheduledJobTimes');
+    const getScheduledJobTimes = httpsCallable(functions, 'getScheduledJobTimes');
+
 
     // --- Global State ---
     let countdownIntervalId = null;
     let historicalChart = null;
     let currentDayChart = null;
+
+    async function populateScheduleTimes() {
+        try {
+            const result = await getScheduledJobTimes();
+            if (result.data.success) {
+                if (result.data.autoFinalizeTime) {
+                    autofinalizeTimeInput.value = result.data.autoFinalizeTime;
+                }
+                if (result.data.statUpdateTime) {
+                    statUpdateTimeInput.value = result.data.statUpdateTime;
+                }
+            }
+        } catch (error) {
+            console.error("Could not fetch current schedule times. Displaying defaults.", error);
+        }
+    }
 
     async function renderUsageCharts(currentDayId) {
         const usageQuery = query(collection(db, getCollectionName('usage_stats')));
@@ -206,6 +224,8 @@ window.addEventListener('load', () => {
 
     function initializeControlPanel() {
         const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+        
+        populateScheduleTimes();
 
         onSnapshot(statusRef, (docSnap) => {
             if (docSnap.exists()) {

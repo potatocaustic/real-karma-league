@@ -18,6 +18,51 @@ const db = admin.firestore();
 // ===================================================================
 const USE_DEV_COLLECTIONS = false;
 
+exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
+    // 1. Security Check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    try {
+        const projectId = process.env.GCLOUD_PROJECT;
+        const location = 'us-central1';
+
+        // Helper to parse "minute hour * * *" into "HH:MM"
+        const parseCronSchedule = (schedule) => {
+            if (!schedule) return null;
+            const parts = schedule.split(' ');
+            const minute = String(parts[0]).padStart(2, '0');
+            const hour = String(parts[1]).padStart(2, '0');
+            return `${hour}:${minute}`;
+        };
+
+        // Define the specific jobs to look up
+        const autoFinalizeJobName = `firebase-schedule-autoFinalizeGames-${location}`;
+        const statUpdateJobName = `firebase-schedule-updatePlayerRanks-${location}`; // Any of the stat jobs will do since they share a time
+
+        const autoFinalizeJobPath = schedulerClient.jobPath(projectId, location, autoFinalizeJobName);
+        const statUpdateJobPath = schedulerClient.jobPath(projectId, location, statUpdateJobName);
+
+        // Fetch both jobs concurrently
+        const [autoFinalizeJobResponse] = await schedulerClient.getJob({ name: autoFinalizeJobPath });
+        const [statUpdateJobResponse] = await schedulerClient.getJob({ name: statUpdateJobPath });
+
+        const autoFinalizeTime = parseCronSchedule(autoFinalizeJobResponse.schedule);
+        const statUpdateTime = parseCronSchedule(statUpdateJobResponse.schedule);
+
+        return { success: true, autoFinalizeTime, statUpdateTime };
+
+    } catch (error) {
+        console.error("Error fetching Cloud Scheduler job times:", error);
+        throw new HttpsError('internal', `Failed to fetch schedule times: ${error.message}`);
+    }
+});
+
 exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (request) => {
     // 1. Security Check
     if (!request.auth) {
