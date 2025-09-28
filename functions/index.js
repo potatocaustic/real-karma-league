@@ -29,40 +29,48 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
         throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
     }
 
-    let autoFinalizeTime = null;
-    let statUpdateTime = null;
+    const projectId = process.env.GCLOUD_PROJECT;
+    const location = 'us-central1';
 
-    try {
-        const projectId = process.env.GCLOUD_PROJECT;
-        const location = 'us-central1';
+    const parseCronSchedule = (schedule) => {
+        if (!schedule) return null;
+        const parts = schedule.split(' ');
+        const minute = String(parts[0]).padStart(2, '0');
+        const hour = String(parts[1]).padStart(2, '0');
+        return `${hour}:${minute}`;
+    };
 
-        const parseCronSchedule = (schedule) => {
-            if (!schedule) return null;
-            const parts = schedule.split(' ');
-            const minute = String(parts[0]).padStart(2, '0');
-            const hour = String(parts[1]).padStart(2, '0');
-            return `${hour}:${minute}`;
-        };
-
-        // Fetch Auto-Finalize Time
+    // Helper to try fetching a job, resilient to naming convention differences
+    const getJobSchedule = async (baseName) => {
         try {
-            const autoFinalizeJobName = `firebase-schedule-autoFinalizeGames-${location}`;
-            const autoFinalizeJobPath = schedulerClient.jobPath(projectId, location, autoFinalizeJobName);
-            const [jobResponse] = await schedulerClient.getJob({ name: autoFinalizeJobPath });
-            autoFinalizeTime = parseCronSchedule(jobResponse.schedule);
+            // First, try the name as provided (e.g., camelCase)
+            const jobName = `firebase-schedule-${baseName}-${location}`;
+            const jobPath = schedulerClient.jobPath(projectId, location, jobName);
+            const [jobResponse] = await schedulerClient.getJob({ name: jobPath });
+            return parseCronSchedule(jobResponse.schedule);
         } catch (e) {
-            console.error(`Could not fetch 'autoFinalizeGames' job. It may not exist or the name is incorrect. Error: ${e.message}`);
+            // If not found (error code 5), try an all-lowercase version as a fallback
+            if (e.code === 5) {
+                console.log(`Job with name '${baseName}' not found, trying lowercase fallback.`);
+                try {
+                    const lowercaseJobName = `firebase-schedule-${baseName.toLowerCase()}-${location}`;
+                    const lowercaseJobPath = schedulerClient.jobPath(projectId, location, lowercaseJobName);
+                    const [jobResponse] = await schedulerClient.getJob({ name: lowercaseJobPath });
+                    return parseCronSchedule(jobResponse.schedule);
+                } catch (e2) {
+                     console.error(`Could not fetch job for '${baseName}' with either camelCase or lowercase name.`, e2);
+                     return null;
+                }
+            } else {
+                 console.error(`An unexpected error occurred fetching job for '${baseName}'.`, e);
+                 return null;
+            }
         }
-        
-        // Fetch Stat Update Time
-        try {
-            const statUpdateJobName = `firebase-schedule-updatePlayerRanks-${location}`;
-            const statUpdateJobPath = schedulerClient.jobPath(projectId, location, statUpdateJobName);
-            const [jobResponse] = await schedulerClient.getJob({ name: statUpdateJobPath });
-            statUpdateTime = parseCronSchedule(jobResponse.schedule);
-        } catch(e) {
-            console.error(`Could not fetch 'updatePlayerRanks' job. It may not exist or the name is incorrect. Error: ${e.message}`);
-        }
+    };
+    
+    try {
+        const autoFinalizeTime = await getJobSchedule('autoFinalizeGames');
+        const statUpdateTime = await getJobSchedule('updatePlayerRanks');
 
         return { success: true, autoFinalizeTime, statUpdateTime };
 
