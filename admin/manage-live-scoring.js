@@ -64,15 +64,20 @@ window.addEventListener('load', () => {
         try {
             const result = await getScheduledJobTimes();
             if (result.data.success) {
+                // If a time is null (meaning it couldn't be fetched), the input will retain its default value.
                 if (result.data.autoFinalizeTime) {
                     autofinalizeTimeInput.value = result.data.autoFinalizeTime;
                 }
                 if (result.data.statUpdateTime) {
                     statUpdateTimeInput.value = result.data.statUpdateTime;
                 }
+            } else {
+                console.error("Failed to fetch schedule times from server:", result.data.error);
+                alert("Could not retrieve current schedule times. Displaying default values. Error: " + (result.data.error || 'Unknown failure.'));
             }
         } catch (error) {
             console.error("Could not fetch current schedule times. Displaying defaults.", error);
+            alert("An error occurred while fetching schedule times. Displaying default values.");
         }
     }
 

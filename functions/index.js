@@ -18,6 +18,7 @@ const db = admin.firestore();
 // ===================================================================
 const USE_DEV_COLLECTIONS = false;
 
+
 exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
     // 1. Security Check
     if (!request.auth) {
@@ -28,11 +29,13 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
         throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
     }
 
+    let autoFinalizeTime = null;
+    let statUpdateTime = null;
+
     try {
         const projectId = process.env.GCLOUD_PROJECT;
         const location = 'us-central1';
 
-        // Helper to parse "minute hour * * *" into "HH:MM"
         const parseCronSchedule = (schedule) => {
             if (!schedule) return null;
             const parts = schedule.split(' ');
@@ -41,24 +44,30 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
             return `${hour}:${minute}`;
         };
 
-        // Define the specific jobs to look up
-        const autoFinalizeJobName = `firebase-schedule-autoFinalizeGames-${location}`;
-        const statUpdateJobName = `firebase-schedule-updatePlayerRanks-${location}`; // Any of the stat jobs will do since they share a time
-
-        const autoFinalizeJobPath = schedulerClient.jobPath(projectId, location, autoFinalizeJobName);
-        const statUpdateJobPath = schedulerClient.jobPath(projectId, location, statUpdateJobName);
-
-        // Fetch both jobs concurrently
-        const [autoFinalizeJobResponse] = await schedulerClient.getJob({ name: autoFinalizeJobPath });
-        const [statUpdateJobResponse] = await schedulerClient.getJob({ name: statUpdateJobPath });
-
-        const autoFinalizeTime = parseCronSchedule(autoFinalizeJobResponse.schedule);
-        const statUpdateTime = parseCronSchedule(statUpdateJobResponse.schedule);
+        // Fetch Auto-Finalize Time
+        try {
+            const autoFinalizeJobName = `firebase-schedule-autoFinalizeGames-${location}`;
+            const autoFinalizeJobPath = schedulerClient.jobPath(projectId, location, autoFinalizeJobName);
+            const [jobResponse] = await schedulerClient.getJob({ name: autoFinalizeJobPath });
+            autoFinalizeTime = parseCronSchedule(jobResponse.schedule);
+        } catch (e) {
+            console.error(`Could not fetch 'autoFinalizeGames' job. It may not exist or the name is incorrect. Error: ${e.message}`);
+        }
+        
+        // Fetch Stat Update Time
+        try {
+            const statUpdateJobName = `firebase-schedule-updatePlayerRanks-${location}`;
+            const statUpdateJobPath = schedulerClient.jobPath(projectId, location, statUpdateJobName);
+            const [jobResponse] = await schedulerClient.getJob({ name: statUpdateJobPath });
+            statUpdateTime = parseCronSchedule(jobResponse.schedule);
+        } catch(e) {
+            console.error(`Could not fetch 'updatePlayerRanks' job. It may not exist or the name is incorrect. Error: ${e.message}`);
+        }
 
         return { success: true, autoFinalizeTime, statUpdateTime };
 
     } catch (error) {
-        console.error("Error fetching Cloud Scheduler job times:", error);
+        console.error("A critical error occurred while fetching Cloud Scheduler job times:", error);
         throw new HttpsError('internal', `Failed to fetch schedule times: ${error.message}`);
     }
 });
