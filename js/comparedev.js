@@ -1,6 +1,5 @@
-// /js/comparedev.js (merged)
+// /js/comparedev.js
 
-// --- MODIFIED: Import functions from Firebase SDK via your init file ---
 import {
     db,
     collection,
@@ -15,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Global State ---
     let allPlayersData = [];
     let allTeamsData = [];
-    let currentComparisonType = 'players'; // 'players' or 'teams'
+    let currentComparisonType = 'players';
 
     // --- DOM Elements ---
     const selectorsContainer = document.getElementById('selectors-container');
@@ -27,8 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Parses a string into a number. Returns 0 if invalid.
-     * @param {*} value The value to parse.
-     * @returns {number} The parsed number.
      */
     function parseNumber(value) {
         if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
@@ -38,33 +35,53 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Renders the selection dropdowns based on the comparison type.
-     * @param {string} type - 'players' or 'teams'.
+     * Populates the custom dropdown with filtered options.
+     */
+    function populateDropdown(index, searchTerm = '') {
+        const optionsContainer = document.getElementById(`options-${index}`);
+        const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+        const data = currentComparisonType === 'players' ? allPlayersData : allTeamsData;
+        const valueField = currentComparisonType === 'players' ? 'id' : 'team_id';
+        const textField = currentComparisonType === 'players' ? 'player_handle' : 'team_name';
+        const iconField = currentComparisonType === 'players' ? 'current_team_id' : 'team_id';
+        
+        const filteredData = data.filter(item => item[textField].toLowerCase().includes(lowerCaseSearchTerm));
+        const sortedData = [...filteredData].sort((a, b) => a[textField].localeCompare(b[textField]));
+
+        if (sortedData.length === 0) {
+            optionsContainer.innerHTML = `<div class="option" style="cursor:default;">No results found</div>`;
+            return;
+        }
+
+        optionsContainer.innerHTML = sortedData.map(item => `
+            <div class="option" data-value="${item[valueField]}" data-text="${item[textField]}">
+                <img src="../icons/${item[iconField] || 'FA'}.webp" class="option-icon" onerror="this.style.display='none'">
+                <span>${item[textField]}</span>
+            </div>
+        `).join('');
+    }
+
+    /**
+     * Renders the selection inputs based on the comparison type.
      */
     function renderSelectors(type) {
         currentComparisonType = type;
         resultsContainer.classList.remove('visible');
         compareBtn.disabled = true;
 
-        const data = type === 'players' ? allPlayersData : allTeamsData;
-        const valueField = type === 'players' ? 'id' : 'team_id';
-        const textField = type === 'players' ? 'player_handle' : 'team_name';
-
-        const sortedData = [...data].sort((a, b) => a[textField].localeCompare(b[textField]));
-
-        let optionsHTML = '<option value="">Select...</option>';
-        optionsHTML += sortedData.map(item => `<option value="${item[valueField]}">${item[textField]}</option>`).join('');
-
         const selectorsHTML = `
             <div class="selectors-grid">
                 <div class="selector-box">
-                    <label for="select-1">${type === 'players' ? 'Player 1' : 'Team 1'}</label>
-                    <select id="select-1">${optionsHTML}</select>
+                    <label for="input-1">${type === 'players' ? 'Player 1' : 'Team 1'}</label>
+                    <input type="text" id="input-1" placeholder="Search by name..." autocomplete="off">
+                    <div class="options-container" id="options-1"></div>
                 </div>
                 <div class="vs-separator">VS</div>
                 <div class="selector-box">
-                    <label for="select-2">${type === 'players' ? 'Player 2' : 'Team 2'}</label>
-                    <select id="select-2">${optionsHTML}</select>
+                    <label for="input-2">${type === 'players' ? 'Player 2' : 'Team 2'}</label>
+                    <input type="text" id="input-2" placeholder="Search by name..." autocomplete="off">
+                    <div class="options-container" id="options-2"></div>
                 </div>
             </div>
         `;
@@ -72,26 +89,64 @@ document.addEventListener('DOMContentLoaded', () => {
         selectorsContainer.innerHTML = selectorsHTML;
         compareBtnContainer.style.display = 'block';
 
-        document.getElementById('select-1').addEventListener('change', checkSelections);
-        document.getElementById('select-2').addEventListener('change', checkSelections);
+        setupCustomSelect(1);
+        setupCustomSelect(2);
     }
+
+    /**
+     * Sets up event listeners for a single custom select component.
+     */
+    function setupCustomSelect(index) {
+        const input = document.getElementById(`input-${index}`);
+        const optionsContainer = document.getElementById(`options-${index}`);
+
+        input.addEventListener('focus', () => {
+            populateDropdown(index, input.value);
+            optionsContainer.classList.add('visible');
+        });
+
+        input.addEventListener('input', () => {
+            input.dataset.selectedValue = '';
+            checkSelections();
+            populateDropdown(index, input.value);
+            optionsContainer.classList.add('visible');
+        });
+
+        optionsContainer.addEventListener('mousedown', (e) => {
+            const option = e.target.closest('.option');
+            if (option && option.dataset.value) {
+                input.value = option.dataset.text;
+                input.dataset.selectedValue = option.dataset.value;
+                optionsContainer.classList.remove('visible');
+                checkSelections();
+            }
+        });
+    }
+
+    // Hide dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.selector-box')) {
+            document.getElementById('options-1')?.classList.remove('visible');
+            document.getElementById('options-2')?.classList.remove('visible');
+        }
+    });
 
     /**
      * Checks if two different entities are selected to enable the compare button.
      */
     function checkSelections() {
-        const val1 = document.getElementById('select-1').value;
-        const val2 = document.getElementById('select-2').value;
+        const val1 = document.getElementById('input-1')?.dataset.selectedValue;
+        const val2 = document.getElementById('input-2')?.dataset.selectedValue;
         compareBtn.disabled = !(val1 && val2 && val1 !== val2);
-        resultsContainer.classList.remove('visible');
+        if(!compareBtn.disabled) resultsContainer.classList.remove('visible');
     }
 
     /**
      * Displays the comparison results in a grid format.
      */
     function displayComparison() {
-        const val1 = document.getElementById('select-1').value;
-        const val2 = document.getElementById('select-2').value;
+        const val1 = document.getElementById('input-1').dataset.selectedValue;
+        const val2 = document.getElementById('input-2').dataset.selectedValue;
 
         const data1 = (currentComparisonType === 'players' ? allPlayersData : allTeamsData).find(d => d[currentComparisonType === 'players' ? 'id' : 'team_id'] === val1);
         const data2 = (currentComparisonType === 'players' ? allPlayersData : allTeamsData).find(d => d[currentComparisonType === 'players' ? 'id' : 'team_id'] === val2);
@@ -126,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const link1 = currentComparisonType === 'players' ? `player.html?id=${data1.id}` : `team.html?id=${data1.team_id}`;
         const link2 = currentComparisonType === 'players' ? `player.html?id=${data2.id}` : `team.html?id=${data2.team_id}`;
 
-        // --- MERGED: Metrics now point to pre-calculated Firestore fields and include tREL ---
         const metrics = currentComparisonType === 'players' ? 
             [
                 { label: 'Games Played', field: 'games_played', higherIsBetter: true, format: (v) => v },
@@ -141,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { label: 'Record', field: 'wins', higherIsBetter: true, format: (v, d) => `${d.wins}-${d.losses}` },
                 { label: 'PAM', field: 'pam', higherIsBetter: true, format: (v) => Math.round(v).toLocaleString() },
                 { label: 'apPAM', field: 'apPAM', higherIsBetter: true, format: (val) => val ? val.toFixed(3) : '-' },
-                { label: 'tREL', field: 'tREL', higherIsBetter: true, format: (v) => v ? parseFloat(v).toFixed(3) : '-' }, // <-- This is the new stat
+                { label: 'tREL', field: 'tREL', higherIsBetter: true, format: (v) => v ? parseFloat(v).toFixed(3) : '-' },
                 { label: 'Median Starter Rank', field: 'med_starter_rank', higherIsBetter: false, format: (v) => v > 0 ? Math.round(v) : '-' },
             ];
 
@@ -150,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let displayVal1, displayVal2;
 
             if (metric.field === 'wins') {
-                metricVal1 = data1.wpct || 0; // Use pre-calculated win percentage
+                metricVal1 = data1.wpct || 0;
                 metricVal2 = data2.wpct || 0;
                 displayVal1 = metric.format(null, data1);
                 displayVal2 = metric.format(null, data2);
@@ -168,7 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (metric.higherIsBetter) {
                     isVal1Winner = metricVal1 > metricVal2;
                     isVal2Winner = metricVal2 > metricVal1;
-                } else { // Lower is better
+                } else {
                     const hasVal1 = metricVal1 > 0 && metricVal1 !== Infinity;
                     const hasVal2 = metricVal2 > 0 && metricVal2 !== Infinity;
                     isVal1Winner = hasVal1 && (!hasVal2 || metricVal1 < metricVal2);
@@ -220,7 +274,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContainer.classList.add('visible');
     }
 
-
     /**
      * Initializes the entire page, fetches data from Firestore, and sets up event listeners.
      */
@@ -235,7 +288,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const activeSeasonId = seasonsSnap.docs[0].id;
 
-            // Fetch all required data from Firestore in parallel
             const [
                 playersSnap,
                 teamsSnap,
@@ -248,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 getDocs(collectionGroup(db, 'seasonal_records'))
             ]);
 
-            // Create a map of seasonal stats { playerId: statsObject } for the active season
             const seasonalStatsMap = new Map();
             seasonalStatsSnap.forEach(doc => {
                 const pathParts = doc.ref.path.split('/');
@@ -258,13 +309,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Combine player data with their active seasonal stats
             allPlayersData = playersSnap.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(player => player.player_status === 'ACTIVE' && seasonalStatsMap.has(player.id))
                 .map(player => ({...player, ...seasonalStatsMap.get(player.id)}));
 
-            // Create a map of seasonal records { teamId: recordObject } for the active season
             const seasonalRecordsMap = new Map();
             seasonalRecordsSnap.forEach(doc => {
                 const pathParts = doc.ref.path.split('/');
@@ -274,13 +323,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Combine team data with their active seasonal records
             allTeamsData = teamsSnap.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(team => seasonalRecordsMap.has(team.id))
                 .map(team => ({...team, ...seasonalRecordsMap.get(team.id), team_id: team.id }));
 
-            // Set up UI event listeners
             selectPlayersBtn.addEventListener('click', () => {
                 selectPlayersBtn.classList.add('active');
                 selectTeamsBtn.classList.remove('active');
