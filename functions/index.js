@@ -13,11 +13,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 admin.initializeApp();
 const db = admin.firestore();
 
-// ===================================================================
-// DEVELOPMENT ENVIRONMENT CONFIGURATION
-// ===================================================================
 const USE_DEV_COLLECTIONS = false;
-
 
 exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
     // 1. Security Check
@@ -3550,7 +3546,6 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
     }
 });
 
-
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
 // ===================================================================
@@ -4011,3 +4006,5 @@ exports.reopenTradeBlocks = onCall({ region: "us-central1" }, async (request) =>
         throw new HttpsError('internal', 'An error occurred while reopening trade blocks.');
     }
 });
+
+module.exports = { ...module.exports, ...require('./draft-prospects') };
