@@ -1,8 +1,11 @@
+/* Centered container for the table with a max-width */
 .table-container {
     background-color: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    overflow-x: auto;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    overflow: hidden; /* Ensures border-radius is respected by the table */
+    max-width: 900px;
+    margin: 2rem auto 0 auto; /* Centers the container */
 }
 
 .prospects-table {
@@ -12,7 +15,7 @@
 
 .prospects-table th,
 .prospects-table td {
-    padding: 1rem;
+    padding: 1rem 1.25rem;
     text-align: left;
     border-bottom: 1px solid #eee;
 }
@@ -20,9 +23,15 @@
 .prospects-table th {
     background-color: #f8f9fa;
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: #555;
+}
+
+/* No bottom border for the last row */
+.prospects-table tr:last-child td {
+    border-bottom: none;
 }
 
 .prospects-table td {
@@ -36,8 +45,10 @@
 .col-handle { width: 40%; }
 .col-rank, .col-karma, .col-days { width: 20%; text-align: center; }
 
+/* Use a monospace font for numeric data for better alignment */
 .prospects-table td:not(:first-child) {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+    font-size: 1rem;
 }
 
 /* --- Sorting Styles --- */
@@ -55,6 +66,10 @@
     transition: opacity 0.2s;
 }
 
+.sortable:hover {
+    background-color: #f1f3f5;
+}
+
 .sortable:hover .sort-arrow {
     opacity: 0.8;
 }
@@ -62,7 +77,7 @@
 .sortable .sort-arrow::after {
     content: '↕';
     position: absolute;
-    right: 1rem;
+    right: 1.25rem;
     top: 50%;
     transform: translateY(-50%);
 }
@@ -83,10 +98,12 @@
 /* --- Dark Mode --- */
 .dark-mode .table-container {
     background-color: #1e1e1e;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
 }
 
 .dark-mode .prospects-table th {
     background-color: #2c2c2c;
+    color: #aaa;
 }
 
 .dark-mode .prospects-table td {
@@ -95,4 +112,8 @@
 
 .dark-mode .prospects-table tbody tr:hover {
     background-color: #2a2a2a;
+}
+
+.dark-mode .sortable:hover {
+    background-color: #383838;
 }

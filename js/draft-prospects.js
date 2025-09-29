@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const tableHTML = data.map(prospect => `
             <tr>
-                <td><a href="https://real.app.vg/user/${prospect.player_id}" target="_blank" rel="noopener noreferrer">${prospect.player_handle}</a></td>
+                <td>${prospect.player_handle}</td>
                 <td>${prospect.monthly_rank !== null ? prospect.monthly_rank : 'N/A'}</td>
                 <td>${prospect.karma.toLocaleString()}</td>
                 <td>${prospect.ranked_days}</td>
