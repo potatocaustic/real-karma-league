@@ -100,7 +100,16 @@
         </div>
 
         <div id="progress-modal" class="modal-admin" style="display: none;">
+            <div class="modal-content-admin" style="max-width: 500px;">
+                <h3 id="progress-title">Processing Draft Picks...</h3>
+                <p id="progress-status">This may take a few minutes. Please do not close or navigate away from this page.</p>
+                <div id="progress-bar-container">
+                    <div id="progress-bar"></div>
+                </div>
+                <p id="progress-counter" style="text-align: center; margin-top: 1rem; font-weight: bold;"></p>
+                <button type="button" id="progress-close-btn" class="btn-admin-secondary" style="margin-top: 1.5rem; display: none;">Close</button>
             </div>
+        </div>
 
     </main>
 
