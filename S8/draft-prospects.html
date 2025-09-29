@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S9 Draft Prospects - RKL</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/S8/css/prospects-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <a href="/index.html" class="header-link"><span class="header-text"> Real Karma League</span></a>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li class="dropdown">
+                <a href="/S8/RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S8/RKL-S8.html">S8 Home</a>
+                    <a href="/S7/RKL-S7.html">S7 Home</a>
+                </div>
+            </li>
+            <li><a href="/S8/standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S8/leaderboards.html">Leaderboards</a>
+                    <a href="/S8/compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="/S8/schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S8/draft-capital.html">Draft Capital</a>
+                    <a href="/S8/draft-results.html">Draft Results</a>
+                    <a href="/S8/draft-lottery.html">Draft Lottery</a>
+                    <a href="/S8/draft-prospects.html">Draft Prospects</a>
+                </div>
+            </li>
+            <li><a href="/S8/transactions.html">Transactions</a></li>
+            <li><a href="/S8/teams.html">Teams</a></li>
+            <li><a href="/S8/trophy-case.html">Trophy Case</a></li>
+            <li><a href="/changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <h2>S9 Draft Prospects</h2>
+            <p>Players who have declared for the upcoming RKL Rookie Draft. Stats are updated daily.</p>
+        </div>
+
+        <div class="table-container">
+            <table class="prospects-table">
+                <thead>
+                    <tr>
+                        <th class="col-handle">Player Handle</th>
+                        <th class="col-rank sortable" data-sort="monthly_rank" data-order="asc">Monthly Rank <span class="sort-arrow"></span></th>
+                        <th class="col-karma sortable" data-sort="karma" data-order="desc">Karma <span class="sort-arrow"></span></th>
+                        <th class="col-days">Ranked Days</th>
+                    </tr>
+                </thead>
+                <tbody id="prospects-table-body">
+                    </tbody>
+            </table>
+            <div id="loading" class="loading">Loading prospects...</div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Real Karma League. All rights reserved.</p>
+    </footer>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/draft-prospects.js"></script>
+</body>
+</html>

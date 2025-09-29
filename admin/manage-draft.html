@@ -3,24 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Draft Results - RKL Admin</title>
+    <title>Manage Draft - RKL Admin</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <style>
-        #progress-bar-container {
+        .management-section {
+            background-color: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .dark-mode .management-section {
+            background-color: #1e1e1e;
+        }
+        #prospects-form textarea {
             width: 100%;
-            background-color: #e0e0e0;
+            min-height: 120px;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            overflow: hidden;
-            margin-top: 1rem;
+            font-size: 1rem;
+            margin-bottom: 1rem;
         }
-        #progress-bar {
-            width: 0%;
-            height: 20px;
-            background-color: #28a745;
-            transition: width 0.2s ease-in-out;
+        .dark-mode #prospects-form textarea {
+             background-color: #2c2c2c;
+             border-color: #444;
+             color: #e0e0e0;
         }
+        #progress-bar-container { width: 100%; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 1rem; }
+        #progress-bar { width: 0%; height: 20px; background-color: #28a745; transition: width 0.2s ease-in-out; }
     </style>
 </head>
 <body>
@@ -35,85 +48,59 @@
         <span class="header-text"> Real Karma League</span>
       </h1>
       <nav>
-        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
-        <ul id="nav-menu">
-            <li class="dropdown">
-                <a href="RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="/S8/RKL-S8.html">S8 Home</a>
-                    <a href="/S7/RKL-S7.html">S7 Home</a>
-                </div>
-            </li>
-            <li><a href="/S8/standings.html">Standings & Rankings</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="/S8/leaderboards.html">Leaderboards</a>
-                    <a href="/S8/compare.html">Comparison Tool</a>
-                </div>
-            </li>
-            <li><a href="/S8/schedule.html">Schedule</a></li>
-            <li class="dropdown">
-                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
-                <div class="dropdown-content">
-                    <a href="/S8/draft-capital.html">Draft Capital</a>
-                    <a href="/S8/draft-results.html">Draft Results</a>
-                    <a href="/S8/draft-lottery.html">Draft Lottery</a>
-                </div>
-            </li>
-            <li><a href="/S8/transactions.html">Transactions</a></li>
-            <li><a href="/S8/teams.html">Teams</a></li>
-            <li><a href="/S8/trophy-case.html">Trophy Case</a></li>
-            <li><a href="changelog.html">Changelog</a></li>
-        </ul>
-      </nav>
+        </nav>
     </header>
 
     <main id="admin-container" style="display: none;">
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
-        <h2>Enter Draft Results</h2>
+        <h2>Manage Draft</h2>
 
-        <div class="filters-container">
-            <div class="filter-group">
-                <label for="season-select">Select Draft Season:</label>
-                <select id="season-select">
-                    </select>
-            </div>
+        <div class="management-section">
+            <h3>Add Draft Prospects</h3>
+            <p>Enter a comma-separated list of player usernames who have declared for the draft. This will fetch their initial data.</p>
+            <form id="prospects-form" style="margin-top: 1rem;">
+                <label for="prospects-handles">Player Handles:</label>
+                <textarea id="prospects-handles" placeholder="e.g., playerone, playertwo, playerthree"></textarea>
+                <div style="text-align: right;">
+                    <button type="submit" class="btn-admin-save">Add Prospects</button>
+                </div>
+            </form>
         </div>
 
-        <form id="draft-form">
-            <div class="draft-table-container">
-                <table class="draft-table">
-                    <thead>
-                        <tr>
-                            <th>Overall</th>
-                            <th>Round</th>
-                            <th>Team</th>
-                            <th>Player Handle</th>
-                            <th>Forfeit?</th>
-                        </tr>
-                    </thead>
-                    <tbody id="draft-table-body">
-                        <tr><td colspan="5" class="loading">Loading draft board...</td></tr>
-                    </tbody>
-                </table>
+        <div class="management-section">
+             <h3>Enter Draft Results</h3>
+            <div class="filters-container">
+                <div class="filter-group">
+                    <label for="season-select">Select Draft Season:</label>
+                    <select id="season-select"></select>
+                </div>
             </div>
-            <div style="text-align: right; margin-top: 2rem;">
-                <button type="submit" class="btn-admin-save">Save Draft Results</button>
-            </div>
-        </form>
+
+            <form id="draft-form">
+                <div class="draft-table-container">
+                    <table class="draft-table">
+                        <thead>
+                            <tr>
+                                <th>Overall</th>
+                                <th>Round</th>
+                                <th>Team</th>
+                                <th>Player Handle</th>
+                                <th>Forfeit?</th>
+                            </tr>
+                        </thead>
+                        <tbody id="draft-table-body">
+                            <tr><td colspan="5" class="loading">Loading draft board...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="text-align: right; margin-top: 2rem;">
+                    <button type="submit" class="btn-admin-save">Save Draft Results</button>
+                </div>
+            </form>
+        </div>
 
         <div id="progress-modal" class="modal-admin" style="display: none;">
-            <div class="modal-content-admin" style="max-width: 500px;">
-                <h3 id="progress-title">Processing Draft Picks...</h3>
-                <p id="progress-status">This may take a few minutes. Please do not close or navigate away from this page.</p>
-                <div id="progress-bar-container">
-                    <div id="progress-bar"></div>
-                </div>
-                <p id="progress-counter" style="text-align: center; margin-top: 1rem; font-weight: bold;"></p>
-                <button type="button" id="progress-close-btn" class="btn-admin-secondary" style="margin-top: 1.5rem; display: none;">Close</button>
             </div>
-        </div>
 
     </main>
 

@@ -1,0 +1,98 @@
+.table-container {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    overflow-x: auto;
+}
+
+.prospects-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.prospects-table th,
+.prospects-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.prospects-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.prospects-table td {
+    font-size: 0.95rem;
+}
+
+.prospects-table tbody tr:hover {
+    background-color: #f9f9f9;
+}
+
+.col-handle { width: 40%; }
+.col-rank, .col-karma, .col-days { width: 20%; text-align: center; }
+
+.prospects-table td:not(:first-child) {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* --- Sorting Styles --- */
+.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.sortable .sort-arrow {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+}
+
+.sortable:hover .sort-arrow {
+    opacity: 0.8;
+}
+
+.sortable .sort-arrow::after {
+    content: '↕';
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.sortable.sorted-asc .sort-arrow::after {
+    content: '↑';
+}
+
+.sortable.sorted-desc .sort-arrow::after {
+    content: '↓';
+}
+
+.sortable.sorted-asc .sort-arrow,
+.sortable.sorted-desc .sort-arrow {
+    opacity: 1;
+}
+
+/* --- Dark Mode --- */
+.dark-mode .table-container {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .prospects-table th {
+    background-color: #2c2c2c;
+}
+
+.dark-mode .prospects-table td {
+    border-bottom-color: #333;
+}
+
+.dark-mode .prospects-table tbody tr:hover {
+    background-color: #2a2a2a;
+}
