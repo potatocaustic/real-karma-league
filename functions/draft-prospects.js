@@ -1,4 +1,5 @@
-const functions = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const axios = require("axios");
 
@@ -22,7 +23,6 @@ const API_HEADERS = {
  */
 const fetchProspectData = async (playerHandle) => {
     try {
-        // First API Call: Get base user info (id, karma, daysTopHundred)
         const userResponse = await axios.get(`https://api.real.vg/user/${playerHandle}`, { headers: API_HEADERS });
         const userData = userResponse.data?.user;
 
@@ -37,10 +37,9 @@ const fetchProspectData = async (playerHandle) => {
             player_id: playerId,
             karma: userData.karma || 0,
             ranked_days: userData.daysTopHundred || 0,
-            monthly_rank: null // Initialize as null
+            monthly_rank: null
         };
 
-        // Second API Call: Get karma feed stats (karmaMonthRank)
         const karmaFeedResponse = await axios.get(`https://api.real.vg/user/${playerId}/karmafeed`, { headers: API_HEADERS });
         const karmaMonthRank = karmaFeedResponse.data?.stats?.karmaMonthRank;
 
@@ -57,27 +56,27 @@ const fetchProspectData = async (playerHandle) => {
 };
 
 /**
- * Cloud Function to add new draft prospects from a comma-separated list of handles.
+ * Cloud Function (v2) to add new draft prospects.
  */
-exports.addDraftProspects = functions.https.onCall(async (data, context) => {
-    // Check for admin authentication
-    if (!context.auth) {
-        throw new functions.https.HttpsError('unauthenticated', 'You must be logged in to perform this action.');
+exports.addDraftProspects = onCall(async (request) => {
+    // v2 Auth Check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'You must be logged in to perform this action.');
     }
-    const userDoc = await db.collection('users').doc(context.auth.uid).get();
+    const userDoc = await db.collection('users').doc(request.auth.uid).get();
     if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new functions.https.HttpsError('permission-denied', 'You must be an admin to add prospects.');
+        throw new HttpsError('permission-denied', 'You must be an admin to add prospects.');
     }
 
-    const handlesString = data.handles;
+    // v2 Data Access
+    const handlesString = request.data.handles;
     if (!handlesString || typeof handlesString !== 'string') {
-        throw new functions.https.HttpsError('invalid-argument', 'The function must be called with a string of handles.');
+        throw new HttpsError('invalid-argument', 'The function must be called with a string of handles.');
     }
 
-    // Find the active season
     const activeSeasonQuery = await db.collection('seasons').where('status', '==', 'active').limit(1).get();
     if (activeSeasonQuery.empty) {
-        throw new functions.https.HttpsError('failed-precondition', 'Could not find an active season.');
+        throw new HttpsError('failed-precondition', 'Could not find an active season.');
     }
     const activeSeasonId = activeSeasonQuery.docs[0].id;
 
@@ -87,7 +86,6 @@ exports.addDraftProspects = functions.https.onCall(async (data, context) => {
     let successCount = 0;
     let failedHandles = [];
 
-    // Process all handles concurrently
     const processingPromises = handles.map(async (handle) => {
         const prospectData = await fetchProspectData(handle);
         if (prospectData) {
@@ -113,54 +111,53 @@ exports.addDraftProspects = functions.https.onCall(async (data, context) => {
     return { success: true, message };
 });
 
-
 /**
- * Scheduled Cloud Function to update stats for all prospects in the active season daily.
+ * Scheduled Cloud Function (v2) to update stats daily.
  */
-exports.updateAllProspectsScheduled = functions.pubsub.schedule('30 6 * * *')
-    .timeZone('America/Chicago') // Robust for CST/CDT changes
-    .onRun(async (context) => {
-        console.log('Running daily prospect update job...');
+exports.updateAllProspectsScheduled = onSchedule({
+    schedule: "30 6 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log('Running daily prospect update job...');
 
-        // Find the active season
-        const activeSeasonQuery = await db.collection('seasons').where('status', '==', 'active').limit(1).get();
-        if (activeSeasonQuery.empty) {
-            console.error('Scheduled job failed: Could not find an active season.');
-            return null;
+    const activeSeasonQuery = await db.collection('seasons').where('status', '==', 'active').limit(1).get();
+    if (activeSeasonQuery.empty) {
+        console.error('Scheduled job failed: Could not find an active season.');
+        return;
+    }
+    const activeSeasonId = activeSeasonQuery.docs[0].id;
+    console.log(`Found active season: ${activeSeasonId}`);
+
+    const prospectsCollectionRef = db.collection('seasons').doc(activeSeasonId).collection('draft_prospects');
+    const prospectsSnap = await prospectsCollectionRef.get();
+
+    if (prospectsSnap.empty) {
+        console.log('No prospects to update.');
+        return;
+    }
+
+    const batch = db.batch();
+
+    const updatePromises = prospectsSnap.docs.map(async (doc) => {
+        const existingData = doc.data();
+        const handle = existingData.player_handle;
+
+        const freshData = await fetchProspectData(handle);
+        if (freshData) {
+            const docRef = prospectsCollectionRef.doc(freshData.player_id);
+            batch.update(docRef, {
+                karma: freshData.karma,
+                ranked_days: freshData.ranked_days,
+                monthly_rank: freshData.monthly_rank
+            });
+        } else {
+            console.log(`Skipping update for ${handle}, failed to fetch fresh data.`);
         }
-        const activeSeasonId = activeSeasonQuery.docs[0].id;
-        console.log(`Found active season: ${activeSeasonId}`);
-
-        const prospectsCollectionRef = db.collection('seasons').doc(activeSeasonId).collection('draft_prospects');
-        const prospectsSnap = await prospectsCollectionRef.get();
-
-        if (prospectsSnap.empty) {
-            console.log('No prospects to update.');
-            return null;
-        }
-
-        const batch = db.batch();
-
-        const updatePromises = prospectsSnap.docs.map(async (doc) => {
-            const existingData = doc.data();
-            const handle = existingData.player_handle;
-
-            const freshData = await fetchProspectData(handle);
-            if (freshData) {
-                const docRef = prospectsCollectionRef.doc(freshData.player_id);
-                batch.update(docRef, {
-                    karma: freshData.karma,
-                    ranked_days: freshData.ranked_days,
-                    monthly_rank: freshData.monthly_rank
-                });
-            } else {
-                console.log(`Skipping update for ${handle}, failed to fetch fresh data.`);
-            }
-        });
-
-        await Promise.all(updatePromises);
-        await batch.commit();
-
-        console.log(`Successfully updated ${prospectsSnap.size} prospects.`);
-        return null;
     });
+
+    await Promise.all(updatePromises);
+    await batch.commit();
+
+    console.log(`Successfully updated ${prospectsSnap.size} prospects.`);
+    return;
+});
