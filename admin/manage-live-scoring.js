@@ -63,22 +63,39 @@ window.addEventListener('load', () => {
     async function populateScheduleTimes() {
         try {
             const result = await getScheduledJobTimes();
-            if (result.data.success) {
-                // MODIFICATION: Only update the input's value if the fetched time is a valid, non-empty string.
-                // Otherwise, leave the default value from the HTML untouched.
+
+            // --- START DEBUGGING ---
+            console.log("--- Debugging Schedule Times ---");
+            console.log("Full response from getScheduledJobTimes:", result.data);
+            if (result.data) {
+                console.log("Value for autoFinalizeTime:", result.data.autoFinalizeTime);
+                console.log("Value for statUpdateTime:", result.data.statUpdateTime);
+            }
+            // --- END DEBUGGING ---
+
+            if (result.data && result.data.success) {
+                // Only update the input's value if the fetched time is a valid, non-empty string.
                 if (result.data.autoFinalizeTime && typeof result.data.autoFinalizeTime === 'string') {
+                    console.log("PASSED: Setting Auto-Finalize time input.");
                     autofinalizeTimeInput.value = result.data.autoFinalizeTime;
+                } else {
+                    console.log("SKIPPED: Condition failed for Auto-Finalize time. Input will not be changed from its default.");
                 }
+
                 if (result.data.statUpdateTime && typeof result.data.statUpdateTime === 'string') {
+                    console.log("PASSED: Setting Stat Update time input.");
                     statUpdateTimeInput.value = result.data.statUpdateTime;
+                } else {
+                    console.log("SKIPPED: Condition failed for Stat Update time. Input will not be changed from its default.");
                 }
+                 console.log("------------------------------------");
             } else {
-                console.error("Failed to fetch schedule times from server:", result.data.error);
-                alert("Could not retrieve current schedule times. Displaying default values. Error: " + (result.data.error || 'Unknown failure.'));
+                console.error("Failed to fetch schedule times from server:", result.data?.error);
+                alert("Could not retrieve current schedule times. Displaying default values. Error: " + (result.data?.error || 'Unknown failure.'));
             }
         } catch (error) {
-            console.error("Could not fetch current schedule times. Displaying defaults.", error);
-            alert("An error occurred while fetching schedule times. Displaying default values.");
+            console.error("An error occurred while calling getScheduledJobTimes. Displaying defaults.", error);
+            alert("A critical error occurred while fetching schedule times. Displaying default values.");
         }
     }
 
