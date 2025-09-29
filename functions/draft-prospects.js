@@ -3,18 +3,16 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const axios = require("axios");
 
-// Initialize admin if not already done in index.js
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
-
 const db = admin.firestore();
 
-// Headers to mimic a real browser request
 const API_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
     'Accept': 'application/json, text/plain, */*',
 };
+
 
 /**
  * Fetches user data from the Real.vg API for a given player handle.
@@ -118,7 +116,7 @@ exports.updateAllProspectsScheduled = onSchedule({
     schedule: "30 6 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    console.log('Running daily prospect update job...');
+    console.log('Running daily prospect update job with resiliency checks...');
 
     const activeSeasonQuery = await db.collection('seasons').where('status', '==', 'active').limit(1).get();
     if (activeSeasonQuery.empty) {
@@ -126,7 +124,6 @@ exports.updateAllProspectsScheduled = onSchedule({
         return;
     }
     const activeSeasonId = activeSeasonQuery.docs[0].id;
-    console.log(`Found active season: ${activeSeasonId}`);
 
     const prospectsCollectionRef = db.collection('seasons').doc(activeSeasonId).collection('draft_prospects');
     const prospectsSnap = await prospectsCollectionRef.get();
@@ -136,28 +133,56 @@ exports.updateAllProspectsScheduled = onSchedule({
         return;
     }
 
-    const batch = db.batch();
-
     const updatePromises = prospectsSnap.docs.map(async (doc) => {
-        const existingData = doc.data();
-        const handle = existingData.player_handle;
+        const prospect = doc.data();
+        const docRef = doc.ref;
 
-        const freshData = await fetchProspectData(handle);
-        if (freshData) {
-            const docRef = prospectsCollectionRef.doc(freshData.player_id);
-            batch.update(docRef, {
-                karma: freshData.karma,
-                ranked_days: freshData.ranked_days,
-                monthly_rank: freshData.monthly_rank
-            });
-        } else {
-            console.log(`Skipping update for ${handle}, failed to fetch fresh data.`);
+        try {
+            // 1. Perform reliable karmafeed request first using player_id
+            const karmaFeedResponse = await axios.get(`https://api.real.vg/user/${prospect.player_id}/karmafeed`, { headers: API_HEADERS });
+            const newKarma = karmaFeedResponse.data?.user?.karma;
+            const newMonthlyRank = karmaFeedResponse.data?.stats?.karmaMonthRank;
+
+            const updates = {};
+            if (newKarma !== undefined) updates.karma = newKarma;
+            if (newMonthlyRank !== undefined) updates.monthly_rank = newMonthlyRank;
+
+            // 2. Perform potentially unreliable handle request
+            const handleResponse = await axios.get(`https://api.real.vg/user/${prospect.player_handle}`, { headers: API_HEADERS });
+            const handleData = handleResponse.data?.user;
+
+            // 3. Verify that the ID from the handle lookup matches the stored ID
+            if (handleData && handleData.id === prospect.player_id) {
+                // IDs match, handle is correct. Update ranked_days.
+                updates.ranked_days = handleData.daysTopHundred || 0;
+            } else {
+                // MISMATCH FOUND! Set ranked_days to null and create a notification.
+                updates.ranked_days = null;
+
+                const notification = {
+                    type: 'HANDLE_ID_MISMATCH',
+                    message: `Handle/ID mismatch for player '${prospect.player_handle}'. The handle may have changed.`,
+                    player_handle: prospect.player_handle,
+                    player_id: prospect.player_id,
+                    status: 'unread',
+                    module: 'manage-draft',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                };
+                await db.collection('notifications').add(notification);
+                console.warn(`Mismatch detected for handle: ${prospect.player_handle} (ID: ${prospect.player_id}). Notification created.`);
+            }
+
+            // Commit all updates for this player
+            if (Object.keys(updates).length > 0) {
+                await docRef.update(updates);
+            }
+
+        } catch (error) {
+            console.error(`Failed to process prospect ${prospect.player_handle} (ID: ${prospect.player_id}):`, error.message);
         }
     });
 
     await Promise.all(updatePromises);
-    await batch.commit();
-
-    console.log(`Successfully updated ${prospectsSnap.size} prospects.`);
+    console.log(`Prospect update job complete. Processed ${prospectsSnap.size} prospects.`);
     return;
 });

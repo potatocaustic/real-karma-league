@@ -7,6 +7,27 @@
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        .nav-card {
+            position: relative; 
+        }
+        .notification-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #dc3545; 
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -105,10 +126,11 @@
                 <div class="nav-card-title">Manage Awards</div>
                 <div class="nav-card-description">Assign winners for seasonal awards and honors.</div>
             </a>
-            <a href="/admin/manage-draft.html" class="nav-card">
+            <a href="/admin/manage-draft.html" class="nav-card" id="manage-draft-card">
                 <div class="nav-card-icon">📝</div>
                 <div class="nav-card-title">Manage Draft</div>
                 <div class="nav-card-description">Add prospects and enter draft results.</div>
+                <span class="notification-badge" style="display: none;">!</span>
             </a>
             <a href="/admin/manage-lottery.html" class="nav-card">
                 <div class="nav-card-icon">🎲</div>

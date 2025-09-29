@@ -34,6 +34,22 @@
         }
         #progress-bar-container { width: 100%; background-color: #e0e0e0; border-radius: 4px; overflow: hidden; margin-top: 1rem; }
         #progress-bar { width: 0%; height: 20px; background-color: #28a745; transition: width 0.2s ease-in-out; }
+        .notification-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            color: #856404;
+        }
+        .dark-mode .notification-item {
+             background-color: #49401a;
+             border-color: #94833e;
+             color: #ffeeba;
+        }
     </style>
 </head>
 <body>
@@ -54,7 +70,11 @@
     <main id="admin-container" style="display: none;">
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2>Manage Draft</h2>
-
+        <div id="notifications-section" class="management-section" style="display: none;">
+            <h3>Notifications</h3>
+            <div id="notifications-list">
+                </div>
+        </div>
         <div class="management-section">
             <h3>Add Draft Prospects</h3>
             <p>Enter a comma-separated list of player usernames who have declared for the draft. This will fetch their initial data.</p>

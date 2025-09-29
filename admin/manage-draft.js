@@ -1,6 +1,19 @@
-// /admin/manage-draft.js
-
-import { auth, db, functions, httpsCallable, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, where } from '/js/firebase-init.js';
+import { 
+    auth, 
+    db, 
+    functions, 
+    httpsCallable, 
+    onAuthStateChanged, 
+    doc, 
+    getDoc, 
+    collection, 
+    getDocs, 
+    writeBatch, 
+    query, 
+    where, 
+    updateDoc, 
+    orderBy 
+} from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -9,7 +22,7 @@ const authStatusDiv = document.getElementById('auth-status');
 const seasonSelect = document.getElementById('season-select');
 const draftTableBody = document.getElementById('draft-table-body');
 const draftForm = document.getElementById('draft-form');
-const prospectsForm = document.getElementById('prospects-form'); // New form element
+const prospectsForm = document.getElementById('prospects-form');
 
 // --- Global Data Cache ---
 let allTeams = [];
@@ -64,6 +77,9 @@ async function initializePage() {
             .filter(Boolean)
             .sort((a, b) => (a.team_name || '').localeCompare(b.team_name || ''));
 
+        // Load and display notifications
+        await loadAndDisplayNotifications();
+        
         // Populate season dropdown and load initial draft board
         await populateSeasons();
 
@@ -73,7 +89,7 @@ async function initializePage() {
             loadDraftBoard();
         });
         draftForm.addEventListener('submit', handleDraftSubmit);
-        prospectsForm.addEventListener('submit', handleProspectsSubmit); // New listener
+        prospectsForm.addEventListener('submit', handleProspectsSubmit);
 
         document.getElementById('progress-close-btn').addEventListener('click', () => {
             document.getElementById('progress-modal').style.display = 'none';
@@ -86,7 +102,72 @@ async function initializePage() {
 }
 
 // ===============================================
-// NEW: Prospect Management Logic
+// Notification Management Logic
+// ===============================================
+async function loadAndDisplayNotifications() {
+    const notificationsSection = document.getElementById('notifications-section');
+    const notificationsList = document.getElementById('notifications-list');
+
+    const q = query(
+        collection(db, 'notifications'),
+        where('module', '==', 'manage-draft'),
+        where('status', '==', 'unread'),
+        orderBy('createdAt', 'desc')
+    );
+
+    try {
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+            notificationsSection.style.display = 'none';
+            return;
+        }
+
+        notificationsSection.style.display = 'block';
+        notificationsList.innerHTML = ''; // Clear previous list
+
+        querySnapshot.forEach(doc => {
+            const notification = doc.data();
+            const notificationId = doc.id;
+
+            const item = document.createElement('div');
+            item.className = 'notification-item';
+            item.innerHTML = `
+                <span>${notification.message}</span>
+                <button class="btn-admin-secondary" data-id="${notificationId}">Resolve</button>
+            `;
+            notificationsList.appendChild(item);
+        });
+
+        // Add event listeners to the new "Resolve" buttons
+        notificationsList.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                e.target.disabled = true;
+                e.target.textContent = 'Resolving...';
+
+                const notifDocRef = doc(db, 'notifications', id);
+                await updateDoc(notifDocRef, { status: 'read' });
+
+                // Remove the item from the UI
+                e.target.closest('.notification-item').remove();
+
+                // Hide the whole section if no notifications are left
+                if (notificationsList.children.length === 0) {
+                    notificationsSection.style.display = 'none';
+                }
+            });
+        });
+
+    } catch (error) {
+        console.error("Error fetching notifications:", error);
+        notificationsList.innerHTML = '<p class="error">Could not load notifications.</p>';
+        notificationsSection.style.display = 'block';
+    }
+}
+
+
+// ===============================================
+// Prospect Management Logic
 // ===============================================
 async function handleProspectsSubmit(e) {
     e.preventDefault();
@@ -122,7 +203,7 @@ async function handleProspectsSubmit(e) {
 
 
 // ===============================================
-// Existing Draft Results Logic (mostly unchanged)
+// Draft Results Logic
 // ===============================================
 async function populateSeasons() {
     const seasonsSnap = await getDocs(query(collection(db, "seasons")));
@@ -213,7 +294,7 @@ async function handleDraftSubmit(e) {
     saveButton.disabled = true;
     saveButton.textContent = 'Saving...';
 
-    // Progress Bar Logic remains unchanged...
+    // Progress Bar Logic remains the same...
 
     try {
         const batch = writeBatch(db);

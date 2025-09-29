@@ -1,11 +1,43 @@
-// /admin/dashboard.js
+import { 
+    auth, 
+    db, 
+    functions, 
+    onAuthStateChanged, 
+    signOut, 
+    doc, 
+    getDoc, 
+    httpsCallable, 
+    collection, 
+    query, 
+    where, 
+    getDocs,
+    limit
+} from '/js/firebase-init.js';
 
-import { auth, db, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
+// --- Notification Logic ---
+async function checkForNotifications() {
+    const manageDraftCard = document.getElementById('manage-draft-card');
+    if (!manageDraftCard) return;
 
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+    const badge = manageDraftCard.querySelector('.notification-badge');
+    
+    const notificationsQuery = query(
+        collection(db, 'notifications'),
+        where('module', '==', 'manage-draft'),
+        where('status', '==', 'unread'),
+        limit(1)
+    );
 
+    try {
+        const querySnapshot = await getDocs(notificationsQuery);
+        badge.style.display = !querySnapshot.empty ? 'flex' : 'none';
+    } catch (error) {
+        console.error("Error checking for notifications:", error);
+    }
+}
+
+
+// --- Main Page Logic ---
 document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
     const adminContainer = document.getElementById('admin-container');
@@ -19,37 +51,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, "users", user.uid);
             const userDoc = await getDoc(userRef);
 
-            if (userDoc.exists()) {
-                const userRole = userDoc.data().role;
-                if (userRole === 'admin') {
-                    loadingContainer.style.display = 'none';
-                    adminContainer.style.display = 'block';
-                    authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
-                    addLogoutListener();
-                    addSeasonManagementListeners();
-                } else if (userRole === 'scorekeeper') {
-                    // Redirect scorekeepers to their specific dashboard
-                    window.location.href = '/admin/scorekeeper-dashboard.html';
-                } else {
-                    displayAccessDenied(authStatusDiv);
-                }
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+                loadingContainer.style.display = 'none';
+                adminContainer.style.display = 'block';
+                authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
+                
+                // Initialize all dashboard functionalities
+                addLogoutListener();
+                addSeasonManagementListeners();
+                checkForNotifications(); // Check for notifications on load
             } else {
-                 displayAccessDenied(authStatusDiv);
+                loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
+                authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
+                addLogoutListener();
             }
         } else {
             window.location.href = '/login.html';
         }
     });
-    
-    function displayAccessDenied(authStatusDiv) {
-        loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
-        authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
-        addLogoutListener();
-    }
-
 
     function addSeasonManagementListeners() {
         const createSeasonBtn = document.getElementById('create-season-btn');
@@ -59,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
             createSeasonBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 try {
-                    const activeSeasonQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"));
+                    const activeSeasonQuery = query(collection(db, "seasons"), where("status", "==", "active"));
                     const activeSeasonSnap = await getDocs(activeSeasonQuery);
 
                     if (activeSeasonSnap.empty) {
@@ -71,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''), 10);
                     const newSeasonNum = activeSeasonNum + 1;
                     const futureDraftNum = newSeasonNum + 5;
+
                     const confirmationMessage = `Are you sure you want to advance from ${activeSeasonId} to S${newSeasonNum}? This will create S${newSeasonNum} structures and generate S${futureDraftNum} draft picks. This is irreversible.`;
 
                     if (confirm(confirmationMessage)) {
