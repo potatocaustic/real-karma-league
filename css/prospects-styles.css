@@ -29,7 +29,6 @@
     color: #555;
 }
 
-/* No bottom border for the last row */
 .prospects-table tr:last-child td {
     border-bottom: none;
 }
@@ -45,7 +44,6 @@
 .col-handle { width: 40%; }
 .col-rank, .col-karma, .col-days { width: 20%; text-align: center; }
 
-/* Use a monospace font for numeric data for better alignment */
 .prospects-table td:not(:first-child) {
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
     font-size: 1rem;
@@ -116,4 +114,23 @@
 
 .dark-mode .sortable:hover {
     background-color: #383838;
+}
+
+/* --- Mobile Optimization --- */
+@media (max-width: 768px) {
+    .mobile-hide {
+        display: none;
+    }
+
+    .prospects-table th,
+    .prospects-table td {
+        padding: 0.8rem 0.75rem; /* Reduce padding on mobile */
+    }
+
+    .col-handle { width: 40%; }
+    .col-rank, .col-days { width: 30%; } /* Updated widths */
+
+    .sortable .sort-arrow::after {
+        right: 0.5rem; /* Adjust arrow position */
+    }
 }
