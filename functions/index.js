@@ -23,7 +23,6 @@ const USE_DEV_COLLECTIONS = false;
  * @param {string} data.timeZone - The IANA time zone name (e.g., 'America/Chicago').
  */
 exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) => {
-    // 1. Security Check
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -38,13 +37,17 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
     }
 
     try {
+        
         const [month, day, year] = date.split('/');
         const [hour, minute] = time.split(':');
+
+        const utcDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00.000Z`;
         
-        // Note: Months are 0-indexed in JavaScript's Date object
-        const deadlineDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+        const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZone: timeZone, hour12: false };
+        const localizedDateString = new Date(utcDateString).toLocaleString('en-US', options);
+
+        const deadlineDate = new Date(localizedDateString);
         
-        // The document ID will be the date string for easy lookup
         const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const deadlineRef = db.collection(getCollectionName('lineup_deadlines')).doc(deadlineId);
 

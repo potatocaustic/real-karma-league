@@ -26,6 +26,20 @@ service cloud.firestore {
     // =======================================================
     // V2 RULES (PRODUCTION & DEVELOPMENT)
     // =======================================================
+    match /lineup_deadlines/{deadlineId} {
+      // Allow any signed-in user (GMs, Admins) to read deadlines
+      allow read: if request.auth != null;
+      
+      // Only allow users with the 'admin' role to create or update deadlines
+      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    match /lineup_deadlines_dev/{deadlineId} {
+      // Allow any signed-in user (GMs, Admins) to read deadlines
+      allow read: if request.auth != null;
+
+      // Only allow users with the 'admin' role to create or update deadlines
+      allow write: if get(/databases/$(database)/documents/users_dev/$(request.auth.uid)).data.role == 'admin';
+    }
     match /pending_transactions/{docId} {
         allow read, write: if isUserAdmin();
     }
