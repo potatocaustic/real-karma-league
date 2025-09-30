@@ -37,16 +37,18 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
     }
 
     try {
-        
         const [month, day, year] = date.split('/');
         const [hour, minute] = time.split(':');
 
-        const utcDateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00.000Z`;
-        
-        const options = { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', timeZone: timeZone, hour12: false };
-        const localizedDateString = new Date(utcDateString).toLocaleString('en-US', options);
+        const intendedWallTimeAsUTC = new Date(Date.UTC(year, month - 1, day, hour, minute));
 
-        const deadlineDate = new Date(localizedDateString);
+        const chicagoTimeString = intendedWallTimeAsUTC.toLocaleString("en-US", { timeZone: timeZone });
+
+        const chicagoTimeAsUTC = new Date(chicagoTimeString);
+
+        const offset = intendedWallTimeAsUTC.getTime() - chicagoTimeAsUTC.getTime();
+
+        const deadlineDate = new Date(intendedWallTimeAsUTC.getTime() + offset);
         
         const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const deadlineRef = db.collection(getCollectionName('lineup_deadlines')).doc(deadlineId);
