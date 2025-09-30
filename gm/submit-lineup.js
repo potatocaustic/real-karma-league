@@ -1,7 +1,6 @@
 // /gm/submit-lineup.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId } from '/js/firebase-init.js';
-
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId, limit } from '/js/firebase-init.js';
 // --- Page Elements ---
 let loadingContainer, gmContainer, scheduleListContainer, lineupModal, lineupForm, closeLineupModalBtn;
 
