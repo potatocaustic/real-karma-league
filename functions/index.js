@@ -14,6 +14,54 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const USE_DEV_COLLECTIONS = false;
+/**
+ * Sets or updates a lineup submission deadline for a specific date.
+ * Admin-only function.
+ * @param {object} data - The data object from the client.
+ * @param {string} data.date - The date for the deadline in 'M/D/YYYY' format.
+ * @param {string} data.time - The time for the deadline in 'HH:MM' 24-hour format.
+ * @param {string} data.timeZone - The IANA time zone name (e.g., 'America/Chicago').
+ */
+exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) => {
+    // 1. Security Check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    const { date, time, timeZone } = request.data;
+    if (!date || !time || !timeZone) {
+        throw new HttpsError('invalid-argument', 'A valid date, time, and timezone are required.');
+    }
+
+    try {
+        const [month, day, year] = date.split('/');
+        const [hour, minute] = time.split(':');
+        
+        // Note: Months are 0-indexed in JavaScript's Date object
+        const deadlineDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+        
+        // The document ID will be the date string for easy lookup
+        const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const deadlineRef = db.collection(getCollectionName('lineup_deadlines')).doc(deadlineId);
+
+        await deadlineRef.set({
+            deadline: admin.firestore.Timestamp.fromDate(deadlineDate),
+            timeZone: timeZone,
+            setBy: request.auth.uid,
+            lastUpdated: FieldValue.serverTimestamp()
+        });
+
+        return { success: true, message: `Deadline for ${date} set to ${time} ${timeZone}.` };
+
+    } catch (error) {
+        console.error("Error setting lineup deadline:", error);
+        throw new HttpsError('internal', 'An unexpected error occurred while setting the deadline.');
+    }
+});
 
 exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
     // 1. Security Check
@@ -1040,11 +1088,13 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
 });
 
 exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => {
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
-        throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to stage lineups.');
+    // Security check: Now allows admins, scorekeepers, or any authenticated GM
+    if (!request.auth) {
+        throw new HttpsError('permission-denied', 'You must be logged in to submit a lineup.');
     }
 
-    const { gameId, seasonId, collectionName, gameDate, team1_lineup, team2_lineup } = request.data;
+    const { gameId, seasonId, collectionName, gameDate, team1_lineup, team2_lineup, submittingTeamId } = request.data;
+    const isGmSubmission = !!submittingTeamId; // True if a GM is submitting for their own team
 
     if (!gameId || !seasonId || !collectionName || !gameDate) {
         throw new HttpsError('invalid-argument', 'Missing required game parameters.');
@@ -1052,34 +1102,92 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
     if (!team1_lineup && !team2_lineup) {
         throw new HttpsError('invalid-argument', 'At least one team lineup must be provided.');
     }
+    
+    const logBatch = db.batch();
+    const submissionLogRef = db.collection(getCollectionName('lineup_submission_logs')).doc();
+    const isTeam1Submitting = team1_lineup && team1_lineup.length === 6;
+    const isTeam2Submitting = team2_lineup && team2_lineup.length === 6;
+
+    // --- Step 1: Log the submission attempt immediately ---
+    logBatch.set(submissionLogRef, {
+        gameId,
+        gameDate,
+        userId: request.auth.uid,
+        submittingTeamId: submittingTeamId || 'admin_submission',
+        submittedLineup: isTeam1Submitting ? team1_lineup : (isTeam2Submitting ? team2_lineup : null),
+        timestamp: FieldValue.serverTimestamp(),
+        status: 'initiated' // Will be updated to success or failure
+    });
+    await logBatch.commit();
+
 
     try {
-        const pendingRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
+        // --- Step 2: Deadline validation for GM submissions ---
+        if (isGmSubmission) {
+            const [year, month, day] = gameDate.split('/').map(part => part.padStart(2, '0'));
+            const deadlineId = `${year}-${month}-${day}`;
+            const deadlineRef = db.collection(getCollectionName('lineup_deadlines')).doc(deadlineId);
+            const deadlineDoc = await deadlineRef.get();
 
+            if (!deadlineDoc.exists) {
+                await submissionLogRef.update({ status: 'failure', reason: 'No deadline set for this game date.' });
+                throw new HttpsError('failed-precondition', 'Lineup submissions are not yet open for this game date.');
+            }
+
+            const deadline = deadlineDoc.data().deadline.toDate();
+            const now = new Date();
+            const gracePeriodEnd = new Date(deadline.getTime() + 150 * 60 * 1000); // 2.5 hours
+            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000); // 10 minutes
+
+            if (now > gracePeriodEnd) {
+                await submissionLogRef.update({ status: 'failure', reason: 'Submission window closed.' });
+                throw new HttpsError('deadline-exceeded', 'The lineup submission window has closed for this game.');
+            }
+
+            const submittingLineup = isTeam1Submitting ? team1_lineup : team2_lineup;
+            const hasCaptain = submittingLineup.some(p => p.is_captain);
+
+            if (hasCaptain && now > lateNoCaptainEnd) {
+                await submissionLogRef.update({ status: 'failure', reason: 'Late submission with captain.' });
+                throw new HttpsError('invalid-argument', 'Your submission is late. You must remove your captain selection to submit.');
+            }
+        }
+        
+        // --- Step 3: Stage the lineup ---
+        const pendingRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
         const dataToSet = {
             seasonId,
             collectionName,
             gameDate,
-            stagedBy: request.auth.uid,
+            lastUpdatedBy: request.auth.uid,
             lastUpdated: FieldValue.serverTimestamp()
         };
 
-        if (team1_lineup && team1_lineup.length === 6) {
+        if (isTeam1Submitting) {
             dataToSet.team1_lineup = team1_lineup;
             dataToSet.team1_submitted = true;
         }
-        if (team2_lineup && team2_lineup.length === 6) {
+        if (isTeam2Submitting) {
             dataToSet.team2_lineup = team2_lineup;
             dataToSet.team2_submitted = true;
         }
 
         await pendingRef.set(dataToSet, { merge: true });
 
-        return { success: true, message: "Lineup(s) have been successfully staged." };
+        // --- Step 4: Finalize log and return success ---
+        await submissionLogRef.update({ status: 'success' });
+        return { success: true, message: "Lineup has been successfully submitted." };
 
     } catch (error) {
-        console.error(`Error staging lineups for game ${gameId}:`, error);
-        throw new HttpsError('internal', `Could not stage lineups: ${error.message}`);
+        // If it's not an HttpsError, it's an unexpected internal error
+        if (!(error instanceof HttpsError)) {
+             console.error(`Error staging lineups for game ${gameId}:`, error);
+             await submissionLogRef.update({ status: 'failure', reason: `Internal error: ${error.message}` });
+             throw new HttpsError('internal', `Could not stage lineups: ${error.message}`);
+        } else {
+            // Re-throw the original HttpsError to be sent to the client
+            throw error;
+        }
     }
 });
 

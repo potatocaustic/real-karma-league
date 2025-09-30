@@ -32,7 +32,9 @@ service cloud.firestore {
     match /pending_transactions_dev/{docId} {
         allow read, write: if isUserAdmin();
     }
-
+    match /notifications/{docId} {
+      allow read, write: if isUserAdmin();
+    }
     match /pending_lineups/{gameId} {
         allow read, write: if isScorekeeperOrAdmin();
     }

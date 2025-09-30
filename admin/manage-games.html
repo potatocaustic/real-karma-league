@@ -136,6 +136,22 @@
         .validation-error {
             border-color: #dc3545 !important;
         }
+        .deadline-management-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        #deadline-form {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+        #current-deadline-display {
+            font-style: italic;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -198,7 +214,23 @@
                 <select id="week-select"><option>Select a season...</option></select>
             </div>
         </div>
-
+        
+        <div class="admin-card deadline-management-card">
+            <form id="deadline-form">
+                <div class="form-group-admin">
+                    <label for="deadline-date">Set Deadline For:</label>
+                    <input type="date" id="deadline-date" required>
+                </div>
+                <div class="form-group-admin">
+                    <label for="deadline-time">Time (Central)</label>
+                    <input type="time" id="deadline-time" required>
+                </div>
+                <button type="submit" class="btn-admin-save" style="align-self: flex-end;">Set</button>
+            </form>
+            <div id="current-deadline-display">
+                <p>Select a date to see the current deadline.</p>
+            </div>
+        </div>
         <div id="games-list-container">
             <p class="placeholder-text">Please select a season and week to view games.</p>
         </div>

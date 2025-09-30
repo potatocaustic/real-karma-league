@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Lineup - RKL GM Portal</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        .modal-admin.is-visible { display: flex; align-items: center; justify-content: center; }
+        .lineup-modal .modal-content-admin { max-width: 1200px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .lineup-entry-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .team-lineup-section { border: 1px solid #ddd; padding: 1rem; }
+        .roster-list { max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.5rem; }
+        .starters-list { display: flex; flex-direction: column; gap: 0.75rem; }
+        .starter-card { border: 1px solid #ccc; padding: 0.75rem; }
+        .disabled-section { background-color: #f5f5f5; opacity: 0.6; pointer-events: none; }
+        .countdown-timer { font-weight: bold; color: #dc3545; }
+    </style>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+    </header>
+
+    <main id="gm-container" style="display: none;">
+        <h2>My Team's Schedule & Lineups</h2>
+        <h3 id="gm-team-name">Loading team...</h3>
+        <div id="schedule-list-container">
+            <p class="placeholder-text">Loading your schedule...</p>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <div id="lineup-modal" class="modal-admin lineup-modal">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="lineup-modal-title">Submit Lineup</h3>
+            <form id="lineup-form">
+                <input type="hidden" id="lineup-game-id">
+                <input type="hidden" id="lineup-game-date">
+                <input type="hidden" id="lineup-collection-name">
+
+                <div class="lineup-entry-container">
+                    <div id="my-team-section" class="team-lineup-section">
+                        <h4 id="my-team-name-header">My Team</h4>
+                        <div class="roster-selection">
+                            <h5>Select 6 Starters</h5>
+                            <div id="my-team-roster" class="roster-list"></div>
+                        </div>
+                        <div class="starters-entry">
+                            <h5>Starters (<span id="my-team-starter-count">0</span>/6)</h5>
+                            <div id="my-team-starters" class="starters-list"></div>
+                        </div>
+                    </div>
+
+                    <div id="opponent-team-section" class="team-lineup-section disabled-section">
+                        <h4 id="opponent-team-name-header">Opponent</h4>
+                        <div class="roster-selection">
+                            <h5>Opponent's Roster</h5>
+                            <div id="opponent-team-roster" class="roster-list"></div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-admin-save">Submit My Lineup</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/gm/submit-lineup.js"></script>
+</body>
+</html>

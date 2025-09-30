@@ -7,7 +7,7 @@ import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-
 const USE_DEV_COLLECTIONS = false;
 const getCollectionName = (baseName) => {
     // Handle dynamically generated collection names
-    if (baseName.includes('_awards') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('pending_lineups')) {
+    if (baseName.includes('_awards') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('pending_lineups') || baseName.includes('lineup_deadlines')) {
         return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
     }
     return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -15,6 +15,10 @@ const getCollectionName = (baseName) => {
 
 // --- Page Elements ---
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
+// ======================= MODIFICATION START =======================
+let deadlineForm, deadlineDateInput, deadlineDisplay;
+// ======================= MODIFICATION END =======================
+
 
 // --- Global Data Cache ---
 let currentSeasonId = null;
@@ -36,6 +40,12 @@ document.addEventListener('DOMContentLoaded', () => {
     lineupForm = document.getElementById('lineup-form');
     closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
     liveScoringControls = document.getElementById('live-scoring-controls');
+
+    // ======================= MODIFICATION START =======================
+    deadlineForm = document.getElementById('deadline-form');
+    deadlineDateInput = document.getElementById('deadline-date');
+    deadlineDisplay = document.getElementById('current-deadline-display');
+    // ======================= MODIFICATION END =======================
 
 
     onAuthStateChanged(auth, async (user) => {
@@ -106,6 +116,11 @@ async function initializePage() {
             }
         });
     }
+
+    // ======================= MODIFICATION START =======================
+    deadlineForm.addEventListener('submit', handleSetDeadline);
+    deadlineDateInput.addEventListener('change', () => displayDeadlineForDate(deadlineDateInput.value));
+    // ======================= MODIFICATION END =======================
 }
 
 async function updateAwardsCache(seasonId) {
@@ -189,12 +204,6 @@ async function populateSeasons() {
     }
 }
 
-/**
- * NEW HELPER FUNCTION
- * Iterates through all weeks of a season to find the first one with incomplete games.
- * @param {string} seasonId The ID of the season to check (e.g., 'S8').
- * @returns {Promise<string>} The value of the earliest week with incomplete games, or '1' as a fallback.
- */
 async function findEarliestIncompleteWeek(seasonId) {
     const weeksInOrder = [
         '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15',
@@ -220,17 +229,12 @@ async function findEarliestIncompleteWeek(seasonId) {
     }
 
     console.log("No incomplete games found in any week. Defaulting to Week 1.");
-    return '1'; // Fallback if no incomplete games are found
+    return '1';
 }
 
-/**
- * MODIFICATION: This function now automatically finds and selects the earliest
- * week with incomplete games instead of defaulting to Week 1.
- */
 async function handleSeasonChange() {
     if (currentSeasonId) {
         await populateWeeks(currentSeasonId);
-        // Find the earliest week with an incomplete game
         const defaultWeek = await findEarliestIncompleteWeek(currentSeasonId);
         weekSelect.value = defaultWeek;
         await fetchAndDisplayGames(currentSeasonId, defaultWeek);
@@ -255,8 +259,8 @@ async function populateWeeks(seasonId) {
 }
 
 /**
- * MODIFICATION: This function now fetches pending lineup data to display
- * a submission status indicator (✅/❌) next to each team's name for pending games.
+ * MODIFICATION: This function now populates the deadline date input with the
+ * date of the first game in the list for the selected week.
  */
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
@@ -275,13 +279,16 @@ async function fetchAndDisplayGames(seasonId, week) {
         const querySnapshot = await getDocs(gamesQuery);
         if (querySnapshot.empty) {
             gamesListContainer.innerHTML = '<p class="placeholder-text">No games found for this week.</p>';
+            // ======================= MODIFICATION START =======================
+            deadlineDateInput.value = '';
+            deadlineDisplay.innerHTML = '<p>Select a date to see the current deadline.</p>';
+            // ======================= MODIFICATION END =======================
             return;
         }
 
         const gameIds = querySnapshot.docs.map(doc => doc.id);
         const pendingLineups = new Map();
 
-        // Fetch pending lineup statuses for the games being displayed
         if (gameIds.length > 0) {
             const pendingQuery = query(collection(db, getCollectionName('pending_lineups')), where(documentId(), 'in', gameIds));
             const pendingSnap = await getDocs(pendingQuery);
@@ -299,8 +306,7 @@ async function fetchAndDisplayGames(seasonId, week) {
             const isLive = liveGameIds.has(game.id);
             const isComplete = game.completed === 'TRUE';
             const gameStatus = isComplete ? `${game.team1_score} - ${game.team2_score}` : (isLive ? 'Live' : 'Pending');
-
-            // Determine indicators for pending games
+            
             let team1Indicator = '';
             let team2Indicator = '';
             if (!isComplete && !isLive) {
@@ -323,11 +329,95 @@ async function fetchAndDisplayGames(seasonId, week) {
                 </div>`;
         });
         gamesListContainer.innerHTML = gamesHTML;
+        
+        // ======================= MODIFICATION START =======================
+        // Auto-populate deadline input with the first game's date
+        if (querySnapshot.docs.length > 0) {
+            const firstGameDateStr = querySnapshot.docs[0].data().date; // "M/D/YYYY"
+            const [month, day, year] = firstGameDateStr.split('/');
+            const formattedDateForInput = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            deadlineDateInput.value = formattedDateForInput;
+            displayDeadlineForDate(formattedDateForInput);
+        }
+        // ======================= MODIFICATION END =======================
+
     } catch (error) {
         console.error("Error fetching games: ", error);
         gamesListContainer.innerHTML = '<div class="error">Could not fetch games.</div>';
     }
 }
+
+
+// ======================= MODIFICATION START =======================
+/**
+ * NEW: Fetches and displays the deadline for a specific date.
+ * @param {string} dateString - The date in 'YYYY-MM-DD' format from the input.
+ */
+async function displayDeadlineForDate(dateString) {
+    if (!dateString) {
+        deadlineDisplay.innerHTML = '<p>Select a date to see the current deadline.</p>';
+        return;
+    }
+    deadlineDisplay.innerHTML = '<p>Checking...</p>';
+    
+    try {
+        const deadlineRef = doc(db, getCollectionName('lineup_deadlines'), dateString);
+        const deadlineSnap = await getDoc(deadlineRef);
+
+        if (deadlineSnap.exists()) {
+            const data = deadlineSnap.data();
+            const deadline = data.deadline.toDate();
+            const formattedTime = deadline.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                timeZone: data.timeZone, 
+                hour12: true 
+            });
+            deadlineDisplay.innerHTML = `<p><strong>Current Deadline:</strong> ${formattedTime} ${data.timeZone}</p>`;
+        } else {
+            deadlineDisplay.innerHTML = '<p>No deadline is currently set for this date.</p>';
+        }
+    } catch (error) {
+        console.error("Error fetching deadline:", error);
+        deadlineDisplay.innerHTML = '<p class="error">Could not fetch deadline.</p>';
+    }
+}
+
+/**
+ * NEW: Handles the submission of the deadline form.
+ */
+async function handleSetDeadline(e) {
+    e.preventDefault();
+    const button = e.target.querySelector('button[type="submit"]');
+    button.disabled = true;
+    button.textContent = 'Saving...';
+
+    const dateInput = deadlineDateInput.value;
+    const timeInput = document.getElementById('deadline-time').value;
+
+    const [year, month, day] = dateInput.split('-');
+    const formattedDateForFunction = `${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`;
+    const timeZone = 'America/Chicago'; // Hardcoded as per league standard
+
+    try {
+        const setLineupDeadline = httpsCallable(functions, 'setLineupDeadline');
+        const result = await setLineupDeadline({
+            date: formattedDateForFunction,
+            time: timeInput,
+            timeZone: timeZone
+        });
+        alert(result.data.message);
+        await displayDeadlineForDate(dateInput); // Refresh the display
+    } catch (error) {
+        console.error("Error setting deadline:", error);
+        alert(`Failed to set deadline: ${error.message}`);
+    } finally {
+        button.disabled = false;
+        button.textContent = 'Set';
+    }
+}
+// ======================= MODIFICATION END =======================
+
 
 async function handleOpenModalClick(e) {
     if (!e.target.matches('.btn-admin-edit')) return;
@@ -347,7 +437,6 @@ async function handleOpenModalClick(e) {
 
 function getRosterForTeam(teamId, week) {
     if (week === 'All-Star') {
-        // Handle the GM game specifically
         if (teamId === 'EGM') {
             return Array.from(allGms.values()).filter(gm => gm.conference === 'Eastern');
         }
@@ -625,7 +714,6 @@ async function handleLineupFormSubmit(e) {
         if (liveGameSnap.exists()) {
             console.log("Live game detected. Overwriting lineup with changes.");
 
-            // 1. Get the most current score data for all players in the original live game.
             const liveGameData = liveGameSnap.data();
             const oldPlayerScores = new Map();
             [...liveGameData.team1_lineup, ...liveGameData.team2_lineup].forEach(p => {
@@ -637,7 +725,6 @@ async function handleLineupFormSubmit(e) {
                 });
             });
 
-            // 2. Build the new lineups from the UI.
             let new_team1_lineup = [];
             const captainId1 = lineupForm.querySelector('input[name="team1-captain"]:checked')?.value;
             document.querySelectorAll('#team1-starters .starter-card').forEach(card => {
@@ -664,11 +751,9 @@ async function handleLineupFormSubmit(e) {
                 });
             });
 
-            // 3. Merge the new lineup structure with any old scores to preserve them.
             const merged_team1_lineup = new_team1_lineup.map(p => ({ ...(oldPlayerScores.get(p.player_id) || {}), ...p }));
             const merged_team2_lineup = new_team2_lineup.map(p => ({ ...(oldPlayerScores.get(p.player_id) || {}), ...p }));
 
-            // 4. Update the document in the `live_games` collection.
             await updateDoc(liveGameRef, {
                 team1_lineup: merged_team1_lineup,
                 team2_lineup: merged_team2_lineup
@@ -677,7 +762,7 @@ async function handleLineupFormSubmit(e) {
             alert('Live game lineup updated successfully!');
             lineupModal.classList.remove('is-visible');
             fetchAndDisplayGames(currentSeasonId, weekSelect.value);
-            return; // Exit the function since the live game update is complete.
+            return; 
         }
 
         const isExhibition = collectionName === 'exhibition_games';
@@ -760,7 +845,6 @@ async function handleStageLiveLineups(e) {
     const isTeam1LineupValid = team1Starters.length === 6;
     const isTeam2LineupValid = team2Starters.length === 6;
 
-    // Ensure at least one team has a valid lineup to submit anything.
     if (!isTeam1LineupValid && !isTeam2LineupValid) {
         alert("Validation failed. At least one team must have exactly 6 starters selected to submit a lineup.");
         button.disabled = false;
@@ -802,7 +886,6 @@ async function handleStageLiveLineups(e) {
         });
     }
     
-    // --- NEW LOGIC: Check if the game is today and both lineups are ready ---
     const gameDateParts = gameDateStr.split('/');
     const gameDateObj = new Date(+gameDateParts[2], gameDateParts[0] - 1, +gameDateParts[1]);
     gameDateObj.setHours(0, 0, 0, 0);
@@ -815,7 +898,6 @@ async function handleStageLiveLineups(e) {
 
     try {
         if (canActivateImmediately) {
-            // If the game is today and both teams are submitted, activate it directly.
             button.textContent = 'Activating...';
             const activateLiveGame = httpsCallable(functions, 'activateLiveGame');
             await activateLiveGame({
@@ -827,7 +909,6 @@ async function handleStageLiveLineups(e) {
             });
             alert('Game is today and both lineups are complete. Activated for live scoring immediately!');
         } else {
-            // Otherwise, stage the lineup(s) in the pending collection.
             button.textContent = 'Staging...';
             const stageLiveLineups = httpsCallable(functions, 'stageLiveLineups');
             await stageLiveLineups({
@@ -852,9 +933,6 @@ async function handleStageLiveLineups(e) {
         button.textContent = 'Submit Lineups for Live Scoring';
     }
 }
-// ===================================================================
-// MODIFICATION END
-// ===================================================================
 
 async function handleFinalizeLiveGame(e) {
     e.preventDefault();
