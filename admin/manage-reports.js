@@ -192,7 +192,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'Demons': ' 😈',
             'Hounds': ' 🐶',
             'Legion': ' 🥷',
-            'Kings': ' 👑'
+            'Kings': ' 👑',
+            'Donuts': ' 🍩'
         };
 
         const usa_diabetics = ['PJPB7G3y', 'QvDP2zgv', 'k3LgQL4v', 'rnejGZ2J', 'V3yAQ6Y3'];
