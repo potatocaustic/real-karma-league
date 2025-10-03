@@ -162,7 +162,8 @@ async function fetchAndDisplaySchedule() {
             statusHTML = `<span>${myScore.toFixed(0)} - ${oppScore.toFixed(0)}</span>`;
         } else {
             const isMyTeamSubmitted = game.team1_id === myTeamId ? pendingLineups.get(game.id)?.team1_submitted : pendingLineups.get(game.id)?.team2_submitted;
-            const deadlineKey = game.date.split('/').reverse().join('-');
+            const [month, day, year] = game.date.split('/');
+            const deadlineKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const deadline = deadlinesMap.get(deadlineKey);
 
             if (isMyTeamSubmitted) {
