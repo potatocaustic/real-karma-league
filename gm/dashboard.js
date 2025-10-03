@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Check if the user is a GM
-            const teamsQuery = query(collection(db, collectionNames.teams), where("gm_uid", "==", user.uid), limit(1));
+            const teamsQuery = query(collection(db, collectionNames.v2_teams), where("gm_uid", "==", user.uid), limit(1));
             const teamSnap = await getDocs(teamsQuery);
 
             if (!teamSnap.empty) {
