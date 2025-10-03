@@ -179,7 +179,6 @@ async function fetchAndDisplaySchedule() {
             const gracePeriodEnd = new Date(deadline.getTime() + 150 * 60 * 1000);
             const now = new Date();
 
-            // MODIFICATION: Gray out button if the 2.5 hour submission window has passed
             if (now > gracePeriodEnd) {
                 statusHTML = `<span class="submission-failed">Submission Window Closed</span>`;
                 buttonText = 'Window Closed';
@@ -201,9 +200,9 @@ async function fetchAndDisplaySchedule() {
                     const now = new Date();
                     const diff = deadline.getTime() - now.getTime();
 
-                    if (diff <= 0) { // If deadline passes, change text
+                    if (diff <= 0) { 
                         timerEl.textContent = 'Deadline Passed';
-                    } else { // Otherwise, show countdown
+                    } else { 
                         const d = Math.floor(diff / (1000 * 60 * 60 * 24));
                         const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -211,14 +210,12 @@ async function fetchAndDisplaySchedule() {
                         timerEl.textContent = `Due in: ${d}d ${h}h ${m}m ${s}s`;
                     }
                     
-                    // Style based on time remaining to deadline
                     const twelveHoursInMs = 12 * 60 * 60 * 1000;
                     const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
                     if (diff < twelveHoursInMs) timerEl.style.color = '#dc3545';
                     else if (diff < twentyFourHoursInMs) timerEl.style.color = '#fd7e14';
                     else timerEl.style.color = '#28a745';
                     
-                    // Stop the timer if the grace period is over
                     if (now > gracePeriodEnd) {
                         clearInterval(intervalId);
                         const gameEntryEl = document.getElementById(`game-entry-${game.id}`);
@@ -265,7 +262,7 @@ async function handleOpenModalClick(e) {
     const gameEntry = e.target.closest('.game-entry');
     const gameId = gameEntry.dataset.gameId;
     const collectionName = gameEntry.dataset.collection;
-    const deadlineString = gameEntry.dataset.deadline; // MODIFICATION: Get deadline from data attribute
+    const deadlineString = gameEntry.dataset.deadline; 
 
     const gameRef = doc(db, "seasons", currentSeasonId, collectionName, gameId);
     const gameDoc = await getDoc(gameRef);
@@ -281,7 +278,7 @@ async function handleOpenModalClick(e) {
 async function openLineupModal(game, deadlineString) {
     lineupForm.reset();
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
-    lineupModalWarning.style.display = 'none'; // Hide warning by default
+    lineupModalWarning.style.display = 'none'; 
 
     document.getElementById('lineup-game-id').value = game.id;
     document.getElementById('lineup-game-date').value = game.date;
@@ -295,7 +292,6 @@ async function openLineupModal(game, deadlineString) {
     const myRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === myTeamId);
     let myLineupData = null;
 
-    // MODIFICATION: Check both pending_lineups and live_games to find submitted lineup
     const pendingGameSnap = await getDoc(doc(db, "pending_lineups", game.id));
     if (pendingGameSnap.exists()) {
         const pendingData = pendingGameSnap.data();
@@ -313,8 +309,9 @@ async function openLineupModal(game, deadlineString) {
         myLineupData.forEach(p => myStartersMap.set(p.player_id, p));
     }
     
-    // MODIFICATION: Logic for deadline passed warning and disabling captain selection
     let isCaptainDisabled = false;
+    let existingCaptainId = null; // MODIFICATION: To track existing captain
+
     if (deadlineString) {
         const deadline = new Date(deadlineString);
         const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000);
@@ -323,15 +320,25 @@ async function openLineupModal(game, deadlineString) {
             isCaptainDisabled = true;
             lineupModalWarning.textContent = "Lineup deadline passed. Cannot submit new/edited lineup with a captain.";
             lineupModalWarning.style.display = 'block';
+
+            // MODIFICATION: Find the existing captain to allow them to be deselected
+            if (myStartersMap.size > 0) {
+                for (const player of myStartersMap.values()) {
+                    if (player.is_captain) {
+                        existingCaptainId = player.player_id;
+                        break;
+                    }
+                }
+            }
         }
     }
 
-    renderMyTeamUI('my-team', allTeams.get(myTeamId), myRoster, myStartersMap, isCaptainDisabled);
+    renderMyTeamUI('my-team', allTeams.get(myTeamId), myRoster, myStartersMap, isCaptainDisabled, existingCaptainId);
     
     lineupModal.classList.add('is-visible');
 }
 
-function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, isCaptainDisabled = false) {
+function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, isCaptainDisabled = false, existingCaptainId = null) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
     rosterContainer.innerHTML = '';
@@ -348,14 +355,13 @@ function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, isCaptainDisa
     rosterContainer.querySelectorAll('.starter-checkbox').forEach(cb => {
         cb.addEventListener('change', handleStarterChange);
         if (cb.checked) {
-            addStarterCard(cb, startersMap.get(cb.dataset.playerId), isCaptainDisabled);
+            addStarterCard(cb, startersMap.get(cb.dataset.playerId), isCaptainDisabled, existingCaptainId);
         }
     });
 }
 
 function handleStarterChange(event) {
     const checkbox = event.target;
-    // MODIFICATION: Check if captains are disabled when adding a new card
     const isCaptainDisabled = lineupModalWarning.style.display !== 'none';
     if (checkbox.checked) {
         if (document.querySelectorAll('#my-team-starters .starter-card').length >= 6) {
@@ -363,25 +369,30 @@ function handleStarterChange(event) {
             checkbox.checked = false;
             return;
         }
-        addStarterCard(checkbox, null, isCaptainDisabled);
+        // A newly added player can't be an existing captain, so pass null
+        addStarterCard(checkbox, null, isCaptainDisabled, null);
     } else {
         removeStarterCard(checkbox);
     }
     updateStarterCount();
 }
 
-function addStarterCard(checkbox, lineupData = null, isCaptainDisabled = false) {
+// MODIFICATION: Added existingCaptainId to function signature
+function addStarterCard(checkbox, lineupData = null, isCaptainDisabled = false, existingCaptainId = null) {
     const { playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`my-team-starters`);
     const isCaptain = lineupData?.is_captain;
     
+    // MODIFICATION: Determine if this specific radio button should be disabled
+    const shouldBeDisabled = isCaptainDisabled && (playerId !== existingCaptainId);
+
     const card = document.createElement('div');
     card.className = 'starter-card';
     card.id = `starter-card-${playerId}`;
     card.innerHTML = `
         <div>
             <strong>${playerHandle}</strong>
-            <label><input type="radio" name="my-team-captain" value="${playerId}" ${isCaptain ? 'checked' : ''} ${isCaptainDisabled ? 'disabled' : ''}> Captain</label>
+            <label><input type="radio" name="my-team-captain" value="${playerId}" ${isCaptain ? 'checked' : ''} ${shouldBeDisabled ? 'disabled' : ''}> Captain</label>
         </div>`;
     startersContainer.appendChild(card);
     updateStarterCount();
@@ -438,7 +449,6 @@ async function handleLineupFormSubmit(e) {
                 alert("You must select a captain for your lineup.");
                 return;
             }
-            // This client-side check is a courtesy; the server does the real enforcement.
             if (captainId && now > lateNoCaptainEnd) {
                  alert("Your submission is late. You must remove your captain selection to submit.");
                  return;
