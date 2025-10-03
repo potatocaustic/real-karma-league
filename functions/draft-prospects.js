@@ -140,7 +140,7 @@ exports.updateAllProspectsScheduled = onSchedule({
         try {
             // 1. Perform reliable karmafeed request first using player_id
             const karmaFeedResponse = await axios.get(`https://api.real.vg/user/${prospect.player_id}/karmafeed`, { headers: API_HEADERS });
-            const newKarma = karmaFeedResponse.data?.user?.karma;
+            const newKarma = karmaFeedResponse.data?.stats?.karma;
             const newMonthlyRank = karmaFeedResponse.data?.stats?.karmaMonthRank;
 
             const updates = {};
