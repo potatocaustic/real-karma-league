@@ -1129,8 +1129,8 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
     try {
         // --- Step 2: Deadline validation for GM submissions ---
         if (isGmSubmission) {
-            const [year, month, day] = gameDate.split('/').map(part => part.padStart(2, '0'));
-            const deadlineId = `${year}-${month}-${day}`;
+            const [month, day, year] = gameDate.split('/');
+            const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             const deadlineRef = db.collection(getCollectionName('lineup_deadlines')).doc(deadlineId);
             const deadlineDoc = await deadlineRef.get();
 
