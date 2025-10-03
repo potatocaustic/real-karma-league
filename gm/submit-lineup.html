@@ -7,54 +7,54 @@
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
     <style>
+        /* Base Modal & Layout Styles */
         .modal-admin.is-visible { display: flex; align-items: center; justify-content: center; padding: 1rem; }
         .lineup-modal .modal-content-admin { max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
         .lineup-entry-container { display: grid; grid-template-columns: 1fr; gap: 1rem; }
-        .team-lineup-section { border: 1px solid #ddd; padding: 1rem; }
-        .roster-list { max-height: 250px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .team-lineup-section { border: 1px solid #ddd; padding: 1rem; transition: background-color 0.3s, border-color 0.3s; }
+        .roster-list { max-height: 250px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; transition: border-color 0.3s; }
         .starters-list { display: flex; flex-direction: column; gap: 0.75rem; }
-        .starter-card { border: 1px solid #ccc; padding: 0.75rem; }
-        .countdown-timer { font-weight: bold; color: #dc3545; }
-        #lineup-modal-subheader { font-size: 1.1rem; color: #555; text-align: center; margin-top: -0.5rem; margin-bottom: 1.5rem; }
+        .starter-card { border: 1px solid #ccc; padding: 0.75rem; transition: background-color 0.3s, border-color 0.3s; }
+        #lineup-modal-subheader { font-size: 1.1rem; color: #555; text-align: center; margin-top: -0.5rem; margin-bottom: 1.5rem; transition: color 0.3s; }
+        
+        /* Countdown & Status Styles */
+        .countdown-timer { font-weight: bold; }
+        .submission-success { color: #28a745; font-weight: 500; }
+        .dark-mode .submission-success { color: #4caf50; } /* Brighter green for dark mode */
 
-        .player-checkbox-item {
-            display: flex;
-            align-items: center; 
-            gap: 0.75rem; 
-        }
-        .player-checkbox-item input[type="checkbox"] {
-            width: 1.2em;
-            height: 1.2em;
-            flex-shrink: 0; 
-        }
-
+        /* Player Checkbox Alignment */
+        .player-checkbox-item { display: flex; align-items: center; gap: 0.75rem; }
+        .player-checkbox-item input[type="checkbox"] { width: 1.2em; height: 1.2em; flex-shrink: 0; }
+        
+        /* Disabled Button Styling */
         .btn-admin-edit:disabled {
             background-color: #cccccc;
             border-color: #999999;
             color: #666666;
             cursor: not-allowed;
         }
-        
+        .dark-mode .btn-admin-edit:disabled {
+            background-color: #444;
+            border-color: #555;
+            color: #888;
+        }
+
+        /* Mobile Optimization */
         @media (max-width: 768px) {
             h2 { font-size: 1.5rem; }
-            .game-entry {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-            .game-entry .game-status {
-                width: 100%;
-                text-align: left;
-            }
-            .modal-admin {
-                padding: 0.5rem;
-            }
-            .lineup-modal .modal-content-admin {
-                width: 100%;
-                max-width: 95%;
-                padding: 1rem;
-            }
+            .game-entry { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+            .game-entry .game-status { width: 100%; text-align: left; }
+            .modal-admin { padding: 0.5rem; }
+            .lineup-modal .modal-content-admin { width: 100%; max-width: 95%; padding: 1rem; }
         }
     </style>
 </head>
@@ -143,6 +143,8 @@
         </div>
     </div>
 
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
     <script type="module" src="/gm/submit-lineup.js"></script>
 </body>
 </html>
