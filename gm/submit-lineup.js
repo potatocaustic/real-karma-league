@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage(userId) {
     try {
         // Find the user's team
-        const teamsQuery = query(collection(db, "v2_teams_dev"), where("gm_uid", "==", userId), limit(1));
+        const teamsQuery = query(collection(db, "v2_teams"), where("gm_uid", "==", userId), limit(1));
         const teamSnap = await getDocs(teamsQuery);
 
         if (teamSnap.empty) {
@@ -45,7 +45,7 @@ async function initializePage(userId) {
         myTeamId = teamSnap.docs[0].id;
 
         // Get active season
-        const seasonsQuery = query(collection(db, "seasons_dev"), where("status", "==", "active"), limit(1));
+        const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
         const seasonSnap = await getDocs(seasonsQuery);
         if (seasonSnap.empty) {
             loadingContainer.innerHTML = '<div class="error">No active season found.</div>';
@@ -75,13 +75,13 @@ async function initializePage(userId) {
 }
 
 async function cacheCoreData(seasonId) {
-    const playersSnap = await getDocs(collection(db, "v2_players_dev"));
+    const playersSnap = await getDocs(collection(db, "v2_players"));
     playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
 
-    const teamsSnap = await getDocs(collection(db, "v2_teams_dev"));
+    const teamsSnap = await getDocs(collection(db, "v2_teams"));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordSnap = await getDoc(doc(db, "v2_teams_dev", teamDoc.id, "seasonal_records_dev", seasonId));
+        const seasonRecordSnap = await getDoc(doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId));
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
         return teamData;
     });
@@ -96,12 +96,12 @@ async function fetchAndDisplaySchedule() {
     countdownIntervals = [];
 
     // Fetch regular season games
-    const gamesQuery1 = query(collection(db, "seasons_dev", currentSeasonId, "games_dev"), where("team1_id", "==", myTeamId));
-    const gamesQuery2 = query(collection(db, "seasons_dev", currentSeasonId, "games_dev"), where("team2_id", "==", myTeamId));
+    const gamesQuery1 = query(collection(db, "seasons", currentSeasonId, "games"), where("team1_id", "==", myTeamId));
+    const gamesQuery2 = query(collection(db, "seasons", currentSeasonId, "games"), where("team2_id", "==", myTeamId));
     
     // Fetch post-season games
-    const postGamesQuery1 = query(collection(db, "seasons_dev", currentSeasonId, "post_games_dev"), where("team1_id", "==", myTeamId));
-    const postGamesQuery2 = query(collection(db, "seasons_dev", currentSeasonId, "post_games_dev"), where("team2_id", "==", myTeamId));
+    const postGamesQuery1 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team1_id", "==", myTeamId));
+    const postGamesQuery2 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team2_id", "==", myTeamId));
 
     const [snap1, snap2, postSnap1, postSnap2] = await Promise.all([
         getDocs(gamesQuery1), getDocs(gamesQuery2), getDocs(postGamesQuery1), getDocs(postGamesQuery2)
@@ -110,10 +110,10 @@ async function fetchAndDisplaySchedule() {
     const allMyGames = [];
     const addGame = (doc, collectionName) => allMyGames.push({ id: doc.id, collectionName, ...doc.data() });
     
-    snap1.forEach(doc => addGame(doc, 'games_dev'));
-    snap2.forEach(doc => addGame(doc, 'games_dev'));
-    postSnap1.forEach(doc => addGame(doc, 'post_games_dev'));
-    postSnap2.forEach(doc => addGame(doc, 'post_games_dev'));
+    snap1.forEach(doc => addGame(doc, 'games'));
+    snap2.forEach(doc => addGame(doc, 'games'));
+    postSnap1.forEach(doc => addGame(doc, 'post_games'));
+    postSnap2.forEach(doc => addGame(doc, 'post_games'));
 
     if (allMyGames.length === 0) {
         scheduleListContainer.innerHTML = '<p class="placeholder-text">No games found on your schedule.</p>';
@@ -127,7 +127,7 @@ async function fetchAndDisplaySchedule() {
     const deadlineDates = [...new Set(allMyGames.map(g => g.date.split('/').reverse().join('-')))];
     const deadlinesMap = new Map();
     if (deadlineDates.length > 0) {
-        const deadlineQuery = query(collection(db, "lineup_deadlines_dev"), where(documentId(), 'in', deadlineDates));
+        const deadlineQuery = query(collection(db, "lineup_deadlines"), where(documentId(), 'in', deadlineDates));
         const deadlinesSnap = await getDocs(deadlineQuery);
         deadlinesSnap.forEach(doc => deadlinesMap.set(doc.id, doc.data().deadline.toDate()));
     }
@@ -135,7 +135,7 @@ async function fetchAndDisplaySchedule() {
     const gameIds = allMyGames.map(g => g.id);
     const pendingLineups = new Map();
     if (gameIds.length > 0) {
-        const pendingQuery = query(collection(db, "pending_lineups_dev"), where(documentId(), 'in', gameIds));
+        const pendingQuery = query(collection(db, "pending_lineups"), where(documentId(), 'in', gameIds));
         const pendingSnap = await getDocs(pendingQuery);
         pendingSnap.forEach(doc => pendingLineups.set(doc.id, doc.data()));
     }
@@ -223,7 +223,7 @@ async function handleOpenModalClick(e) {
     const gameId = gameEntry.dataset.gameId;
     const collectionName = gameEntry.dataset.collection;
 
-    const gameRef = doc(db, "seasons_dev", currentSeasonId, collectionName, gameId);
+    const gameRef = doc(db, "seasons", currentSeasonId, collectionName, gameId);
     const gameDoc = await getDoc(gameRef);
 
     if (gameDoc.exists()) {
@@ -246,7 +246,7 @@ async function openLineupModal(game) {
     const opponentId = game.team1_id === myTeamId ? game.team2_id : game.team1_id;
     const opponentRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === opponentId);
     
-    const pendingGameSnap = await getDoc(doc(db, "pending_lineups_dev", game.id));
+    const pendingGameSnap = await getDoc(doc(db, "pending_lineups", game.id));
     const pendingData = pendingGameSnap.exists() ? pendingGameSnap.data() : {};
     
     const myLineupData = game.team1_id === myTeamId ? pendingData.team1_lineup : pendingData.team2_lineup;
