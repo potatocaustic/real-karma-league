@@ -1093,13 +1093,12 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
 });
 
 exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => {
-    // Security check: Now allows admins, scorekeepers, or any authenticated GM
     if (!request.auth) {
         throw new HttpsError('permission-denied', 'You must be logged in to submit a lineup.');
     }
 
     const { gameId, seasonId, collectionName, gameDate, team1_lineup, team2_lineup, submittingTeamId } = request.data;
-    const isGmSubmission = !!submittingTeamId; // True if a GM is submitting for their own team
+    const isGmSubmission = !!submittingTeamId;
 
     if (!gameId || !seasonId || !collectionName || !gameDate) {
         throw new HttpsError('invalid-argument', 'Missing required game parameters.');
@@ -1107,13 +1106,12 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
     if (!team1_lineup && !team2_lineup) {
         throw new HttpsError('invalid-argument', 'At least one team lineup must be provided.');
     }
-    
+
     const logBatch = db.batch();
     const submissionLogRef = db.collection(getCollectionName('lineup_submission_logs')).doc();
     const isTeam1Submitting = team1_lineup && team1_lineup.length === 6;
     const isTeam2Submitting = team2_lineup && team2_lineup.length === 6;
 
-    // --- Step 1: Log the submission attempt immediately ---
     logBatch.set(submissionLogRef, {
         gameId,
         gameDate,
@@ -1121,13 +1119,11 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
         submittingTeamId: submittingTeamId || 'admin_submission',
         submittedLineup: isTeam1Submitting ? team1_lineup : (isTeam2Submitting ? team2_lineup : null),
         timestamp: FieldValue.serverTimestamp(),
-        status: 'initiated' // Will be updated to success or failure
+        status: 'initiated'
     });
     await logBatch.commit();
 
-
     try {
-        // --- Step 2: Deadline validation for GM submissions ---
         if (isGmSubmission) {
             const [month, day, year] = gameDate.split('/');
             const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -1141,8 +1137,8 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
 
             const deadline = deadlineDoc.data().deadline.toDate();
             const now = new Date();
-            const gracePeriodEnd = new Date(deadline.getTime() + 150 * 60 * 1000); // 2.5 hours
-            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000); // 10 minutes
+            const gracePeriodEnd = new Date(deadline.getTime() + 150 * 60 * 1000);
+            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000);
 
             if (now > gracePeriodEnd) {
                 await submissionLogRef.update({ status: 'failure', reason: 'Submission window closed.' });
@@ -1157,8 +1153,42 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
                 throw new HttpsError('invalid-argument', 'Your submission is late. You must remove your captain selection to submit.');
             }
         }
-        
-        // --- Step 3: Stage the lineup ---
+
+        const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
+        const liveGameSnap = await liveGameRef.get();
+
+        if (liveGameSnap.exists) {
+            console.log(`Game ${gameId} is already live. Updating existing document.`);
+            
+            const liveGameData = liveGameSnap.data();
+            const updateData = {};
+            
+            const oldPlayerScores = new Map();
+            [...(liveGameData.team1_lineup || []), ...(liveGameData.team2_lineup || [])].forEach(p => {
+                oldPlayerScores.set(p.player_id, {
+                    points_raw: p.points_raw || 0,
+                    points_adjusted: p.points_adjusted || 0,
+                    final_score: p.final_score || 0,
+                    global_rank: p.global_rank || 0
+                });
+            });
+
+            if (team1_lineup && team1_lineup.length === 6) {
+                updateData.team1_lineup = team1_lineup.map(p => ({ ...(oldPlayerScores.get(p.player_id) || {}), ...p }));
+            }
+            if (team2_lineup && team2_lineup.length === 6) {
+                updateData.team2_lineup = team2_lineup.map(p => ({ ...(oldPlayerScores.get(p.player_id) || {}), ...p }));
+            }
+
+            if (Object.keys(updateData).length > 0) {
+                await liveGameRef.update(updateData);
+            }
+            
+            await submissionLogRef.update({ status: 'success', details: 'Updated live game document.' });
+            return { success: true, message: "Live game lineup has been successfully updated." };
+        }
+
+        // If the game was not live, proceed with the normal pending logic.
         const pendingRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
         const dataToSet = {
             seasonId,
@@ -1179,18 +1209,40 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
 
         await pendingRef.set(dataToSet, { merge: true });
 
-        // --- Step 4: Finalize log and return success ---
+        // --- FEATURE 2: Check if game is NOW ready for immediate activation ---
+        const updatedPendingDoc = await pendingRef.get();
+        if (updatedPendingDoc.exists) {
+            const data = updatedPendingDoc.data();
+            
+            const today = new Date();
+            const todayStr = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+            
+            if (data.gameDate === todayStr && data.team1_submitted === true && data.team2_submitted === true) {
+                console.log(`Game ${gameId} is ready for immediate activation.`);
+                const batch = db.batch();
+
+                batch.set(liveGameRef, {
+                    seasonId: data.seasonId,
+                    collectionName: data.collectionName,
+                    team1_lineup: data.team1_lineup,
+                    team2_lineup: data.team2_lineup,
+                    activatedAt: FieldValue.serverTimestamp()
+                });
+                batch.delete(pendingRef);
+                await batch.commit();
+                console.log(`Game ${gameId} successfully activated and moved to live_games.`);
+            }
+        }
+        
         await submissionLogRef.update({ status: 'success' });
         return { success: true, message: "Lineup has been successfully submitted." };
 
     } catch (error) {
-        // If it's not an HttpsError, it's an unexpected internal error
         if (!(error instanceof HttpsError)) {
              console.error(`Error staging lineups for game ${gameId}:`, error);
              await submissionLogRef.update({ status: 'failure', reason: `Internal error: ${error.message}` });
              throw new HttpsError('internal', `Could not stage lineups: ${error.message}`);
         } else {
-            // Re-throw the original HttpsError to be sent to the client
             throw error;
         }
     }
