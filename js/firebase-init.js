@@ -100,5 +100,6 @@ export {
     onSnapshot,
     collectionGroup,
     documentId,
-    Timestamp
+    Timestamp,
+    collectionNames
 };
