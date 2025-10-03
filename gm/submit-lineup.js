@@ -1,6 +1,7 @@
 // /gm/submit-lineup.js
 
 import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId, limit } from '/js/firebase-init.js';
+
 // --- Page Elements ---
 let loadingContainer, gmContainer, scheduleListContainer, lineupModal, lineupForm, closeLineupModalBtn;
 
@@ -34,7 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage(userId) {
     try {
-        // Find the user's team
         const teamsQuery = query(collection(db, "v2_teams"), where("gm_uid", "==", userId), limit(1));
         const teamSnap = await getDocs(teamsQuery);
 
@@ -44,7 +44,6 @@ async function initializePage(userId) {
         }
         myTeamId = teamSnap.docs[0].id;
 
-        // Get active season
         const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
         const seasonSnap = await getDocs(seasonsQuery);
         if (seasonSnap.empty) {
@@ -53,14 +52,12 @@ async function initializePage(userId) {
         }
         currentSeasonId = seasonSnap.docs[0].id;
         
-        // Cache core data
         await cacheCoreData(currentSeasonId);
         
         document.getElementById('gm-team-name').textContent = allTeams.get(myTeamId)?.team_name || 'My Team';
         loadingContainer.style.display = 'none';
         gmContainer.style.display = 'block';
 
-        // Fetch and display schedule
         await fetchAndDisplaySchedule();
 
         scheduleListContainer.addEventListener('click', handleOpenModalClick);
@@ -92,14 +89,11 @@ async function cacheCoreData(seasonId) {
 
 async function fetchAndDisplaySchedule() {
     scheduleListContainer.innerHTML = '<div class="loading">Fetching schedule...</div>';
-    countdownIntervals.forEach(clearInterval); // Clear old timers
+    countdownIntervals.forEach(clearInterval);
     countdownIntervals = [];
 
-    // Fetch regular season games
     const gamesQuery1 = query(collection(db, "seasons", currentSeasonId, "games"), where("team1_id", "==", myTeamId));
     const gamesQuery2 = query(collection(db, "seasons", currentSeasonId, "games"), where("team2_id", "==", myTeamId));
-    
-    // Fetch post-season games
     const postGamesQuery1 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team1_id", "==", myTeamId));
     const postGamesQuery2 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team2_id", "==", myTeamId));
 
@@ -107,7 +101,7 @@ async function fetchAndDisplaySchedule() {
         getDocs(gamesQuery1), getDocs(gamesQuery2), getDocs(postGamesQuery1), getDocs(postGamesQuery2)
     ]);
 
-    const allMyGames = [];
+    let allMyGames = [];
     const addGame = (doc, collectionName) => allMyGames.push({ id: doc.id, collectionName, ...doc.data() });
     
     snap1.forEach(doc => addGame(doc, 'games'));
@@ -115,19 +109,21 @@ async function fetchAndDisplaySchedule() {
     postSnap1.forEach(doc => addGame(doc, 'post_games'));
     postSnap2.forEach(doc => addGame(doc, 'post_games'));
 
+    // === REQUEST 1: Filter for only incomplete games ===
+    allMyGames = allMyGames.filter(game => game.completed !== 'TRUE');
+
     if (allMyGames.length === 0) {
-        scheduleListContainer.innerHTML = '<p class="placeholder-text">No games found on your schedule.</p>';
+        scheduleListContainer.innerHTML = '<p class="placeholder-text">No upcoming games found on your schedule.</p>';
         return;
     }
 
-    // Sort games by date
     allMyGames.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    // Fetch deadlines and submission statuses
     const deadlineDates = [...new Set(allMyGames.map(g => {
         const [month, day, year] = g.date.split('/');
         return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     }))];
+
     const deadlinesMap = new Map();
     if (deadlineDates.length > 0) {
         const deadlineQuery = query(collection(db, "lineup_deadlines"), where(documentId(), 'in', deadlineDates));
@@ -144,56 +140,41 @@ async function fetchAndDisplaySchedule() {
     }
 
     let scheduleHTML = '';
-    let firstIncompleteGameId = null;
+    const firstIncompleteGameId = allMyGames.length > 0 ? allMyGames[0].id : null;
 
     allMyGames.forEach(game => {
         const opponentId = game.team1_id === myTeamId ? game.team2_id : game.team1_id;
         const opponent = allTeams.get(opponentId);
-        const isComplete = game.completed === 'TRUE';
         
-        if (!isComplete && !firstIncompleteGameId) {
-            firstIncompleteGameId = game.id;
-        }
-
         let statusHTML = '';
-        if (isComplete) {
-            const myScore = game.team1_id === myTeamId ? game.team1_score : game.team2_score;
-            const oppScore = game.team1_id === myTeamId ? game.team2_score : game.team1_score;
-            statusHTML = `<span>${myScore.toFixed(0)} - ${oppScore.toFixed(0)}</span>`;
-        } else {
-            const isMyTeamSubmitted = game.team1_id === myTeamId ? pendingLineups.get(game.id)?.team1_submitted : pendingLineups.get(game.id)?.team2_submitted;
-            const [month, day, year] = game.date.split('/');
-            const deadlineKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const deadline = deadlinesMap.get(deadlineKey);
+        const isMyTeamSubmitted = game.team1_id === myTeamId ? pendingLineups.get(game.id)?.team1_submitted : pendingLineups.get(game.id)?.team2_submitted;
+        const [month, day, year] = game.date.split('/');
+        const deadlineKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const deadline = deadlinesMap.get(deadlineKey);
 
-            if (isMyTeamSubmitted) {
-                statusHTML = `<span style="color: green;">Lineup Submitted ✅</span>`;
-            } else if (deadline) {
-                statusHTML = `<span id="countdown-${game.id}" class="countdown-timer"></span>`;
-                // Set up countdown timer
-                const intervalId = setInterval(() => {
-                    const timerEl = document.getElementById(`countdown-${game.id}`);
-                    if (!timerEl) {
-                        clearInterval(intervalId);
-                        return;
-                    }
-                    const now = new Date();
-                    const diff = deadline.getTime() - now.getTime();
-                    if (diff <= 0) {
-                        timerEl.textContent = 'Deadline Passed';
-                        clearInterval(intervalId);
-                    } else {
-                        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        const s = Math.floor((diff % (1000 * 60)) / 1000);
-                        timerEl.textContent = `Due in: ${d}d ${h}h ${m}m ${s}s`;
-                    }
-                }, 1000);
-                countdownIntervals.push(intervalId);
-            } else {
-                 statusHTML = `<span>Awaiting Deadline</span>`;
-            }
+        if (isMyTeamSubmitted) {
+            statusHTML = `<span style="color: green;">Lineup Submitted ✅</span>`;
+        } else if (deadline) {
+            statusHTML = `<span id="countdown-${game.id}" class="countdown-timer"></span>`;
+            const intervalId = setInterval(() => {
+                const timerEl = document.getElementById(`countdown-${game.id}`);
+                if (!timerEl) { clearInterval(intervalId); return; }
+                const now = new Date();
+                const diff = deadline.getTime() - now.getTime();
+                if (diff <= 0) {
+                    timerEl.textContent = 'Deadline Passed';
+                    clearInterval(intervalId);
+                } else {
+                    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((diff % (1000 * 60)) / 1000);
+                    timerEl.textContent = `Due in: ${d}d ${h}h ${m}m ${s}s`;
+                }
+            }, 1000);
+            countdownIntervals.push(intervalId);
+        } else {
+             statusHTML = `<span>Awaiting Deadline</span>`;
         }
         
         scheduleHTML += `
@@ -205,20 +186,16 @@ async function fetchAndDisplaySchedule() {
                     <span class="game-date">Date: ${game.date || 'N/A'}</span>
                 </span>
                 <span class="game-status">${statusHTML}</span>
-                <button class="btn-admin-edit" ${isComplete ? 'disabled' : ''}>${isComplete ? 'Game Final' : 'Submit Lineup'}</button>
+                <button class="btn-admin-edit">Submit Lineup</button>
             </div>`;
     });
     scheduleListContainer.innerHTML = scheduleHTML;
     
-    // Default to earliest incomplete game
     if (firstIncompleteGameId) {
         document.getElementById(`game-entry-${firstIncompleteGameId}`).style.border = "2px solid #007bff";
         document.getElementById(`game-entry-${firstIncompleteGameId}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
-
-// Other functions (get roster, handle clicks, etc.) will be similar to manage-games.js but simplified for the GM.
-// This is a representative subset of the required logic. Full implementation would follow this pattern.
 
 async function handleOpenModalClick(e) {
     if (!e.target.matches('.btn-admin-edit')) return;
@@ -246,10 +223,13 @@ async function openLineupModal(game) {
     document.getElementById('lineup-game-date').value = game.date;
     document.getElementById('lineup-collection-name').value = game.collectionName;
 
-    const myRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === myTeamId);
     const opponentId = game.team1_id === myTeamId ? game.team2_id : game.team1_id;
-    const opponentRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === opponentId);
+    const opponent = allTeams.get(opponentId);
     
+    // === REQUEST 2: Populate the new subheader ===
+    document.getElementById('lineup-modal-subheader').textContent = `vs. ${opponent.team_name}, ${game.date}`;
+
+    const myRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === myTeamId);
     const pendingGameSnap = await getDoc(doc(db, "pending_lineups", game.id));
     const pendingData = pendingGameSnap.exists() ? pendingGameSnap.data() : {};
     
@@ -259,11 +239,7 @@ async function openLineupModal(game) {
         myLineupData.forEach(p => myStartersMap.set(p.player_id, p));
     }
 
-    // Render My Team's UI (Editable)
     renderMyTeamUI('my-team', allTeams.get(myTeamId), myRoster, myStartersMap);
-    
-    // Render Opponent's UI (Read-only)
-    renderOpponentUI('opponent-team', allTeams.get(opponentId), opponentRoster);
     
     lineupModal.classList.add('is-visible');
 }
@@ -289,13 +265,6 @@ function renderMyTeamUI(teamPrefix, teamData, roster, startersMap) {
         }
     });
 }
-
-function renderOpponentUI(teamPrefix, teamData, roster) {
-    document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
-    const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
-    rosterContainer.innerHTML = roster.map(p => `<div>${p.player_handle}</div>`).join('');
-}
-
 
 function handleStarterChange(event) {
     const checkbox = event.target;
@@ -374,7 +343,7 @@ async function handleLineupFormSubmit(e) {
             player_id: playerId,
             player_handle: player.player_handle,
             is_captain: playerId === captainId,
-            deductions: 0 // GMs cannot set deductions
+            deductions: 0
         });
     });
 
@@ -393,7 +362,7 @@ async function handleLineupFormSubmit(e) {
         await stageLiveLineups(submissionData);
         alert('Lineup submitted successfully!');
         lineupModal.classList.remove('is-visible');
-        fetchAndDisplaySchedule(); // Refresh schedule to show submitted status
+        fetchAndDisplaySchedule();
     } catch (error) {
         console.error("Error submitting lineup:", error);
         alert(`Submission Failed: ${error.message}`);
