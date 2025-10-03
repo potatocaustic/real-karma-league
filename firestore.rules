@@ -50,10 +50,16 @@ service cloud.firestore {
       allow read, write: if isUserAdmin();
     }
     match /pending_lineups/{gameId} {
-        allow read, write: if isScorekeeperOrAdmin();
+        // GMs need to read submission status, so allow any signed-in user to read.
+        allow read: if request.auth != null;
+        // Only scorekeepers/admins can write directly from the manage-games page.
+        allow write: if isScorekeeperOrAdmin();
     }
     match /pending_lineups_dev/{gameId} {
-        allow read, write: if isScorekeeperOrAdmin();
+        // GMs need to read submission status, so allow any signed-in user to read.
+        allow read: if request.auth != null;
+        // Only scorekeepers/admins can write directly from the manage-games page.
+        allow write: if isScorekeeperOrAdmin();
     }
 
     match /scorekeeper_activity_log/{docId} {
