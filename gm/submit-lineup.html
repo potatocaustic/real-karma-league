@@ -15,6 +15,10 @@
             }
         })();
     </script>
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
     <style>
         /* Base Modal & Layout Styles */
         .modal-admin.is-visible { display: flex; align-items: center; justify-content: center; padding: 1rem; }
@@ -109,6 +113,7 @@
     </header>
 
     <main id="gm-container" style="display: none;">
+        <a href="/gm/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2 id="page-main-header">Loading...</h2>
         <div id="schedule-list-container">
             <p class="placeholder-text">Loading your upcoming games...</p>
