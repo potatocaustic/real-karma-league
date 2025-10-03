@@ -210,11 +210,13 @@ async function fetchAndDisplaySchedule() {
                         timerEl.textContent = `Due in: ${d}d ${h}h ${m}m ${s}s`;
                     }
                     
-                    const twelveHoursInMs = 12 * 60 * 60 * 1000;
+                    // MODIFICATION: Changed color logic to <24h is red, 24h+ is orange
                     const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
-                    if (diff < twelveHoursInMs) timerEl.style.color = '#dc3545';
-                    else if (diff < twentyFourHoursInMs) timerEl.style.color = '#fd7e14';
-                    else timerEl.style.color = '#28a745';
+                    if (diff < twentyFourHoursInMs) {
+                        timerEl.style.color = '#dc3545'; // Red
+                    } else {
+                        timerEl.style.color = '#fd7e14'; // Orange
+                    }
                     
                     if (now > gracePeriodEnd) {
                         clearInterval(intervalId);
@@ -310,7 +312,7 @@ async function openLineupModal(game, deadlineString) {
     }
     
     let isCaptainDisabled = false;
-    let existingCaptainId = null; // MODIFICATION: To track existing captain
+    let existingCaptainId = null; 
 
     if (deadlineString) {
         const deadline = new Date(deadlineString);
@@ -321,7 +323,6 @@ async function openLineupModal(game, deadlineString) {
             lineupModalWarning.textContent = "Lineup deadline passed. Cannot submit new/edited lineup with a captain.";
             lineupModalWarning.style.display = 'block';
 
-            // MODIFICATION: Find the existing captain to allow them to be deselected
             if (myStartersMap.size > 0) {
                 for (const player of myStartersMap.values()) {
                     if (player.is_captain) {
@@ -369,7 +370,6 @@ function handleStarterChange(event) {
             checkbox.checked = false;
             return;
         }
-        // A newly added player can't be an existing captain, so pass null
         addStarterCard(checkbox, null, isCaptainDisabled, null);
     } else {
         removeStarterCard(checkbox);
@@ -377,13 +377,11 @@ function handleStarterChange(event) {
     updateStarterCount();
 }
 
-// MODIFICATION: Added existingCaptainId to function signature
 function addStarterCard(checkbox, lineupData = null, isCaptainDisabled = false, existingCaptainId = null) {
     const { playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`my-team-starters`);
     const isCaptain = lineupData?.is_captain;
     
-    // MODIFICATION: Determine if this specific radio button should be disabled
     const shouldBeDisabled = isCaptainDisabled && (playerId !== existingCaptainId);
 
     const card = document.createElement('div');
