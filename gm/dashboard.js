@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!teamSnap.empty) {
                 const teamData = teamSnap.docs[0].data();
-                const welcomeMsg = `Welcome, ${teamData.gm_handle}! Select a management task below.`;
+                const welcomeMsg = `Welcome! Select a management task below.`;
                 document.getElementById('welcome-message').textContent = welcomeMsg;
 
                 loadingContainer.style.display = 'none';
