@@ -12,12 +12,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const renderTable = (data) => {
         if (!data || data.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No draft prospects have been declared yet.</td></tr>';
+            // MODIFICATION: Updated colspan to 5
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No draft prospects have been declared yet.</td></tr>';
             return;
         }
 
-        const tableHTML = data.map(prospect => `
+        // MODIFICATION: Added index parameter to map() for numbering
+        const tableHTML = data.map((prospect, index) => `
             <tr>
+                <td>${index + 1}</td>
                 <td>${prospect.player_handle}</td>
                 <td>${prospect.monthly_rank !== null ? prospect.monthly_rank : 'N/A'}</td>
                 <td class="mobile-hide">${prospect.karma.toLocaleString()}</td>
