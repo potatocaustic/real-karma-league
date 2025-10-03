@@ -170,7 +170,7 @@ async function fetchAndDisplaySchedule() {
         const deadline = deadlinesMap.get(deadlineKey);
 
         if (isMyTeamSubmitted) {
-            statusHTML = `<span style="color: green;">Lineup Submitted ✅</span>`;
+            statusHTML = `<span class="submission-success">Lineup Submitted ✅</span>`;
             buttonText = 'Edit Lineup'; // Change text for submitted lineups
         } else if (deadline) {
             const deadlineET = deadline.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
