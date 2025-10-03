@@ -8,15 +8,51 @@
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <style>
-        .modal-admin.is-visible { display: flex; align-items: center; justify-content: center; }
-        .lineup-modal .modal-content-admin { max-width: 1200px; width: 95%; max-height: 90vh; overflow-y: auto; }
-        .lineup-entry-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        /* Base Modal & Layout Styles */
+        .modal-admin.is-visible { display: flex; align-items: center; justify-content: center; padding: 1rem; }
+        .lineup-modal .modal-content-admin { max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto; }
+        .lineup-entry-container { display: grid; grid-template-columns: 1fr; gap: 1rem; }
         .team-lineup-section { border: 1px solid #ddd; padding: 1rem; }
-        .roster-list { max-height: 200px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.5rem; }
+        .roster-list { max-height: 250px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem; }
         .starters-list { display: flex; flex-direction: column; gap: 0.75rem; }
         .starter-card { border: 1px solid #ccc; padding: 0.75rem; }
-        .disabled-section { background-color: #f5f5f5; opacity: 0.6; pointer-events: none; }
         .countdown-timer { font-weight: bold; color: #dc3545; }
+        #lineup-modal-subheader { font-size: 1.1rem; color: #555; text-align: center; margin-top: -0.5rem; margin-bottom: 1.5rem; }
+
+        /* === REQUEST 3: Vertical Stacking & Alignment === */
+        .player-checkbox-item {
+            display: flex;
+            align-items: center; /* Vertically aligns the checkbox with the name */
+            gap: 0.75rem; /* Space between checkbox and name */
+        }
+        .player-checkbox-item input[type="checkbox"] {
+            /* Ensures checkboxes are a consistent size */
+            width: 1.2em;
+            height: 1.2em;
+            flex-shrink: 0; /* Prevents checkbox from shrinking */
+        }
+
+        /* === REQUEST 4: Mobile Optimization === */
+        @media (max-width: 768px) {
+            h2 { font-size: 1.5rem; }
+            .game-entry {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .game-entry .game-status {
+                width: 100%;
+                text-align: left;
+            }
+            .modal-admin {
+                padding: 0.5rem;
+            }
+            .lineup-modal .modal-content-admin {
+                width: 100%;
+                max-width: 95%;
+                padding: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -28,7 +64,7 @@
         <h2>My Team's Schedule & Lineups</h2>
         <h3 id="gm-team-name">Loading team...</h3>
         <div id="schedule-list-container">
-            <p class="placeholder-text">Loading your schedule...</p>
+            <p class="placeholder-text">Loading your upcoming games...</p>
         </div>
     </main>
 
@@ -38,6 +74,7 @@
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
             <h3 id="lineup-modal-title">Submit Lineup</h3>
+            <h4 id="lineup-modal-subheader"></h4>
             <form id="lineup-form">
                 <input type="hidden" id="lineup-game-id">
                 <input type="hidden" id="lineup-game-date">
@@ -47,7 +84,7 @@
                     <div id="my-team-section" class="team-lineup-section">
                         <h4 id="my-team-name-header">My Team</h4>
                         <div class="roster-selection">
-                            <h5>Select 6 Starters</h5>
+                            <h5>Select 6 Starters from Available Players</h5>
                             <div id="my-team-roster" class="roster-list"></div>
                         </div>
                         <div class="starters-entry">
@@ -55,15 +92,7 @@
                             <div id="my-team-starters" class="starters-list"></div>
                         </div>
                     </div>
-
-                    <div id="opponent-team-section" class="team-lineup-section disabled-section">
-                        <h4 id="opponent-team-name-header">Opponent</h4>
-                        <div class="roster-selection">
-                            <h5>Opponent's Roster</h5>
-                            <div id="opponent-team-roster" class="roster-list"></div>
-                        </div>
                     </div>
-                </div>
                 <button type="submit" class="btn-admin-save">Submit My Lineup</button>
             </form>
         </div>
