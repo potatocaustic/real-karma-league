@@ -331,11 +331,40 @@ async function handleLineupFormSubmit(e) {
         return;
     }
 
+    const captainId = lineupForm.querySelector('input[name="my-team-captain"]:checked')?.value;
+
+    
+    const [month, day, year] = currentGameData.date.split('/');
+    const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const deadlineRef = doc(db, "lineup_deadlines", deadlineId);
+    
+    try {
+        const deadlineSnap = await getDoc(deadlineRef);
+        if (deadlineSnap.exists()) {
+            const deadline = deadlineSnap.data().deadline.toDate();
+            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000); // 10 minutes
+            const now = new Date();
+
+            // If it's NOT past the grace period AND there's no captain, throw an error.
+            if (!captainId && now <= lateNoCaptainEnd) {
+                alert("You must select a captain for your lineup.");
+                return;
+            }
+        } else if (!captainId) {
+            // If no deadline is set yet, a captain is still required.
+            alert("You must select a captain for your lineup.");
+            return;
+        }
+    } catch (error) {
+        console.error("Could not verify deadline for captain validation:", error);
+        alert("An error occurred while validating your lineup. Please try again.");
+        return;
+    }
+
     button.disabled = true;
     button.textContent = 'Submitting...';
 
     const lineup = [];
-    const captainId = lineupForm.querySelector('input[name="my-team-captain"]:checked')?.value;
     starterCards.forEach(card => {
         const playerId = card.id.replace('starter-card-', '');
         const player = allPlayers.get(playerId);
