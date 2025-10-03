@@ -152,7 +152,8 @@ async function fetchAndDisplaySchedule() {
         const opponent = allTeams.get(opponentId);
         
         let statusHTML = '';
-        
+        let buttonDisabled = ''; // Variable to hold the 'disabled' attribute for the button
+
         let isMyTeamSubmitted = false;
         if (liveGames.has(game.id)) {
             isMyTeamSubmitted = true;
@@ -167,35 +168,34 @@ async function fetchAndDisplaySchedule() {
 
         if (isMyTeamSubmitted) {
             statusHTML = `<span style="color: green;">Lineup Submitted ✅</span>`;
+            // Button remains enabled to allow editing
         } else if (deadline) {
-            // Format the deadline time for display in Eastern Time.
-            const deadlineET = deadline.toLocaleTimeString('en-US', {
-                timeZone: 'America/New_York',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-            });
-            const deadlineDateET = deadline.toLocaleDateString('en-US', {
-                timeZone: 'America/New_York',
-                month: 'numeric',
-                day: 'numeric'
-            });
+            const deadlineET = deadline.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
+            const deadlineDateET = deadline.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' });
 
-            // Add the countdown timer and the new deadline display text.
             statusHTML = `
                 <div>
                     <span id="countdown-${game.id}" class="countdown-timer"></span>
-                    <small style="display: block; font-size: 0.75rem; color: #666;">
-                        ${deadlineDateET}, ${deadlineET} ET
-                    </small>
+                    <small style="display: block; font-size: 0.75rem; color: #666;">${deadlineDateET}, ${deadlineET} ET</small>
                 </div>
             `;
-
             const intervalId = setInterval(() => {
                 const timerEl = document.getElementById(`countdown-${game.id}`);
                 if (!timerEl) { clearInterval(intervalId); return; }
+                
                 const now = new Date();
                 const diff = deadline.getTime() - now.getTime();
+
+                const twelveHoursInMs = 12 * 60 * 60 * 1000;
+                const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
+
+                if (diff < twelveHoursInMs) {
+                    timerEl.style.color = '#dc3545'; // Red
+                } else if (diff < twentyFourHoursInMs) {
+                    timerEl.style.color = '#fd7e14'; // Orange
+                } else {
+                    timerEl.style.color = '#28a745'; // Green
+                }
                 if (diff <= 0) {
                     timerEl.textContent = 'Deadline Passed';
                     clearInterval(intervalId);
@@ -210,6 +210,7 @@ async function fetchAndDisplaySchedule() {
             countdownIntervals.push(intervalId);
         } else {
              statusHTML = `<span>Awaiting Deadline</span>`;
+             buttonDisabled = 'disabled';
         }
         
         scheduleHTML += `
@@ -221,7 +222,7 @@ async function fetchAndDisplaySchedule() {
                     <span class="game-date">Date: ${game.date || 'N/A'}</span>
                 </span>
                 <div class="game-status">${statusHTML}</div>
-                <button class="btn-admin-edit">Submit Lineup</button>
+                <button class="btn-admin-edit" ${buttonDisabled}>${isMyTeamSubmitted ? 'Edit Lineup' : 'Submit Lineup'}</button>
             </div>`;
     });
     scheduleListContainer.innerHTML = scheduleHTML;
@@ -231,7 +232,6 @@ async function fetchAndDisplaySchedule() {
         document.getElementById(`game-entry-${firstIncompleteGameId}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
-
 async function handleOpenModalClick(e) {
     if (!e.target.matches('.btn-admin-edit')) return;
     
