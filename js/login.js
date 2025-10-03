@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Redirect if user is already logged in
     onAuthStateChanged(auth, (user) => {
         if (user) {
-            // User is signed in, redirect to the main page or GM portal.
             console.log('User already signed in, redirecting...');
             window.location.href = '/gm/dashboard.html'; 
         }
@@ -29,16 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // MODIFIED: Append domain to username to create the full email
         const email = username + '@rkl.league';
 
-        // Sign in with Firebase Auth using the constructed email
         signInWithEmailAndPassword(auth, email, password)
             .then((userCredential) => {
-                // Signed in successfully
                 console.log('Login successful for:', userCredential.user.email);
-                // Redirect to the GM portal or another appropriate page
-                window.location.href = '/common/trade-block.html';
+                window.location.href = '/gm/dashboard.html';
             })
             .catch((error) => {
                 // Handle errors
