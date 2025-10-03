@@ -3,7 +3,7 @@
 import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId, limit } from '/js/firebase-init.js';
 
 // --- Page Elements ---
-let loadingContainer, gmContainer, scheduleListContainer, lineupModal, lineupForm, closeLineupModalBtn;
+let loadingContainer, gmContainer, scheduleListContainer, lineupModal, lineupForm, closeLineupModalBtn, lineupModalWarning;
 
 // --- Global Data Cache ---
 let currentSeasonId = null;
@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     scheduleListContainer = document.getElementById('schedule-list-container');
     lineupModal = document.getElementById('lineup-modal');
     lineupForm = document.getElementById('lineup-form');
+    lineupModalWarning = document.getElementById('lineup-modal-warning');
     closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
 
     onAuthStateChanged(auth, async (user) => {
@@ -153,9 +154,8 @@ async function fetchAndDisplaySchedule() {
         
         let statusHTML = '';
         let buttonDisabled = '';
-        // ======================= MODIFICATION START =======================
-        let buttonText = 'Submit Lineup'; // Default button text
-        // ======================= MODIFICATION END =======================
+        let buttonText = 'Submit Lineup';
+        let dataDeadlineAttr = '';
 
         let isMyTeamSubmitted = false;
         if (liveGames.has(game.id)) {
@@ -171,54 +171,76 @@ async function fetchAndDisplaySchedule() {
 
         if (isMyTeamSubmitted) {
             statusHTML = `<span class="submission-success">Lineup Submitted ✅</span>`;
-            buttonText = 'Edit Lineup'; // Change text for submitted lineups
-        } else if (deadline) {
-            const deadlineET = deadline.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
-            const deadlineDateET = deadline.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' });
+            buttonText = 'Edit Lineup';
+        }
 
-            statusHTML = `
-                <div>
-                    <span id="countdown-${game.id}" class="countdown-timer"></span>
-                    <small style="display: block; font-size: 0.75rem; color: #666;">${deadlineDateET}, ${deadlineET} ET</small>
-                </div>
-            `;
-            const intervalId = setInterval(() => {
-                const timerEl = document.getElementById(`countdown-${game.id}`);
-                if (!timerEl) { clearInterval(intervalId); return; }
-                
-                const now = new Date();
-                const diff = deadline.getTime() - now.getTime();
+        if (deadline) {
+            dataDeadlineAttr = `data-deadline="${deadline.toISOString()}"`;
+            const gracePeriodEnd = new Date(deadline.getTime() + 150 * 60 * 1000);
+            const now = new Date();
 
-                const twelveHoursInMs = 12 * 60 * 60 * 1000;
-                const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
+            // MODIFICATION: Gray out button if the 2.5 hour submission window has passed
+            if (now > gracePeriodEnd) {
+                statusHTML = `<span class="submission-failed">Submission Window Closed</span>`;
+                buttonText = 'Window Closed';
+                buttonDisabled = 'disabled';
+            } else if (!isMyTeamSubmitted) {
+                const deadlineET = deadline.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
+                const deadlineDateET = deadline.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' });
 
-                if (diff < twelveHoursInMs) {
-                    timerEl.style.color = '#dc3545'; // Red
-                } else if (diff < twentyFourHoursInMs) {
-                    timerEl.style.color = '#fd7e14'; // Orange
-                } else {
-                    timerEl.style.color = '#28a745'; // Green
-                }
-                if (diff <= 0) {
-                    timerEl.textContent = 'Deadline Passed';
-                    clearInterval(intervalId);
-                } else {
-                    const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                    const s = Math.floor((diff % (1000 * 60)) / 1000);
-                    timerEl.textContent = `Due in: ${d}d ${h}h ${m}m ${s}s`;
-                }
-            }, 1000);
-            countdownIntervals.push(intervalId);
+                statusHTML = `
+                    <div>
+                        <span id="countdown-${game.id}" class="countdown-timer"></span>
+                        <small style="display: block; font-size: 0.75rem; color: #666;">${deadlineDateET}, ${deadlineET} ET</small>
+                    </div>
+                `;
+                const intervalId = setInterval(() => {
+                    const timerEl = document.getElementById(`countdown-${game.id}`);
+                    if (!timerEl) { clearInterval(intervalId); return; }
+                    
+                    const now = new Date();
+                    const diff = deadline.getTime() - now.getTime();
+
+                    if (diff <= 0) { // If deadline passes, change text
+                        timerEl.textContent = 'Deadline Passed';
+                    } else { // Otherwise, show countdown
+                        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const s = Math.floor((diff % (1000 * 60)) / 1000);
+                        timerEl.textContent = `Due in: ${d}d ${h}h ${m}m ${s}s`;
+                    }
+                    
+                    // Style based on time remaining to deadline
+                    const twelveHoursInMs = 12 * 60 * 60 * 1000;
+                    const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
+                    if (diff < twelveHoursInMs) timerEl.style.color = '#dc3545';
+                    else if (diff < twentyFourHoursInMs) timerEl.style.color = '#fd7e14';
+                    else timerEl.style.color = '#28a745';
+                    
+                    // Stop the timer if the grace period is over
+                    if (now > gracePeriodEnd) {
+                        clearInterval(intervalId);
+                        const gameEntryEl = document.getElementById(`game-entry-${game.id}`);
+                        if (gameEntryEl) {
+                            gameEntryEl.querySelector('.game-status').innerHTML = `<span class="submission-failed">Submission Window Closed</span>`;
+                            const btn = gameEntryEl.querySelector('button');
+                            btn.textContent = 'Window Closed';
+                            btn.disabled = true;
+                        }
+                    }
+
+                }, 1000);
+                countdownIntervals.push(intervalId);
+            }
         } else {
-             statusHTML = `<span>Awaiting Deadline</span>`;
+             if (!isMyTeamSubmitted) statusHTML = `<span>Awaiting Deadline</span>`;
              buttonDisabled = 'disabled';
-             buttonText = 'Awaiting Deadline'; // Change text for disabled button
+             buttonText = 'Awaiting Deadline';
         }
         
         scheduleHTML += `
-            <div class="game-entry" data-game-id="${game.id}" data-collection="${game.collectionName}" id="game-entry-${game.id}">
+            <div class="game-entry" data-game-id="${game.id}" data-collection="${game.collectionName}" ${dataDeadlineAttr} id="game-entry-${game.id}">
                 <span class="game-details">
                     <span class="game-teams">
                         vs <strong>${opponent?.team_name || opponentId}</strong>
@@ -243,21 +265,23 @@ async function handleOpenModalClick(e) {
     const gameEntry = e.target.closest('.game-entry');
     const gameId = gameEntry.dataset.gameId;
     const collectionName = gameEntry.dataset.collection;
+    const deadlineString = gameEntry.dataset.deadline; // MODIFICATION: Get deadline from data attribute
 
     const gameRef = doc(db, "seasons", currentSeasonId, collectionName, gameId);
     const gameDoc = await getDoc(gameRef);
 
     if (gameDoc.exists()) {
         currentGameData = { id: gameDoc.id, ...gameDoc.data(), collectionName };
-        await openLineupModal(currentGameData);
+        await openLineupModal(currentGameData, deadlineString);
     } else {
         alert("Error: Could not load data for the selected game.");
     }
 }
 
-async function openLineupModal(game) {
+async function openLineupModal(game, deadlineString) {
     lineupForm.reset();
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
+    lineupModalWarning.style.display = 'none'; // Hide warning by default
 
     document.getElementById('lineup-game-id').value = game.id;
     document.getElementById('lineup-game-date').value = game.date;
@@ -266,25 +290,48 @@ async function openLineupModal(game) {
     const opponentId = game.team1_id === myTeamId ? game.team2_id : game.team1_id;
     const opponent = allTeams.get(opponentId);
     
-    // === REQUEST 2: Populate the new subheader ===
     document.getElementById('lineup-modal-subheader').textContent = `vs. ${opponent.team_name}, ${game.date}`;
 
     const myRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === myTeamId);
+    let myLineupData = null;
+
+    // MODIFICATION: Check both pending_lineups and live_games to find submitted lineup
     const pendingGameSnap = await getDoc(doc(db, "pending_lineups", game.id));
-    const pendingData = pendingGameSnap.exists() ? pendingGameSnap.data() : {};
+    if (pendingGameSnap.exists()) {
+        const pendingData = pendingGameSnap.data();
+        myLineupData = game.team1_id === myTeamId ? pendingData.team1_lineup : pendingData.team2_lineup;
+    } else {
+        const liveGameSnap = await getDoc(doc(db, "live_games", game.id));
+        if (liveGameSnap.exists()) {
+            const liveData = liveGameSnap.data();
+            myLineupData = game.team1_id === myTeamId ? liveData.team1_lineup : liveData.team2_lineup;
+        }
+    }
     
-    const myLineupData = game.team1_id === myTeamId ? pendingData.team1_lineup : pendingData.team2_lineup;
     const myStartersMap = new Map();
     if (myLineupData) {
         myLineupData.forEach(p => myStartersMap.set(p.player_id, p));
     }
+    
+    // MODIFICATION: Logic for deadline passed warning and disabling captain selection
+    let isCaptainDisabled = false;
+    if (deadlineString) {
+        const deadline = new Date(deadlineString);
+        const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000);
+        const now = new Date();
+        if (now > lateNoCaptainEnd) {
+            isCaptainDisabled = true;
+            lineupModalWarning.textContent = "Lineup deadline passed. Cannot submit new/edited lineup with a captain.";
+            lineupModalWarning.style.display = 'block';
+        }
+    }
 
-    renderMyTeamUI('my-team', allTeams.get(myTeamId), myRoster, myStartersMap);
+    renderMyTeamUI('my-team', allTeams.get(myTeamId), myRoster, myStartersMap, isCaptainDisabled);
     
     lineupModal.classList.add('is-visible');
 }
 
-function renderMyTeamUI(teamPrefix, teamData, roster, startersMap) {
+function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, isCaptainDisabled = false) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
     rosterContainer.innerHTML = '';
@@ -301,27 +348,29 @@ function renderMyTeamUI(teamPrefix, teamData, roster, startersMap) {
     rosterContainer.querySelectorAll('.starter-checkbox').forEach(cb => {
         cb.addEventListener('change', handleStarterChange);
         if (cb.checked) {
-            addStarterCard(cb, startersMap.get(cb.dataset.playerId));
+            addStarterCard(cb, startersMap.get(cb.dataset.playerId), isCaptainDisabled);
         }
     });
 }
 
 function handleStarterChange(event) {
     const checkbox = event.target;
+    // MODIFICATION: Check if captains are disabled when adding a new card
+    const isCaptainDisabled = lineupModalWarning.style.display !== 'none';
     if (checkbox.checked) {
         if (document.querySelectorAll('#my-team-starters .starter-card').length >= 6) {
             alert("You can only select 6 starters.");
             checkbox.checked = false;
             return;
         }
-        addStarterCard(checkbox);
+        addStarterCard(checkbox, null, isCaptainDisabled);
     } else {
         removeStarterCard(checkbox);
     }
     updateStarterCount();
 }
 
-function addStarterCard(checkbox, lineupData = null) {
+function addStarterCard(checkbox, lineupData = null, isCaptainDisabled = false) {
     const { playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`my-team-starters`);
     const isCaptain = lineupData?.is_captain;
@@ -332,7 +381,7 @@ function addStarterCard(checkbox, lineupData = null) {
     card.innerHTML = `
         <div>
             <strong>${playerHandle}</strong>
-            <label><input type="radio" name="my-team-captain" value="${playerId}" ${isCaptain ? 'checked' : ''}> Captain</label>
+            <label><input type="radio" name="my-team-captain" value="${playerId}" ${isCaptain ? 'checked' : ''} ${isCaptainDisabled ? 'disabled' : ''}> Captain</label>
         </div>`;
     startersContainer.appendChild(card);
     updateStarterCount();
@@ -385,13 +434,16 @@ async function handleLineupFormSubmit(e) {
             const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000); // 10 minutes
             const now = new Date();
 
-            // If it's NOT past the grace period AND there's no captain, throw an error.
             if (!captainId && now <= lateNoCaptainEnd) {
                 alert("You must select a captain for your lineup.");
                 return;
             }
+            // This client-side check is a courtesy; the server does the real enforcement.
+            if (captainId && now > lateNoCaptainEnd) {
+                 alert("Your submission is late. You must remove your captain selection to submit.");
+                 return;
+            }
         } else if (!captainId) {
-            // If no deadline is set yet, a captain is still required.
             alert("You must select a captain for your lineup.");
             return;
         }
