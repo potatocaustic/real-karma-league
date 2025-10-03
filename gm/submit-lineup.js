@@ -92,10 +92,10 @@ async function fetchAndDisplaySchedule() {
     countdownIntervals.forEach(clearInterval);
     countdownIntervals = [];
 
-    const gamesQuery1 = query(collection(db, "seasons", currentSeasonId, "games"), where("team1_id", "==", myTeamId));
-    const gamesQuery2 = query(collection(db, "seasons", currentSeasonId, "games"), where("team2_id", "==", myTeamId));
-    const postGamesQuery1 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team1_id", "==", myTeamId));
-    const postGamesQuery2 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team2_id", "==", myTeamId));
+    const gamesQuery1 = query(collection(db, "seasons_dev", currentSeasonId, "games_dev"), where("team1_id", "==", myTeamId));
+    const gamesQuery2 = query(collection(db, "seasons_dev", currentSeasonId, "games_dev"), where("team2_id", "==", myTeamId));
+    const postGamesQuery1 = query(collection(db, "seasons_dev", currentSeasonId, "post_games_dev"), where("team1_id", "==", myTeamId));
+    const postGamesQuery2 = query(collection(db, "seasons_dev", currentSeasonId, "post_games_dev"), where("team2_id", "==", myTeamId));
 
     const [snap1, snap2, postSnap1, postSnap2] = await Promise.all([
         getDocs(gamesQuery1), getDocs(gamesQuery2), getDocs(postGamesQuery1), getDocs(postGamesQuery2)
@@ -104,12 +104,11 @@ async function fetchAndDisplaySchedule() {
     let allMyGames = [];
     const addGame = (doc, collectionName) => allMyGames.push({ id: doc.id, collectionName, ...doc.data() });
     
-    snap1.forEach(doc => addGame(doc, 'games'));
-    snap2.forEach(doc => addGame(doc, 'games'));
-    postSnap1.forEach(doc => addGame(doc, 'post_games'));
-    postSnap2.forEach(doc => addGame(doc, 'post_games'));
+    snap1.forEach(doc => addGame(doc, 'games_dev'));
+    snap2.forEach(doc => addGame(doc, 'games_dev'));
+    postSnap1.forEach(doc => addGame(doc, 'post_games_dev'));
+    postSnap2.forEach(doc => addGame(doc, 'post_games_dev'));
 
-    // === REQUEST 1: Filter for only incomplete games ===
     allMyGames = allMyGames.filter(game => game.completed !== 'TRUE');
 
     if (allMyGames.length === 0) {
@@ -126,17 +125,22 @@ async function fetchAndDisplaySchedule() {
 
     const deadlinesMap = new Map();
     if (deadlineDates.length > 0) {
-        const deadlineQuery = query(collection(db, "lineup_deadlines"), where(documentId(), 'in', deadlineDates));
+        const deadlineQuery = query(collection(db, "lineup_deadlines_dev"), where(documentId(), 'in', deadlineDates));
         const deadlinesSnap = await getDocs(deadlineQuery);
         deadlinesSnap.forEach(doc => deadlinesMap.set(doc.id, doc.data().deadline.toDate()));
     }
 
     const gameIds = allMyGames.map(g => g.id);
     const pendingLineups = new Map();
+    const liveGames = new Map();
+
     if (gameIds.length > 0) {
-        const pendingQuery = query(collection(db, "pending_lineups"), where(documentId(), 'in', gameIds));
-        const pendingSnap = await getDocs(pendingQuery);
+        const pendingQuery = query(collection(db, "pending_lineups_dev"), where(documentId(), 'in', gameIds));
+        const liveQuery = query(collection(db, "live_games_dev"), where(documentId(), 'in', gameIds));
+        const [pendingSnap, liveSnap] = await Promise.all([getDocs(pendingQuery), getDocs(liveQuery)]);
+        
         pendingSnap.forEach(doc => pendingLineups.set(doc.id, doc.data()));
+        liveSnap.forEach(doc => liveGames.set(doc.id, doc.data()));
     }
 
     let scheduleHTML = '';
@@ -147,7 +151,15 @@ async function fetchAndDisplaySchedule() {
         const opponent = allTeams.get(opponentId);
         
         let statusHTML = '';
-        const isMyTeamSubmitted = game.team1_id === myTeamId ? pendingLineups.get(game.id)?.team1_submitted : pendingLineups.get(game.id)?.team2_submitted;
+        
+        let isMyTeamSubmitted = false;
+        if (liveGames.has(game.id)) {
+            isMyTeamSubmitted = true;
+        } else {
+            const pendingGame = pendingLineups.get(game.id);
+            isMyTeamSubmitted = game.team1_id === myTeamId ? pendingGame?.team1_submitted : pendingGame?.team2_submitted;
+        }
+
         const [month, day, year] = game.date.split('/');
         const deadlineKey = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const deadline = deadlinesMap.get(deadlineKey);
@@ -155,7 +167,29 @@ async function fetchAndDisplaySchedule() {
         if (isMyTeamSubmitted) {
             statusHTML = `<span style="color: green;">Lineup Submitted ✅</span>`;
         } else if (deadline) {
-            statusHTML = `<span id="countdown-${game.id}" class="countdown-timer"></span>`;
+            // Format the deadline time for display in Eastern Time.
+            const deadlineET = deadline.toLocaleTimeString('en-US', {
+                timeZone: 'America/New_York',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            const deadlineDateET = deadline.toLocaleDateString('en-US', {
+                timeZone: 'America/New_York',
+                month: 'numeric',
+                day: 'numeric'
+            });
+
+            // Add the countdown timer and the new deadline display text.
+            statusHTML = `
+                <div>
+                    <span id="countdown-${game.id}" class="countdown-timer"></span>
+                    <small style="display: block; font-size: 0.75rem; color: #666;">
+                        ${deadlineDateET}, ${deadlineET} ET
+                    </small>
+                </div>
+            `;
+
             const intervalId = setInterval(() => {
                 const timerEl = document.getElementById(`countdown-${game.id}`);
                 if (!timerEl) { clearInterval(intervalId); return; }
@@ -185,7 +219,7 @@ async function fetchAndDisplaySchedule() {
                     </span>
                     <span class="game-date">Date: ${game.date || 'N/A'}</span>
                 </span>
-                <span class="game-status">${statusHTML}</span>
+                <div class="game-status">${statusHTML}</div>
                 <button class="btn-admin-edit">Submit Lineup</button>
             </div>`;
     });
