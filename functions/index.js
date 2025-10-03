@@ -1138,7 +1138,7 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
             const deadline = deadlineDoc.data().deadline.toDate();
             const now = new Date();
             const gracePeriodEnd = new Date(deadline.getTime() + 150 * 60 * 1000);
-            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000);
+            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000); // 10-minute grace period
 
             if (now > gracePeriodEnd) {
                 await submissionLogRef.update({ status: 'failure', reason: 'Submission window closed.' });
@@ -1152,7 +1152,11 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
                 await submissionLogRef.update({ status: 'failure', reason: 'Late submission with captain.' });
                 throw new HttpsError('invalid-argument', 'Your submission is late. You must remove your captain selection to submit.');
             }
-        }
+
+            if (!hasCaptain && now <= lateNoCaptainEnd) {
+                await submissionLogRef.update({ status: 'failure', reason: 'On-time submission missing captain.' });
+                throw new HttpsError('invalid-argument', 'You must select a captain for your lineup.');
+            }
 
         const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
         const liveGameSnap = await liveGameRef.get();
