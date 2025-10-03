@@ -54,7 +54,8 @@ async function initializePage(userId) {
         
         await cacheCoreData(currentSeasonId);
         
-        document.getElementById('gm-team-name').textContent = allTeams.get(myTeamId)?.team_name || 'My Team';
+        const teamName = allTeams.get(myTeamId)?.team_name || 'My Team';
+        document.getElementById('page-main-header').textContent = `${teamName} Upcoming Schedule`;
         loadingContainer.style.display = 'none';
         gmContainer.style.display = 'block';
 
