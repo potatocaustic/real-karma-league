@@ -1138,7 +1138,7 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
             const deadline = deadlineDoc.data().deadline.toDate();
             const now = new Date();
             const gracePeriodEnd = new Date(deadline.getTime() + 150 * 60 * 1000);
-            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000); // 10-minute grace period
+            const lateNoCaptainEnd = new Date(deadline.getTime() + 10 * 60 * 1000);
 
             if (now > gracePeriodEnd) {
                 await submissionLogRef.update({ status: 'failure', reason: 'Submission window closed.' });
@@ -1157,16 +1157,15 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
                 await submissionLogRef.update({ status: 'failure', reason: 'On-time submission missing captain.' });
                 throw new HttpsError('invalid-argument', 'You must select a captain for your lineup.');
             }
+        }
 
         const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
         const liveGameSnap = await liveGameRef.get();
 
         if (liveGameSnap.exists) {
             console.log(`Game ${gameId} is already live. Updating existing document.`);
-            
             const liveGameData = liveGameSnap.data();
             const updateData = {};
-            
             const oldPlayerScores = new Map();
             [...(liveGameData.team1_lineup || []), ...(liveGameData.team2_lineup || [])].forEach(p => {
                 oldPlayerScores.set(p.player_id, {
@@ -1192,7 +1191,6 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
             return { success: true, message: "Live game lineup has been successfully updated." };
         }
 
-        // If the game was not live, proceed with the normal pending logic.
         const pendingRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
         const dataToSet = {
             seasonId,
@@ -1213,18 +1211,15 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
 
         await pendingRef.set(dataToSet, { merge: true });
 
-        // --- FEATURE 2: Check if game is NOW ready for immediate activation ---
         const updatedPendingDoc = await pendingRef.get();
         if (updatedPendingDoc.exists) {
             const data = updatedPendingDoc.data();
-            
             const today = new Date();
             const todayStr = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
             
             if (data.gameDate === todayStr && data.team1_submitted === true && data.team2_submitted === true) {
                 console.log(`Game ${gameId} is ready for immediate activation.`);
                 const batch = db.batch();
-
                 batch.set(liveGameRef, {
                     seasonId: data.seasonId,
                     collectionName: data.collectionName,
@@ -1247,11 +1242,11 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
              await submissionLogRef.update({ status: 'failure', reason: `Internal error: ${error.message}` });
              throw new HttpsError('internal', `Could not stage lineups: ${error.message}`);
         } else {
+            // Re-throw the specific HttpsError to be sent to the client
             throw error;
         }
     }
 });
-
 
 exports.processPendingLiveGames = onSchedule({
     schedule: "15 6 * * *",
