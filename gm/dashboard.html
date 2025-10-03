@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RKL GM Portal</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <header>
+        <div id="auth-status"></div>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <span class="header-text">Real Karma League</span>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="/S8/RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="/S8/standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/leaderboards.html">Leaderboards</a>
+                        <a href="/S8/compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="/S8/schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/draft-capital.html">Draft Capital</a>
+                        <a href="/S8/draft-results.html">Draft Results</a>
+                        <a href="/S8/draft-lottery.html">Draft Lottery</a>
+                        <a href="/S8/draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="/S8/transactions.html">Transactions</a></li>
+                <li><a href="/S8/teams.html">Teams</a></li>
+                <li><a href="/S8/trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main id="gm-dashboard-container" style="display: none;">
+        <h2>GM Portal</h2>
+        <p id="welcome-message">Welcome! Select a management task below.</p>
+        <div class="dashboard-grid">
+            <a href="/gm/submit-lineup.html" class="nav-card">
+                <div class="nav-card-icon">📅</div>
+                <div class="nav-card-title">Submit Lineup</div>
+                <div class="nav-card-description">View your upcoming schedule and submit lineups.</div>
+            </a>
+            <a href="/common/trade-block.html" class="nav-card">
+                <div class="nav-card-icon">🔄</div>
+                <div class="nav-card-title">Trade Block</div>
+                <div class="nav-card-description">View league trade blocks and manage your own.</div>
+            </a>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/gm/dashboard.js"></script>
+</body>
+</html>
