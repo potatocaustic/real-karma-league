@@ -16,7 +16,7 @@ import {
 // ======================= MODIFICATION START =======================
 // This helper function makes the script self-sufficient, just like manage-games.js.
 // Set to 'false' when deploying to production.
-const USE_DEV_COLLECTIONS = true; 
+const USE_DEV_COLLECTIONS = false; 
 const getCollectionName = (baseName) => {
     // Note: The admin dashboard uses 'users', but the GM logic relies on 'v2_teams' which has the gm_uid field.
     if (baseName === 'teams') {
