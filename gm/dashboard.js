@@ -9,9 +9,23 @@ import {
     query,
     where,
     limit,
-    getDocs,
-    collectionNames
+    getDocs
 } from '/js/firebase-init.js';
+
+
+// ======================= MODIFICATION START =======================
+// This helper function makes the script self-sufficient, just like manage-games.js.
+// Set to 'false' when deploying to production.
+const USE_DEV_COLLECTIONS = true; 
+const getCollectionName = (baseName) => {
+    // Note: The admin dashboard uses 'users', but the GM logic relies on 'v2_teams' which has the gm_uid field.
+    if (baseName === 'teams') {
+        return USE_DEV_COLLECTIONS ? 'v2_teams_dev' : 'v2_teams';
+    }
+    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+};
+// ======================= MODIFICATION END =======================
+
 
 document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
@@ -20,12 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            // Check if the user is an admin first
-            const userRef = doc(db, collectionNames.users, user.uid);
+            const userRef = doc(db, getCollectionName('users'), user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
-                // If admin, show a link to the admin dashboard
                 loadingContainer.innerHTML = `
                     <div class="error" style="text-align: center;">
                         Welcome, Admin. <br/>
@@ -34,8 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // Check if the user is a GM
-            const teamsQuery = query(collection(db, collectionNames.v2_teams), where("gm_uid", "==", user.uid), limit(1));
+            const teamsQuery = query(collection(db, getCollectionName('teams')), where("gm_uid", "==", user.uid), limit(1));
             const teamSnap = await getDocs(teamsQuery);
 
             if (!teamSnap.empty) {
@@ -50,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } else {
-            // If not logged in at all, redirect to login page
             window.location.href = '/login.html?reason=unauthorized';
         }
     });
