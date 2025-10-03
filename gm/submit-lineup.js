@@ -124,7 +124,10 @@ async function fetchAndDisplaySchedule() {
     allMyGames.sort((a, b) => new Date(a.date) - new Date(b.date));
 
     // Fetch deadlines and submission statuses
-    const deadlineDates = [...new Set(allMyGames.map(g => g.date.split('/').reverse().join('-')))];
+    const deadlineDates = [...new Set(allMyGames.map(g => {
+        const [month, day, year] = g.date.split('/');
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }))];
     const deadlinesMap = new Map();
     if (deadlineDates.length > 0) {
         const deadlineQuery = query(collection(db, "lineup_deadlines"), where(documentId(), 'in', deadlineDates));
