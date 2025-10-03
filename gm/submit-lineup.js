@@ -152,7 +152,10 @@ async function fetchAndDisplaySchedule() {
         const opponent = allTeams.get(opponentId);
         
         let statusHTML = '';
-        let buttonDisabled = ''; // Variable to hold the 'disabled' attribute for the button
+        let buttonDisabled = '';
+        // ======================= MODIFICATION START =======================
+        let buttonText = 'Submit Lineup'; // Default button text
+        // ======================= MODIFICATION END =======================
 
         let isMyTeamSubmitted = false;
         if (liveGames.has(game.id)) {
@@ -168,7 +171,7 @@ async function fetchAndDisplaySchedule() {
 
         if (isMyTeamSubmitted) {
             statusHTML = `<span style="color: green;">Lineup Submitted ✅</span>`;
-            // Button remains enabled to allow editing
+            buttonText = 'Edit Lineup'; // Change text for submitted lineups
         } else if (deadline) {
             const deadlineET = deadline.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit', hour12: true });
             const deadlineDateET = deadline.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: 'numeric', day: 'numeric' });
@@ -211,6 +214,7 @@ async function fetchAndDisplaySchedule() {
         } else {
              statusHTML = `<span>Awaiting Deadline</span>`;
              buttonDisabled = 'disabled';
+             buttonText = 'Awaiting Deadline'; // Change text for disabled button
         }
         
         scheduleHTML += `
@@ -222,7 +226,7 @@ async function fetchAndDisplaySchedule() {
                     <span class="game-date">Date: ${game.date || 'N/A'}</span>
                 </span>
                 <div class="game-status">${statusHTML}</div>
-                <button class="btn-admin-edit" ${buttonDisabled}>${isMyTeamSubmitted ? 'Edit Lineup' : 'Submit Lineup'}</button>
+                <button class="btn-admin-edit" ${buttonDisabled}>${buttonText}</button>
             </div>`;
     });
     scheduleListContainer.innerHTML = scheduleHTML;
@@ -232,6 +236,7 @@ async function fetchAndDisplaySchedule() {
         document.getElementById(`game-entry-${firstIncompleteGameId}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 }
+
 async function handleOpenModalClick(e) {
     if (!e.target.matches('.btn-admin-edit')) return;
     
