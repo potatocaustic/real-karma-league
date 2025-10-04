@@ -1214,8 +1214,10 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
         const updatedPendingDoc = await pendingRef.get();
         if (updatedPendingDoc.exists) {
             const data = updatedPendingDoc.data();
-            const today = new Date();
-            const todayStr = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+
+            const nowInChicago = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+            const todayInChicago = new Date(nowInChicago);
+            const todayStr = `${todayInChicago.getMonth() + 1}/${todayInChicago.getDate()}/${todayInChicago.getFullYear()}`;
             
             if (data.gameDate === todayStr && data.team1_submitted === true && data.team2_submitted === true) {
                 console.log(`Game ${gameId} is ready for immediate activation.`);
