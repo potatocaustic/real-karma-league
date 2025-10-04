@@ -1092,7 +1092,6 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
     }
 });
 
-// functions/index.js
 
 exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth) {
