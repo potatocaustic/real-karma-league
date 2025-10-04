@@ -15,9 +15,8 @@ const getCollectionName = (baseName) => {
 
 // --- Page Elements ---
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
-// ======================= MODIFICATION START =======================
 let deadlineForm, deadlineDateInput, deadlineDisplay;
-// ======================= MODIFICATION END =======================
+
 
 
 // --- Global Data Cache ---
@@ -40,12 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
     lineupForm = document.getElementById('lineup-form');
     closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
     liveScoringControls = document.getElementById('live-scoring-controls');
-
-    // ======================= MODIFICATION START =======================
     deadlineForm = document.getElementById('deadline-form');
     deadlineDateInput = document.getElementById('deadline-date');
     deadlineDisplay = document.getElementById('current-deadline-display');
-    // ======================= MODIFICATION END =======================
+
 
 
     onAuthStateChanged(auth, async (user) => {
@@ -886,41 +883,20 @@ async function handleStageLiveLineups(e) {
         });
     }
     
-    const gameDateParts = gameDateStr.split('/');
-    const gameDateObj = new Date(+gameDateParts[2], gameDateParts[0] - 1, +gameDateParts[1]);
-    gameDateObj.setHours(0, 0, 0, 0);
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const isGameToday = gameDateObj.getTime() === today.getTime();
-    const canActivateImmediately = isGameToday && isTeam1LineupValid && isTeam2LineupValid;
-
     try {
-        if (canActivateImmediately) {
-            button.textContent = 'Activating...';
-            const activateLiveGame = httpsCallable(functions, 'activateLiveGame');
-            await activateLiveGame({
-                gameId,
-                seasonId: currentSeasonId,
-                collectionName,
-                team1_lineup,
-                team2_lineup
-            });
-            alert('Game is today and both lineups are complete. Activated for live scoring immediately!');
-        } else {
-            button.textContent = 'Staging...';
-            const stageLiveLineups = httpsCallable(functions, 'stageLiveLineups');
-            await stageLiveLineups({
-                gameId,
-                seasonId: currentSeasonId,
-                collectionName,
-                gameDate: gameDateStr,
-                team1_lineup,
-                team2_lineup
-            });
-            alert('Lineup(s) staged successfully! The game will go live on its scheduled date if both lineups are submitted.');
-        }
+        button.textContent = 'Submitting...';
+        const stageLiveLineups = httpsCallable(functions, 'stageLiveLineups');
+        
+        await stageLiveLineups({
+            gameId,
+            seasonId: currentSeasonId,
+            collectionName,
+            gameDate: gameDateStr,
+            team1_lineup,
+            team2_lineup
+        });
+        
+        alert('Lineup(s) submitted successfully! The server will process them according to the game day schedule.');
 
         lineupModal.classList.remove('is-visible');
         fetchAndDisplayGames(currentSeasonId, weekSelect.value);
