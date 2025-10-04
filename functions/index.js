@@ -1092,6 +1092,8 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
     }
 });
 
+// functions/index.js
+
 exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => {
     if (!request.auth) {
         throw new HttpsError('permission-denied', 'You must be logged in to submit a lineup.');
@@ -1214,10 +1216,15 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
         const updatedPendingDoc = await pendingRef.get();
         if (updatedPendingDoc.exists) {
             const data = updatedPendingDoc.data();
-
+            
             const nowInChicago = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
-            const todayInChicago = new Date(nowInChicago);
-            const todayStr = `${todayInChicago.getMonth() + 1}/${todayInChicago.getDate()}/${todayInChicago.getFullYear()}`;
+            let gamedayInChicago = new Date(nowInChicago);
+
+            if (gamedayInChicago.getHours() < 6) {
+                gamedayInChicago.setDate(gamedayInChicago.getDate() - 1);
+            }
+
+            const todayStr = `${gamedayInChicago.getMonth() + 1}/${gamedayInChicago.getDate()}/${gamedayInChicago.getFullYear()}`;
             
             if (data.gameDate === todayStr && data.team1_submitted === true && data.team2_submitted === true) {
                 console.log(`Game ${gameId} is ready for immediate activation.`);
@@ -1244,7 +1251,6 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
              await submissionLogRef.update({ status: 'failure', reason: `Internal error: ${error.message}` });
              throw new HttpsError('internal', `Could not stage lineups: ${error.message}`);
         } else {
-            // Re-throw the specific HttpsError to be sent to the client
             throw error;
         }
     }
