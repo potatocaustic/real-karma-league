@@ -524,18 +524,31 @@
                 teamsWithRecords.forEach(team => allTeamsMap.set(team.id, team));
 
                 const seasonDocRef = doc(db, getCollectionName('seasons'), SEASON_ID);
-
-                console.log("--- DEBUGGING PLAYOFF BRACKET ---");
-                console.log("Is 'seasonDocRef' a valid object?", seasonDocRef);
-                console.log("Collection name being used:", getCollectionName('post_games'));
-
                 const postGamesQuery = collection(seasonDocRef, getCollectionName('post_games')); 
                 const postGamesSnap = await getDocs(postGamesQuery);
 
+                // ===================== FIX START =====================
+                // The original code overwrote series data for each game in a series.
+                // This new logic correctly groups all games by series, then finds the
+                // most recent game document to use as the source of truth for series state.
+
+                const gamesBySeries = new Map();
                 postGamesSnap.forEach(doc => {
-                    const gameData = doc.data();
-                    seriesMap.set(gameData.series_id, gameData);
+                    const gameData = { id: doc.id, ...doc.data() }; 
+                    if (!gamesBySeries.has(gameData.series_id)) {
+                        gamesBySeries.set(gameData.series_id, []);
+                    }
+                    gamesBySeries.get(gameData.series_id).push(gameData);
                 });
+
+                for (const [seriesId, games] of gamesBySeries.entries()) {
+                    // Sort games by their document ID in descending order. Since document IDs
+                    // are time-based, this reliably puts the most recently created game first.
+                    games.sort((a, b) => b.id.localeCompare(a.id));
+                    // Set the series data to be the most recent game, which has the cumulative win/loss counts.
+                    seriesMap.set(seriesId, games[0]); 
+                }
+                // ====================== FIX END ======================
 
                 return true; 
             } catch (error) {
