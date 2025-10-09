@@ -17,25 +17,37 @@ main {
 
 .playoff-button-container {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem; /* Increased margin for better spacing */
 }
 
 .playoff-button {
     display: inline-block;
-    background-color: #007bff;
+    /* Match the header background for a more integrated, premium feel */
+    background-color: #333;
     color: white !important;
-    padding: 1rem 2rem;
-    font-size: 1.25rem;
+    padding: 1rem 2.5rem; /* Slightly more horizontal padding */
+    font-size: 1.2rem;   /* Slightly smaller font for the uppercase text */
     font-weight: bold;
     text-decoration: none;
     border-radius: 8px;
-    transition: background-color 0.3s, transform 0.2s;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    /* Add a subtle border for definition */
+    border: 1px solid #555;
+    /* Add uppercase and letter spacing for a more professional look */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    /* Enhanced shadow for more depth */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    /* Smoother transitions for all animated properties */
+    transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s, border-color 0.3s;
 }
 
 .playoff-button:hover {
-    background-color: #0056b3;
-    transform: translateY(-2px);
+    /* Use the site's primary accent color on hover for a dynamic effect */
+    background-color: #007bff;
+    border-color: #007bff; /* Match border to the new background */
+    transform: translateY(-3px); /* Slightly more lift */
+    /* Enhance the shadow on hover */
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
 }
 
 .season-info {
