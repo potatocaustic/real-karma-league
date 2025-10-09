@@ -761,4 +761,11 @@ main {
     .quick-nav {
         grid-template-columns: 1fr;
     }
+
+    .playoff-button {
+        font-size: 1rem; /* Reduce font size */
+        padding: 0.8rem 1.5rem; /* Adjust padding */
+        letter-spacing: normal; /* Remove extra letter spacing */
+        white-space: nowrap; /* Ensure text stays on one line */
+    }
 }
