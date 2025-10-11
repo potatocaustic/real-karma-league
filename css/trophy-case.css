@@ -215,14 +215,24 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    /* Truncate long text */
+    max-width: 100%;
+}
+
+.all-star-player-info a:hover {
+    text-decoration: underline;
+}
+
+/* NEW: Rule to handle name truncation */
+.player-name-truncate {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.all-star-player-info a:hover {
-    text-decoration: underline;
+/* NEW: Rule to prevent badges from shrinking */
+.all-star-player-info a > .rookie-badge,
+.all-star-player-info a > .all-star-badge {
+    flex-shrink: 0;
 }
 
 .all-star-stats {

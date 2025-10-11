@@ -298,7 +298,7 @@
                     <li class="all-star-item">
                         <img src="../icons/${p.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
                         <div class="all-star-player-info">
-                            <a href="player.html?handle=${encodeURIComponent(p.player_handle)}">${p.player_handle} ${badgesHTML}</a>
+                            <a href="player.html?handle=${encodeURIComponent(p.player_handle)}"><span class="player-name-truncate">${p.player_handle}</span> ${badgesHTML}</a>
                             <div class="all-star-stats">Med Rank: ${medRank}</div>
                         </div>
                         <div class="all-star-stat">${relMedian}</div>
