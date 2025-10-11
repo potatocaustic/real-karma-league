@@ -319,7 +319,8 @@
         grid-template-columns: 1fr;
     }
     .all-star-list-header, .all-star-item {
-        grid-template-columns: auto 1fr 55px; /* Icon | Player | REL */
+        /* UPDATED: Increased stat column width to prevent header wrapping */
+        grid-template-columns: auto 1fr 70px; /* Icon | Player | REL */
         font-size: 0.9rem;
     }
     .all-star-list-header .stat-col-header, .all-star-stat {
