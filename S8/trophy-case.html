@@ -348,7 +348,7 @@
                 if(!gameId || gameId === 'undefined') throw new Error("Game ID is missing or undefined.");
                 const gameRef = doc(db, getCollectionName('seasons'), SEASON_ID, gameCollection, gameId);
                 const lineupsCollectionName = gameCollection === getCollectionName('games') ? getCollectionName('lineups') : getCollectionName('post_lineups');
-                const lineupsQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, lineupsCollectionName), where("game_id", "==", gameId), where("starter", "==", "1"));
+                const lineupsQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, lineupsCollectionName), where("game_id", "==", gameId), where("started", "==", "TRUE"));
                 const [gameSnap, lineupsSnap] = await Promise.all([getDoc(gameRef), getDocs(lineupsQuery)]);
                 if (!gameSnap.exists()) throw new Error("Game not found.");
                 
