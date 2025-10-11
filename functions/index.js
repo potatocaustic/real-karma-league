@@ -2661,6 +2661,7 @@ async function processCompletedGame(event) {
     const seasonId = event.params.seasonId;
     const gameId = event.params.gameId;
 
+    // Exit if this isn't a game completion event
     if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
         return null;
     }
@@ -2668,9 +2669,9 @@ async function processCompletedGame(event) {
 
     const gameDate = after.date;
     const batch = db.batch();
-
     const isPostseason = !/^\d+$/.test(after.week) && after.week !== "All-Star" && after.week !== "Relegation";
 
+    // Update postseason series win counts if applicable
     if (isPostseason) {
         const winnerId = after.winner;
         if (winnerId) {
@@ -2708,22 +2709,29 @@ async function processCompletedGame(event) {
         }
     }
 
+    // --- BUG FIX LOGIC START ---
+    // 1. Fetch ALL games scheduled for the same date as the completed game.
     const regGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).get();
     const postGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).get();
 
     const [regGamesSnap, postGamesSnap] = await Promise.all([regGamesQuery, postGamesQuery]);
-    
     const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
 
+    // 2. Check if any other games from that date are still incomplete.
     const incompleteGames = allGamesForDate.filter(doc => {
-        return doc.id !== gameId && doc.data().completed !== 'TRUE';
+        // This check is critical. It includes the currently triggering game, ensuring it's seen as complete.
+        const gameData = doc.id === gameId ? after : doc.data();
+        return gameData.completed !== 'TRUE';
     });
     
+    // 3. If any games are still pending, exit. This function will run again when the next game is completed.
+    // This prevents the race condition by ensuring calculations only happen once, on the final completion of the day.
     if (incompleteGames.length > 0) {
         console.log(`Not all games for ${gameDate} are complete. Deferring calculations. Incomplete count: ${incompleteGames.length}`);
-        await batch.commit(); 
+        await batch.commit(); // Commit any series win updates and exit
         return null;
     }
+    // --- BUG FIX LOGIC END ---
     
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 
@@ -2743,6 +2751,7 @@ async function processCompletedGame(event) {
         return null;
     }
 
+    // Player stat calculations (mean, median, etc.)
     const scores = lineupsSnap.docs.map(d => d.data().points_adjusted || 0);
     const mean = scores.reduce((s, v) => s + v, 0) / scores.length;
     const median = calculateMedian(scores);
@@ -2761,15 +2770,14 @@ async function processCompletedGame(event) {
     averagesSnap.docs.forEach(doc => fullDailyAveragesMap.set(doc.data().date, doc.data()));
     fullDailyAveragesMap.set(gameDate, dailyAvgDataForMap);
 
+    // Update individual lineup documents with advanced stats
     const enhancedLineups = [];
     const lineupsByPlayer = new Map();
-
     lineupsSnap.docs.forEach(doc => {
         const lineupData = doc.data();
         const points = lineupData.points_adjusted || 0;
         const aboveMean = points - mean;
         const aboveMedian = points - median;
-
         const enhancedData = {
             ...lineupData,
             above_mean: aboveMean,
@@ -2780,7 +2788,6 @@ async function processCompletedGame(event) {
             pct_above_median: median ? aboveMedian / median : 0,
             SingleGameWar: win ? (points - replacement) / win : 0,
         };
-
         batch.update(doc.ref, {
             above_mean: enhancedData.above_mean,
             AboveAvg: enhancedData.AboveAvg,
@@ -2790,7 +2797,6 @@ async function processCompletedGame(event) {
             pct_above_median: enhancedData.pct_above_median,
             SingleGameWar: enhancedData.SingleGameWar,
         });
-
         enhancedLineups.push(enhancedData);
         if (!lineupsByPlayer.has(lineupData.player_id)) {
             lineupsByPlayer.set(lineupData.player_id, []);
@@ -2798,12 +2804,18 @@ async function processCompletedGame(event) {
         lineupsByPlayer.get(lineupData.player_id).push(enhancedData);
     });
 
-    const teamScores = allGamesForDate.flatMap(d => [d.data().team1_score, d.data().team2_score]);
+    // 4. Calculate the SINGLE, CORRECT median based on ALL team scores from the day.
+    const teamScores = allGamesForDate.flatMap(d => {
+        const gameData = d.id === gameId ? after : d.data();
+        return [gameData.team1_score, gameData.team2_score];
+    });
     const teamMedian = calculateMedian(teamScores);
 
+    // 5. Loop through ALL teams that played today and create/overwrite their daily_scores document.
+    // This ensures every team from the day uses the same, correct teamMedian.
     const newDailyScores = [];
     allGamesForDate.forEach(doc => {
-        const game = doc.data();
+        const game = doc.id === gameId ? after : doc.data();
         const currentGameId = doc.id;
         [{ id: game.team1_id, score: game.team1_score }, { id: game.team2_id, score: game.team2_score }].forEach(team => {
             const scoreRef = db.doc(`${getCollectionName(scoresColl)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${scoresColl}`)}/${team.id}-${currentGameId}`);
@@ -2818,12 +2830,10 @@ async function processCompletedGame(event) {
         });
     });
 
+    // Cascade updates to player and team seasonal stats
     let totalKarmaChangeForGame = 0;
-
     for (const [pid, newPlayerLineups] of lineupsByPlayer.entries()) {
-
         await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, fullDailyAveragesMap, newPlayerLineups);
-
         const pointsFromThisUpdate = newPlayerLineups.reduce((sum, lineup) => sum + (lineup.points_adjusted || 0), 0);
         totalKarmaChangeForGame += pointsFromThisUpdate;
     }
