@@ -291,7 +291,7 @@
                 const isAllStar = stats?.all_star === '1';
                 const isRookie = stats?.rookie === '1';
                 let badgesHTML = '';
-                if(isAllStar && !isRisingStar) badgesHTML += `<span class="all-star-badge">★</span>`;
+                if(isAllStar) badgesHTML += `<span class="all-star-badge">★</span>`;
                 if(isRookie) badgesHTML += `<span class="rookie-badge">R</span>`;
                 
                 return `
