@@ -941,3 +941,44 @@ main {
     color: #d4eaff;
     border-color: #0056b3;
 }
+
+/* Add to /admin/admin-styles.css */
+
+#report-output {
+    white-space: normal; /* Allow the container to wrap content normally */
+}
+
+/* This targets the <pre> tag inside the lineups report specifically */
+#report-output .report-item-text {
+    white-space: pre-wrap; 
+}
+
+.report-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid #444;
+}
+
+.report-item:last-of-type {
+    border-bottom: none;
+}
+
+.report-item > .report-item-text {
+    flex-grow: 1;
+    margin-right: 15px;
+}
+
+.copy-icon {
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    user-select: none; /* Prevents text selection on double click */
+}
+
+.copy-icon:hover {
+    background-color: #555;
+}

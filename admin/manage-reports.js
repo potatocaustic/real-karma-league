@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function initializeReportButtons() {
-        // Set default dates to today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('deadline-date').value = today;
         document.getElementById('gotd-date').value = today;
@@ -85,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await callGetReportData('deadline', { date: firestoreDate });
 
-        if (data && data.games) {
+        if (data && data.games && data.games.length > 0) {
             const dashes = '—'.repeat(12);
             const gameLines = data.games.map(g => `${g.team1_name} vs ${g.team2_name}`).join('\n');
             const output = `${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\nSend me your lineups by ${timeInput}`;
@@ -106,10 +105,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const data = await callGetReportData('voteGOTD', { date: firestoreDate });
 
-        if (data && data.games) {
-            const title = `Vote GOTD (${firestoreDate}):`;
-            const gameLines = data.games.map(g => `${g.team1_name} (${g.team1_record}) vs ${g.team2_name} (${g.team2_record})`).join('\n');
-            displayReport(`${title}\n${gameLines}`);
+        if (data && data.games && data.games.length > 0) {
+            const reportContainer = document.createDocumentFragment();
+            
+            const titleEl = document.createElement('div');
+            titleEl.textContent = `Vote GOTD (${firestoreDate}):`;
+            titleEl.style.fontWeight = 'bold';
+            titleEl.style.marginBottom = '10px';
+            reportContainer.appendChild(titleEl);
+
+            data.games.forEach(g => {
+                const gameText = `${g.team1_name} (${g.team1_record}) vs ${g.team2_name} (${g.team2_record})`;
+                
+                const gameContainer = document.createElement('div');
+                gameContainer.className = 'report-item';
+                
+                const textSpan = document.createElement('span');
+                textSpan.className = 'report-item-text';
+                textSpan.textContent = gameText;
+
+                const copyIcon = document.createElement('span');
+                copyIcon.className = 'copy-icon';
+                copyIcon.textContent = '📋';
+                copyIcon.title = 'Copy game';
+                copyIcon.onclick = () => {
+                    navigator.clipboard.writeText(gameText).then(() => {
+                        copyIcon.textContent = '✅';
+                        setTimeout(() => { copyIcon.textContent = '📋'; }, 1500);
+                    }).catch(err => console.error('Failed to copy text: ', err));
+                };
+                
+                gameContainer.appendChild(textSpan);
+                gameContainer.appendChild(copyIcon);
+                reportContainer.appendChild(gameContainer);
+            });
+
+            displayReport(reportContainer);
         } else {
             displayReport(`No games found for ${firestoreDate}.`);
         }
@@ -125,11 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             data.games.forEach(game => {
                 const gameOption = document.createElement('div');
-                gameOption.className = 'gotd-game-option'; // For selection logic
+                gameOption.className = 'gotd-game-option';
                 gameOption.textContent = `${game.team1_name} vs ${game.team2_name}`;
                 gameOption.dataset.gameId = game.gameId;
 
-                // Basic styling for clickable items
                 Object.assign(gameOption.style, {
                     padding: '10px',
                     margin: '5px 0',
@@ -140,13 +170,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 gameOption.addEventListener('click', () => {
-                    // Deselect all other options
                     document.querySelectorAll('.gotd-game-option').forEach(opt => {
                         opt.classList.remove('selected');
                         opt.style.backgroundColor = '';
                         opt.style.borderColor = '#555';
                     });
-                    // Select the clicked option
                     gameOption.classList.add('selected');
                     gameOption.style.backgroundColor = '#004a7c';
                     gameOption.style.borderColor = '#007bff';
@@ -179,65 +207,95 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date();
         const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
         
-        let output = `Lineups ${formattedDate}\n\n`;
-        let gotdOutput = '';
+        const reportContainer = document.createDocumentFragment();
+        const titleEl = document.createElement('div');
+        titleEl.textContent = `Lineups ${formattedDate}`;
+        titleEl.style.fontWeight = 'bold';
+        titleEl.style.marginBottom = '10px';
+        reportContainer.appendChild(titleEl);
 
-        const captainEmojis = {
-            'Hornets': ' 🐝',
-            'Vipers': ' 🐍',
-            'MLB': ' 👼',
-            'Aces': ' ♠️',
-            'Otters': ' 🦦',
-            'Empire': ' 💤',
-            'Demons': ' 😈',
-            'Hounds': ' 🐶',
-            'Legion': ' 🥷',
-            'Kings': ' 👑',
-            'Donuts': ' 🍩'
-        };
-
+        const captainEmojis = { 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Legion': ' 🥷', 'Kings': ' 👑', 'Donuts': ' 🍩' };
         const usa_diabetics = ['PJPB7G3y', 'QvDP2zgv', 'k3LgQL4v', 'rnejGZ2J', 'V3yAQ6Y3'];
         const can_diabetics = ['BJ0r9gL3', 'AnzRoOpn', 'kJwL5b8v'];
 
         const formatPlayerLine = (player, teamName) => {
             let line = '';
             if (teamName === 'Diabetics') {
-                if (usa_diabetics.includes(player.player_id)) {
-                    line += '🇺🇸 ';
-                } else if (can_diabetics.includes(player.player_id)) {
-                    line += '🇨🇦 ';
-                }
+                if (usa_diabetics.includes(player.player_id)) line += '🇺🇸 ';
+                else if (can_diabetics.includes(player.player_id)) line += '🇨🇦 ';
             }
             line += `@${player.player_handle}`;
             if (player.is_captain) {
-                const emoji = captainEmojis[teamName] || ' (c)';
-                line += emoji;
+                line += captainEmojis[teamName] || ' (c)';
             }
             return line;
         };
+
+        let gotdGameBlock = null;
 
         gamesData.forEach(game => {
             const team1Lineup = game.team1_lineup.map(p => formatPlayerLine(p, game.team1_name)).join('\n ');
             const team2Lineup = game.team2_lineup.map(p => formatPlayerLine(p, game.team2_name)).join('\n ');
             
-            const gameBlock = `${game.team1_name} (${game.team1_record})\n ${team1Lineup}\nvs \n${game.team2_name} (${game.team2_record})\n ${team2Lineup}\n\n`;
+            const gameBlockText = `${game.team1_name} (${game.team1_record})\n ${team1Lineup}\nvs \n${game.team2_name} (${game.team2_record})\n ${team2Lineup}`;
+
+            const gameContainer = document.createElement('div');
+            gameContainer.className = 'report-item';
+            
+            const textPre = document.createElement('pre');
+            textPre.className = 'report-item-text';
+            textPre.textContent = gameBlockText;
+
+            const copyIcon = document.createElement('span');
+            copyIcon.className = 'copy-icon';
+            copyIcon.textContent = '📋';
+            copyIcon.title = 'Copy matchup';
+            copyIcon.onclick = () => {
+                navigator.clipboard.writeText(gameBlockText).then(() => {
+                    copyIcon.textContent = '✅';
+                    setTimeout(() => { copyIcon.textContent = '📋'; }, 1500);
+                }).catch(err => console.error('Failed to copy text: ', err));
+            };
+            
+            gameContainer.appendChild(textPre);
+            gameContainer.appendChild(copyIcon);
 
             if (game.gameId === gotdId) {
-                gotdOutput = `GOTD (${formattedDate})\n~~~~~~~~~~~~~~\n${gameBlock}`;
+                gotdGameBlock = gameContainer;
             } else {
-                output += gameBlock;
+                reportContainer.appendChild(gameContainer);
             }
         });
         
-        output += gotdOutput;
-        displayReport(output);
+        if (gotdGameBlock) {
+            const gotdTitle = document.createElement('div');
+            gotdTitle.textContent = `GOTD (${formattedDate})`;
+            gotdTitle.style.fontWeight = 'bold';
+            gotdTitle.style.marginTop = '20px';
+            
+            const separator = document.createElement('div');
+            separator.textContent = '~~~~~~~~~~~~~~';
+            separator.style.margin = '5px 0 10px 0';
+            
+            reportContainer.appendChild(gotdTitle);
+            reportContainer.appendChild(separator);
+            reportContainer.appendChild(gotdGameBlock);
+        }
+
+        displayReport(reportContainer);
         document.getElementById('gotd-selector-container').style.display = 'none';
     }
 
-
-    function displayReport(text) {
+    function displayReport(content) {
         reportOutputContainer.style.display = 'block';
-        reportOutputEl.textContent = text;
+        reportOutputEl.innerHTML = ''; // Clear previous content
+
+        if (typeof content === 'string') {
+            reportOutputEl.textContent = content;
+        } else {
+            // Appends a DocumentFragment or a single DOM node
+            reportOutputEl.appendChild(content);
+        }
         reportOutputEl.scrollTop = 0; // Scroll to top
     }
 
@@ -273,4 +331,3 @@ document.addEventListener('DOMContentLoaded', () => {
         adminContainer.style.display = 'none';
     }
 });
-

@@ -3664,9 +3664,24 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
         if (reportType === 'deadline' || reportType === 'voteGOTD') {
             if (!date) throw new HttpsError('invalid-argument', 'A date is required for this report.');
             
-            const gamesQuery = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('games')}`).where('date', '==', date);
-            const gamesSnap = await gamesQuery.get();
-            const games = gamesSnap.docs.map(doc => {
+            const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
+
+            // Create queries for all three game types
+            const regGamesQuery = seasonRef.collection(getCollectionName('games')).where('date', '==', date);
+            const postGamesQuery = seasonRef.collection(getCollectionName('post_games')).where('date', '==', date);
+            const exGamesQuery = seasonRef.collection(getCollectionName('exhibition_games')).where('date', '==', date);
+
+            // Fetch all games concurrently
+            const [regGamesSnap, postGamesSnap, exGamesSnap] = await Promise.all([
+                regGamesQuery.get(),
+                postGamesQuery.get(),
+                exGamesQuery.get()
+            ]);
+
+            // Combine the results from all snapshots
+            const allGamesDocs = [...regGamesSnap.docs, ...postGamesSnap.docs, ...exGamesSnap.docs];
+
+            const games = allGamesDocs.map(doc => {
                 const game = doc.data();
                 const team1 = teamDataMap.get(game.team1_id) || { name: game.team1_id, record: '?-?' };
                 const team2 = teamDataMap.get(game.team2_id) || { name: game.team2_id, record: '?-?' };
@@ -3691,7 +3706,6 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
                 const originalGameSnap = await originalGameRef.get();
 
                 let team1_id, team2_id;
-                // MODIFICATION: Changed from .exists() to the .exists property for the Admin SDK.
                 if (originalGameSnap.exists) { 
                     const originalGameData = originalGameSnap.data();
                     team1_id = originalGameData.team1_id;
