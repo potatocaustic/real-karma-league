@@ -317,16 +317,15 @@
         grid-template-columns: 1fr;
     }
     .all-star-list-header, .all-star-item {
-        /* UPDATED: Changed grid to 3 columns to show only REL Med */
         grid-template-columns: auto 1fr 55px; /* Icon | Player | REL */
         font-size: 0.9rem;
     }
     .all-star-list-header .stat-col-header, .all-star-stat {
         text-align: right;
     }
-    /* UPDATED: Hide the second and third stat columns (WAR and GEM) */
-    .all-star-list-header .stat-col-header:nth-of-type(n+2),
-    .all-star-item .all-star-stat:nth-of-type(n+2) {
+    /* CORRECTED: Hides WAR and GEM columns, leaving REL Med visible */
+    .all-star-list-header > span:nth-of-type(n+3),
+    .all-star-item > div:nth-of-type(n+3) {
         display: none;
     }
 }
