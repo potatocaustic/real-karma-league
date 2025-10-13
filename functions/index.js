@@ -3112,34 +3112,47 @@ async function performWeekUpdate() {
 
         let nextGameWeek = null;
 
+        // --- BUG FIX START ---
+        // Helper function to find the earliest game from a snapshot
+        const findEarliestGame = (snapshot) => {
+            if (snapshot.empty) {
+                return null;
+            }
+            let earliestGame = null;
+            let earliestDate = null;
+
+            snapshot.docs.forEach(doc => {
+                const gameData = doc.data();
+                const gameDate = new Date(gameData.date);
+                if (!earliestDate || gameDate < earliestDate) {
+                    earliestDate = gameDate;
+                    earliestGame = gameData;
+                }
+            });
+            return earliestGame;
+        };
+
         const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
-        
-        // MODIFICATION: Changed '!=' to '==' for a more efficient and valid query.
-        const incompleteGamesQuery = gamesRef
-            .where('completed', '==', 'FALSE') 
-            .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
-            .limit(1);
-            
+        const incompleteGamesQuery = gamesRef.where('completed', '==', 'FALSE');
         const incompleteGamesSnap = await incompleteGamesQuery.get();
 
-        if (!incompleteGamesSnap.empty) {
-            nextGameWeek = incompleteGamesSnap.docs[0].data().week;
+        const earliestRegularSeasonGame = findEarliestGame(incompleteGamesSnap);
+
+        if (earliestRegularSeasonGame) {
+            nextGameWeek = earliestRegularSeasonGame.week;
         } else {
             console.log("No incomplete regular season games found. Checking postseason...");
             const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
-            
-            // MODIFICATION: Changed '!=' to '==' here as well.
-            const incompletePostGamesQuery = postGamesRef
-                .where('completed', '==', 'FALSE')
-                .orderBy(admin.firestore.FieldPath.documentId(), 'asc')
-                .limit(1);
-
+            const incompletePostGamesQuery = postGamesRef.where('completed', '==', 'FALSE');
             const incompletePostGamesSnap = await incompletePostGamesQuery.get();
-
-            if (!incompletePostGamesSnap.empty) {
-                nextGameWeek = incompletePostGamesSnap.docs[0].data().week;
+            
+            const earliestPostseasonGame = findEarliestGame(incompletePostGamesSnap);
+            
+            if (earliestPostseasonGame) {
+                nextGameWeek = earliestPostseasonGame.week;
             }
         }
+        // --- BUG FIX END ---
 
         if (nextGameWeek !== null) {
             console.log(`The next game is in week/round: '${nextGameWeek}'. Updating season document.`);
@@ -3167,7 +3180,6 @@ async function performWeekUpdate() {
         console.error("Error updating current week:", error);
     }
 }
-
 
 exports.updateCurrentWeek = onSchedule({
     schedule: "15 5 * * *",

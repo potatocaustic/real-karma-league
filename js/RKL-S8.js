@@ -436,7 +436,12 @@ async function loadRecentGames() {
             return;
         }
 
-        potentialGames.sort((a, b) => b.doc.id.localeCompare(a.doc.id));
+        // --- BUG FIX START ---
+        // Switched from sorting by document ID to sorting by the actual date field
+        // to ensure chronological accuracy across different game types.
+        potentialGames.sort((a, b) => new Date(b.doc.data().date) - new Date(a.doc.data().date));
+        // --- BUG FIX END ---
+        
         const mostRecentGameInfo = potentialGames[0];
         
         const mostRecentDate = mostRecentGameInfo.doc.data().date;
