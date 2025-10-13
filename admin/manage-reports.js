@@ -55,6 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function callGetReportData(reportType, options = {}) {
         try {
+            // Note: We're assuming the 'getReportData' cloud function in index.js
+            // has been updated to return the necessary extra fields like team seeds,
+            // series info, and game types, as the backend file was not provided.
             const getReportData = httpsCallable(functions, 'getReportData');
             const result = await getReportData({ reportType, seasonId: activeSeasonId, ...options });
             if (result.data.success) {
@@ -86,8 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data && data.games && data.games.length > 0) {
             const dashes = '—'.repeat(12);
-            const gameLines = data.games.map(g => `${g.team1_name} vs ${g.team2_name}`).join('\n');
-            const output = `${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\nSend me your lineups by ${timeInput}`;
+            // 1b & 1c: Check for seeds and format accordingly
+            const gameLines = data.games.map(g => {
+                const team1Name = g.team1_seed ? `(${g.team1_seed}) ${g.team1_name}` : g.team1_name;
+                const team2Name = g.team2_seed ? `(${g.team2_seed}) ${g.team2_name}` : g.team2_name;
+                return `${team1Name} vs ${team2Name}`;
+            }).join('\n');
+            
+            // 1a: Update final verbiage and link
+            const finalVerbiage = `Submit your lineup to me OR through the website by ${timeInput} https://www.realkarmaleague.com/gm/dashboard.html`;
+            
+            const output = `${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\n${finalVerbiage}`;
             displayReport(output);
         } else {
              displayReport(`No games found for ${formattedDate}.`);
@@ -149,6 +161,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function prepareLineupsReport() {
         const data = await callGetReportData('lineups_prepare');
         if (data && data.games && data.games.length > 0) {
+            // 2a: Check if there are any regular season games. If not, skip GOTD selection.
+            const hasRegularSeasonGames = data.games.some(game => game.collectionName === getCollectionName('games'));
+
+            if (!hasRegularSeasonGames) {
+                generateLineupsReport(data.games, true); // Pass true to indicate no GOTD
+                return;
+            }
+
             const container = document.getElementById('gotd-selector-container');
             const list = document.getElementById('gotd-game-list');
             list.innerHTML = '';
@@ -161,12 +181,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameOption.dataset.gameId = game.gameId;
 
                 Object.assign(gameOption.style, {
-                    padding: '10px',
-                    margin: '5px 0',
-                    border: '1px solid #555',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s, border-color 0.2s'
+                    padding: '10px', margin: '5px 0', border: '1px solid #555',
+                    borderRadius: '5px', cursor: 'pointer', transition: 'background-color 0.2s, border-color 0.2s'
                 });
 
                 gameOption.addEventListener('click', () => {
@@ -179,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     gameOption.style.backgroundColor = '#004a7c';
                     gameOption.style.borderColor = '#007bff';
                 });
-
                 list.appendChild(gameOption);
             });
             
@@ -187,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             submitButton.textContent = 'Confirm GOTD & Generate';
             submitButton.className = 'btn-admin-edit';
             submitButton.style.marginTop = '15px';
-            submitButton.onclick = () => generateLineupsReport(data.games);
+            submitButton.onclick = () => generateLineupsReport(data.games, false);
             list.appendChild(submitButton);
 
             container.style.display = 'block';
@@ -196,14 +211,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function generateLineupsReport(gamesData) {
+    function getPostseasonGameLabel(seriesName) {
+        if (!seriesName) return seriesName;
+
+        const gameNumberMatch = seriesName.match(/Game \d+$/);
+        const gameNumberString = gameNumberMatch ? gameNumberMatch[0] : '';
+        const baseSeriesId = seriesName.replace(/ Game \d+$/, '').trim();
+
+        const seriesTypeMap = {
+            'W7vW8': 'West Play-In Stage 1', 'E7vE8': 'East Play-In Stage 1',
+            'W9vW10': 'West Play-In Stage 1', 'E9vE10': 'East Play-In Stage 1',
+            'W8thSeedGame': 'West Play-In Stage 2', 'E8thSeedGame': 'East Play-In Stage 2',
+            'W1vW8': `West Round 1 - ${gameNumberString}`, 'W4vW5': `West Round 1 - ${gameNumberString}`,
+            'W3vW6': `West Round 1 - ${gameNumberString}`, 'W2vW7': `West Round 1 - ${gameNumberString}`,
+            'E1vE8': `East Round 1 - ${gameNumberString}`, 'E4vE5': `East Round 1 - ${gameNumberString}`,
+            'E3vE6': `East Round 1 - ${gameNumberString}`, 'E2vE7': `East Round 1 - ${gameNumberString}`,
+            'W-R2-T': `West Round 2 - ${gameNumberString}`, 'W-R2-B': `West Round 2 - ${gameNumberString}`,
+            'E-R2-T': `East Round 2 - ${gameNumberString}`, 'E-R2-B': `East Round 2 - ${gameNumberString}`,
+            'WCF': `WCF ${gameNumberString}`, 'ECF': `ECF ${gameNumberString}`,
+            'Finals': `RKL Finals ${gameNumberString}`,
+        };
+        const label = seriesTypeMap[baseSeriesId];
+        return label ? label.trim() : seriesName;
+    }
+
+    function generateLineupsReport(gamesData, isNoGotd) {
         const selectedGame = document.querySelector('.gotd-game-option.selected');
-        if (!selectedGame) {
+        // If there's a GOTD, we need one to be selected
+        if (!isNoGotd && !selectedGame) {
             alert("Please select a Game of the Day.");
             return;
         }
         
-        const gotdId = selectedGame.dataset.gameId;
+        const gotdId = isNoGotd ? null : selectedGame.dataset.gameId;
         const today = new Date();
         const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
         
@@ -226,7 +266,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             line += `@${player.player_handle}`;
             if (player.is_captain) {
-                line += captainEmojis[teamName] || ' (c)';
+                // 2c: Diabetics captain emoji rule
+                if (teamName === 'Diabetics') {
+                    line += ' 👑';
+                } else {
+                    line += captainEmojis[teamName] || ' (c)';
+                }
             }
             return line;
         };
@@ -234,10 +279,24 @@ document.addEventListener('DOMContentLoaded', () => {
         let gotdGameBlock = null;
 
         gamesData.forEach(game => {
+            let gameBlockText = '';
+            // 2c: Freaks special font rule
+            const team1Name = game.team1_name === 'Freaks' ? '𝓕𝓻𝓮𝓪𝓴𝓼' : game.team1_name;
+            const team2Name = game.team2_name === 'Freaks' ? '𝓕𝓻𝓮𝓪𝓴𝓼' : game.team2_name;
+
             const team1Lineup = game.team1_lineup.map(p => formatPlayerLine(p, game.team1_name)).join('\n ');
             const team2Lineup = game.team2_lineup.map(p => formatPlayerLine(p, game.team2_name)).join('\n ');
             
-            const gameBlockText = `${game.team1_name} (${game.team1_record})\n ${team1Lineup}\nvs \n${game.team2_name} (${game.team2_record})\n ${team2Lineup}`;
+            // 2b: Check for postseason game and format accordingly
+            if (game.collectionName === getCollectionName('post_games')) {
+                const seriesLabel = getPostseasonGameLabel(game.series_name);
+                const separator = '~'.repeat(14);
+                const team1Record = `(${game.team1_wins || 0}-${game.team2_wins || 0})`;
+                const team2Record = `(${game.team2_wins || 0}-${game.team1_wins || 0})`;
+                gameBlockText = `${seriesLabel}\n${separator}\n(${game.team1_seed}) ${team1Name} ${team1Record}\n ${team1Lineup}\nvs.\n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
+            } else {
+                gameBlockText = `${team1Name} (${game.team1_record})\n ${team1Lineup}\nvs\n${team2Name} (${game.team2_record})\n ${team2Lineup}`;
+            }
 
             const gameContainer = document.createElement('div');
             gameContainer.className = 'report-item';
@@ -300,7 +359,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function copyReportToClipboard() {
-        navigator.clipboard.writeText(reportOutputEl.textContent).then(() => {
+        // This improved copy function handles the multi-element reports better
+        let reportText = '';
+        const items = reportOutputEl.querySelectorAll('.report-item-text, div');
+        items.forEach(item => {
+            reportText += item.textContent + '\n\n';
+        });
+
+        // Fallback for simple text content
+        if (!reportText) {
+            reportText = reportOutputEl.textContent;
+        }
+
+        navigator.clipboard.writeText(reportText.trim()).then(() => {
             alert("Report copied to clipboard!");
         }).catch(err => {
             alert("Failed to copy report.");
