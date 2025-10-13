@@ -90,7 +90,7 @@ async function loadLotteryTeams() {
 
     const [teamsSnap, postGamesSnap] = await Promise.all([
         getDocs(collection(db, getCollectionName("v2_teams"))),
-        getDocs(query(postGamesCollectionRef, where("week", "==", "Play-In")))
+        getDocs(postGamesCollectionRef) // Fetch all post_games, not just play-in
     ]);
 
     const teamRecordsPromises = teamsSnap.docs
@@ -114,18 +114,23 @@ async function loadLotteryTeams() {
         }
     });
 
-    const playInGames = postGamesSnap.docs.map(d => d.data());
-    for (const conf of ['E', 'W']) {
-        const game7v8 = playInGames.find(g => g.series_id === `${conf}-PI-7v8`);
-        const finalPlayInGame = playInGames.find(g => g.series_id === `${conf}-PI-L78vW910`);
+    // --- CORRECTED LOGIC START ---
+    const postGames = postGamesSnap.docs.map(doc => doc.data());
 
-        if (game7v8 && game7v8.winner) {
-            playoffTeams.add(game7v8.winner);
-        }
-        if (finalPlayInGame && finalPlayInGame.winner) {
-            playoffTeams.add(finalPlayInGame.winner);
-        }
-    }
+    // Helper to find the winner of a specific play-in game by its correct series_id
+    const findGameWinner = (seriesId) => postGames.find(g => g.series_id === seriesId)?.winner || null;
+    
+    // The winners of these four specific games are the ones who make the playoffs
+    const playInWinners = [
+        'E7vE8',        // Winner of 7v8 gets the 7th seed
+        'W7vE8',        // Winner of 7v8 gets the 7th seed
+        'E8thSeedGame', // Winner of the final game gets the 8th seed
+        'W8thSeedGame'  // Winner of the final game gets the 8th seed
+    ].map(findGameWinner).filter(Boolean); // map to get winner IDs, filter out any nulls
+
+    // Add the play-in winners to the set of playoff teams
+    playInWinners.forEach(id => playoffTeams.add(id));
+    // --- CORRECTED LOGIC END ---
 
     const nonPlayoffTeams = allTeams.filter(t => !playoffTeams.has(t.id));
 
