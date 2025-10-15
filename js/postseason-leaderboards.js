@@ -203,8 +203,18 @@ function displayLeaderboard() {
     document.getElementById('team-filter-container').style.display = 'inline-flex';
 
     // Build table headers
-    const sortField = leaderboardSortState.columnField || categoryConfig.defaultSortField;
-    const sortDir = leaderboardSortState.direction;
+    let sortField = leaderboardSortState.columnField || categoryConfig.defaultSortField;
+    let sortDir;
+    
+    // FIX: Determine initial sort direction based on state or category default
+    if (leaderboardSortState.columnField) {
+        // Use the direction from the current sort state (i.e., column has been clicked)
+        sortDir = leaderboardSortState.direction;
+    } else {
+        // Use the direction appropriate for the default field on initial load
+        sortDir = categoryConfig.defaultSortDescending ? 'desc' : 'asc';
+    }
+
     const headerHTML = categoryConfig.cols.map(col => {
         const indicator = col.dataField === sortField ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
         return `<th class="sortable" onclick="window.handleLeaderboardSort('${col.dataField}')">${col.header}<span class="sort-indicator">${indicator}</span></th>`;
@@ -229,6 +239,17 @@ function displayLeaderboard() {
     filteredData.sort((a, b) => {
         let valA = a[sortField];
         let valB = b[sortField];
+        
+        // Handle null/undefined values for ranking fields
+        if (typeof valA === 'undefined' || valA === null) valA = sortDir === 'asc' ? Infinity : -Infinity;
+        if (typeof valB === 'undefined' || valB === null) valB = sortDir === 'asc' ? Infinity : -Infinity;
+        
+        // Ensure numeric comparison for number fields
+        if (categoryConfig.cols.find(c => c.dataField === sortField)?.type === 'number') {
+             valA = parseFloat(valA) || (sortDir === 'asc' ? Infinity : -Infinity);
+             valB = parseFloat(valB) || (sortDir === 'asc' ? Infinity : -Infinity);
+        }
+
         const comparison = String(valA).localeCompare(String(valB), undefined, { numeric: true });
         return sortDir === 'asc' ? comparison : -comparison;
     });
@@ -267,11 +288,18 @@ function displayLeaderboard() {
 }
 
 window.handleLeaderboardSort = (field) => {
+    
+    const isRankField = field.endsWith('_rank') || field === 'rank';
+    
+    // Initial click on a rank field should sort ASC (1 at top).
+    // Initial click on a value field should sort DESC (highest value at top).
+    const initialDirection = isRankField ? 'asc' : 'desc';
+
     if (leaderboardSortState.columnField === field) {
         leaderboardSortState.direction = leaderboardSortState.direction === 'asc' ? 'desc' : 'asc';
     } else {
         leaderboardSortState.columnField = field;
-        leaderboardSortState.direction = 'desc';
+        leaderboardSortState.direction = initialDirection;
     }
     displayLeaderboard();
 };
@@ -286,7 +314,6 @@ async function initializePage() {
     currentCategory = `post_${urlParam}` in categories ? `post_${urlParam}` : (urlParam in categories ? urlParam : sessionStorage.getItem('selectedPostseasonLeaderboard') || 'post_total_points');
     categorySelect.value = currentCategory;
 
-    // Call the newly defined loadData function
     await loadData();
     
     // Setup team filter checklist
