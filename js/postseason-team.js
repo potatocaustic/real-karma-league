@@ -116,7 +116,7 @@ async function loadPageData() {
             teamDocPromise,
             teamSeasonalPromise,
             rosterPromise,
-            scheduleSnap
+            schedulePromise // <<< FIX: Was incorrectly 'scheduleSnap'
         ]);
 
         // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
@@ -423,7 +423,7 @@ function getTeamRecordAtDate(teamIdForRecord, targetDate, isPostseason = false) 
 
 function generateGameItemHTML(game) {
     const isTeam1 = game.team1_id === teamId;
-    const opponentId = isTeam1 ? game.team2_id : team1_id;
+    const opponentId = isTeam1 ? game.team2_id : game.team1_id;
     const isCompleted = game.completed === 'TRUE';
     
     const teamName = getTeamName(teamId);
