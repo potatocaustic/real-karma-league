@@ -157,6 +157,15 @@ async function fetchAllData() {
     };
 }
 
+/**
+ * NEW FUNCTION: Loads all necessary data from Firestore for the leaderboards.
+ * This is the function that was missing from the original code.
+ */
+async function loadData() {
+    document.getElementById('leaderboard-body').innerHTML = '<tr><td colspan="4" class="loading">Loading leaderboard data...</td></tr>';
+    await fetchAllData();
+}
+
 // --- DOM Manipulation and Rendering ---
 
 function getTeamName(teamId) {
@@ -277,6 +286,7 @@ async function initializePage() {
     currentCategory = `post_${urlParam}` in categories ? `post_${urlParam}` : (urlParam in categories ? urlParam : sessionStorage.getItem('selectedPostseasonLeaderboard') || 'post_total_points');
     categorySelect.value = currentCategory;
 
+    // Call the newly defined loadData function
     await loadData();
     
     // Setup team filter checklist
