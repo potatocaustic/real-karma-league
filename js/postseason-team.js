@@ -1,323 +1,537 @@
 // /js/postseason-team.js
-import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup } from './firebase-init.js';
-import { generateLineupTable } from './main.js'; // Assuming this imports generateLineupTable and other utilities
 
-const SEASON_ID = 'S8';
+import {
+    db,
+    collection,
+    doc,
+    getDoc,
+    getDocs,
+    query,
+    where
+} from './firebase-init.js';
+
+import { generateLineupTable } from './main.js';
+
+// --- CONFIGURATION ---
+const ACTIVE_SEASON_ID = 'S8';
+/**
+ * **Set to true to use development collections (e.g., "v2_teams_dev").**
+ * This should be false for the live production site.
+ */
 const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-
-// --- Global State ---
-let teamId = null;
-let currentTeamData = null;
-let allTeamsData = new Map();
-let allGamesData = new Map();
-let rosterPlayerData = new Map();
-let rosterSortState = { column: 'rel', direction: 'desc' };
-
-// --- UTILITY FUNCTIONS ---
 
 /**
- * Gets the correct ordinal suffix for a rank.
+ * **Gets the correct collection name based on the environment.**
+ * @param {string} baseName The base name of the collection.
+ * @returns {string} The collection name with or without the _dev suffix.
  */
-function getOrdinal(num) {
-    const n = parseInt(num);
-    if (isNaN(n) || n <= 0) return 'Unranked';
-    const s = ["th", "st", "nd", "rd"], v = n % 100;
-    // Fix: Only use the rank-specific suffixes for 1, 2, 3 if not 11, 12, or 13.
-    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+function getCollectionName(baseName) {
+    const devSuffix = '_dev';
+    if (!USE_DEV_COLLECTIONS) {
+        return baseName;
+    }
+    // In dev mode, append _dev to all relevant collections
+    if (baseName.includes('_scores') || baseName.includes('_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_results') || baseName.includes('live_') || baseName.includes('usage_') || baseName.includes('seasonal_')) {
+        return `${baseName}${devSuffix}`;
+    }
+    return `${baseName}${devSuffix}`;
+}
+
+
+// --- STATE MANAGEMENT ---
+let teamId = null;
+let teamData = null; // For v2_teams/{id} root doc
+let teamSeasonalData = null; // For v2_teams/{id}/seasonal_records/S8 doc
+let rosterPlayers = []; // Array of combined player + seasonal_stats objects
+let allScheduleData = [];
+let allTeamsSeasonalRecords = new Map(); // Map of teamId -> seasonal_record for getTeamName()
+let rosterSortState = { column: 'post_rel_median', direction: 'desc' };
+
+/**
+ * Initializes the page, fetching and injecting the modal, and then loading all data.
+ */
+async function init() {
+    try {
+        // Dynamically load the modal component
+        const modalResponse = await fetch('../common/game-modal-component.html');
+        if (!modalResponse.ok) throw new Error('Failed to load modal component.');
+        const modalHTML = await modalResponse.text();
+        document.getElementById('modal-placeholder').innerHTML = modalHTML;
+
+        // Add event listeners for the newly injected modal
+        document.getElementById('close-modal-btn').addEventListener('click', closeGameModal);
+        document.getElementById('game-modal').addEventListener('click', (event) => {
+            if (event.target.id === 'game-modal') {
+                closeGameModal();
+            }
+        });
+
+        // Load all page data
+        await loadPageData();
+
+    } catch (error) {
+        console.error("Initialization failed:", error);
+        document.querySelector('main').innerHTML = `<div class="error">A critical error occurred during page initialization. Please check the console.</div>`;
+    }
 }
 
 /**
- * Generates and injects CSS rules for team logos.
+ * Fetches all necessary data from Firestore for the team page.
  */
-function generateIconStylesheet() {
-    let iconStyles = '';
-    allTeamsData.forEach(team => {
-        const className = `icon-${team.id.replace(/[^a-zA-Z0-9]/g, '')}`;
-        iconStyles += `.${className} { background-image: url('../icons/${team.id}.webp'); }\n`;
-    });
-    // The standard CSS classes for team logos are assumed to be in the linked stylesheet.
-    const styleElement = document.getElementById('team-icon-styles');
-    if (styleElement) {
-        styleElement.innerHTML = `
-            .team-logo-css { background-size: cover; background-position: center; ... }
-            ${iconStyles}
-        `;
+async function loadPageData() {
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        teamId = urlParams.get('id');
+
+        if (!teamId) {
+            document.getElementById('team-main-info').innerHTML = '<div class="error">No team specified in URL.</div>';
+            return;
+        }
+        
+        // --- DEFINE ALL DATA PROMISES ---
+        const allTeamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
+        const teamRecordPromises = allTeamsSnap.docs.map(teamDoc => 
+            getDoc(doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), ACTIVE_SEASON_ID))
+        );
+        const allTeamsRecordsPromise = Promise.all(teamRecordPromises);
+
+        const teamDocPromise = getDoc(doc(db, getCollectionName("v2_teams"), teamId));
+        const teamSeasonalPromise = getDoc(doc(db, getCollectionName("v2_teams"), teamId, getCollectionName("seasonal_records"), ACTIVE_SEASON_ID));
+
+        const rosterQuery = query(collection(db, getCollectionName("v2_players")), where("current_team_id", "==", teamId));
+        const rosterPromise = getDocs(rosterQuery);
+
+        // Fetch POSTSEASON games instead of regular season
+        const schedulePromise = getDocs(collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("post_games")));
+
+        // --- AWAIT ALL PROMISES ---
+        const [
+            allTeamsRecordsSnaps,
+            teamDocSnap,
+            teamSeasonalSnap,
+            rosterSnap,
+            scheduleSnap
+        ] = await Promise.all([
+            allTeamsRecordsPromise,
+            teamDocPromise,
+            teamSeasonalPromise,
+            rosterPromise,
+            scheduleSnap
+        ]);
+
+        // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
+        allTeamsRecordsSnaps.forEach(snap => {
+            if (snap.exists()) {
+                const teamIdForRecord = snap.ref.parent.parent.id;
+                allTeamsSeasonalRecords.set(teamIdForRecord, snap.data());
+            }
+        });
+        
+        generateIconStylesheet(Array.from(allTeamsSeasonalRecords.keys()));
+
+        // --- PROCESS CORE TEAM DATA ---
+        if (!teamDocSnap.exists() || !teamSeasonalSnap.exists()) {
+            document.getElementById('team-main-info').innerHTML = `<div class="error">Team data not found for ID: ${teamId} in Season ${ACTIVE_SEASON_ID}.</div>`;
+            return;
+        }
+        teamData = { id: teamDocSnap.id, ...teamDocSnap.data() };
+        teamSeasonalData = teamSeasonalSnap.data();
+
+        // --- PROCESS OTHER DATA ---
+        allScheduleData = scheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // --- PROCESS ROSTER & PLAYER SEASONAL STATS (MULTI-STEP) ---
+        const playerDocs = rosterSnap.docs;
+        const playerSeasonalStatsPromises = playerDocs.map(pDoc =>
+            getDoc(doc(db, getCollectionName("v2_players"), pDoc.id, getCollectionName("seasonal_stats"), ACTIVE_SEASON_ID))
+        );
+        const playerSeasonalStatsSnaps = await Promise.all(playerSeasonalStatsPromises);
+
+        rosterPlayers = playerDocs.map((pDoc, index) => {
+            const seasonalStats = playerSeasonalStatsSnaps[index].exists() ? playerSeasonalStatsSnaps[index].data() : {};
+            return {
+                id: pDoc.id,
+                ...pDoc.data(),
+                ...seasonalStats
+            };
+        });
+
+        // --- RENDER ALL PAGE COMPONENTS ---
+        displayTeamHeader();
+        loadRoster();
+        loadSchedule();
+
+    } catch (error) {
+        console.error("A critical error occurred during data loading:", error);
+        document.querySelector('main').innerHTML = `<div class="error">A critical error occurred while loading the page. Please check the console for details.</div>`;
     }
 }
 
 // --- RENDERING FUNCTIONS ---
 
-/**
- * Displays the main team header with postseason stats.
- */
 function displayTeamHeader() {
-    document.title = `${currentTeamData.team_name} - S8 Postseason`;
-    
+    const teamName = teamSeasonalData.team_name || teamData.id;
+    document.getElementById('page-title').textContent = `${teamName} Postseason - RKL Season 8`;
+
+    // Setup button to link back to regular season page
     const regularSeasonBtn = document.getElementById('regular-season-btn');
-    if (regularSeasonBtn) {
-        regularSeasonBtn.href = `team.html?id=${teamId}`;
-        regularSeasonBtn.style.display = 'inline-block';
-    }
+    regularSeasonBtn.href = `team.html?id=${teamId}`;
+    regularSeasonBtn.style.display = 'inline-block';
 
-    const teamIdClassName = `icon-${currentTeamData.id.replace(/[^a-zA-Z0-9]/g, '')}`;
-    // GM handle is now guaranteed to be on currentTeamData if the player exists
-    const gmHandle = currentTeamData.gm_player_handle || 'N/A';
+    const { post_wins = 0, post_losses = 0, post_pam = 0, post_med_starter_rank = 0, post_msr_rank = 0, post_pam_rank = 0 } = teamSeasonalData;
 
-    // FIX 1: Wrap logo and details in a container div for correct layout
+    const teamIdClassName = `icon-${teamData.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+
     document.getElementById('team-main-info').innerHTML = `
-        <div class="team-header-flex">
-            <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${currentTeamData.team_name}"></div>
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${teamName}"></div>
             <div class="team-details">
-                <h2>${currentTeamData.team_name}</h2>
+                <h2>${teamName}</h2>
                 <div class="postseason-subtitle">Postseason Profile</div>
-                <div class="team-subtitle">${currentTeamData.id} • ${currentTeamData.conference} Conference</div>
-                <a href="player.html?id=${currentTeamData.gm_player_id}" class="gm-info">General Manager: ${gmHandle}</a>
+                <div class="team-subtitle">${teamData.id} • ${teamData.conference} Conference</div>
+                <div class="gm-info">General Manager: ${teamData.current_gm_handle}</div>
             </div>
-        </div>
-    `;
+        </div>`;
 
-    const wins = currentTeamData.post_wins || 0;
-    const losses = currentTeamData.post_losses || 0;
-    const pam = currentTeamData.post_pam || 0;
-    const medRank = currentTeamData.post_med_starter_rank || 0;
-
-    const getRecordClass = (w, l) => w > l ? 'positive' : l > w ? 'negative' : '';
-    const getPamClass = p => p > 0 ? 'positive' : p < 0 ? 'negative' : '';
-    
-    const statsContainer = document.getElementById('team-stats');
-    statsContainer.innerHTML = `
+    const teamStatsContainer = document.getElementById('team-stats');
+    teamStatsContainer.innerHTML = `
         <div class="stat-card">
-            <div class="stat-value ${getRecordClass(wins, losses)}">${wins}-${losses}</div>
+            <div class="stat-value ${post_wins > post_losses ? 'positive' : post_losses > post_wins ? 'negative' : ''}">${post_wins}-${post_losses}</div>
             <div class="stat-label">Postseason Record</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value ${getPamClass(pam)}">${Math.round(pam).toLocaleString()}</div>
+            <div class="stat-value ${post_pam > 0 ? 'positive' : post_pam < 0 ? 'negative' : ''}">${Math.round(post_pam).toLocaleString()}</div>
             <div class="stat-label">Postseason PAM</div>
-            <div class="stat-rank">${currentTeamData.post_pam_rank ? getOrdinal(currentTeamData.post_pam_rank) : 'Unranked'}</div>
+            <div class="stat-rank">${getOrdinal(post_pam_rank)} Overall</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value">${medRank > 0 ? Math.round(medRank) : '-'}</div>
+            <div class="stat-value">${Math.round(post_med_starter_rank)}</div>
             <div class="stat-label">Median Starter Rank</div>
-            <div class="stat-rank">${currentTeamData.post_msr_rank ? getOrdinal(currentTeamData.post_msr_rank) : 'Unranked'}</div>
-        </div>
-    `;
-    statsContainer.style.display = 'grid';
+            <div class="stat-rank">${getOrdinal(post_msr_rank)} Overall</div>
+        </div>`;
+    teamStatsContainer.style.display = 'grid';
 }
 
-/**
- * Renders the team's roster with postseason stats.
- */
-function displayRoster() {
-    const rosterContainer = document.getElementById('roster-list');
-    const teamPlayers = Array.from(rosterPlayerData.values());
-
-    if (teamPlayers.length === 0) {
-        rosterContainer.innerHTML = '<div class="loading">No active players on roster.</div>';
+function loadRoster() {
+    if (rosterPlayers.length === 0) {
+        document.getElementById('roster-list').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No active players found</div>';
         return;
     }
 
-    teamPlayers.sort((a, b) => {
-        const col = rosterSortState.column;
-        const dir = rosterSortState.direction === 'asc' ? 1 : -1;
-        const valA = col === 'rel' ? (a.post_rel_median || 0) : (a.post_WAR || 0);
-        const valB = col === 'rel' ? (b.post_rel_median || 0) : (b.post_WAR || 0);
-        if (valA < valB) return -1 * dir;
-        if (valA > valB) return 1 * dir;
-        return 0;
+    rosterPlayers.sort((a, b) => {
+        const valA = parseFloat(a[rosterSortState.column] || 0);
+        const valB = parseFloat(b[rosterSortState.column] || 0);
+        const comparison = valA < valB ? -1 : (valA > valB ? 1 : 0);
+        return rosterSortState.direction === 'desc' ? -comparison : comparison;
     });
-    
-    const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
-    const rosterHTML = teamPlayers.map(player => `
-        <div class="player-item">
-            <div class="roster-player-logo-col desktop-only-roster-logo">
-                <div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div>
-            </div>
-            <div class="player-info">
-                <a href="postseason-player.html?id=${player.id}" class="player-name">${player.player_handle}${player.rookie === '1' ? ' <span class="rookie-badge">R</span>' : ''}${player.all_star === '1' ? ' <span class="all-star-badge">★</span>' : ''}</a>
-                <div class="player-stats">${player.post_games_played || 0} GP • ${player.post_medrank > 0 ? Math.round(player.post_medrank) : '-'} Med Rank</div>
-            </div>
-            <div class="player-rel">${(player.post_rel_median || 0).toFixed(3)}</div>
-            <div class="player-war">${(player.post_WAR || 0).toFixed(2)}</div>
-        </div>
-    `).join('');
 
-    const relIndicator = rosterSortState.column === 'rel' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
-    const warIndicator = rosterSortState.column === 'war' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
-    
-    rosterContainer.innerHTML = `
+    const teamIdClassName = `icon-${teamData.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const rosterHTML = rosterPlayers.map(player => {
+        const {
+            post_rel_median = 0,
+            post_games_played = 0,
+            all_star = '0',
+            rookie = '0',
+            post_WAR = 0,
+            post_medrank = 0,
+            player_handle,
+            id: playerId
+        } = player;
+
+        const isAllStar = all_star === '1';
+        const isRookie = rookie === '1';
+        const medianRankDisplay = post_medrank > 0 ? post_medrank : '-';
+
+        return `
+            <div class="player-item">
+                <div class="roster-player-logo-col desktop-only-roster-logo">
+                    <div class="team-logo-css ${teamIdClassName}" style="width: 24px; height: 24px;"></div>
+                </div>
+                <div class="player-info">
+                    <a href="player.html?id=${playerId}" class="player-name">
+                        ${player_handle}
+                        ${isRookie ? ` <span class="rookie-badge">R</span>` : ''}
+                        ${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}
+                    </a>
+                    <div class="player-stats">${post_games_played} games • ${medianRankDisplay} med rank</div>
+                </div>
+                <div class="player-rel">${parseFloat(post_rel_median).toFixed(3)}</div>
+                <div class="player-war">${parseFloat(post_WAR).toFixed(2)}</div>
+            </div>`;
+    }).join('');
+
+    const relSortIndicator = rosterSortState.column === 'post_rel_median' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+    const warSortIndicator = rosterSortState.column === 'post_WAR' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+
+    const finalHTML = `
         <div class="roster-header">
-            <span class="desktop-only-roster-logo"></span>
+            <span class="roster-logo-header-col desktop-only-roster-logo"></span>
             <span class="header-player">Player</span>
-            <span class="header-rel sortable" onclick="window.handleRosterSort('rel')">REL<span class="sort-indicator">${relIndicator}</span></span>
-            <span class="header-war sortable" onclick="window.handleRosterSort('war')">WAR<span class="sort-indicator">${warIndicator}</span></span>
+            <span class="header-rel sortable" onclick="handleRosterSort('post_rel_median')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
+            <span class="header-war sortable" onclick="handleRosterSort('post_WAR')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
         </div>
-        <div class="roster-content">${rosterHTML}</div>
-    `;
+        <div class="roster-content">${rosterHTML}</div>`;
+
+    document.getElementById('roster-list').innerHTML = finalHTML;
 }
 
-// Attach sort handler to window
-window.handleRosterSort = (column) => {
+function loadSchedule() {
+    const teamGames = allScheduleData
+        .filter(game => game.team1_id === teamId || game.team2_id === teamId)
+        .sort((a, b) => new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date)));
+
+    if (teamGames.length === 0) {
+        document.getElementById('team-schedule').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No postseason games scheduled</div>';
+        return;
+    }
+
+    const gamesHTML = teamGames.map(game => {
+        return generateGameItemHTML(game);
+    }).join('');
+
+    document.getElementById('team-schedule').innerHTML = gamesHTML;
+}
+
+// --- MODAL & EVENT HANDLERS ---
+
+async function showGameDetails(team1_id, team2_id, gameDate) {
+    const modal = document.getElementById('game-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalContentEl = document.getElementById('game-details-content-area');
+
+    const normalizedDate = normalizeDate(gameDate);
+    modal.style.display = 'block';
+    modalTitle.textContent = `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(normalizedDate)}`;
+    modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
+    
+    try {
+        const q = query(
+            collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("post_lineups")), // Query post_lineups
+            where("date", "==", gameDate),
+            where("team_id", "in", [team1_id, team2_id]),
+            where("started", "==", "TRUE")
+        );
+        const lineupsSnap = await getDocs(q);
+        
+        const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
+        const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
+
+        const playerStatsPromises = uniquePlayerIds.map(playerId => 
+            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), ACTIVE_SEASON_ID))
+        );
+        const playerStatsDocs = await Promise.all(playerStatsPromises);
+        
+        const playerSeasonalStats = new Map();
+        playerStatsDocs.forEach((docSnap, index) => {
+            if (docSnap.exists()) {
+                playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
+            }
+        });
+
+        const lineupsData = lineupsSnap.docs.map(d => {
+            const lineupData = d.data();
+            return { ...lineupData, ...playerSeasonalStats.get(lineupData.player_id) };
+        });
+
+        const team1Lineups = lineupsData.filter(l => l.team_id === team1_id);
+        const team2Lineups = lineupsData.filter(l => l.team_id === team2_id);
+
+        const team1Record = getTeamRecordAtDate(team1_id, gameDate, true);
+        const team2Record = getTeamRecordAtDate(team2_id, gameDate, true);
+        
+        const team1Info = { id: team1_id, team_name: getTeamName(team1_id), wins: team1Record.wins, losses: team1Record.losses };
+        const team2Info = { id: team2_id, team_name: getTeamName(team2_id), wins: team2Record.wins, losses: team2Record.losses };
+        
+        const gameDocId = allScheduleData.find(g => g.date === gameDate && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
+        
+        if (!gameDocId) throw new Error("Could not find game document ID.");
+
+        const gameSnap = await getDoc(doc(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("post_games"), gameDocId));
+        const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
+
+        modalContentEl.innerHTML = `
+            <div class="game-details-grid">
+                ${generateLineupTable(team1Lineups, team1Info, winnerId === team1_id, true)}
+                ${generateLineupTable(team2Lineups, team2Info, winnerId === team2_id, true)}
+            </div>`;
+
+    } catch(error) {
+        console.error("Error fetching game details:", error);
+        modalContentEl.innerHTML = `<div class="error">Could not load game details.</div>`;
+    }
+}
+
+function closeGameModal() {
+    document.getElementById('game-modal').style.display = 'none';
+}
+
+function handleRosterSort(column) {
     if (rosterSortState.column === column) {
         rosterSortState.direction = rosterSortState.direction === 'desc' ? 'asc' : 'desc';
     } else {
         rosterSortState.column = column;
         rosterSortState.direction = 'desc';
     }
-    displayRoster();
-};
+    loadRoster();
+}
 
 
-/**
- * Renders the team's postseason schedule.
- */
-function displaySchedule() {
-    const scheduleContainer = document.getElementById('team-schedule');
-    const teamGames = Array.from(allGamesData.values())
-        .filter(game => game.team1_id === teamId || game.team2_id === teamId)
-        .sort((a, b) => new Date(a.date.replace(/-/g, '/')) - new Date(b.date.replace(/-/g, '/')));
+// --- HELPER & UTILITY FUNCTIONS ---
 
-    if (teamGames.length === 0) {
-        scheduleContainer.innerHTML = '<div class="loading">No postseason games found.</div>';
-        return;
-    }
-
-    const getWeekAbbreviation = (weekName) => {
-        if (!weekName) return 'TBD';
-        const lower = weekName.toLowerCase();
-        if (lower.includes('play-in')) return 'PI';
-        if (lower.includes('round 1')) return 'R1';
-        if (lower.includes('round 2')) return 'R2';
-        if (lower.includes('conf finals')) return 'CF';
-        if (lower.includes('finals')) return 'F';
-        return weekName;
-    };
-
-    scheduleContainer.innerHTML = teamGames.map(game => {
-        const isTeam1 = game.team1_id === teamId;
-        const opponentId = isTeam1 ? game.team2_id : game.team1_id;
-        const opponent = allTeamsData.get(opponentId) || { team_name: 'TBD', id: 'TBD' };
-        
-        const isCompleted = game.completed === 'TRUE';
-        const teamScore = isTeam1 ? game.team1_score : game.team2_score;
-        const oppScore = isTeam1 ? game.team2_score : game.team1_score;
-        const isWin = isCompleted && game.winner === teamId;
-        const isLoss = isCompleted && game.winner === opponentId;
-
-        // FIX 4: Use a consistent game ID for the click handler and format score with commas
-        const gameClickHandler = isCompleted ? `onclick="window.showGameDetails('${game.id}', 'post_games')"` : '';
-        const teamScoreDisplay = isCompleted ? Math.round(teamScore).toLocaleString() : '-';
-        const oppScoreDisplay = isCompleted ? Math.round(oppScore).toLocaleString() : '-';
-
-
-        return `
-            <div class="game-item" ${gameClickHandler}>
-                <div class="game-info-table">
-                    <div class="week-cell"><div class="week-badge">${getWeekAbbreviation(game.week)}</div></div>
-                    <div class="date-cell"><div class="date-badge">${new Date(game.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}</div></div>
-                </div>
-                <div class="game-content-table">
-                     <div class="team-section left">
-                        <img src="../icons/${teamId}.webp" class="team-logo-css" style="width:32px; height:32px;">
-                        <div class="team-details"><div class="team-name-game">${currentTeamData.team_name}</div></div>
-                    </div>
-                    <div class="scores-section">
-                        <div class="score ${isWin ? 'win' : ''}">${teamScoreDisplay}</div>
-                        <div class="vs-text">vs</div>
-                        <div class="score ${isLoss ? 'win' : ''}">${oppScoreDisplay}</div>
-                    </div>
-                    <div class="team-section right">
-                        <img src="../icons/${opponent.id}.webp" class="team-logo-css" style="width:32px; height:32px;">
-                        <div class="team-details right"><div class="team-name-game">${opponent.team_name}</div></div>
-                    </div>
-                </div>
-            </div>`;
+function generateIconStylesheet(teamIdList) {
+    const iconStyles = teamIdList.map(id => {
+        if (!id) return '';
+        const className = `icon-${id.replace(/[^a-zA-Z0-9]/g, '')}`;
+        return `.${className} { background-image: url('../icons/${id}.webp'); }`;
     }).join('');
-}
 
-
-/**
- * Main data loading function.
- */
-async function loadTeamData() {
-    teamId = new URLSearchParams(window.location.search).get('id');
-    if (!teamId) {
-        document.querySelector('main').innerHTML = '<div class="error">No team ID provided.</div>';
-        return;
-    }
-
-    try {
-        // Parallelize Firestore fetches
-        const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
-        const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('season', '==', SEASON_ID));
-        const playersQuery = query(collection(db, getCollectionName('v2_players')));
-        const gamesQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('post_games')));
-        
-        const [teamsSnap, recordsSnap, playersSnap, gamesSnap] = await Promise.all([
-            getDocs(teamsQuery),
-            getDocs(recordsQuery),
-            getDocs(playersQuery),
-            getDocs(gamesQuery)
-        ]);
-
-        // Process Teams and Records
-        const recordsMap = new Map();
-        recordsSnap.forEach(doc => recordsMap.set(doc.ref.parent.parent.id, doc.data()));
-
-        teamsSnap.forEach(doc => {
-            const teamData = { id: doc.id, ...doc.data(), ...recordsMap.get(doc.id) };
-            allTeamsData.set(doc.id, teamData);
-            if (doc.id === teamId) {
-                currentTeamData = teamData;
+    const styleElement = document.getElementById('team-icon-styles');
+    if (styleElement) {
+        styleElement.innerHTML = `
+            .team-logo-css {
+                background-size: cover; background-position: center;
+                background-repeat: no-repeat; display: inline-block; vertical-align: middle;
+                flex-shrink: 0; border-radius: 4px;
             }
-        });
-
-        if (!currentTeamData) {
-            throw new Error(`Team data not found for ID: ${teamId}.`);
-        }
-        
-        // Process Players for Roster and GM lookup
-        const playerStatsPromises = playersSnap.docs.map(playerDoc => 
-            getDoc(doc(playerDoc.ref, getCollectionName('seasonal_stats'), SEASON_ID)) 
-        );
-        const playerStatsSnaps = await Promise.all(playerStatsPromises);
-
-        // Map to store player handles for GM lookup
-        const playerHandlesMap = new Map();
-        
-        playersSnap.forEach((doc, i) => {
-            const playerData = { id: doc.id, ...doc.data() };
-            
-            const playerStatsSnapshot = playerStatsSnaps[i];
-            
-            if (playerStatsSnapshot && playerStatsSnapshot.exists()) {
-                Object.assign(playerData, playerStatsSnapshot.data());
-            }
-
-            playerHandlesMap.set(playerData.id, playerData.player_handle);
-
-            if (playerData.current_team_id === teamId && playerData.player_status === 'ACTIVE') {
-                rosterPlayerData.set(playerData.id, playerData);
-            }
-        });
-
-        // Finalize GM Handle lookup after all players are processed
-        if (currentTeamData.gm_player_id) {
-            currentTeamData.gm_player_handle = playerHandlesMap.get(currentTeamData.gm_player_id) || 'N/A';
-        }
-        
-        // Process Games
-        gamesSnap.forEach(doc => allGamesData.set(doc.id, { id: doc.id, ...doc.data() }));
-        
-        generateIconStylesheet();
-        displayTeamHeader();
-        displayRoster();
-        displaySchedule();
-
-    } catch (error) {
-        console.error("Error loading team data:", error);
-        document.querySelector('main').innerHTML = `<div class="error">Failed to load team data: ${error.message}</div>`;
+            ${iconStyles}`;
     }
 }
 
-document.addEventListener('DOMContentLoaded', loadTeamData);
+function getTeamName(id) {
+    return allTeamsSeasonalRecords.get(id)?.team_name || id;
+}
+
+function getTeamRecordAtDate(teamIdForRecord, targetDate, isPostseason = false) {
+    const normalizedTargetDate = normalizeDate(targetDate);
+    const collection = isPostseason ? 'post_games' : 'games';
+
+    const completedGames = allScheduleData.filter(game => {
+        const normalizedGameDate = normalizeDate(game.date);
+        return normalizedGameDate && normalizedGameDate <= normalizedTargetDate &&
+            game.completed === 'TRUE' &&
+            (game.team1_id === teamIdForRecord || game.team2_id === teamIdForRecord);
+    });
+
+    let wins = 0, losses = 0;
+    completedGames.forEach(game => {
+        if (game.winner === teamIdForRecord) wins++;
+        else if (game.winner) losses++;
+    });
+
+    return { wins, losses, recordString: `${wins}-${losses}` };
+}
+
+function generateGameItemHTML(game) {
+    const isTeam1 = game.team1_id === teamId;
+    const opponentId = isTeam1 ? game.team2_id : team1_id;
+    const isCompleted = game.completed === 'TRUE';
+    
+    const teamName = getTeamName(teamId);
+    const opponentName = getTeamName(opponentId);
+    
+    const teamRecord = getTeamRecordAtDate(teamId, game.date, true).recordString;
+    const opponentRecord = getTeamRecordAtDate(opponentId, game.date, true).recordString;
+
+    let clickHandler = '', teamScoreText = '-', oppScoreText = '-', teamScoreClass = 'upcoming', oppScoreClass = 'upcoming';
+    let teamWon = false, oppWon = false;
+
+    if (isCompleted) {
+        const teamScoreValue = parseFloat(isTeam1 ? game.team1_score : game.team2_score);
+        const oppScoreValue = parseFloat(isTeam1 ? game.team2_score : game.team1_score);
+        teamWon = teamScoreValue > oppScoreValue;
+        oppWon = !teamWon && !!game.winner;
+        teamScoreText = Math.round(teamScoreValue).toLocaleString();
+        oppScoreText = Math.round(oppScoreValue).toLocaleString();
+        teamScoreClass = teamWon ? 'win' : 'loss';
+        oppScoreClass = oppWon ? 'win' : 'loss';
+        clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')" style="cursor: pointer;"`;
+    }
+    
+    const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
+    const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
+    
+    const desktopHTML = `
+        <div class="game-info-table">
+            <div class="week-cell"><div class="week-badge">${game.week || 'TBD'}</div></div>
+            <div class="date-cell"><div class="date-badge">${formatDateMMDD(normalizeDate(game.date))}</div></div>
+        </div>
+        <div class="game-content-table">
+            <div class="team-section left">
+                <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;"></div>
+                <div class="team-details"><div class="team-name-game">${teamName}</div><div class="team-record-game">${teamRecord}</div></div>
+            </div>
+            <div class="scores-section">
+                <div class="score ${teamScoreClass}">${teamScoreText}</div>
+                <div class="vs-text">vs</div>
+                <div class="score ${oppScoreClass}">${oppScoreText}</div>
+            </div>
+            <div class="team-section right">
+                <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px; border-radius: 50%;" onclick="window.location.href='team.html?id=${opponentId}'" style="cursor: pointer;"></div>
+                <div class="team-details right"><div class="team-name-game">${opponentName}</div><div class="team-record-game">${opponentRecord}</div></div>
+            </div>
+        </div>`;
+    
+    const mobileHTML = `
+        <div class="game-matchup">
+            <div class="week-badge">${game.week || 'TBD'}</div>
+            <div class="team">
+                <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px;"></div>
+                <div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : ''}">${teamName}</span><span class="team-record">${teamRecord}</span></div>
+                <span class="team-score ${teamScoreClass}">${teamScoreText}</span>
+            </div>
+            <div class="team">
+                <div class="team-logo-css ${opponentIdClassName}" style="width: 32px; height: 32px;" onclick="window.location.href='team.html?id=${opponentId}'" style="cursor: pointer;"></div>
+                <div class="team-info"><span class="team-name ${oppWon ? 'win' : teamWon ? 'loss' : ''}">${opponentName}</span><span class="team-record">${opponentRecord}</span></div>
+                <span class="team-score ${oppScoreClass}">${oppScoreText}</span>
+            </div>
+        </div>`;
+
+    return `<div class="game-item" ${clickHandler}>${desktopHTML}${mobileHTML}</div>`;
+}
+
+
+function normalizeDate(dateInput) {
+    if (!dateInput) return null;
+    let date;
+    if (typeof dateInput.toDate === 'function') {
+        date = dateInput.toDate();
+    } else {
+        const parts = dateInput.split('/');
+        if (parts.length === 3) {
+            date = new Date(Date.UTC(parts[2], parts[0] - 1, parts[1]));
+        } else {
+            return null;
+        }
+    }
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString().split('T')[0]; // YYYY-MM-DD
+}
+
+function formatDateMMDD(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString + 'T00:00:00Z');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${month}-${day}`;
+}
+
+function formatDateShort(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString + 'T00:00:00Z');
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const year = String(date.getUTCFullYear()).slice(-2);
+    return `${month}/${day}/${year}`;
+}
+
+function getOrdinal(num) {
+    const n = parseInt(num);
+    if (isNaN(n) || n <= 0) return 'Unranked';
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
+// --- GLOBAL EXPORTS & INITIALIZATION ---
+window.handleRosterSort = handleRosterSort;
+window.showGameDetails = showGameDetails;
+document.addEventListener('DOMContentLoaded', init);
