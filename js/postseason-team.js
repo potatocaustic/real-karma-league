@@ -1,6 +1,6 @@
 // /js/postseason-team.js
 import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup } from './firebase-init.js';
-import { generateLineupTable } from './main.js';
+import { generateLineupTable } from './main.js'; // Assuming this imports generateLineupTable and other utilities
 
 const SEASON_ID = 'S8';
 const USE_DEV_COLLECTIONS = false;
@@ -14,6 +14,19 @@ let allGamesData = new Map();
 let rosterPlayerData = new Map();
 let rosterSortState = { column: 'rel', direction: 'desc' };
 
+// --- UTILITY FUNCTIONS ---
+
+/**
+ * Gets the correct ordinal suffix for a rank.
+ */
+function getOrdinal(num) {
+    const n = parseInt(num);
+    if (isNaN(n) || n <= 0) return 'Unranked';
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    // Fix: Only use the rank-specific suffixes for 1, 2, 3 if not 11, 12, or 13.
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 /**
  * Generates and injects CSS rules for team logos.
  */
@@ -23,6 +36,7 @@ function generateIconStylesheet() {
         const className = `icon-${team.id.replace(/[^a-zA-Z0-9]/g, '')}`;
         iconStyles += `.${className} { background-image: url('../icons/${team.id}.webp'); }\n`;
     });
+    // The standard CSS classes for team logos are assumed to be in the linked stylesheet.
     const styleElement = document.getElementById('team-icon-styles');
     if (styleElement) {
         styleElement.innerHTML = `
@@ -31,6 +45,8 @@ function generateIconStylesheet() {
         `;
     }
 }
+
+// --- RENDERING FUNCTIONS ---
 
 /**
  * Displays the main team header with postseason stats.
@@ -45,15 +61,19 @@ function displayTeamHeader() {
     }
 
     const teamIdClassName = `icon-${currentTeamData.id.replace(/[^a-zA-Z0-9]/g, '')}`;
-    const gmHandle = currentTeamData.gm_player_id ? allTeamsData.get(currentTeamData.id)?.gm_player_handle || 'N/A' : 'N/A';
+    // GM handle is now guaranteed to be on currentTeamData if the player exists
+    const gmHandle = currentTeamData.gm_player_handle || 'N/A';
 
+    // FIX 1: Wrap logo and details in a container div for correct layout
     document.getElementById('team-main-info').innerHTML = `
-        <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${currentTeamData.team_name}"></div>
-        <div class="team-details">
-            <h2>${currentTeamData.team_name}</h2>
-            <div class="postseason-subtitle">Postseason Profile</div>
-            <div class="team-subtitle">${currentTeamData.id} • ${currentTeamData.conference} Conference</div>
-            <a href="player.html?id=${currentTeamData.gm_player_id}" class="gm-info">General Manager: ${gmHandle}</a>
+        <div class="team-header-flex">
+            <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${currentTeamData.team_name}"></div>
+            <div class="team-details">
+                <h2>${currentTeamData.team_name}</h2>
+                <div class="postseason-subtitle">Postseason Profile</div>
+                <div class="team-subtitle">${currentTeamData.id} • ${currentTeamData.conference} Conference</div>
+                <a href="player.html?id=${currentTeamData.gm_player_id}" class="gm-info">General Manager: ${gmHandle}</a>
+            </div>
         </div>
     `;
 
@@ -74,12 +94,12 @@ function displayTeamHeader() {
         <div class="stat-card">
             <div class="stat-value ${getPamClass(pam)}">${Math.round(pam).toLocaleString()}</div>
             <div class="stat-label">Postseason PAM</div>
-            <div class="stat-rank">${currentTeamData.post_pam_rank ? `${currentTeamData.post_pam_rank}th` : ''}</div>
+            <div class="stat-rank">${currentTeamData.post_pam_rank ? getOrdinal(currentTeamData.post_pam_rank) : 'Unranked'}</div>
         </div>
         <div class="stat-card">
             <div class="stat-value">${medRank > 0 ? Math.round(medRank) : '-'}</div>
             <div class="stat-label">Median Starter Rank</div>
-            <div class="stat-rank">${currentTeamData.post_msr_rank ? `${currentTeamData.post_msr_rank}th` : ''}</div>
+            <div class="stat-rank">${currentTeamData.post_msr_rank ? getOrdinal(currentTeamData.post_msr_rank) : 'Unranked'}</div>
         </div>
     `;
     statsContainer.style.display = 'grid';
@@ -184,8 +204,14 @@ function displaySchedule() {
         const isWin = isCompleted && game.winner === teamId;
         const isLoss = isCompleted && game.winner === opponentId;
 
+        // FIX 4: Use a consistent game ID for the click handler and format score with commas
+        const gameClickHandler = isCompleted ? `onclick="window.showGameDetails('${game.id}', 'post_games')"` : '';
+        const teamScoreDisplay = isCompleted ? Math.round(teamScore).toLocaleString() : '-';
+        const oppScoreDisplay = isCompleted ? Math.round(oppScore).toLocaleString() : '-';
+
+
         return `
-            <div class="game-item" ${isCompleted ? `onclick="window.showGameDetails('${game.id}', 'post_games')"` : ''}>
+            <div class="game-item" ${gameClickHandler}>
                 <div class="game-info-table">
                     <div class="week-cell"><div class="week-badge">${getWeekAbbreviation(game.week)}</div></div>
                     <div class="date-cell"><div class="date-badge">${new Date(game.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}</div></div>
@@ -196,9 +222,9 @@ function displaySchedule() {
                         <div class="team-details"><div class="team-name-game">${currentTeamData.team_name}</div></div>
                     </div>
                     <div class="scores-section">
-                        <div class="score ${isWin ? 'win' : ''}">${isCompleted ? Math.round(teamScore) : '-'}</div>
+                        <div class="score ${isWin ? 'win' : ''}">${teamScoreDisplay}</div>
                         <div class="vs-text">vs</div>
-                        <div class="score ${isLoss ? 'win' : ''}">${isCompleted ? Math.round(oppScore) : '-'}</div>
+                        <div class="score ${isLoss ? 'win' : ''}">${oppScoreDisplay}</div>
                     </div>
                     <div class="team-section right">
                         <img src="../icons/${opponent.id}.webp" class="team-logo-css" style="width:32px; height:32px;">
@@ -246,36 +272,42 @@ async function loadTeamData() {
             }
         });
 
+        if (!currentTeamData) {
+            throw new Error(`Team data not found for ID: ${teamId}.`);
+        }
+        
         // Process Players for Roster and GM lookup
         const playerStatsPromises = playersSnap.docs.map(playerDoc => 
             getDoc(doc(playerDoc.ref, getCollectionName('seasonal_stats'), SEASON_ID)) 
         );
         const playerStatsSnaps = await Promise.all(playerStatsPromises);
 
+        // Map to store player handles for GM lookup
+        const playerHandlesMap = new Map();
+        
         playersSnap.forEach((doc, i) => {
             const playerData = { id: doc.id, ...doc.data() };
             
             const playerStatsSnapshot = playerStatsSnaps[i];
-            // FIX: Safely check for the snapshot object before calling .exists()
+            
             if (playerStatsSnapshot && playerStatsSnapshot.exists()) {
                 Object.assign(playerData, playerStatsSnapshot.data());
             }
-            
+
+            playerHandlesMap.set(playerData.id, playerData.player_handle);
+
             if (playerData.current_team_id === teamId && playerData.player_status === 'ACTIVE') {
                 rosterPlayerData.set(playerData.id, playerData);
             }
-            // Add GM handle to team data
-            if (currentTeamData && playerData.id === currentTeamData.gm_player_id) {
-                allTeamsData.get(teamId).gm_player_handle = playerData.player_handle;
-            }
         });
+
+        // Finalize GM Handle lookup after all players are processed
+        if (currentTeamData.gm_player_id) {
+            currentTeamData.gm_player_handle = playerHandlesMap.get(currentTeamData.gm_player_id) || 'N/A';
+        }
         
         // Process Games
         gamesSnap.forEach(doc => allGamesData.set(doc.id, { id: doc.id, ...doc.data() }));
-
-        if (!currentTeamData) {
-            throw new Error("Team data not found.");
-        }
         
         generateIconStylesheet();
         displayTeamHeader();
