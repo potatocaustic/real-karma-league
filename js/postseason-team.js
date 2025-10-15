@@ -247,8 +247,8 @@ async function loadTeamData() {
         });
 
         // Process Players for Roster and GM lookup
-        const playerStatsPromises = playersSnap.docs.map(doc => 
-            getDoc(collection(doc.ref, getCollectionName('seasonal_stats')).doc(SEASON_ID))
+        const playerStatsPromises = playersSnap.docs.map(playerDoc => 
+            getDoc(doc(playerDoc.ref, getCollectionName('seasonal_stats'), SEASON_ID)) // FIX: Correct Firestore subcollection path
         );
         const playerStatsSnaps = await Promise.all(playerStatsPromises);
 
