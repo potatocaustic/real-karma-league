@@ -11,6 +11,7 @@
     transition: background-color 0.3s, box-shadow 0.3s;
 }
 
+/* FIX: Added flex properties to align logo and text correctly */
 .team-main-info {
     display: flex;
     align-items: center;
@@ -55,6 +56,11 @@
     color: #007bff;
     font-weight: 500;
     transition: color 0.3s;
+    text-decoration: none; /* Added to match team.js style */
+}
+
+.gm-info:hover {
+    text-decoration: underline; /* Added to match team.js style */
 }
 
 .team-stats-grid {
@@ -311,6 +317,7 @@
 /* Responsive Styles */
 @media (max-width: 768px) {
     .content-grid { grid-template-columns: 1fr; }
+    /* FIX: Added flex-direction for mobile view */
     .team-main-info { flex-direction: column; gap: 1rem; }
     .team-logo-large { width: 80px; height: 80px; }
     .team-stats-grid { grid-template-columns: repeat(2, 1fr); }
