@@ -3239,12 +3239,15 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
  * @param {Array<admin.firestore.QueryDocumentSnapshot>} gamesToProcess - An array of game document snapshots to process for advancement.
  * @param {admin.firestore.CollectionReference} postGamesRef - A reference to the postseason games collection.
  */
+// functions/index.js
+
 async function advanceBracket(gamesToProcess, postGamesRef) {
     if (gamesToProcess.length === 0) {
         console.log("advanceBracket: No games to process.");
         return;
     }
 
+    // (advancementRules object remains the same)
     const advancementRules = {
         "W7vW8": { winnerTo: "W2vW7", winnerField: "team2_id", loserTo: "W8thSeedGame", loserField: "team1_id" },
         "E7vE8": { winnerTo: "E2vE7", winnerField: "team2_id", loserTo: "E8thSeedGame", loserField: "team1_id" },
@@ -3274,10 +3277,21 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
         
         if (!rule) continue;
 
+        // ======================= FIX START =======================
+        // For any series that is NOT a Play-In game, we must check if a series_winner
+        // exists. If it doesn't, the series isn't over, and we should not advance anyone.
+        if (game.week !== 'Play-In' && !game.series_winner) {
+            console.log(`Series ${game.series_id} is not yet complete. Deferring advancement.`);
+            continue; // Skips to the next game document without processing advancement
+        }
+        // ======================= FIX END =======================
+
         const batch = db.batch();
         let shouldCommit = false;
 
-        const winnerId = game.winner;
+        // The winner to be advanced. For Play-In, this is the game winner. 
+        // For other rounds, this is the series winner.
+        const winnerId = game.series_winner || game.winner; 
         const loserId = game.team1_id === winnerId ? game.team2_id : game.team1_id;
 
         if (rule.winnerTo && winnerId) {
