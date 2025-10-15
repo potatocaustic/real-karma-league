@@ -112,7 +112,6 @@ async function loadPlayerData() {
             getDocs(activeSeasonQuery)
         ]);
 
-        // **MODIFIED: Logic to handle postseason button visibility**
         const postseasonBtn = document.getElementById('postseason-btn');
         if (postseasonBtn) {
             const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
@@ -122,9 +121,9 @@ async function loadPlayerData() {
             }
             if (postseasonWeeks.includes(currentWeek)) {
                 postseasonBtn.style.display = 'inline-block';
+                postseasonBtn.href = `postseason-player.html?id=${finalPlayerId}`;
             }
         }
-        // **END MODIFICATION**
 
         const seasonalStats = seasonalStatsSnap.exists() ? seasonalStatsSnap.data() : {};
         // The spread order here ensures player identity data takes precedence
