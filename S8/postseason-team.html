@@ -80,7 +80,7 @@
                 <div class="loading">Loading team information...</div>
             </div>
             <div class="team-stats-grid" id="team-stats" style="display: none;">
-            </div>
+                </div>
         </div>
 
         <div class="content-grid">
@@ -107,17 +107,9 @@
 
     <footer>
         <p>@caustic on Real</p>
-        <a href="/common/trade-block.html">GM Portal</a>
+        <a href="/gm/dashboard.html">GM Portal</a>
     </footer>
     
-    <script>
-      fetch('/common/game-modal-component.html')
-        .then(response => response.text())
-        .then(data => {
-          document.getElementById('modal-placeholder').innerHTML = data;
-        });
-    </script>
-
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
     <script type="module" src="/js/postseason-team.js"></script>
