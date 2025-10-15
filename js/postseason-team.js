@@ -116,7 +116,7 @@ async function loadPageData() {
             teamDocPromise,
             teamSeasonalPromise,
             rosterPromise,
-            schedulePromise // <<< FIX: Was incorrectly 'scheduleSnap'
+            schedulePromise
         ]);
 
         // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
@@ -351,8 +351,9 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
 
         modalContentEl.innerHTML = `
             <div class="game-details-grid">
-                ${generateLineupTable(team1Lineups, team1Info, winnerId === team1_id, true)}
-                ${generateLineupTable(team2Lineups, team2Info, winnerId === team2_id, true)}
+                // FIX #2: Removed the incorrect final 'true' argument, which was triggering the 'live' indicator.
+                ${generateLineupTable(team1Lineups, team1Info, winnerId === team1_id)}
+                ${generateLineupTable(team2Lineups, team2Info, winnerId === team2_id)}
             </div>`;
 
     } catch(error) {
@@ -421,6 +422,18 @@ function getTeamRecordAtDate(teamIdForRecord, targetDate, isPostseason = false) 
     return { wins, losses, recordString: `${wins}-${losses}` };
 }
 
+// FIX #1: Added this helper function to get week abbreviations
+function getWeekAbbreviation(weekName) {
+    if (!weekName) return 'TBD';
+    const lower = weekName.toLowerCase();
+    if (lower.includes('play-in')) return 'PI';
+    if (lower.includes('round 1')) return 'R1';
+    if (lower.includes('round 2')) return 'R2';
+    if (lower.includes('conf finals')) return 'CF';
+    if (lower.includes('finals')) return 'F';
+    return weekName.substring(0, 2).toUpperCase(); // Fallback for other potential rounds
+}
+
 function generateGameItemHTML(game) {
     const isTeam1 = game.team1_id === teamId;
     const opponentId = isTeam1 ? game.team2_id : game.team1_id;
@@ -452,7 +465,7 @@ function generateGameItemHTML(game) {
     
     const desktopHTML = `
         <div class="game-info-table">
-            <div class="week-cell"><div class="week-badge">${game.week || 'TBD'}</div></div>
+            <div class="week-cell"><div class="week-badge">${getWeekAbbreviation(game.week)}</div></div>
             <div class="date-cell"><div class="date-badge">${formatDateMMDD(normalizeDate(game.date))}</div></div>
         </div>
         <div class="game-content-table">
@@ -473,7 +486,7 @@ function generateGameItemHTML(game) {
     
     const mobileHTML = `
         <div class="game-matchup">
-            <div class="week-badge">${game.week || 'TBD'}</div>
+            <div class="week-badge">${getWeekAbbreviation(game.week)}</div>
             <div class="team">
                 <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px;"></div>
                 <div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : ''}">${teamName}</span><span class="team-record">${teamRecord}</span></div>
