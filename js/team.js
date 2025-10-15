@@ -109,6 +109,10 @@ async function loadPageData() {
         const draftPicksPromise = getDocs(collection(db, getCollectionName("draftPicks")));
         const transactionsPromise = getDocs(collection(db, getCollectionName("transactions"), "seasons", ACTIVE_SEASON_ID));
 
+        // NEW: Fetch the active season document for postseason button logic
+        const activeSeasonQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
+        const activeSeasonPromise = getDocs(activeSeasonQuery);
+
 
         // --- AWAIT ALL PROMISES ---
         const [
@@ -118,7 +122,8 @@ async function loadPageData() {
             rosterSnap,
             scheduleSnap,
             draftPicksSnap,
-            transactionsSnap
+            transactionsSnap,
+            activeSeasonSnap // NEW: Active season snapshot
         ] = await Promise.all([
             allTeamsRecordsPromise,
             teamDocPromise,
@@ -126,7 +131,8 @@ async function loadPageData() {
             rosterPromise,
             schedulePromise,
             draftPicksPromise,
-            transactionsPromise
+            transactionsPromise,
+            activeSeasonPromise // NEW: Active season promise
         ]);
 
         // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
@@ -167,6 +173,9 @@ async function loadPageData() {
                 ...seasonalStats
             };
         });
+
+        // NEW: Set button visibility
+        setPostseasonButtonVisibility(activeSeasonSnap);
 
         // --- RENDER ALL PAGE COMPONENTS ---
         displayTeamHeader();
@@ -441,6 +450,24 @@ function handleRosterSort(column) {
 
 
 // --- HELPER & UTILITY FUNCTIONS ---
+
+// NEW: Function to control postseason button visibility
+function setPostseasonButtonVisibility(activeSeasonSnap) {
+    const postseasonBtn = document.getElementById('postseason-profile-btn');
+    if (!postseasonBtn) return;
+
+    if (!activeSeasonSnap.empty) {
+        const currentWeek = activeSeasonSnap.docs[0].data().current_week;
+        const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
+
+        if (postseasonWeeks.includes(currentWeek)) {
+            postseasonBtn.style.display = 'inline-block';
+            // Set the link to the postseason team page using the current teamId
+            postseasonBtn.href = `postseason-team.html?id=${teamId}`;
+        }
+    }
+}
+
 
 function generateIconStylesheet(teamIdList) {
     const iconStyles = teamIdList.map(id => {
