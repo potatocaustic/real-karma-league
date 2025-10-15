@@ -248,15 +248,19 @@ async function loadTeamData() {
 
         // Process Players for Roster and GM lookup
         const playerStatsPromises = playersSnap.docs.map(playerDoc => 
-            getDoc(doc(playerDoc.ref, getCollectionName('seasonal_stats'), SEASON_ID)) // FIX: Correct Firestore subcollection path
+            getDoc(doc(playerDoc.ref, getCollectionName('seasonal_stats'), SEASON_ID)) 
         );
         const playerStatsSnaps = await Promise.all(playerStatsPromises);
 
         playersSnap.forEach((doc, i) => {
             const playerData = { id: doc.id, ...doc.data() };
-            if (playerStatsSnaps[i].exists()) {
-                Object.assign(playerData, playerStatsSnaps[i].data());
+            
+            const playerStatsSnapshot = playerStatsSnaps[i];
+            // FIX: Safely check for the snapshot object before calling .exists()
+            if (playerStatsSnapshot && playerStatsSnapshot.exists()) {
+                Object.assign(playerData, playerStatsSnapshot.data());
             }
+            
             if (playerData.current_team_id === teamId && playerData.player_status === 'ACTIVE') {
                 rosterPlayerData.set(playerData.id, playerData);
             }
