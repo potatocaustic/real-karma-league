@@ -27,6 +27,7 @@ let allGms = new Map();
 let awardSelections = new Map();
 let currentGameData = null;
 let lastCheckedCaptain = { team1: null, team2: null };
+let activeSeasonCurrentWeek = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     loadingContainer = document.getElementById('loading-container');
@@ -172,15 +173,15 @@ async function populateSeasons() {
         }
 
         let activeSeasonId = null;
-        let activeSeasonCurrentWeek = null; // To store the current week for performance
-
+        // activeSeasonCurrentWeek is now a global variable, so we just set it here
+        
         const seasonOptions = seasonsSnap.docs
             .sort((a, b) => b.id.localeCompare(a.id)) // Sorts seasons S9, S8, etc.
             .map(doc => {
                 const seasonData = doc.data();
                 if (seasonData.status === 'active') {
                     activeSeasonId = doc.id;
-                    activeSeasonCurrentWeek = seasonData.current_week; // Capture the current week
+                    activeSeasonCurrentWeek = seasonData.current_week; // Set the global variable
                 }
                 return `<option value="${doc.id}">${seasonData.season_name}</option>`;
             }).join('');
@@ -216,7 +217,6 @@ async function handleSeasonChange(defaultWeek = null) {
     }
 }
 
-// RE-INTRODUCED: This function was mistakenly removed and is now restored.
 async function populateWeeks(seasonId) {
     let weekOptions = '';
     for (let i = 1; i <= 15; i++) weekOptions += `<option value="${i}">Week ${i}</option>`;
@@ -304,12 +304,27 @@ async function fetchAndDisplayGames(seasonId, week) {
         });
         gamesListContainer.innerHTML = gamesHTML;
         
+        // This logic now checks if the selected week is the current week.
         if (sortedDocs.length > 0) {
-            const firstGameDateStr = sortedDocs[0].data().date; // "M/D/YYYY"
-            const [month, day, year] = firstGameDateStr.split('/');
-            const formattedDateForInput = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            deadlineDateInput.value = formattedDateForInput;
-            displayDeadlineForDate(formattedDateForInput);
+            if (week === activeSeasonCurrentWeek) {
+                // If it's the current week, default to today's date in Central Time.
+                const nowInChicago = new Date().toLocaleString("en-US", { timeZone: "America/Chicago" });
+                const today = new Date(nowInChicago);
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayFormatted = `${year}-${month}-${day}`;
+                
+                deadlineDateInput.value = todayFormatted;
+                displayDeadlineForDate(todayFormatted);
+            } else {
+                // Otherwise, use the date of the first game of the week.
+                const firstGameDateStr = sortedDocs[0].data().date; // "M/D/YYYY"
+                const [month, day, year] = firstGameDateStr.split('/');
+                const formattedDateForInput = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                deadlineDateInput.value = formattedDateForInput;
+                displayDeadlineForDate(formattedDateForInput);
+            }
         }
 
     } catch (error) {
