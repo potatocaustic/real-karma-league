@@ -9,6 +9,7 @@ const fetch = require("node-fetch");
 const { CloudSchedulerClient } = require("@google-cloud/scheduler");
 const schedulerClient = new CloudSchedulerClient();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { onPubSubMessage } = require("firebase-functions/v2/pubsub");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -16,6 +17,7 @@ const db = admin.firestore();
 const USE_DEV_COLLECTIONS = false;
 /**
  * Sets or updates a lineup submission deadline for a specific date.
+ * Also schedules the automated start of live scoring for 15 minutes after the deadline.
  * Admin-only function.
  * @param {object} data - The data object from the client.
  * @param {string} data.date - The date for the deadline in 'M/D/YYYY' format.
@@ -41,13 +43,9 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
         const [hour, minute] = time.split(':');
 
         const intendedWallTimeAsUTC = new Date(Date.UTC(year, month - 1, day, hour, minute));
-
         const chicagoTimeString = intendedWallTimeAsUTC.toLocaleString("en-US", { timeZone: timeZone });
-
         const chicagoTimeAsUTC = new Date(chicagoTimeString);
-
         const offset = intendedWallTimeAsUTC.getTime() - chicagoTimeAsUTC.getTime();
-
         const deadlineDate = new Date(intendedWallTimeAsUTC.getTime() + offset);
         
         const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -59,8 +57,39 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
             setBy: request.auth.uid,
             lastUpdated: FieldValue.serverTimestamp()
         });
+        
+        const triggerTime = new Date(deadlineDate.getTime() + 15 * 60 * 1000);
+        const jobName = `start-live-scoring-${deadlineId}`;
+        const projectId = process.env.GCLOUD_PROJECT;
+        const location = 'us-central1';
+        const topicName = 'start-live-scoring-topic';
+        const pubSubTopic = `projects/${projectId}/topics/${topicName}`;
+        const parent = `projects/${projectId}/locations/${location}`;
+        const jobPath = schedulerClient.jobPath(projectId, location, jobName);
+        try {
+            await schedulerClient.deleteJob({ name: jobPath });
+            console.log(`Deleted existing job ${jobName} to reschedule.`);
+        } catch (error) {
+            if (error.code !== 5) { // 5 = NOT_FOUND, which is an expected outcome if no job exists
+                console.error(`Error deleting existing schedule job ${jobName}:`, error);
+                throw new HttpsError('internal', 'Could not clear the existing schedule for the deadline.');
+            }
+        }
+        const job = {
+            name: jobPath,
+            pubsubTarget: {
+                topicName: pubSubTopic,
+                data: Buffer.from(JSON.stringify({ gameDate: deadlineId })).toString('base64'),
+            },
+            schedule: `${triggerTime.getUTCMinutes()} ${triggerTime.getUTCHours()} ${triggerTime.getUTCDate()} ${triggerTime.getUTCMonth() + 1} *`,
+            timeZone: 'UTC', // Schedule must be in UTC
+        };
 
-        return { success: true, message: `Deadline for ${date} set to ${time} ${timeZone}.` };
+        await schedulerClient.createJob({ parent: parent, job: job });
+        console.log(`Scheduled job ${jobName} to automatically start live scoring at ${triggerTime.toISOString()}`);
+        // --- MODIFICATION END ---
+
+        return { success: true, message: `Deadline for ${date} set to ${time} ${timeZone}. Live scoring will start automatically 15 minutes later.` };
 
     } catch (error) {
         console.error("Error setting lineup deadline:", error);
@@ -3766,7 +3795,61 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
         throw new HttpsError('internal', `Failed to generate report: ${error.message}`);
     }
 });
+/**
+ * Triggered by a Cloud Scheduler job 15 minutes after a lineup deadline.
+ * This function automatically begins the live scoring process for the day.
+ */
+exports.scheduledLiveScoringStart = onPubSubMessage("start-live-scoring-topic", async (event) => {
+    console.log("Received trigger to automatically start live scoring.");
 
+    const payload = event.data.message.data ? JSON.parse(Buffer.from(event.data.message.data, 'base64').toString()) : null;
+    if (!payload || !payload.gameDate) {
+        console.error("Pub/Sub message payload did not contain a 'gameDate'. Aborting auto-start.");
+        return null;
+    }
+    const { gameDate } = payload;
+    console.log(`Processing auto-start for game date: ${gameDate}`);
+
+    const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
+    const statusSnap = await statusRef.get();
+
+    if (statusSnap.exists() && statusSnap.data().status === 'active') {
+        console.log("Live scoring is already active. No action needed.");
+        return null;
+    }
+
+    const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+    if (liveGamesSnap.empty) {
+        console.log("No games have been activated in the 'live_games' collection. Aborting automatic start of live scoring.");
+        return null;
+    }
+
+    try {
+        const interval = statusSnap.exists() ? statusSnap.data().interval_minutes || 5 : 5;
+
+        console.log(`Setting live scoring status to 'active' for date ${gameDate} with a ${interval}-minute interval.`);
+        await statusRef.set({
+            status: 'active',
+            updated_by: 'automated_startup',
+            last_updated: FieldValue.serverTimestamp(),
+            interval_minutes: interval,
+            active_game_date: gameDate,
+            last_sample_completed_at: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
+        await usageRef.set({ live_game_count: liveGamesSnap.size }, { merge: true });
+
+        console.log("Status set to 'active'. Performing initial full score update.");
+        await performFullUpdate();
+        console.log("Automated live scoring start process completed successfully.");
+        return null;
+    } catch (error) {
+        console.error("CRITICAL ERROR during automated start of live scoring:", error);
+        await statusRef.set({ status: 'stopped', error: `Auto-start failed: ${error.message}` }, { merge: true });
+        return null;
+    }
+});
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
 // ===================================================================
