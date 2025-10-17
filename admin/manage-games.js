@@ -172,16 +172,15 @@ async function populateSeasons() {
         }
 
         let activeSeasonId = null;
-        let activeSeasonCurrentWeek = null; // MODIFICATION: Variable to store the current week
+        let activeSeasonCurrentWeek = null; // To store the current week for performance
 
         const seasonOptions = seasonsSnap.docs
-            .sort((a, b) => b.id.localeCompare(a.id)) // Sort seasons S9, S8, etc.
+            .sort((a, b) => b.id.localeCompare(a.id)) // Sorts seasons S9, S8, etc.
             .map(doc => {
                 const seasonData = doc.data();
                 if (seasonData.status === 'active') {
                     activeSeasonId = doc.id;
-                    // MODIFICATION: Capture the current_week from the active season data
-                    activeSeasonCurrentWeek = seasonData.current_week;
+                    activeSeasonCurrentWeek = seasonData.current_week; // Capture the current week
                 }
                 return `<option value="${doc.id}">${seasonData.season_name}</option>`;
             }).join('');
@@ -190,11 +189,11 @@ async function populateSeasons() {
 
         if (activeSeasonId) {
             seasonSelect.value = activeSeasonId;
-            currentSeasonId = activeSeasonId;
+            currentSeasonId = activeSeasonId; // Set global season ID
             await updateTeamCache(currentSeasonId);
             await updateAwardsCache(currentSeasonId);
-            // MODIFICATION: Pass the pre-fetched current week to handleSeasonChange
-            await handleSeasonChange(activeSeasonCurrentWeek);
+            // Pass the pre-fetched current week to the handler
+            await handleSeasonChange(activeSeasonCurrentWeek); 
         }
 
     } catch (error) {
@@ -204,8 +203,10 @@ async function populateSeasons() {
 
 async function handleSeasonChange(defaultWeek = null) {
     if (currentSeasonId) {
-        await populateWeeks(currentSeasonId);
-        // If a default week is provided (from the active season), use it. Otherwise, default to week 1.
+        // This call correctly populates the week dropdown before we try to select a value
+        await populateWeeks(currentSeasonId); 
+        
+        // Use the default week if available, otherwise fallback to '1'
         const weekToDisplay = defaultWeek && defaultWeek !== "End of Regular Season" ? defaultWeek : '1';
         weekSelect.value = weekToDisplay;
         await fetchAndDisplayGames(currentSeasonId, weekToDisplay);
@@ -213,6 +214,20 @@ async function handleSeasonChange(defaultWeek = null) {
         weekSelect.innerHTML = '<option>Select a season...</option>';
         gamesListContainer.innerHTML = '<p class="placeholder-text">Please select a season to view games.</p>';
     }
+}
+
+// RE-INTRODUCED: This function was mistakenly removed and is now restored.
+async function populateWeeks(seasonId) {
+    let weekOptions = '';
+    for (let i = 1; i <= 15; i++) weekOptions += `<option value="${i}">Week ${i}</option>`;
+    weekOptions += `<option value="All-Star">All-Star</option>`;
+    weekOptions += `<option value="Relegation">Relegation</option>`;
+    weekOptions += `<option value="Play-In">Play-In</option>`;
+    weekOptions += `<option value="Round 1">Round 1</option>`;
+    weekOptions += `<option value="Round 2">Round 2</option>`;
+    weekOptions += `<option value="Conf Finals">Conference Finals</option>`;
+    weekOptions += `<option value="Finals">Finals</option>`;
+    weekSelect.innerHTML = `<option value="">Select a week...</option>${weekOptions}`;
 }
 
 async function fetchAndDisplayGames(seasonId, week) {
@@ -237,6 +252,7 @@ async function fetchAndDisplayGames(seasonId, week) {
             return;
         }
 
+        // Sort the documents chronologically by date
         const sortedDocs = querySnapshot.docs.sort((a, b) => {
             const [aMonth, aDay, aYear] = a.data().date.split('/');
             const [bMonth, bDay, bYear] = b.data().date.split('/');
@@ -255,7 +271,7 @@ async function fetchAndDisplayGames(seasonId, week) {
         }
 
         let gamesHTML = '';
-        // MODIFICATION: Iterate over the newly sorted array of documents
+        // Iterate over the newly sorted array of documents
         sortedDocs.forEach(doc => {
             const game = { id: doc.id, ...doc.data() };
             const team1 = allTeams.get(game.team1_id);
