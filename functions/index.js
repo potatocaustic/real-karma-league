@@ -3,13 +3,13 @@
 const { onDocumentUpdated, onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { onPubSubMessage } = require("firebase-functions/v2/pubsub");
 const admin = require("firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
 const { CloudSchedulerClient } = require("@google-cloud/scheduler");
 const schedulerClient = new CloudSchedulerClient();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const { onPubSubMessage } = require("firebase-functions/v2/pubsub");
 
 admin.initializeApp();
 const db = admin.firestore();
