@@ -172,12 +172,16 @@ async function populateSeasons() {
         }
 
         let activeSeasonId = null;
+        let activeSeasonCurrentWeek = null; // MODIFICATION: Variable to store the current week
+
         const seasonOptions = seasonsSnap.docs
-            .sort((a, b) => b.id.localeCompare(a.id))
+            .sort((a, b) => b.id.localeCompare(a.id)) // Sort seasons S9, S8, etc.
             .map(doc => {
                 const seasonData = doc.data();
                 if (seasonData.status === 'active') {
                     activeSeasonId = doc.id;
+                    // MODIFICATION: Capture the current_week from the active season data
+                    activeSeasonCurrentWeek = seasonData.current_week;
                 }
                 return `<option value="${doc.id}">${seasonData.season_name}</option>`;
             }).join('');
@@ -186,14 +190,11 @@ async function populateSeasons() {
 
         if (activeSeasonId) {
             seasonSelect.value = activeSeasonId;
-        }
-
-        currentSeasonId = seasonSelect.value;
-
-        if (currentSeasonId) {
+            currentSeasonId = activeSeasonId;
             await updateTeamCache(currentSeasonId);
             await updateAwardsCache(currentSeasonId);
-            await handleSeasonChange();
+            // MODIFICATION: Pass the pre-fetched current week to handleSeasonChange
+            await handleSeasonChange(activeSeasonCurrentWeek);
         }
 
     } catch (error) {
@@ -201,64 +202,19 @@ async function populateSeasons() {
     }
 }
 
-async function findEarliestIncompleteWeek(seasonId) {
-    const weeksInOrder = [
-        '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15',
-        'All-Star', 'Relegation', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'
-    ];
-
-    for (const week of weeksInOrder) {
-        const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation';
-        const isExhibition = week === 'All-Star' || week === 'Relegation';
-
-        let collectionName = 'games';
-        if (isPostseason) collectionName = 'post_games';
-        if (isExhibition) collectionName = 'exhibition_games';
-
-        const gamesCollectionRef = collection(db, getCollectionName("seasons"), seasonId, getCollectionName(collectionName));
-        const q = query(gamesCollectionRef, where("week", "==", week), where("completed", "==", "FALSE"), limit(1));
-        
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            console.log(`Found incomplete games in week: ${week}. Setting as default.`);
-            return week;
-        }
-    }
-
-    console.log("No incomplete games found in any week. Defaulting to Week 1.");
-    return '1';
-}
-
-async function handleSeasonChange() {
+async function handleSeasonChange(defaultWeek = null) {
     if (currentSeasonId) {
         await populateWeeks(currentSeasonId);
-        const defaultWeek = await findEarliestIncompleteWeek(currentSeasonId);
-        weekSelect.value = defaultWeek;
-        await fetchAndDisplayGames(currentSeasonId, defaultWeek);
+        // If a default week is provided (from the active season), use it. Otherwise, default to week 1.
+        const weekToDisplay = defaultWeek && defaultWeek !== "End of Regular Season" ? defaultWeek : '1';
+        weekSelect.value = weekToDisplay;
+        await fetchAndDisplayGames(currentSeasonId, weekToDisplay);
     } else {
         weekSelect.innerHTML = '<option>Select a season...</option>';
         gamesListContainer.innerHTML = '<p class="placeholder-text">Please select a season to view games.</p>';
     }
 }
 
-
-async function populateWeeks(seasonId) {
-    let weekOptions = '';
-    for (let i = 1; i <= 15; i++) weekOptions += `<option value="${i}">Week ${i}</option>`;
-    weekOptions += `<option value="All-Star">All-Star</option>`;
-    weekOptions += `<option value="Relegation">Relegation</option>`;
-    weekOptions += `<option value="Play-In">Play-In</option>`;
-    weekOptions += `<option value="Round 1">Round 1</option>`;
-    weekOptions += `<option value="Round 2">Round 2</option>`;
-    weekOptions += `<option value="Conf Finals">Conference Finals</option>`;
-    weekOptions += `<option value="Finals">Finals</option>`;
-    weekSelect.innerHTML = `<option value="">Select a week...</option>${weekOptions}`;
-}
-
-/**
- * MODIFICATION: This function now populates the deadline date input with the
- * date of the first game in the list for the selected week.
- */
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
 
@@ -276,14 +232,18 @@ async function fetchAndDisplayGames(seasonId, week) {
         const querySnapshot = await getDocs(gamesQuery);
         if (querySnapshot.empty) {
             gamesListContainer.innerHTML = '<p class="placeholder-text">No games found for this week.</p>';
-            // ======================= MODIFICATION START =======================
             deadlineDateInput.value = '';
             deadlineDisplay.innerHTML = '<p>Select a date to see the current deadline.</p>';
-            // ======================= MODIFICATION END =======================
             return;
         }
 
-        const gameIds = querySnapshot.docs.map(doc => doc.id);
+        const sortedDocs = querySnapshot.docs.sort((a, b) => {
+            const [aMonth, aDay, aYear] = a.data().date.split('/');
+            const [bMonth, bDay, bYear] = b.data().date.split('/');
+            return new Date(aYear, aMonth - 1, aDay) - new Date(bYear, bMonth - 1, bDay);
+        });
+
+        const gameIds = sortedDocs.map(doc => doc.id);
         const pendingLineups = new Map();
 
         if (gameIds.length > 0) {
@@ -295,7 +255,8 @@ async function fetchAndDisplayGames(seasonId, week) {
         }
 
         let gamesHTML = '';
-        querySnapshot.docs.forEach(doc => {
+        // MODIFICATION: Iterate over the newly sorted array of documents
+        sortedDocs.forEach(doc => {
             const game = { id: doc.id, ...doc.data() };
             const team1 = allTeams.get(game.team1_id);
             const team2 = allTeams.get(game.team2_id);
@@ -327,16 +288,13 @@ async function fetchAndDisplayGames(seasonId, week) {
         });
         gamesListContainer.innerHTML = gamesHTML;
         
-        // ======================= MODIFICATION START =======================
-        // Auto-populate deadline input with the first game's date
-        if (querySnapshot.docs.length > 0) {
-            const firstGameDateStr = querySnapshot.docs[0].data().date; // "M/D/YYYY"
+        if (sortedDocs.length > 0) {
+            const firstGameDateStr = sortedDocs[0].data().date; // "M/D/YYYY"
             const [month, day, year] = firstGameDateStr.split('/');
             const formattedDateForInput = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             deadlineDateInput.value = formattedDateForInput;
             displayDeadlineForDate(formattedDateForInput);
         }
-        // ======================= MODIFICATION END =======================
 
     } catch (error) {
         console.error("Error fetching games: ", error);
@@ -344,12 +302,6 @@ async function fetchAndDisplayGames(seasonId, week) {
     }
 }
 
-
-// ======================= MODIFICATION START =======================
-/**
- * NEW: Fetches and displays the deadline for a specific date.
- * @param {string} dateString - The date in 'YYYY-MM-DD' format from the input.
- */
 async function displayDeadlineForDate(dateString) {
     if (!dateString) {
         deadlineDisplay.innerHTML = '<p>Select a date to see the current deadline.</p>';
