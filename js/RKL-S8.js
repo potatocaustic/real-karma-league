@@ -416,9 +416,12 @@ async function loadRecentGames() {
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
-        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
-        const exhibitionGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('exhibition_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(1));
+        // --- THIS IS THE FIX ---
+        // Fetch a larger pool of candidates to ensure the true most recent game is found,
+        // compensating for non-chronological document IDs.
+        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const exhibitionGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('exhibition_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
 
         const [regSnap, postSnap, exhSnap] = await Promise.all([
             getDocs(regularSeasonGamesQuery),
@@ -427,15 +430,18 @@ async function loadRecentGames() {
         ]);
 
         const potentialGames = [];
-        if (!regSnap.empty) potentialGames.push({ doc: regSnap.docs[0], collection: getCollectionName('games') });
-        if (!postSnap.empty) potentialGames.push({ doc: postSnap.docs[0], collection: getCollectionName('post_games') });
-        if (!exhSnap.empty) potentialGames.push({ doc: exhSnap.docs[0], collection: getCollectionName('exhibition_games') });
+        // Now we populate the array with all fetched games, not just one from each
+        if (!regSnap.empty) regSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getCollectionName('games') }));
+        if (!postSnap.empty) postSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getCollectionName('post_games') }));
+        if (!exhSnap.empty) exhSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getCollectionName('exhibition_games') }));
+
 
         if (potentialGames.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
 
+        // This sort (from the previous fix) now works because the correct games are in the pool
         potentialGames.sort((a, b) => new Date(b.doc.data().date) - new Date(a.doc.data().date));
         
         const mostRecentGameInfo = potentialGames[0];
