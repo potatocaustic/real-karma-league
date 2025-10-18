@@ -436,11 +436,7 @@ async function loadRecentGames() {
             return;
         }
 
-        // --- BUG FIX START ---
-        // Switched from sorting by document ID to sorting by the actual date field
-        // to ensure chronological accuracy across different game types.
         potentialGames.sort((a, b) => new Date(b.doc.data().date) - new Date(a.doc.data().date));
-        // --- BUG FIX END ---
         
         const mostRecentGameInfo = potentialGames[0];
         
@@ -495,12 +491,9 @@ async function loadRecentGames() {
             const team1_indicator = winnerId === team1.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
             const team2_indicator = winnerId === team2.id ? '<div class="winner-indicator"></div>' : '<div class="winner-indicator-placeholder"></div>';
 
-            // --- MODIFICATION START ---
-            // 1. Added logo logic for special teams, mirroring the live game logic.
             const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
             const team1LogoExt = team1.logo_ext || (specialTeamIds.includes(team1.id) ? 'png' : 'webp');
             const team2LogoExt = team2.logo_ext || (specialTeamIds.includes(team2.id) ? 'png' : 'webp');
-            // --- MODIFICATION END ---
 
             return `
                 <div class="game-item completed" data-game-id="${game.id}" data-game-date="${game.date}" data-collection-name="${collectionToQuery}">
@@ -536,12 +529,9 @@ async function loadRecentGames() {
                 </div>`;
         }).join('');
         
-        // --- MODIFICATION START ---
-        // 2. Pass the collection name to the modal click handler.
         document.querySelectorAll('.game-item').forEach(item => {
             item.addEventListener('click', () => showGameDetails(item.dataset.gameId, false, item.dataset.gameDate, item.dataset.collectionName));
         });
-        // --- MODIFICATION END ---
     } catch (error) {
         console.error("Error fetching recent games:", error);
         gamesList.innerHTML = '<div class="error">Could not load recent games. See console for details.</div>';
