@@ -109,7 +109,10 @@ async function loadPlayerData() {
 
         const [lineupsSnap, gamesSnap] = await Promise.all([ getDocs(lineupsQuery), getDocs(gamesQuery) ]);
 
-        playerLineups = lineupsSnap.docs.map(d => d.data()).sort((a,b) => (a.week || "").localeCompare(b.week || ""));
+        // --- THIS IS THE FIX ---
+        // Sort by the actual game date instead of the week name string.
+        playerLineups = lineupsSnap.docs.map(d => d.data()).sort((a, b) => new Date(a.date) - new Date(b.date));
+        
         gamesSnap.forEach(gameDoc => allGamesData.set(gameDoc.id, { id: gameDoc.id, ...gameDoc.data() }));
 
         displayPlayerHeader();
@@ -121,7 +124,6 @@ async function loadPlayerData() {
         document.getElementById('player-main-info').innerHTML = `<div class="error">Failed to load postseason data. See console.</div>`;
     }
 }
-
 /**
  * Displays the main player header and POSTSEASON stat cards.
  */
