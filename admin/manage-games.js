@@ -114,7 +114,29 @@ async function initializePage() {
             }
         });
     }
-
+    // --- TEMPORARY FIX: Add button to trigger bracket update ---
+    const bracketFixButton = document.getElementById('manual-bracket-fix-btn');
+    if (bracketFixButton) {
+        bracketFixButton.addEventListener('click', async () => {
+            if (!confirm("Are you sure you want to manually advance the playoff bracket? Only do this after fixing the series wins (Step 1).")) {
+                return;
+            }
+            bracketFixButton.disabled = true;
+            bracketFixButton.textContent = 'Processing...';
+            try {
+                const test_updatePlayoffBracket = httpsCallable(functions, 'test_updatePlayoffBracket');
+                const result = await test_updatePlayoffBracket();
+                alert(result.data.message);
+            } catch (error) {
+                console.error("Error manually updating bracket:", error);
+                alert(`Failed to update bracket: ${error.message}`);
+            } finally {
+                bracketFixButton.disabled = false;
+                bracketFixButton.textContent = 'Manually Advance Bracket';
+            }
+        });
+    }
+    // --- END TEMPORARY FIX ---
     // ======================= MODIFICATION START =======================
     deadlineForm.addEventListener('submit', handleSetDeadline);
     deadlineDateInput.addEventListener('change', () => displayDeadlineForDate(deadlineDateInput.value));
