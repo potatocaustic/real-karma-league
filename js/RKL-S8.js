@@ -545,6 +545,8 @@ async function loadRecentGames() {
 }
 
 
+// js/RKL-S8.js
+
 function loadSeasonInfo(seasonData) {
     const currentWeekSpan = document.getElementById('current-week');
     const seasonStatsContainer = document.getElementById('season-stats');
@@ -553,6 +555,32 @@ function loadSeasonInfo(seasonData) {
     if (!currentWeekSpan || !seasonStatsContainer || !playoffBtnContainer) return;
 
     const currentWeek = seasonData.current_week || '1';
+    
+    if (currentWeek === "Season Complete") {
+        // Find the champion from the cached games data
+        const finalsGames = allGamesCache.filter(g => g.series_id === 'Finals');
+        const finalsWinnerId = finalsGames.length > 0 ? finalsGames[0].series_winner : null; // Get winner from any Finals game doc
+        const winnerInfo = finalsWinnerId ? allTeams.find(t => t.id === finalsWinnerId) : null;
+        
+        if (winnerInfo) {
+            const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+            const logoExt = winnerInfo.logo_ext || (specialTeamIds.includes(winnerInfo.id) ? 'png' : 'webp');
+            
+            currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.${logoExt}" onerror="this.style.display='none'"/> ${escapeHTML(winnerInfo.team_name)} 🏆</p>`;
+        } else {
+            currentWeekSpan.textContent = "Season Complete";
+        }
+
+        playoffBtnContainer.style.display = 'block';
+        seasonStatsContainer.innerHTML = `
+            <p><strong>Season has concluded.</strong></p>
+            <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
+            <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
+        `;
+        
+        return; 
+    }
+
     const isPostseason = isPostseasonWeek(currentWeek);
 
     currentWeekSpan.textContent = isPostseason ? currentWeek : `Week ${currentWeek}`;
@@ -560,6 +588,7 @@ function loadSeasonInfo(seasonData) {
     if (isPostseason) {
         playoffBtnContainer.style.display = 'block';
 
+        // This logic is now fine, as it won't run if the week is "Season Complete"
         const incompletePostseasonGames = allGamesCache.filter(g =>
             isPostseasonWeek(g.week) && g.completed !== 'TRUE'
         );
@@ -587,7 +616,11 @@ function loadSeasonInfo(seasonData) {
     if (seasonData.status === 'completed') {
         const winnerInfo = allTeams.find(t => t.id === seasonData.champion_id);
         if (winnerInfo) {
-            currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.webp" onerror="this.style.display='none'"/> ${winnerInfo.team_name} 🏆</p>`;
+            // Determine logo extension
+            const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+            const logoExt = winnerInfo.logo_ext || (specialTeamIds.includes(winnerInfo.id) ? 'png' : 'webp');
+            
+            currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.${logoExt}" onerror="this.style.display='none'"/> ${escapeHTML(winnerInfo.team_name)} 🏆</p>`;
         }
         playoffBtnContainer.style.display = 'block';
     }
