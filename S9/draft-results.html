@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>S8 Draft Results</title>
+    <title>S9 Draft Results</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
@@ -106,9 +106,9 @@
             <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
             <ul id="nav-menu">
                 <li class="dropdown">
-                    <a href="RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                    <a href="RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
                     <div class="dropdown-content">
-                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
                         <a href="/S7/RKL-S7.html">S7 Home</a>
                     </div>
                 </li>
@@ -140,8 +140,8 @@
     
     <main>
       <div class="page-header">
-        <h2>S8 Draft Results</h2>
-        <p>Season 8 draft results and player performance</p>
+        <h2>S9 Draft Results</h2>
+        <p>Season 9 draft results and player performance</p>
       </div>
 
       <div class="quick-links-container">
@@ -151,7 +151,7 @@
 
       <div class="results-container">
         <div class="results-header" style="border-radius: 8px 8px 0 0; width: auto; margin: 0 auto;">
-          <h3 id="results-title">Season 8 Draft</h3>
+          <h3 id="results-title">Season 9 Draft</h3>
         </div>
         <table class="results-table">
           <thead>
@@ -191,7 +191,7 @@
           return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
       };
 
-      const CURRENT_SEASON_ID = 'S8';
+      const CURRENT_SEASON_ID = 'S9';
       let allDraftData = [];
       let sortState = { column: 'overall', direction: 'asc' };
 
@@ -308,7 +308,7 @@
         const resultsHeader = document.querySelector('.results-header');
 
         if (dataToDisplay.length === 0) {
-            resultsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No S8 draft results found.</td></tr>`;
+            resultsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No S9 draft results found.</td></tr>`;
             resultsHeader.style.display = 'none';
             document.querySelector('.results-table').style.boxShadow = 'none';
             return;

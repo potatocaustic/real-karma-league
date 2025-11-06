@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RKL Season 8 Trophy Case</title>
+    <title>RKL Season 9 Trophy Case</title>
     <link rel="stylesheet" href="/css/global-styles.css" />
     <link rel="stylesheet" href="/css/trophy-case.css" />
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
@@ -41,9 +41,9 @@
             <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
             <ul id="nav-menu">
                 <li class="dropdown">
-                    <a href="RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                    <a href="RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
                     <div class="dropdown-content">
-                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
                         <a href="/S7/RKL-S7.html">S7 Home</a>
                     </div>
                 </li>
@@ -75,7 +75,7 @@
 
     <main>
         <div class="page-header">
-            <h2>Season 8 Trophy Case</h2>
+            <h2>Season 9 Trophy Case</h2>
             <p>A showcase of the league's champions and award winners.</p>
         </div>
 
@@ -106,7 +106,7 @@
         import { db, doc, getDoc, getDocs, collection, query, where, limit, collectionGroup } from '../js/firebase-init.js';
         import { generateLineupTable } from '../js/main.js';
 
-        const SEASON_ID = 'S8';
+        const SEASON_ID = 'S9';
         const USE_DEV_COLLECTIONS = false;
         const SEASON_NUMBER = SEASON_ID.replace('S', '');
 
@@ -115,7 +115,7 @@
 
         const getCollectionName = (baseName) => {
             const devCollections = [
-                'awards', 'S8_awards', 'v2_players', 'seasonal_stats',
+                'awards', 'S9_awards', 'v2_players', 'seasonal_stats',
                 'v2_teams', 'seasonal_records', 'seasons', 'games',
                 'post_games', 'lineups', 'post_lineups', 'daily_scores',
                 `S${SEASON_NUMBER}_daily_scores`
