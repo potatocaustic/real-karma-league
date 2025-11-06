@@ -279,14 +279,10 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function initializeApp() {
         selectorsContainer.innerHTML = `<div class="loading">Loading Season 8 data from Firestore...</div>`;
-        
+
         try {
-            const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
-            const seasonsSnap = await getDocs(seasonsQuery);
-            if (seasonsSnap.empty) {
-                throw new Error("An active season could not be found.");
-            }
-            const activeSeasonId = seasonsSnap.docs[0].id;
+            // Hardcoded to Season 8 - this page will always display S8 data
+            const activeSeasonId = 'S8';
 
             const [
                 playersSnap,
