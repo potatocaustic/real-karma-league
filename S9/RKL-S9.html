@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Real Karma League S8</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/css/RKL-S8.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body>
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <span class="header-text">Real Karma League</span>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <h2>RKL Season 8</h2>
+        </div>
+
+        <div id="playoff-button-container" class="playoff-button-container" style="display: none;">
+            <a href="playoff-bracket.html" class="playoff-button">View Playoff Bracket ➔</a>
+        </div>
+
+        <div class="season-info">
+            <div id="current-week-container">
+                <p><strong>Current Week:</strong> <span id="current-week">Loading...</span></p>
+            </div>
+            <div id="season-stats">
+                <p>Loading season statistics...</p>
+            </div>
+        </div>
+
+        <div class="quick-nav">
+            <div class="nav-card"><a href="standings.html">📊 Standings & Rankings</a></div>
+            <div class="nav-card"><a href="leaderboards.html">🏆 Player Leaderboards</a></div>
+            <div class="nav-card"><a href="schedule.html">📅 Schedule & Results</a></div>
+            <div class="nav-card"><a href="transactions.html">🔄 Transactions</a></div>
+            <div class="nav-card"><a href="trophy-case.html">🏆 Trophy Case</a></div>
+            <div class="nav-card"><a href="draft-capital.html">📋 Draft Central</a></div>
+        </div>
+
+        <div class="main-grid">
+            <div class="standings-preview">
+                <div class="standings-header"><h3>League Leaders</h3></div>
+                <div class="conference-standings">
+                    <div class="conference-title">Eastern Conference</div>
+                    <table class="standings-table" id="eastern-standings-table">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                <th>W-L</th>
+                                <th>PAM</th>
+                                <th class="desktop-only-col">Med Rank</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eastern-standings">
+                            <tr><td colspan="4" class="loading">Loading standings...</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="conference-title">Western Conference</div>
+                    <table class="standings-table" id="western-standings-table">
+                        <thead>
+                            <tr>
+                                <th>Team</th>
+                                <th>W-L</th>
+                                <th>PAM</th>
+                                <th class="desktop-only-col">Med Rank</th>
+                            </tr>
+                        </thead>
+                        <tbody id="western-standings">
+                            <tr><td colspan="4" class="loading">Loading standings...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="view-full"><a href="standings.html">View Full Standings →</a></div>
+            </div>
+
+            <div class="recent-games">
+                <div class="games-header">
+                    <h3 id="games-header-title">Recent Games</h3>
+                    <div id="live-scoring-info-icon-container" style="display: none;" title="Live scoring info">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="24" height="24">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+                <div class="games-list" id="recent-games"><div class="loading">Loading recent games...</div></div>
+                <div class="view-full"><a href="schedule.html">View Full Schedule →</a></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-placeholder"></div>
+
+    <!-- Live Scoring Info Modal -->
+    <div id="live-scoring-info-modal" class="info-modal">
+        <div class="info-modal-content">
+            <span class="close-info-modal-btn">&times;</span>
+            <h2>Live scoring info</h2>
+            <ul>
+                <li>To limit the number of requests being made to Real’s servers, live scoring data is collected on a delay.</li>
+                <li>At minimum, scores will update within 5-10 minutes of every major karma dump on Real.</li>
+                <li>Live games will be automatically processed and finalized between 3-4a ET every morning.</li>
+                <li>Final scores posted in the RKL group are still the official records of the league. Karma earned after official scores are posted will not affect the result of a matchup, regardless of what the website says. When necessary, manual adjustments to website scores will be made the following morning.</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="/gm/dashboard.html">GM Portal</a>
+    </footer>
+
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/main.js" type="module"></script>
+    <script src="/js/RKL-S8.js" type="module"></script>
+
+</body>
+</html>

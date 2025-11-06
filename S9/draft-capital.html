@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Draft Capital Tracker</title>
+  <link rel="stylesheet" href="/css/global-styles.css">
+  <link rel="stylesheet" href="/css/draft-capital.css">
+  <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+  <script>
+      window.firebasePageConfig = {
+          useProdCollections: true 
+      };
+  </script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+  <body>
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <span class="header-text">Real Karma League</span>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2>Draft Capital Tracker</h2>
+        <p>Complete ownership and trade history of all draft picks</p>
+      </div>
+
+      <div class="quick-links-container">
+          <a href="draft-results.html" class="quick-link-btn">S8 Draft Results</a>
+          <a href="draft-lottery.html" class="quick-link-btn">S9 Lottery Odds</a>
+      </div>
+
+      <div class="season-tabs">
+        <div class="season-tab active" data-season="9">Season 9</div>
+        <div class="season-tab" data-season="10">Season 10</div>
+        <div class="season-tab" data-season="11">Season 11</div>
+        <div class="season-tab" data-season="12">Season 12</div>
+        <div class="season-tab" data-season="13">Season 13</div>
+      </div>
+
+      <div class="view-toggle">
+        <button class="toggle-btn active" data-view="table">Table View</button>
+        <button class="toggle-btn" data-view="teams">By Team</button>
+      </div>
+
+      <div id="filter-controls" class="filter-controls"> 
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="round-filter">Round:</label>
+            <select id="round-filter">
+              <option value="all">All Rounds</option>
+              <option value="1">1st Round</option>
+              <option value="2">2nd Round</option>
+              <option value="3">3rd Round</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="owner-filter">Current Owner:</label>
+            <select id="owner-filter">
+              <option value="all">All Teams</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="status-filter">Status:</label>
+            <select id="status-filter">
+              <option value="all">All Picks</option>
+              <option value="original">Original Owner</option>
+              <option value="traded">Traded</option>
+              <option value="pending_forfeiture">Pending Forfeiture</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div id="table-view" class="draft-board">
+        <div class="draft-header">
+          <h3 id="draft-title">Season 9 Draft Picks</h3>
+        </div>
+        <div class="pick-summary" id="pick-summary">
+          <div class="loading">Loading draft pick summary...</div>
+        </div>
+        <table class="draft-table">
+          <thead>
+            <tr>
+              <th>Pick</th>
+              <th>Current Owner</th>
+              <th>Original Team</th>
+              <th>Trade Status</th>
+            </tr>
+          </thead>
+          <tbody id="draft-table-body">
+            <tr>
+              <td colspan="4" class="loading">Loading draft picks...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="team-view" class="team-ownership" style="display: none;">
+        <div class="loading">Loading team ownership view...</div>
+      </div>
+    </main>
+    
+    <footer>
+      <p>@caustic on Real</p>
+      <a href="/gm/dashboard.html">GM Portal</a>
+    </footer>
+
+    <script src="/js/main.js" type="module"></script>
+    <script src="/js/draft-capital.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL Season 8 Transactions</title>
+    <link rel="stylesheet" href="/css/global-styles.css" />
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <style>
+      .filter-controls {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        transition: background-color 0.3s, box-shadow 0.3s;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .filter-group label {
+        font-weight: 500;
+        font-size: 0.9rem;
+      }
+
+      .filter-group select {
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        min-width: 150px;
+        transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+      }
+      .filter-group select:disabled {
+        background-color: #e9ecef;
+        opacity: 0.7;
+      }
+
+      .transactions-container {
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: background-color 0.3s, box-shadow 0.3s;
+      }
+
+      .transactions-header {
+        background-color: #333;
+        color: white;
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      .transactions-header h3 {
+        color: white;
+        margin: 0;
+        font-size: 1.4rem;
+      }
+
+      .transactions-list {
+        max-height: 800px;
+        overflow-y: auto;
+      }
+
+      .transaction-item {
+        padding: 1.5rem;
+        border-bottom: 1px solid #eee;
+        transition: background-color 0.2s, border-bottom-color 0.3s;
+      }
+
+      .transaction-item:hover {
+        background-color: #f8f9fa;
+      }
+
+      .transaction-item:last-child {
+        border-bottom: none;
+      }
+
+      .transaction-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+
+      .transaction-type {
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .transaction-type.trade { background-color: #007bff; color: white; }
+      .transaction-type.rescission { background-color: #dc3545; color: white; }
+      .transaction-type.retirement { background-color: #6a5acd; color: white; }
+      .transaction-type.unretirement { background-color: #28a745; color: white; }
+      .transaction-type.drop { background-color: #ffc107; color: #333; }
+      .transaction-type.gm-resignation { background-color: #6c757d; color: white; }
+      .transaction-type.gm-hired { background-color: #17a2b8; color: white; }
+      .transaction-type.gm-fired { background-color: #dc3545; color: white; }
+      .transaction-type.waiver-claim { background-color: #fd7e14; color: white; }
+      .transaction-type.sign { background-color: #20c997; color: white; }
+      .transaction-type.cut { background-color: #dc3545; color: white; }
+
+
+      .transaction-date {
+        font-size: 0.9rem;
+        color: #666;
+        transition: color 0.3s;
+      }
+
+      .transaction-details {
+        line-height: 1.8;
+      }
+      
+      .transaction-details img.team-logo-inline, 
+      .trade-team img.team-logo-inline {
+        width: 36px;
+        height: 36px;
+        vertical-align: middle;
+        margin-right: 8px;
+        border-radius: 5px;
+      }
+
+      .player-name-link, .team-name-link { 
+        font-weight: bold; 
+        color: #007bff;
+        text-decoration: none;
+      }
+      .player-name-link:hover, .team-name-link:hover {
+        text-decoration: underline;
+      }
+      .team-name-link {
+          font-weight: 500;
+      }
+
+      .player-stats-inline { font-size: 0.85em; color: #555; transition: color 0.3s; }
+      .gm-name { font-weight: bold; color: #17a2b8; } 
+
+
+      .draft-pick {
+        font-size: 0.9rem;
+      }
+
+      .multi-transaction {
+        border-left: 4px solid #007bff;
+      }
+      
+      .multi-rescission {
+        border-left: 4px solid #dc3545;
+      }
+
+      .trade-parts {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: flex-start; 
+        margin-top: 1rem;
+      }
+
+      .trade-parts.three-team-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .trade-parts.four-team-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .trade-side {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 6px;
+        border: 1px solid #ddd;
+        transition: background-color 0.3s, border-color 0.3s;
+      }
+
+      .trade-arrow {
+        font-size: 1.5rem;
+        color: #007bff;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 1.5rem; 
+        display: flex; 
+        align-items: center;
+        justify-content: center;
+        min-height: 50px;
+        transition: color 0.3s;
+      }
+
+      .trade-team { 
+        font-weight: bold;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+      }
+      .trade-team .team-name-link {
+          color: #0056b3; 
+      }
+
+      .trade-assets {
+        list-style: none;
+        padding: 0;
+      }
+
+      .trade-assets li {
+        padding: 0.3rem 0;
+        border-bottom: 1px solid #eee;
+        font-size: 0.9rem;
+        transition: border-color 0.3s;
+      }
+
+      .trade-assets li:last-child {
+        border-bottom: none;
+      }
+      .no-transactions { text-align: center; padding: 3rem; color: #666; font-style: italic; }
+
+      .dark-mode .filter-controls, .dark-mode .transactions-container {
+        background-color: #1e1e1e;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+      }
+      .dark-mode .filter-group select {
+        background-color: #2c2c2c;
+        border-color: #444;
+        color: #e0e0e0;
+      }
+      .dark-mode .transaction-item {
+        border-bottom-color: #333;
+      }
+      .dark-mode .transaction-item:hover {
+        background-color: #2c2c2c;
+      }
+      .dark-mode .player-name-link, .dark-mode .team-name-link {
+        color: #8ab4f8;
+      }
+      .dark-mode .player-name-link:hover, .dark-mode .team-name-link:hover {
+        color: #a7c7fa;
+      }
+      .dark-mode .player-stats-inline {
+        color: #aaa;
+      }
+      .dark-mode .gm-name {
+        color: #4dd0e1;
+      }
+      .dark-mode .trade-side {
+        background-color: #2c2c2c;
+        border-color: #444;
+      }
+      .dark-mode .trade-assets li {
+        border-bottom-color: #383838;
+      }
+      .dark-mode .trade-arrow {
+        color: #8ab4f8;
+      }
+
+      @media (max-width: 768px) {
+        .filter-row { flex-direction: column; align-items: stretch; }
+        .filter-group { width: 100%; }
+        .filter-group select { min-width: auto; width: 100%; }
+        .transaction-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+        .trade-parts { grid-template-columns: 1fr; gap: 1rem; }
+        
+        .trade-parts.three-team-grid,
+        .trade-parts.four-team-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .trade-arrow { 
+            text-align: center; 
+            transform: rotate(90deg); 
+            margin-top: 0; margin-bottom: 0.5rem;
+            min-height: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <span class="header-text">Real Karma League</span>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2>Transaction Log</h2>
+        <p>Complete history of all trades, retirements, and roster moves</p>
+      </div>
+
+      <div class="filter-controls">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="week-filter">Week:</label>
+            <select id="week-filter">
+              <option value="all">All Weeks</option>
+              </select>
+          </div>
+          <div class="filter-group">
+            <label for="type-filter">Transaction Type:</label>
+            <select id="type-filter">
+              <option value="all">All Types</option>
+              <option value="TRADE">Trades</option>
+              <option value="SIGN">Free Agent Signings</option>
+              <option value="CUT">Cuts</option>
+              <option value="RETIREMENT">Retirements</option>
+              <option value="UNRETIREMENT">Unretirements</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="team-filter">Team:</label>
+            <select id="team-filter">
+              <option value="all">All Teams</option>
+              </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="transactions-container">
+        <div class="transactions-header">
+          <h3 id="transactions-title">Recent Transactions</h3>
+        </div>
+        <div class="transactions-list" id="transactions-list">
+          <div class="loading">Loading transactions...</div>
+        </div>
+      </div>
+    </main>
+    
+    <footer>
+      <p>@caustic on Real</p>
+      <a href="/common/trade-block.html">GM Portal</a>
+    </footer>
+
+    <script src="/js/main.js" type="module"></script>
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/transactions.js" type="module"></script>
+  </body>
+</html>

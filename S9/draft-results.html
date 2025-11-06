@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S8 Draft Results</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <style>
+      /* Page-specific styles for draft-results.html */
+      .page-header { text-align: center; margin-bottom: 2rem; }
+      .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+      
+      /* Quick Links */
+      .quick-links-container { text-align: center; margin-bottom: 2rem; display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
+      .quick-link-btn { background-color: #fff; color: #333; border: 1px solid #ddd; padding: 0.75rem 1.5rem; border-radius: 8px; text-decoration: none; font-weight: 600; transition: all 0.2s ease; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+      .quick-link-btn:hover { background-color: #f8f9fa; border-color: #ccc; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+
+      .results-container { overflow-x: auto; }
+      .results-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; }
+      .results-header h3 { color: white; margin: 0; font-size: 1.4rem; }
+      
+      .results-table { width: auto; margin: 0 auto; border-collapse: collapse; table-layout: auto; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; transition: background-color 0.3s, box-shadow 0.3s; }
+      .results-table th { background-color: #f8f9fa; padding: 1rem 1rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; white-space: nowrap; transition: background-color 0.3s, border-color 0.3s; }
+      .results-table th.sortable { cursor: pointer; }
+      .results-table th.sortable:hover { background-color: #e9ecef; }
+      .results-table th .sort-indicator { font-size: 0.8em; margin-left: 5px; }
+      
+      .results-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #eee; font-size: 0.9rem; vertical-align: middle; text-align: center; transition: border-color 0.3s; }
+      .results-table tr:hover { background-color: #f8f9fa; }
+
+      .results-table td.team-cell, .results-table td.player-cell { text-align: left; }
+      .team-cell-content { display: flex; align-items: center; gap: 0.75rem; }
+      .team-logo { width: 32px; height: 32px; border-radius: 4px; flex-shrink: 0; }
+      .player-link, .team-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s; }
+      .player-link:hover, .team-link:hover { text-decoration: underline; }
+      
+      .mobile-only { display: none; }
+      .desktop-only { display: table-cell; }
+
+      /* Dark Mode Styles */
+      .dark-mode .quick-link-btn { background-color: #2c2c2c; color: #e0e0e0; border-color: #444; }
+      .dark-mode .quick-link-btn:hover { background-color: #383838; border-color: #666; }
+      .dark-mode .results-table { background-color: #1e1e1e; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+      .dark-mode .results-table th { background-color: #2c2c2c; border-bottom-color: #444; }
+      .dark-mode .results-table th.sortable:hover { background-color: #383838; }
+      .dark-mode .results-table td { border-bottom-color: #333; }
+      .dark-mode .results-table tr:hover { background-color: #2c2c2c; }
+      .dark-mode .player-link, .dark-mode .team-link { color: #8ab4f8; }
+      .dark-mode .player-link:hover, .dark-mode .team-link:hover { color: #a7c7fa; }
+
+      /* Responsive Styles */
+      @media (max-width: 768px) {
+        .results-table th, .results-table td { font-size: 0.85rem; padding: 0.6rem 0.5rem; }
+        .team-cell-content { gap: 0.5rem; }
+        .team-logo { width: 28px; height: 28px; }
+        .desktop-only { display: none; }
+        .mobile-only { display: table-cell; }
+
+        .results-table .team-link,
+        .results-table .player-link {
+            display: inline-block;
+            max-width: 90px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            vertical-align: middle;
+        }
+      }
+
+      @media (max-width: 600px) {
+        main { padding: 1rem; }
+      }
+    </style>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
+</head>
+  <body>
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <span class="header-text">Real Karma League</span>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S8.html" class="dropbtn">S8 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2>S8 Draft Results</h2>
+        <p>Season 8 draft results and player performance</p>
+      </div>
+
+      <div class="quick-links-container">
+          <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
+          <a href="draft-lottery.html" class="quick-link-btn">S9 Lottery Odds</a>
+      </div>
+
+      <div class="results-container">
+        <div class="results-header" style="border-radius: 8px 8px 0 0; width: auto; margin: 0 auto;">
+          <h3 id="results-title">Season 8 Draft</h3>
+        </div>
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th class="desktop-only">Round</th>
+              <th class="sortable" onclick="handleSort('overall')">Overall<span class="sort-indicator"></span></th>
+              <th>Team</th>
+              <th>Player</th>
+              <th class="sortable desktop-only" onclick="handleSort('games_played')">GP<span class="sort-indicator"></span></th>
+              <th class="sortable desktop-only" onclick="handleSort('medrank')">Med Rank<span class="sort-indicator"></span></th>
+              <th class="sortable" onclick="handleSort('rel_median')">REL<span class="sort-indicator"></span></th>
+              <th class="sortable desktop-only" onclick="handleSort('WAR')">WAR<span class="sort-indicator"></span></th>
+            </tr>
+          </thead>
+          <tbody id="results-body">
+            <tr><td colspan="8" class="loading">Loading draft results...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+    
+    <footer>
+      <p>@caustic on Real</p>
+      <a href="/common/trade-block.html">GM Portal</a>
+    </footer>
+
+    <script src="../js/main.js" type="module"></script>
+    <script type="module">
+      import { db, collection, getDocs, doc, getDoc, query, where } from '../js/firebase-init.js';
+
+      // --- DEV ENVIRONMENT CONFIG ---
+      const USE_DEV_COLLECTIONS = false;
+      const getCollectionName = (baseName) => {
+          if (baseName.includes('_draft_results')) {
+              return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+          }
+          return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+      };
+
+      const CURRENT_SEASON_ID = 'S8';
+      let allDraftData = [];
+      let sortState = { column: 'overall', direction: 'asc' };
+
+      async function loadDataAndDisplay() {
+        const resultsBody = document.getElementById('results-body');
+        resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Fetching data from Firestore...</td></tr>`;
+
+        try {
+          // 1. Fetch all draft picks for the current season
+          const seasonNumber = CURRENT_SEASON_ID.replace('S', '');
+          const draftResultsCollectionRef = collection(db, getCollectionName('draft_results'), `season_${seasonNumber}`, getCollectionName(`S${seasonNumber}_draft_results`));
+          const draftPicksSnap = await getDocs(draftResultsCollectionRef);
+          const draftPicks = draftPicksSnap.docs.map(doc => doc.data());
+
+          if (draftPicks.length === 0) {
+            resultsBody.innerHTML = `<tr><td colspan="8" class="error">No draft results found for Season ${seasonNumber}.</td></tr>`;
+            return;
+          }
+
+          resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Processing player and team data...</td></tr>`;
+
+          // 2. Gather all unique player and team IDs from the draft
+          const playerIds = new Set();
+          const teamIds = new Set();
+          draftPicks.forEach(pick => {
+            if (pick.player_id) playerIds.add(pick.player_id);
+            if (pick.team_id) teamIds.add(pick.team_id);
+          });
+
+          // 3. Fetch all required team and player data in parallel
+          const teamPromises = [...teamIds].map(id => getDoc(doc(db, getCollectionName('v2_teams'), id, getCollectionName('seasonal_records'), CURRENT_SEASON_ID)));
+          const playerStatsPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id, getCollectionName('seasonal_stats'), CURRENT_SEASON_ID)));
+          const playerInfoPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id)));
+          
+          const [teamDocs, playerStatsDocs, playerInfoDocs] = await Promise.all([
+              Promise.all(teamPromises),
+              Promise.all(playerStatsPromises),
+              Promise.all(playerInfoPromises)
+          ]);
+
+          // 4. Create maps for easy data lookup
+          const teamsMap = new Map();
+          teamDocs.forEach(doc => {
+              if (doc.exists()) {
+                  teamsMap.set(doc.ref.parent.parent.id, doc.data().team_name);
+              }
+          });
+          
+          const playersStatsMap = new Map();
+          playerStatsDocs.forEach(doc => {
+              if (doc.exists()) {
+                  playersStatsMap.set(doc.ref.parent.parent.id, doc.data());
+              }
+          });
+          
+          const playerInfoMap = new Map();
+          playerInfoDocs.forEach(doc => {
+              if (doc.exists()) {
+                  playerInfoMap.set(doc.id, doc.data());
+              }
+          });
+
+          // 5. Combine all data into a single array for rendering
+          allDraftData = draftPicks.map(pick => {
+            const playerStats = playersStatsMap.get(pick.player_id);
+            const playerInfo = playerInfoMap.get(pick.player_id);
+            const displayHandle = playerInfo?.player_handle || pick.player_handle;
+
+            return {
+              ...pick,
+              team_name: teamsMap.get(pick.team_id) || pick.team_id,
+              display_handle: displayHandle,
+              games_played: playerStats?.games_played || 0,
+              medrank: playerStats?.medrank || Infinity,
+              rel_median: playerStats?.rel_median || 0,
+              WAR: playerStats?.WAR || 0,
+            };
+          });
+          
+          displayDraftResults();
+
+        } catch (error) {
+          console.error("Error loading draft data from Firestore:", error);
+          resultsBody.innerHTML = `<tr><td colspan="8" class="error">Failed to load data from Firestore. Please check the console.</td></tr>`;
+        }
+      }
+
+      function displayDraftResults() {
+        let dataToDisplay = [...allDraftData];
+        
+        dataToDisplay.sort((a, b) => {
+          const col = sortState.column;
+          const dir = sortState.direction === 'asc' ? 1 : -1;
+          
+          let valA = a[col];
+          let valB = b[col];
+
+          if (col === 'medrank') {
+            valA = valA === Infinity ? Number.MAX_SAFE_INTEGER : valA;
+            valB = valB === Infinity ? Number.MAX_SAFE_INTEGER : valB;
+          }
+          
+          if (['overall', 'games_played', 'medrank', 'rel_median', 'WAR'].includes(col)) {
+              valA = parseFloat(valA) || 0;
+              valB = parseFloat(valB) || 0;
+          }
+
+          if (valA > valB) return 1 * dir;
+          if (valA < valB) return -1 * dir;
+          return 0;
+        });
+
+        const resultsBody = document.getElementById('results-body');
+        const resultsHeader = document.querySelector('.results-header');
+
+        if (dataToDisplay.length === 0) {
+            resultsBody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem;">No S8 draft results found.</td></tr>`;
+            resultsHeader.style.display = 'none';
+            document.querySelector('.results-table').style.boxShadow = 'none';
+            return;
+        }
+
+        resultsHeader.style.display = 'block';
+        document.querySelector('.results-table').style.borderRadius = '0 0 8px 8px';
+
+        resultsBody.innerHTML = dataToDisplay.map(pick => {
+          const medRankDisplay = pick.medrank === Infinity ? '-' : Math.round(pick.medrank);
+          const relDisplay = (pick.rel_median || 0).toFixed(3);
+          const warDisplay = (pick.WAR || 0).toFixed(2);
+          
+          const playerCellHTML = pick.forfeit
+            ? `<span>FORFEITED</span>`
+            : `<a href="player.html?handle=${encodeURIComponent(pick.display_handle)}" class="player-link">${pick.display_handle}</a>`;
+
+          return `
+            <tr>
+              <td class="desktop-only">${pick.round}</td>
+              <td>${pick.overall}</td>
+              <td class="team-cell">
+                <div class="team-cell-content">
+                  <img src="../icons/${pick.team_id}.webp" alt="${pick.team_name}" class="team-logo" onerror="this.style.display='none'">
+                  <a href="team.html?id=${pick.team_id}" class="team-link">${pick.team_name}</a>
+                </div>
+              </td>
+              <td class="player-cell">
+                ${playerCellHTML}
+              </td>
+              <td class="desktop-only">${pick.games_played}</td>
+              <td class="desktop-only">${medRankDisplay}</td>
+              <td>${relDisplay}</td>
+              <td class="desktop-only">${warDisplay}</td>
+            </tr>
+          `;
+        }).join('');
+        
+        const table = document.querySelector('.results-table');
+        resultsHeader.style.width = `${table.offsetWidth}px`;
+        table.style.borderRadius = '0 0 8px 8px';
+      }
+
+      // Make handleSort globally accessible for the inline onclick attribute
+      window.handleSort = (column) => {
+        if (sortState.column === column) {
+          sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+        } else {
+          sortState.column = column;
+          if (column === 'overall' || column === 'medrank') {
+            sortState.direction = 'asc';
+          } else {
+            sortState.direction = 'desc';
+          }
+        }
+        updateSortIndicators();
+        displayDraftResults();
+      }
+      
+      function updateSortIndicators() {
+          document.querySelectorAll('.results-table th.sortable .sort-indicator').forEach(el => el.textContent = '');
+          const activeHeader = document.querySelector(`.results-table th[onclick="handleSort('${sortState.column}')"]`);
+          if (activeHeader) {
+              const indicator = activeHeader.querySelector('.sort-indicator');
+              indicator.textContent = sortState.direction === 'asc' ? ' ▲' : ' ▼';
+          }
+      }
+      
+      const resultsHeader = document.querySelector('.results-header');
+      const table = document.querySelector('.results-table');
+      if (table) {
+        const resizeObserver = new ResizeObserver(entries => {
+          for (let entry of entries) {
+              if(entry.target.offsetWidth > 0) {
+                resultsHeader.style.width = `${entry.target.offsetWidth}px`;
+              }
+          }
+        });
+        resizeObserver.observe(table);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        loadDataAndDisplay();
+        updateSortIndicators();
+      });
+    </script>
+  </body>
+</html>
