@@ -6,7 +6,8 @@ import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot } from '
 const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
-let activeSeasonId = '';
+// Hardcoded to Season 8 - this page will always display S8 data
+const activeSeasonId = 'S8';
 let allTeams = [];
 let allGamesCache = [];
 // Caches for lineups and scores are removed from global scope to enforce on-demand loading.
@@ -85,10 +86,13 @@ function getPostseasonGameLabel(seriesName) {
 
 // --- DATA FETCHING ---
 async function getActiveSeason() {
-    const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
-    const seasonsSnapshot = await getDocs(seasonsQuery);
-    if (seasonsSnapshot.empty) throw new Error("No active season found.");
-    activeSeasonId = seasonsSnapshot.docs[0].id;
+    // Hardcoded to fetch Season 8 data specifically
+    const seasonDocRef = doc(db, getCollectionName('seasons'), activeSeasonId);
+    const seasonDoc = await getDoc(seasonDocRef);
+    if (!seasonDoc.exists()) {
+        throw new Error(`Season ${activeSeasonId} not found in Firestore.`);
+    }
+    return seasonDoc.data();
 }
 
 async function fetchInitialPageData(seasonId) {

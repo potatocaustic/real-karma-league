@@ -5,7 +5,8 @@ const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 // --- GLOBAL STATE ---
-let activeSeasonId = '';
+// Hardcoded to Season 8 - this page will always display S8 data
+const activeSeasonId = 'S8';
 let allTeamsData = [];
 let allPowerRankingsData = {}; // Key: "v1", Value: [team, team, ...]
 let latestPRVersion = null;
@@ -33,11 +34,12 @@ const prVersionSelect = document.getElementById('pr-version-select');
 // --- DATA FETCHING ---
 
 async function getActiveSeason() {
-    const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
-    const seasonsSnapshot = await getDocs(seasonsQuery);
-    if (seasonsSnapshot.empty) throw new Error("No active season found.");
-    const seasonDoc = seasonsSnapshot.docs[0];
-    activeSeasonId = seasonDoc.id;
+    // Hardcoded to fetch Season 8 data specifically
+    const seasonDocRef = doc(db, getCollectionName('seasons'), activeSeasonId);
+    const seasonDoc = await getDoc(seasonDocRef);
+    if (!seasonDoc.exists()) {
+        throw new Error(`Season ${activeSeasonId} not found in Firestore.`);
+    }
     return seasonDoc.data();
 }
 

@@ -5,7 +5,8 @@ const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 let currentScoringStatus = null; // Tracks the current scoring status to prevent redundant re-renders.
 
-let activeSeasonId = '';
+// Hardcoded to Season 8 - this page will always display S8 data
+const activeSeasonId = 'S8';
 let allTeams = [];
 let allGamesCache = []; // Caches all games for the season
 let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
@@ -51,13 +52,12 @@ function escapeHTML(str) {
 // --- DATA FETCHING FUNCTIONS ---
 
 async function getActiveSeason() {
-    const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
-    const seasonsSnapshot = await getDocs(seasonsQuery);
-    if (seasonsSnapshot.empty) {
-        throw new Error("No active season found in Firestore.");
+    // Hardcoded to fetch Season 8 data specifically
+    const seasonDocRef = doc(db, getCollectionName('seasons'), activeSeasonId);
+    const seasonDoc = await getDoc(seasonDocRef);
+    if (!seasonDoc.exists()) {
+        throw new Error(`Season ${activeSeasonId} not found in Firestore.`);
     }
-    const seasonDoc = seasonsSnapshot.docs[0];
-    activeSeasonId = seasonDoc.id;
     return seasonDoc.data();
 }
 
