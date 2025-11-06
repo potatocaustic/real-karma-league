@@ -1,0 +1,771 @@
+/* Page-specific styles for RKL-S9.html */
+main {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.page-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.page-header h2 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.playoff-button-container {
+    text-align: center;
+    margin-bottom: 2.5rem; /* Increased margin for better spacing */
+}
+
+.playoff-button {
+    display: inline-block;
+    /* Match the header background for a more integrated, premium feel */
+    background-color: #333;
+    color: white !important;
+    padding: 1rem 2.5rem; /* Slightly more horizontal padding */
+    font-size: 1.2rem;   /* Slightly smaller font for the uppercase text */
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 8px;
+    /* Add a subtle border for definition */
+    border: 1px solid #555;
+    /* Add uppercase and letter spacing for a more professional look */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    /* Enhanced shadow for more depth */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    /* Smoother transitions for all animated properties */
+    transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s, border-color 0.3s;
+}
+
+.playoff-button:hover {
+    /* Use the site's primary accent color on hover for a dynamic effect */
+    background-color: #007bff;
+    border-color: #007bff; /* Match border to the new background */
+    transform: translateY(-3px); /* Slightly more lift */
+    /* Enhance the shadow on hover */
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+.season-info {
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+    text-align: center;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.season-info .champion-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.season-info .champion-display img {
+    width: 32px;
+    height: 32px;
+}
+
+/* Quick Navigation */
+.quick-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.nav-card {
+    background-color: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.nav-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.nav-card a {
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.nav-card:hover a {
+    color: #007bff;
+}
+
+/* Main content grid */
+.main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Standings preview */
+.standings-preview {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.standings-header {
+    background-color: #333;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+}
+
+.standings-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.conference-standings {
+    padding: 1rem;
+}
+
+.conference-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: #333;
+    border-bottom: 2px solid #333;
+    padding-bottom: 0.5rem;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    table-layout: fixed;
+}
+
+.standings-table th,
+.standings-table td {
+    padding: 0.5rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+    transition: border-color 0.3s;
+}
+
+.standings-table th {
+    background-color: #f8f9fa;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+}
+
+.standings-table td {
+    font-size: 0.85rem;
+}
+
+.standings-table th:first-child,
+.standings-table td:first-child {
+    width: 40%;
+}
+
+.standings-table th:nth-child(2),
+.standings-table td:nth-child(2) {
+    width: 20%;
+    text-align: center;
+}
+
+.standings-table th:nth-child(3),
+.standings-table td:nth-child(3) {
+    width: 20%;
+    text-align: center;
+}
+
+.standings-table th:nth-child(4),
+.standings-table td:nth-child(4) {
+    width: 20%;
+    text-align: center;
+}
+
+.team-link {
+    color: inherit;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s ease;
+}
+
+.team-link:hover {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.team-logo {
+    width: 20px;
+    height: 20px;
+    vertical-align: middle;
+}
+
+/* Clinch Indicator Styles */
+.clinch-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-left: 4px;
+    flex-shrink: 0;
+}
+
+.clinch-playoff {
+    background-color: #28a745;
+    color: white;
+}
+
+.clinch-playin {
+    background-color: #ffc107;
+    color: #333;
+}
+
+.clinch-eliminated {
+    background-color: #dc3545;
+    color: white;
+}
+
+.view-full {
+    text-align: center;
+    padding: 1rem;
+    border-top: 1px solid #ddd;
+}
+
+.view-full a {
+    color: #007bff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/*
+===================================================================
+== RECENT/LIVE GAMES SECTION STYLES ==
+===================================================================
+*/
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* NEW: Added fade-out animation */
+@keyframes fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+.game-item.fade-out {
+    animation: fade-out 0.4s ease-out forwards;
+}
+
+.recent-games {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.games-header {
+    background-color: #333;
+    color: white;
+    padding: 1rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; /* Needed for absolute positioning of the icon */
+}
+
+#live-scoring-info-icon-container {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: white;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+#live-scoring-info-icon-container:hover {
+    opacity: 1;
+}
+
+.games-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.games-list {
+    padding: 0;
+}
+
+/* Main Game Container */
+.games-list .game-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    animation: fade-in 0.5s ease-in-out;
+}
+
+/* Matchup Container */
+.games-list .game-matchup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* Single Team Row Grid */
+.games-list .team {
+    display: grid;
+    grid-template-columns: 32px 80px 1fr 40px;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Item Placement in the Grid */
+.games-list .team .team-logo { grid-column: 1; }
+.games-list .team .team-info { grid-column: 2; }
+.games-list .team .team-bar-container { grid-column: 3; }
+.games-list .team .team-score {
+    grid-column: 4;
+    text-align: right;
+    transition: color 0.3s ease;
+}
+
+.games-list .team-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+}
+
+.games-list .team-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.games-list .team-record {
+    font-size: 0.8rem;
+    color: #666;
+    white-space: nowrap;
+}
+
+.recent-games .team-score.winner {
+    color: #28a745;
+    font-weight: bold;
+}
+
+/* Progress Bar Styles */
+.team-bar-container {
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    height: 20px;
+    overflow: hidden;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.team-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease-out, background-color 0.4s ease-out;
+}
+
+.team-bar.winner {
+    background-color: #28a745;
+}
+.team-bar.loser {
+    background-color: #dc3545;
+}
+
+.game-item.completed .team-bar.winner {
+    border: 2px solid #14532d; /* dark green */
+    box-sizing: border-box;
+}
+
+.winner-indicator {
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 10px solid #28a745;
+    justify-self: center;
+    display: none; /* Hidden on mobile by default */
+}
+
+.winner-indicator-placeholder {
+    display: none; /* Hidden on mobile by default */
+}
+
+
+/* Game Status (LIVE / Date) */
+.games-list .game-status {
+    position: relative;
+    z-index: 2;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.live-indicator {
+    width: 8px;
+    height: 8px;
+    background-color: #dc3545;
+    border-radius: 50%;
+    margin-right: 6px;
+    animation: pulse-live 1.5s infinite;
+}
+
+@keyframes pulse-live {
+    0% { opacity: 1; }
+    50% { opacity: 0.4; }
+    100% { opacity: 1; }
+}
+
+.games-list .game-status.live {
+    color: #dc3545;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+}
+
+/* Hover and Interaction */
+.games-list .game-item:hover {
+    background-color: #f8f9fa;
+}
+.games-list .game-item:last-child {
+    border-bottom: none;
+}
+
+.desktop-only-col {}
+
+/*
+===================================================================
+== INFO MODAL STYLES ==
+===================================================================
+*/
+.info-modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+    animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.info-modal-content {
+    background-color: #fefefe;
+    margin: 15vh auto;
+    padding: 20px 30px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 8px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.info-modal-content h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.info-modal-content ul {
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.info-modal-content ul li {
+    margin-bottom: 12px;
+    line-height: 1.5;
+    color: #555;
+}
+
+.close-info-modal-btn {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-info-modal-btn:hover,
+.close-info-modal-btn:focus {
+    color: black;
+    text-decoration: none;
+}
+
+
+/*
+===================================================================
+== DARK MODE STYLES ==
+===================================================================
+*/
+.dark-mode .season-info,
+.dark-mode .nav-card,
+.dark-mode .standings-preview,
+.dark-mode .recent-games {
+    background-color: #1e1e1e;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .nav-card a {
+    color: #e0e0e0;
+}
+
+.dark-mode .nav-card:hover a {
+    color: #bb86fc;
+}
+
+.dark-mode .conference-title {
+    color: #f5f5f5;
+    border-bottom-color: #444;
+}
+
+.dark-mode .standings-table th {
+    background-color: #2c2c2c;
+}
+
+.dark-mode .standings-table td,
+.dark-mode .view-full {
+    border-color: #333;
+}
+
+.dark-mode .team-link:hover {
+    color: #bb86fc;
+}
+
+.dark-mode .games-list .game-item {
+    border-color: #333;
+}
+
+.dark-mode .games-list .game-item:hover {
+    background-color: #2c2c2c;
+}
+
+.dark-mode .team-bar-container {
+    background-color: #333;
+}
+
+.dark-mode .team-bar.winner {
+    background-color: #66bb6a;
+}
+
+.dark-mode .team-bar.loser {
+    background-color: #ef5350;
+}
+
+.dark-mode .game-item.completed .team-bar.winner {
+    border-color: #bbf7d0; /* light green */
+}
+
+.dark-mode .winner-indicator {
+    border-left-color: #66bb6a;
+}
+
+.dark-mode .games-list .team-record,
+.dark-mode .games-list .game-status {
+    color: #aaa;
+}
+
+.dark-mode .games-list .team-score,
+.dark-mode .games-list .team-name {
+    color: #e0e0e0;
+}
+
+.dark-mode .recent-games .team-score.winner {
+    color: #66bb6a;
+}
+
+.dark-mode .view-full a {
+    color: #8ab4f8;
+}
+
+.dark-mode .view-full a:hover {
+    color: #a7c7fa;
+}
+
+.dark-mode .info-modal-content {
+    background-color: #2c2c2c;
+    border-color: #555;
+}
+
+.dark-mode .info-modal-content h2 {
+    color: #f1f1f1;
+}
+
+.dark-mode .info-modal-content ul li {
+    color: #ccc;
+}
+
+.dark-mode .close-info-modal-btn {
+    color: #888;
+}
+
+.dark-mode .close-info-modal-btn:hover,
+.dark-mode .close-info-modal-btn:focus {
+    color: #f1f1f1;
+}
+
+/*
+===================================================================
+== MEDIA QUERIES (RESPONSIVE DESIGN) ==
+===================================================================
+*/
+
+/* Larger Icons on Desktop */
+@media (min-width: 769px) {
+    .standings-preview .team-logo {
+        width: 28px;
+        height: 28px;
+    }
+    .recent-games .games-list .team .team-logo {
+        width: 40px;
+        height: 40px;
+    }
+    .games-list .team {
+        grid-template-columns: 48px 90px 20px 1fr 45px;
+        gap: 1rem;
+    }
+
+    .games-list .team .team-logo { grid-column: 1; }
+    .games-list .team .team-info { grid-column: 2; }
+    .games-list .team .winner-indicator,
+    .games-list .team .winner-indicator-placeholder { grid-column: 3; display: block; }
+    .games-list .team .team-bar-container { grid-column: 4; }
+    .games-list .team .team-score { grid-column: 5; }
+}
+
+@media (max-width: 768px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+    .games-list .game-status {
+        display: none;
+    }
+    .games-list .game-item {
+        grid-template-columns: 1fr;
+    }
+
+    .quick-nav {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .desktop-only-col {
+        display: none;
+    }
+
+    .standings-table th:first-child,
+    .standings-table td:first-child {
+        width: 60%;
+    }
+
+    .standings-table th:nth-child(2),
+    .standings-table td:nth-child(2) {
+        width: 20%;
+    }
+
+    .standings-table th:nth-child(3),
+    .standings-table td:nth-child(3) {
+        width: 20%;
+    }
+
+    .standings-table th,
+    .standings-table td {
+        padding: 0.3rem;
+        font-size: 0.8rem;
+    }
+
+    .team-logo {
+        width: 16px;
+        height: 16px;
+    }
+
+    .standings-preview .team-logo {
+        width: 32px;
+        height: 32px;
+    }
+
+    .games-list .team .team-logo {
+        width: 32px;
+        height: 32px;
+    }
+
+    .games-list .game-item {
+        padding: 0.75rem;
+    }
+
+    .games-list .team-name {
+        font-size: 0.85rem;
+    }
+
+    .games-list .team-record {
+        font-size: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .quick-nav {
+        grid-template-columns: 1fr;
+    }
+
+    .playoff-button {
+        font-size: 1rem; /* Reduce font size */
+        padding: 0.8rem 1.5rem; /* Adjust padding */
+        letter-spacing: normal; /* Remove extra letter spacing */
+        white-space: nowrap; /* Ensure text stays on one line */
+    }
+}
