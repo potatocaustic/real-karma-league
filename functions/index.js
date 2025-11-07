@@ -3,7 +3,7 @@
 const { onDocumentUpdated, onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onPubSubMessage } = require("firebase-functions/v2/pubsub");
+const { onMessagePublished } = require("firebase-functions/v2/pubsub");
 const admin = require("firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
@@ -3799,7 +3799,7 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
  * Triggered by a Cloud Scheduler job 15 minutes after a lineup deadline.
  * This function automatically begins the live scoring process for the day.
  */
-exports.scheduledLiveScoringStart = onPubSubMessage("start-live-scoring-topic", async (event) => {
+exports.scheduledLiveScoringStart = onMessagePublished("start-live-scoring-topic", async (event) => {
     console.log("Received trigger to automatically start live scoring.");
 
     const payload = event.data.message.data ? JSON.parse(Buffer.from(event.data.message.data, 'base64').toString()) : null;
