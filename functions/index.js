@@ -10,11 +10,21 @@ const fetch = require("node-fetch");
 const { CloudSchedulerClient } = require("@google-cloud/scheduler");
 const schedulerClient = new CloudSchedulerClient();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { LEAGUES: LEAGUES_IMPORT, hasLeagueAccess, withLeagueContext } = require('./league-helpers');
 
 admin.initializeApp();
 const db = admin.firestore();
 
 const USE_DEV_COLLECTIONS = false;
+
+/**
+ * League context constants
+ */
+const LEAGUES = {
+  MAJOR: 'major',
+  MINOR: 'minor'
+};
+
 /**
  * Sets or updates a lineup submission deadline for a specific date.
  * Also schedules the automated start of live scoring for 15 minutes after the deadline.
@@ -25,6 +35,9 @@ const USE_DEV_COLLECTIONS = false;
  * @param {string} data.timeZone - The IANA time zone name (e.g., 'America/Chicago').
  */
 exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) => {
+    // Add league context extraction
+    const league = getLeagueFromRequest(request.data);
+
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -49,7 +62,7 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
         const deadlineDate = new Date(intendedWallTimeAsUTC.getTime() + offset);
         
         const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        const deadlineRef = db.collection(getCollectionName('lineup_deadlines')).doc(deadlineId);
+        const deadlineRef = db.collection(getCollectionName('lineup_deadlines', league)).doc(deadlineId);
 
         await deadlineRef.set({
             deadline: admin.firestore.Timestamp.fromDate(deadlineDate),
@@ -89,7 +102,11 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
         console.log(`Scheduled job ${jobName} to automatically start live scoring at ${triggerTime.toISOString()}`);
         // --- MODIFICATION END ---
 
-        return { success: true, message: `Deadline for ${date} set to ${time} ${timeZone}. Live scoring will start automatically 15 minutes later.` };
+        return {
+            success: true,
+            league,
+            message: `Deadline for ${date} set to ${time} ${timeZone}. Live scoring will start automatically 15 minutes later.`
+        };
 
     } catch (error) {
         console.error("Error setting lineup deadline:", error);
@@ -98,6 +115,9 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
 });
 
 exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
+    // Add league context extraction
+    const league = getLeagueFromRequest(request.data);
+
     // 1. Security Check
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -150,7 +170,7 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
         const autoFinalizeTime = await getJobSchedule('autoFinalizeGames');
         const statUpdateTime = await getJobSchedule('updatePlayerRanks');
 
-        return { success: true, autoFinalizeTime, statUpdateTime };
+        return { success: true, league, autoFinalizeTime, statUpdateTime };
 
     } catch (error) {
         console.error("A critical error occurred while fetching Cloud Scheduler job times:", error);
@@ -159,6 +179,9 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
 });
 
 exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (request) => {
+    // Add league context extraction
+    const league = getLeagueFromRequest(request.data);
+
     // 1. Security Check
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -180,14 +203,14 @@ exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (
         const batch = db.batch();
 
         // 2. Fetch all necessary data (lineups and daily averages for the season)
-        const regLineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('lineups'))
-            .where('player_id', '==', playerId).where('started', '==', 'TRUE').get();
-        
-        const postLineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_lineups'))
+        const regLineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('lineups', league))
             .where('player_id', '==', playerId).where('started', '==', 'TRUE').get();
 
-        const regAveragesSnap = await db.collection(getCollectionName('daily_averages')).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_daily_averages`)).get();
-        const postAveragesSnap = await db.collection(getCollectionName('post_daily_averages')).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_post_daily_averages`)).get();
+        const postLineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_lineups', league))
+            .where('player_id', '==', playerId).where('started', '==', 'TRUE').get();
+
+        const regAveragesSnap = await db.collection(getCollectionName('daily_averages', league)).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_daily_averages`, league)).get();
+        const postAveragesSnap = await db.collection(getCollectionName('post_daily_averages', league)).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_post_daily_averages`, league)).get();
         
         const dailyAveragesMap = new Map();
         regAveragesSnap.forEach(doc => dailyAveragesMap.set(doc.data().date, doc.data()));
@@ -251,17 +274,17 @@ exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (
         }
 
         // 4. Write the updated stats to the database
-        const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(playerId).collection(getCollectionName('seasonal_stats')).doc(seasonId);
+        const playerStatsRef = db.collection(getCollectionName('v2_players', league)).doc(playerId).collection(getCollectionName('seasonal_stats', league)).doc(seasonId);
         batch.set(playerStatsRef, statsUpdate, { merge: true });
         await batch.commit();
         console.log(`Recalculation complete for player ${playerId}. Wrote updated stats.`);
 
         // 5. Trigger a full ranking update to ensure ranks are correct
         console.log("Triggering leaderboard rank update to reflect changes...");
-        await performPlayerRankingUpdate();
+        await performPlayerRankingUpdate(league);
         console.log("Leaderboard rank update complete.");
 
-        return { success: true, message: `Successfully recalculated all seasonal stats for player ${playerId}.` };
+        return { success: true, league, message: `Successfully recalculated all seasonal stats for player ${playerId}.` };
 
     } catch (error) {
         console.error(`CRITICAL ERROR during stats recalculation for player ${playerId}:`, error);
@@ -270,6 +293,7 @@ exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (
 });
 
 exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     // Step 1: Security and Validation
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -289,8 +313,8 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
 
     console.log(`ADMIN ACTION: User ${request.auth.uid} initiated player ID migration from ${oldPlayerId} to ${newPlayerId}.`);
 
-    const oldPlayerRef = db.collection(getCollectionName('v2_players')).doc(oldPlayerId);
-    const newPlayerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
+    const oldPlayerRef = db.collection(getCollectionName('v2_players', league)).doc(oldPlayerId);
+    const newPlayerRef = db.collection(getCollectionName('v2_players', league)).doc(newPlayerId);
 
     try {
         // Step 2: Pre-flight Checks
@@ -309,9 +333,9 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
         const primaryBatch = db.batch();
         primaryBatch.set(newPlayerRef, playerData);
 
-        const statsSnap = await oldPlayerRef.collection(getCollectionName('seasonal_stats')).get();
+        const statsSnap = await oldPlayerRef.collection(getCollectionName('seasonal_stats', league)).get();
         statsSnap.forEach(doc => {
-            const newStatRef = newPlayerRef.collection(getCollectionName('seasonal_stats')).doc(doc.id);
+            const newStatRef = newPlayerRef.collection(getCollectionName('seasonal_stats', league)).doc(doc.id);
             primaryBatch.set(newStatRef, doc.data());
         });
         await primaryBatch.commit();
@@ -325,13 +349,13 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
         let totalLineupsMigrated = 0;
         // ======================= MODIFICATION END =======================
 
-        const seasonsSnap = await db.collection(getCollectionName('seasons')).get();
+        const seasonsSnap = await db.collection(getCollectionName('seasons', league)).get();
 
         for (const seasonDoc of seasonsSnap.docs) {
             const collectionTypes = ['lineups', 'post_lineups', 'exhibition_lineups'];
 
             for (const type of collectionTypes) {
-                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type));
+                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type, league));
                 const lineupsQuery = lineupsRef.where('player_id', '==', oldPlayerId);
                 const lineupsSnap = await lineupsQuery.get();
 
@@ -360,16 +384,16 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
             }
         }
         console.log(`Total lineups to migrate: ${totalLineupsMigrated}`);
-        
+
         // Update draft results and GM references (these are low volume and can be in the same batch)
-        const draftResultsQuery = db.collectionGroup(getCollectionName('draft_results')).where('player_id', '==', oldPlayerId);
+        const draftResultsQuery = db.collectionGroup(getCollectionName('draft_results', league)).where('player_id', '==', oldPlayerId);
         const draftResultsSnap = await draftResultsQuery.get();
         draftResultsSnap.forEach(doc => {
             referenceUpdateBatch.update(doc.ref, { player_id: newPlayerId });
             operationCount++;
         });
 
-        const gmTeamsQuery = db.collection(getCollectionName('v2_teams')).where('gm_player_id', '==', oldPlayerId);
+        const gmTeamsQuery = db.collection(getCollectionName('v2_teams', league)).where('gm_player_id', '==', oldPlayerId);
         const gmTeamsSnap = await gmTeamsQuery.get();
         gmTeamsSnap.forEach(doc => {
             referenceUpdateBatch.update(doc.ref, { gm_player_id: newPlayerId });
@@ -386,7 +410,7 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
         // Step 5: Final Deletion of Old Player Document
         const deletionBatch = db.batch();
         statsSnap.forEach(doc => {
-            deletionBatch.delete(oldPlayerRef.collection(getCollectionName('seasonal_stats')).doc(doc.id));
+            deletionBatch.delete(oldPlayerRef.collection(getCollectionName('seasonal_stats', league)).doc(doc.id));
         });
         deletionBatch.delete(oldPlayerRef);
         await deletionBatch.commit();
@@ -394,6 +418,7 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
 
         // Step 6: Log the action and return success
         // ... (rest of the function is the same)
+        // 'scorekeeper_activity_log' is a shared collection, so no league parameter needed
         const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
         await logRef.set({
             action: 'admin_migrate_player_id',
@@ -407,7 +432,7 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
             }
         });
 
-        return { success: true, message: `Player ${playerData.player_handle} successfully migrated from ${oldPlayerId} to ${newPlayerId}.` };
+        return { success: true, league, message: `Player ${playerData.player_handle} successfully migrated from ${oldPlayerId} to ${newPlayerId}.` };
 
     } catch (error) {
         console.error("CRITICAL ERROR during player ID migration:", error);
@@ -417,8 +442,9 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
 });
 
 // New helper function to check for admin or scorekeeper roles
-async function isScorekeeperOrAdmin(auth) {
+async function isScorekeeperOrAdmin(auth, league = LEAGUES.MAJOR) {
     if (!auth) return false;
+    // 'users' is a shared collection, so no league parameter needed
     const userDoc = await db.collection(getCollectionName('users')).doc(auth.uid).get();
     if (!userDoc.exists) return false;
     const role = userDoc.data().role;
@@ -426,14 +452,16 @@ async function isScorekeeperOrAdmin(auth) {
 }
 
 // New helper function to get user role
-async function getUserRole(auth) {
+async function getUserRole(auth, league = LEAGUES.MAJOR) {
     if (!auth) return null;
+    // 'users' is a shared collection, so no league parameter needed
     const userDoc = await db.collection(getCollectionName('users')).doc(auth.uid).get();
     return userDoc.exists ? userDoc.data().role : null;
 }
 
 exports.logScorekeeperActivity = onCall({ region: "us-central1" }, async (request) => {
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
+    const league = getLeagueFromRequest(request.data);
+    if (!(await isScorekeeperOrAdmin(request.auth, league))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to log an action.');
     }
 
@@ -443,19 +471,20 @@ exports.logScorekeeperActivity = onCall({ region: "us-central1" }, async (reques
     }
 
     const userId = request.auth.uid;
-    const userEmail = request.auth.token.email || null; 
+    const userEmail = request.auth.token.email || null;
 
     try {
+        // 'scorekeeper_activity_log' is a shared collection, so no league parameter needed
         const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
         await logRef.set({
             action: action,
             userId: userId,
             userEmail: userEmail,
-            userRole: await getUserRole(request.auth),
+            userRole: await getUserRole(request.auth, league),
             timestamp: FieldValue.serverTimestamp(),
             details: details || null
         });
-        return { success: true, message: "Activity logged successfully." };
+        return { success: true, league, message: "Activity logged successfully." };
 
     } catch (error) {
         console.error("Error logging scorekeeper activity:", error);
@@ -464,6 +493,7 @@ exports.logScorekeeperActivity = onCall({ region: "us-central1" }, async (reques
 });
 
 exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     // 1. Security: Ensure the user is an admin
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -537,7 +567,7 @@ exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (reque
         await Promise.all(updatePromises);
 
         console.log(`Successfully updated schedules. Finalize: ${autoFinalizeTime}, Stats: ${statUpdateTime}`);
-        return { success: true, message: "Scheduled job times have been successfully updated!" };
+        return { success: true, league, message: "Scheduled job times have been successfully updated!" };
 
     } catch (error) {
         console.error("Error updating Cloud Scheduler jobs:", error);
@@ -545,14 +575,70 @@ exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (reque
     }
 });
 
-const getCollectionName = (baseName) => {
-    if (baseName.includes('_daily_scores') || baseName.includes('_daily_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_draft_results') || baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('archived_live_games') || baseName.includes('scorekeeper_activity_log') || baseName.includes('pending_lineups') || baseName.includes('pending_transactions')) {
-        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-    }
-    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+/**
+ * Returns the appropriate collection name with league prefix
+ * @param {string} baseName - Base collection name (e.g., 'seasons', 'v2_players')
+ * @param {string} league - League context ('major' or 'minor')
+ * @returns {string} Prefixed collection name
+ */
+const getCollectionName = (baseName, league = LEAGUES.MAJOR) => {
+  // Special collections that are shared between leagues
+  const sharedCollections = ['users', 'notifications', 'scorekeeper_activity_log'];
+
+  // Collections that already have their own structure (don't double-prefix)
+  const structuredCollections = [
+    'daily_averages',
+    'daily_scores',
+    'post_daily_averages',
+    'post_daily_scores',
+    'draft_results',
+    'awards',
+    'leaderboards',
+    'post_leaderboards'
+  ];
+
+  // Apply dev suffix if needed
+  const devSuffix = USE_DEV_COLLECTIONS ? '_dev' : '';
+
+  // Return shared collections without league prefix
+  if (sharedCollections.includes(baseName)) {
+    return `${baseName}${devSuffix}`;
+  }
+
+  // Return structured collections without league prefix (handled internally)
+  if (structuredCollections.some(col => baseName.includes(col))) {
+    return `${baseName}${devSuffix}`;
+  }
+
+  // Apply league prefix for league-specific collections
+  const leaguePrefix = league === LEAGUES.MINOR ? 'minor_' : '';
+  return `${leaguePrefix}${baseName}${devSuffix}`;
+};
+
+/**
+ * Validates league parameter
+ * @param {string} league - League to validate
+ * @throws {HttpsError} If league is invalid
+ */
+const validateLeague = (league) => {
+  if (league && !Object.values(LEAGUES).includes(league)) {
+    throw new HttpsError('invalid-argument', `Invalid league: ${league}. Must be 'major' or 'minor'.`);
+  }
+};
+
+/**
+ * Gets league from request data, defaults to major
+ * @param {object} data - Request data object
+ * @returns {string} League context
+ */
+const getLeagueFromRequest = (data) => {
+  const league = data?.league || LEAGUES.MAJOR;
+  validateLeague(league);
+  return league;
 };
 
 exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -571,25 +657,25 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
     try {
         const batch = db.batch();
 
-        const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+        const activeSeasonSnap = await db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1).get();
         if (activeSeasonSnap.empty) {
             throw new HttpsError('failed-precondition', 'No active season found.');
         }
         const activeSeasonId = activeSeasonSnap.docs[0].id;
 
-        const oldTeamRef = db.collection(getCollectionName('v2_teams')).doc(oldTeamId);
+        const oldTeamRef = db.collection(getCollectionName('v2_teams', league)).doc(oldTeamId);
         const oldTeamDoc = await oldTeamRef.get();
         if (!oldTeamDoc.exists) {
             throw new HttpsError('not-found', `Old team with ID ${oldTeamId} not found.`);
         }
 
-        const newTeamRef = db.collection(getCollectionName('v2_teams')).doc(newTeamId);
+        const newTeamRef = db.collection(getCollectionName('v2_teams', league)).doc(newTeamId);
         const newTeamData = { ...oldTeamDoc.data(), team_id: newTeamId, gm_player_id: oldTeamDoc.data().gm_player_id || null };
         batch.set(newTeamRef, newTeamData);
 
-        const oldRecordsSnap = await oldTeamRef.collection(getCollectionName('seasonal_records')).get();
+        const oldRecordsSnap = await oldTeamRef.collection(getCollectionName('seasonal_records', league)).get();
         oldRecordsSnap.forEach(doc => {
-            const newRecordRef = newTeamRef.collection(getCollectionName('seasonal_records')).doc(doc.id);
+            const newRecordRef = newTeamRef.collection(getCollectionName('seasonal_records', league)).doc(doc.id);
             let recordData = doc.data();
             if (doc.id === activeSeasonId) {
                 recordData.team_id = newTeamId;
@@ -598,15 +684,15 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
             batch.set(newRecordRef, recordData);
         });
         
-        const playersQuery = db.collection(getCollectionName('v2_players')).where('current_team_id', '==', oldTeamId);
+        const playersQuery = db.collection(getCollectionName('v2_players', league)).where('current_team_id', '==', oldTeamId);
         const playersSnap = await playersQuery.get();
         playersSnap.forEach(doc => {
             batch.update(doc.ref, { current_team_id: newTeamId });
         });
         console.log(`Found and updated ${playersSnap.size} players.`);
 
-        const picksOwnerQuery = db.collection(getCollectionName('draftPicks')).where('current_owner', '==', oldTeamId);
-        const picksOriginalQuery = db.collection(getCollectionName('draftPicks')).where('original_team', '==', oldTeamId);
+        const picksOwnerQuery = db.collection(getCollectionName('draftPicks', league)).where('current_owner', '==', oldTeamId);
+        const picksOriginalQuery = db.collection(getCollectionName('draftPicks', league)).where('original_team', '==', oldTeamId);
 
         const [ownerPicksSnap, originalPicksSnap] = await Promise.all([picksOwnerQuery.get(), picksOriginalQuery.get()]);
         
@@ -615,15 +701,15 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         originalPicksSnap.forEach(doc => allPicksToUpdate.set(doc.id, doc.data()));
 
         for (const [pickId, pickData] of allPicksToUpdate.entries()) {
-            const oldPickRef = db.collection(getCollectionName('draftPicks')).doc(pickId);
-            
+            const oldPickRef = db.collection(getCollectionName('draftPicks', league)).doc(pickId);
+
             if (pickData.pick_description && pickData.pick_description.includes(oldTeamId)) {
                 pickData.pick_description = pickData.pick_description.replace(oldTeamId, newTeamId);
             }
 
             if (pickId.includes(oldTeamId)) {
                 const newPickId = pickId.replace(oldTeamId, newTeamId);
-                const newPickRef = db.collection(getCollectionName('draftPicks')).doc(newPickId);
+                const newPickRef = db.collection(getCollectionName('draftPicks', league)).doc(newPickId);
                 const newPickData = { ...pickData, pick_id: newPickId };
                 if (newPickData.current_owner === oldTeamId) newPickData.current_owner = newTeamId;
                 if (newPickData.original_team === oldTeamId) newPickData.original_team = newTeamId;
@@ -646,7 +732,7 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         await batch.commit();
 
         const deleteBatch = db.batch();
-        const oldTeamRecordsToDeleteSnap = await oldTeamRef.collection(getCollectionName('seasonal_records')).get();
+        const oldTeamRecordsToDeleteSnap = await oldTeamRef.collection(getCollectionName('seasonal_records', league)).get();
         oldTeamRecordsToDeleteSnap.forEach(doc => {
             deleteBatch.delete(doc.ref);
         });
@@ -654,7 +740,7 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
         await deleteBatch.commit();
 
         console.log(`Rebrand complete. Old team ${oldTeamId} deleted.`);
-        return { success: true, message: `Team ${oldTeamId} successfully rebranded to ${newTeamId}.` };
+        return { success: true, league, message: `Team ${oldTeamId} successfully rebranded to ${newTeamId}.` };
 
     } catch (error) {
         console.error("Error rebranding team:", error);
@@ -664,13 +750,14 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
 
 
 
-async function performFullUpdate() {
-    const statusSnap = await db.doc(`${getCollectionName('live_scoring_status')}/status`).get();
+async function performFullUpdate(league = LEAGUES.MAJOR) {
+    console.log(`Starting full update for ${league} league...`);
+    const statusSnap = await db.doc(`${getCollectionName('live_scoring_status', league)}/status`).get();
     const gameDate = statusSnap.exists ? statusSnap.data().active_game_date : new Date().toISOString().split('T')[0];
 
-    const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+    const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
     if (liveGamesSnap.empty) {
-        console.log("performFullUpdate: No active games to update.");
+        console.log(`performFullUpdate: No active games to update for ${league} league.`);
         return { success: true, message: "No active games to update." };
     }
 
@@ -690,16 +777,16 @@ async function performFullUpdate() {
                 apiRequests++;
                 const data = await response.json();
                 const rawScore = parseFloat(data?.stats?.karmaDelta || 0);
-                
+
                 const globalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
-                
+
                 const adjustedScore = rawScore - (player.deductions || 0);
                 const finalScore = player.is_captain ? adjustedScore * 1.5 : adjustedScore;
-                
+
                 player.points_raw = rawScore;
                 player.points_adjusted = adjustedScore;
                 player.final_score = finalScore;
-                
+
                 player.global_rank = globalRank;
 
             } catch (error) {
@@ -715,30 +802,33 @@ async function performFullUpdate() {
 
     await batch.commit();
 
-    const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
+    const usageRef = db.doc(`${getCollectionName('usage_stats', league)}/${gameDate}`);
     await usageRef.set({
         api_requests_full_update: FieldValue.increment(apiRequests)
     }, { merge: true });
 
-    const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
+    const statusRef = db.doc(`${getCollectionName('live_scoring_status', league)}/status`);
     await statusRef.set({
         last_full_update_completed: FieldValue.serverTimestamp()
     }, { merge: true });
 
+    console.log(`Full update completed for ${league} league. Updated ${liveGamesSnap.size} games with ${apiRequests} API requests.`);
     return { success: true, message: `Updated scores for ${liveGamesSnap.size} games. Made ${apiRequests} API requests.` };
 }
 
 
 
 exports.updateAllLiveScores = onCall({ region: "us-central1" }, async (request) => {
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
+    const league = getLeagueFromRequest(request.data);
+    if (!(await isScorekeeperOrAdmin(request.auth, league))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
-    return await performFullUpdate();
+    return await performFullUpdate(league);
 });
 
 
 exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -753,7 +843,7 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
         throw new HttpsError('invalid-argument', 'Invalid payload. Expects { status: "active" | "paused" | "stopped" }');
     }
 
-    const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
+    const statusRef = db.doc(`${getCollectionName('live_scoring_status', league)}/status`);
     try {
         const updateData = {
             status: status,
@@ -770,14 +860,14 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
 
         if (gameDate) {
             updateData.active_game_date = gameDate;
-            const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
-            const usageRef = db.doc(`${getCollectionName('usage_stats')}/${gameDate}`);
+            const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
+            const usageRef = db.doc(`${getCollectionName('usage_stats', league)}/${gameDate}`);
             await usageRef.set({ live_game_count: liveGamesSnap.size }, { merge: true });
         }
 
         await statusRef.set(updateData, { merge: true });
 
-        return { success: true, message: `Live scoring status set to ${status}.` };
+        return { success: true, league, message: `Live scoring status set to ${status}.` };
     } catch (error) {
         console.error("Error updating live scoring status:", error);
         throw new HttpsError('internal', 'Could not update live scoring status.');
@@ -883,9 +973,108 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
     return null;
 });
 
+exports.minor_scheduledSampler = onSchedule("every 1 minutes", async (event) => {
+    const statusRef = db.doc(getCollectionName('live_scoring_status', LEAGUES.MINOR) + '/status');
+    const statusSnap = await statusRef.get();
+
+    if (!statusSnap.exists || statusSnap.data().status !== 'active') {
+        console.log(`Minor league sampler is not active (current status: ${statusSnap.data().status || 'stopped'}). Exiting.`);
+        return null;
+    }
+
+    const { interval_minutes, last_sample_completed_at } = statusSnap.data();
+    const now = new Date();
+
+    if (!last_sample_completed_at || now.getTime() >= last_sample_completed_at.toDate().getTime() + (interval_minutes * 60 * 1000)) {
+
+        console.log(`Minor league: Interval of ${interval_minutes} minutes has passed. Performing sample.`);
+        const gameDate = statusSnap.data().active_game_date;
+
+        const liveGamesSnap = await db.collection(getCollectionName('live_games', LEAGUES.MINOR)).get();
+        if (liveGamesSnap.empty) {
+            console.log("Minor league: No live games to sample. Stopping.");
+            return null;
+        }
+
+        const allStarters = liveGamesSnap.docs.flatMap(doc => [...doc.data().team1_lineup, ...doc.data().team2_lineup]);
+        if (allStarters.length < 3) {
+            console.log("Minor league: Not enough players to sample (< 3).");
+            return null;
+        }
+
+        const sampledPlayers = [];
+        const usedIndices = new Set();
+        while (sampledPlayers.length < 3 && usedIndices.size < allStarters.length) {
+            const randomIndex = Math.floor(Math.random() * allStarters.length);
+            if (!usedIndices.has(randomIndex)) {
+                sampledPlayers.push(allStarters[randomIndex]);
+                usedIndices.add(randomIndex);
+            }
+        }
+
+        let karmaChangesDetected = 0;
+        let rankChangesDetected = 0;
+        let apiRequests = 0;
+        const sampleResults = [];
+
+        for (const player of sampledPlayers) {
+            const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
+            await new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * 1001) + 500));
+
+            try {
+                const response = await fetch(workerUrl);
+                apiRequests++;
+                const data = await response.json();
+
+                const newRawScore = parseFloat(data?.stats?.karmaDelta || 0);
+                const newGlobalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
+
+                const oldRawScore = player.points_raw || 0;
+                const oldGlobalRank = player.global_rank || -1;
+
+                const karmaHasChanged = newRawScore !== oldRawScore;
+                const rankHasChanged = newGlobalRank !== oldGlobalRank;
+
+                if (karmaHasChanged) karmaChangesDetected++;
+                if (rankHasChanged) rankChangesDetected++;
+
+                sampleResults.push({
+                    handle: player.player_handle,
+                    oldScore: oldRawScore,
+                    newScore: newRawScore,
+                    karmaChanged: karmaHasChanged,
+                    oldRank: oldGlobalRank,
+                    newRank: newGlobalRank,
+                    rankChanged: rankHasChanged
+                });
+
+            } catch (error) { console.error(`Minor league sampler failed to fetch karma for ${player.player_id}`, error); }
+        }
+
+        await statusRef.set({
+            last_sample_results: sampleResults,
+            last_sample_completed_at: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        const usageRef = db.doc(`${getCollectionName('usage_stats', LEAGUES.MINOR)}/${gameDate}`);
+        await usageRef.set({ api_requests_sample: FieldValue.increment(apiRequests) }, { merge: true });
+
+        if (karmaChangesDetected >= 2 || rankChangesDetected >= 2) {
+            console.log(`Minor league sampler detected changes (Karma: ${karmaChangesDetected}, Rank: ${rankChangesDetected}). Triggering full update.`);
+            await performFullUpdate(LEAGUES.MINOR);
+        } else {
+            console.log(`Minor league sampler detected insufficient changes (Karma: ${karmaChangesDetected}, Rank: ${rankChangesDetected}). No update triggered.`);
+        }
+    } else {
+        return null;
+    }
+    return null;
+});
+
 // functions/index.js
 
 exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     // 1. Security Check & Validation
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
@@ -903,8 +1092,8 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
     console.log(`ADMIN ACTION: Updating details for player ${playerId} to handle: ${newPlayerHandle}`);
 
     try {
-        const playerRef = db.collection(getCollectionName('v2_players')).doc(playerId);
-        
+        const playerRef = db.collection(getCollectionName('v2_players', league)).doc(playerId);
+
         // Fetch the existing player data to get the old handle
         const playerDoc = await playerRef.get();
         if (!playerDoc.exists) {
@@ -926,12 +1115,12 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
             console.log(`Adding alias '${oldPlayerHandle}' for player ${playerId}.`);
             playerUpdateData.aliases = FieldValue.arrayUnion(oldPlayerHandle);
         }
-        
+
         mainBatch.update(playerRef, playerUpdateData);
 
 
         // 3. Update seasonal accolades (rookie/all-star status)
-        const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(seasonId);
+        const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats', league)).doc(seasonId);
         mainBatch.set(seasonStatsRef, {
             rookie: isRookie ? '1' : '0',
             all_star: isAllStar ? '1' : '0'
@@ -942,11 +1131,11 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
 
         // 4. Propagate handle change to all historical lineups
         console.log(`Propagating handle change to lineup documents...`);
-        const seasonsSnap = await db.collection(getCollectionName('seasons')).get();
+        const seasonsSnap = await db.collection(getCollectionName('seasons', league)).get();
         for (const seasonDoc of seasonsSnap.docs) {
             const lineupTypes = ['lineups', 'post_lineups', 'exhibition_lineups'];
             for (const type of lineupTypes) {
-                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type));
+                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type, league));
                 const lineupsQuery = lineupsRef.where('player_id', '==', playerId);
                 const lineupsSnap = await lineupsQuery.get();
                 
@@ -964,7 +1153,7 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
         console.log(`Propagating handle change to live games, pending lineups, and transactions...`);
         const arrayCollectionsToUpdate = ['live_games', 'pending_lineups'];
         for (const collName of arrayCollectionsToUpdate) {
-            const collectionRef = db.collection(getCollectionName(collName));
+            const collectionRef = db.collection(getCollectionName(collName, league));
             const snap = await collectionRef.get();
             if (snap.empty) continue;
 
@@ -990,8 +1179,8 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
             });
             await batch.commit();
         }
-        
-        const transactionSeasonsRef = db.collection(getCollectionName('transactions')).doc('seasons');
+
+        const transactionSeasonsRef = db.collection(getCollectionName('transactions', league)).doc('seasons');
         const transactionSeasonsSnap = await transactionSeasonsRef.listCollections();
         for (const collectionRef of transactionSeasonsSnap) {
             const snap = await collectionRef.get();
@@ -1019,7 +1208,7 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
 
         // 6. Propagate handle change to draft results
         console.log(`Propagating handle change to draft results...`);
-        const draftResultsParentSnap = await db.collection(getCollectionName('draft_results')).get();
+        const draftResultsParentSnap = await db.collection(getCollectionName('draft_results', league)).get();
         for (const doc of draftResultsParentSnap.docs) {
             const collections = await doc.ref.listCollections();
             for (const collectionRef of collections) {
@@ -1037,7 +1226,7 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
         
         // 7. NEW: Propagate handle change to award documents
         console.log(`Propagating handle change to award documents...`);
-        const awardsParentSnap = await db.collection(getCollectionName('awards')).get();
+        const awardsParentSnap = await db.collection(getCollectionName('awards', league)).get();
         for (const doc of awardsParentSnap.docs) {
             const collections = await doc.ref.listCollections();
             for (const collectionRef of collections) {
@@ -1074,7 +1263,7 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
         }
 
 
-        return { success: true, message: `Successfully updated player ${newPlayerHandle} and all associated records.` };
+        return { success: true, league, message: `Successfully updated player ${newPlayerHandle} and all associated records.` };
 
     } catch (error) {
         console.error(`CRITICAL ERROR during player handle update for ${playerId}:`, error);
@@ -1087,6 +1276,7 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
 // ===================================================================
 
 exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -1111,6 +1301,7 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
         const karmaDayRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
 
         return {
+            league,
             karmaDelta: isNaN(karmaDelta) ? 0 : karmaDelta,
             karmaDayRank: isNaN(karmaDayRank) ? -1 : karmaDayRank,
         };
@@ -1123,6 +1314,7 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
 
 
 exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('permission-denied', 'You must be logged in to submit a lineup.');
     }
@@ -1138,7 +1330,7 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
     }
 
     const logBatch = db.batch();
-    const submissionLogRef = db.collection(getCollectionName('lineup_submission_logs')).doc();
+    const submissionLogRef = db.collection(getCollectionName('lineup_submission_logs', league)).doc();
     const isTeam1Submitting = team1_lineup && team1_lineup.length === 6;
     const isTeam2Submitting = team2_lineup && team2_lineup.length === 6;
 
@@ -1157,7 +1349,7 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
         if (isGmSubmission) {
             const [month, day, year] = gameDate.split('/');
             const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const deadlineRef = db.collection(getCollectionName('lineup_deadlines')).doc(deadlineId);
+            const deadlineRef = db.collection(getCollectionName('lineup_deadlines', league)).doc(deadlineId);
             const deadlineDoc = await deadlineRef.get();
 
             if (!deadlineDoc.exists) {
@@ -1189,7 +1381,7 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
             }
         }
 
-        const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
+        const liveGameRef = db.collection(getCollectionName('live_games', league)).doc(gameId);
         const liveGameSnap = await liveGameRef.get();
 
         if (liveGameSnap.exists) {
@@ -1216,12 +1408,12 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
             if (Object.keys(updateData).length > 0) {
                 await liveGameRef.update(updateData);
             }
-            
+
             await submissionLogRef.update({ status: 'success', details: 'Updated live game document.' });
-            return { success: true, message: "Live game lineup has been successfully updated." };
+            return { success: true, league, message: "Live game lineup has been successfully updated." };
         }
 
-        const pendingRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
+        const pendingRef = db.collection(getCollectionName('pending_lineups', league)).doc(gameId);
         const dataToSet = {
             seasonId,
             collectionName,
@@ -1269,9 +1461,9 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
                 console.log(`Game ${gameId} successfully activated and moved to live_games.`);
             }
         }
-        
+
         await submissionLogRef.update({ status: 'success' });
-        return { success: true, message: "Lineup has been successfully submitted." };
+        return { success: true, league, message: "Lineup has been successfully submitted." };
 
     } catch (error) {
         if (!(error instanceof HttpsError)) {
@@ -1334,7 +1526,58 @@ exports.processPendingLiveGames = onSchedule({
     return null;
 });
 
+exports.minor_processPendingLiveGames = onSchedule({
+    schedule: "15 6 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled job to process pending live games (Minor League).");
+
+    const today = new Date();
+    const dateString = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+
+    const pendingGamesQuery = db.collection(getCollectionName('pending_lineups', LEAGUES.MINOR))
+        .where('gameDate', '==', dateString)
+        .where('team1_submitted', '==', true)
+        .where('team2_submitted', '==', true);
+
+    try {
+        const pendingGamesSnap = await pendingGamesQuery.get();
+        if (pendingGamesSnap.empty) {
+            console.log(`Minor League: No pending games with both lineups submitted for ${dateString}.`);
+            return null;
+        }
+
+        console.log(`Minor League: Found ${pendingGamesSnap.size} games to activate for live scoring.`);
+        const activationBatch = db.batch();
+
+        for (const doc of pendingGamesSnap.docs) {
+            const gameId = doc.id;
+            const data = doc.data();
+
+            const liveGameRef = db.collection(getCollectionName('live_games', LEAGUES.MINOR)).doc(gameId);
+            activationBatch.set(liveGameRef, {
+                seasonId: data.seasonId,
+                collectionName: data.collectionName,
+                team1_lineup: data.team1_lineup,
+                team2_lineup: data.team2_lineup,
+                activatedAt: FieldValue.serverTimestamp()
+            });
+
+
+            activationBatch.delete(doc.ref);
+        }
+
+        await activationBatch.commit();
+        console.log("Minor League: Successfully activated and cleared pending games.");
+
+    } catch (error) {
+        console.error("Minor League: Error during scheduled processing of pending games:", error);
+    }
+    return null;
+});
+
 exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -1349,7 +1592,7 @@ exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => 
         const batch = db.batch();
 
         // Set the new document in the live_games collection
-        const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
+        const liveGameRef = db.collection(getCollectionName('live_games', league)).doc(gameId);
         batch.set(liveGameRef, {
             seasonId,
             collectionName,
@@ -1359,13 +1602,13 @@ exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => 
         });
 
         // Delete the now-obsolete document from the pending_lineups collection
-        const pendingGameRef = db.collection(getCollectionName('pending_lineups')).doc(gameId);
+        const pendingGameRef = db.collection(getCollectionName('pending_lineups', league)).doc(gameId);
         batch.delete(pendingGameRef);
 
         // Commit both operations
         await batch.commit();
 
-        return { success: true, message: "Game activated for live scoring and pending entry was cleared." };
+        return { success: true, league, message: "Game activated for live scoring and pending entry was cleared." };
     } catch (error) {
         console.error(`Error activating live game ${gameId}:`, error);
         throw new HttpsError('internal', 'Could not activate live game.');
@@ -1373,6 +1616,7 @@ exports.activateLiveGame = onCall({ region: "us-central1" }, async (request) => 
 });
 
 exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -1383,16 +1627,16 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
     }
 
     try {
-        const liveGameRef = db.collection(getCollectionName('live_games')).doc(gameId);
+        const liveGameRef = db.collection(getCollectionName('live_games', league)).doc(gameId);
         const liveGameSnap = await liveGameRef.get();
 
         if (!liveGameSnap.exists) {
             throw new HttpsError('not-found', 'The specified game is not currently live.');
         }
 
-        await processAndFinalizeGame(liveGameSnap, false); 
+        await processAndFinalizeGame(liveGameSnap, false, league);
 
-        return { success: true, message: `Game ${gameId} has been successfully finalized and scores have been written.` };
+        return { success: true, league, message: `Game ${gameId} has been successfully finalized and scores have been written.` };
 
     } catch (error) {
         console.error(`Error finalizing game ${gameId}:`, error);
@@ -1406,17 +1650,60 @@ exports.finalizeLiveGame = onCall({ region: "us-central1" }, async (request) => 
 
 exports.autoFinalizeGames = onSchedule({
     schedule: "every day 05:00",
-    timeZone: "America/Chicago", 
+    timeZone: "America/Chicago",
 }, async (event) => {
     console.log("Running scheduled job to auto-finalize games.");
-    const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+
+    // Process games for both leagues
+    for (const league of Object.values(LEAGUES)) {
+        console.log(`Processing auto-finalization for ${league} league...`);
+        const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
+
+        if (liveGamesSnap.empty) {
+            console.log(`No live games found to auto-finalize for ${league} league.`);
+            continue;
+        }
+
+        console.log(`Found ${liveGamesSnap.size} games to auto-finalize for ${league} league.`);
+
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        for (const gameDoc of liveGamesSnap.docs) {
+            try {
+                const randomGameDelay = Math.floor(Math.random() * 201) + 200;
+                await delay(randomGameDelay);
+
+                console.log(`Auto-finalizing game ${gameDoc.id} for ${league} league after a ${randomGameDelay}ms delay.`);
+                await processAndFinalizeGame(gameDoc, true, league);
+                console.log(`Successfully auto-finalized game ${gameDoc.id} for ${league} league.`);
+
+            } catch (error) {
+                console.error(`Failed to auto-finalize game ${gameDoc.id} for ${league} league:`, error);
+                await gameDoc.ref.update({ status: 'AUTO_FINALIZE_FAILED', error: error.message });
+            }
+        }
+    }
+
+    console.log("Auto-finalization job completed for all leagues.");
+    return null;
+});
+
+exports.minor_autoFinalizeGames = onSchedule({
+    schedule: "every day 05:00",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled job to auto-finalize games (Minor League).");
+
+    const league = LEAGUES.MINOR;
+    console.log(`Processing auto-finalization for ${league} league...`);
+    const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
 
     if (liveGamesSnap.empty) {
-        console.log("No live games found to auto-finalize.");
+        console.log(`No live games found to auto-finalize for ${league} league.`);
         return null;
     }
 
-    console.log(`Found ${liveGamesSnap.size} games to auto-finalize.`);
+    console.log(`Found ${liveGamesSnap.size} games to auto-finalize for ${league} league.`);
 
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -1425,28 +1712,30 @@ exports.autoFinalizeGames = onSchedule({
             const randomGameDelay = Math.floor(Math.random() * 201) + 200;
             await delay(randomGameDelay);
 
-            console.log(`Auto-finalizing game ${gameDoc.id} after a ${randomGameDelay}ms delay.`);
-            await processAndFinalizeGame(gameDoc, true); // Auto-finalization uses player delays
-            console.log(`Successfully auto-finalized game ${gameDoc.id}.`);
+            console.log(`Auto-finalizing game ${gameDoc.id} for ${league} league after a ${randomGameDelay}ms delay.`);
+            await processAndFinalizeGame(gameDoc, true, league);
+            console.log(`Successfully auto-finalized game ${gameDoc.id} for ${league} league.`);
 
         } catch (error) {
-            console.error(`Failed to auto-finalize game ${gameDoc.id}:`, error);
+            console.error(`Failed to auto-finalize game ${gameDoc.id} for ${league} league:`, error);
             await gameDoc.ref.update({ status: 'AUTO_FINALIZE_FAILED', error: error.message });
         }
     }
 
-    console.log("Auto-finalization job completed.");
+    console.log("Auto-finalization job completed for minor league.");
     return null;
 });
 
 
-async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
+async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false, league = LEAGUES.MAJOR) {
     const gameId = liveGameSnap.id;
     const liveGameData = liveGameSnap.data();
     const { seasonId, collectionName, team1_lineup, team2_lineup } = liveGameData;
 
+    console.log(`Processing and finalizing game ${gameId} for ${league} league...`);
+
     const allPlayersInGame = [...team1_lineup, ...team2_lineup];
-    const playerDocs = await db.collection(getCollectionName('v2_players')).get();
+    const playerDocs = await db.collection(getCollectionName('v2_players', league)).get();
     const allPlayersMap = new Map(playerDocs.docs.map(doc => [doc.id, doc.data()]));
 
     const batch = db.batch();
@@ -1473,14 +1762,14 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false) {
         }
     }
 
-    const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
+    const gameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(collectionName, league)}/${gameId}`);
     const gameSnap = await gameRef.get();
     const gameData = gameSnap.data();
     let team1FinalScore = 0;
     let team2FinalScore = 0;
 
     const lineupsCollectionName = collectionName.replace('games', 'lineups');
-    const lineupsCollectionRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollectionName));
+    const lineupsCollectionRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsCollectionName, league));
 
     for (const player of allPlayersInGame) {
         const finalScores = finalScoresMap.get(player.player_id);
@@ -1564,6 +1853,30 @@ exports.scheduledLiveScoringShutdown = onSchedule({
     return null;
 });
 
+exports.minor_scheduledLiveScoringShutdown = onSchedule({
+    schedule: "15 5 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled job to set live scoring status to 'stopped' (Minor League).");
+
+    try {
+        const statusRef = db.doc(`${getCollectionName('live_scoring_status', LEAGUES.MINOR)}/status`);
+
+        await statusRef.set({
+            status: 'stopped',
+            last_updated_by: 'automated_shutdown',
+            last_updated: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        console.log("Minor League: Successfully set live scoring status to 'stopped'.");
+
+    } catch (error) {
+        console.error("Minor League: Error during scheduled shutdown of live scoring:", error);
+    }
+
+    return null;
+});
+
 async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
     const seasonId = `S${seasonNum}`;
     console.log(`Creating structure for season ${seasonId}`);
@@ -1626,12 +1939,13 @@ async function createSeasonStructure(seasonNum, batch, activeSeasonId) {
 }
 
 exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
 
     try {
-        const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
+        const activeSeasonQuery = db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1);
         const activeSeasonSnap = await activeSeasonQuery.get();
 
         if (activeSeasonSnap.empty) {
@@ -1649,7 +1963,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
 
         const batch = db.batch();
 
-        const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch, activeSeasonId);
+        const newSeasonRef = await createSeasonStructure(newSeasonNumber, batch, activeSeasonId, league);
 
         batch.set(newSeasonRef, {
             season_name: `Season ${newSeasonNumber}`,
@@ -1661,23 +1975,23 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
             season_karma: 0
         }, { merge: true });
 
-        const oldSeasonRef = db.doc(`${getCollectionName('seasons')}/${activeSeasonId}`);
+        const oldSeasonRef = db.doc(`${getCollectionName('seasons', league)}/${activeSeasonId}`);
         batch.update(oldSeasonRef, { status: "completed" });
 
 
-        const oldPicksQuery = db.collection(getCollectionName("draftPicks")).where("season", "==", String(newSeasonNumber));
+        const oldPicksQuery = db.collection(getCollectionName("draftPicks", league)).where("season", "==", String(newSeasonNumber));
         const oldPicksSnap = await oldPicksQuery.get();
         console.log(`Deleting ${oldPicksSnap.size} draft picks for season ${newSeasonNumber}.`);
         oldPicksSnap.forEach(doc => batch.delete(doc.ref));
 
-        const teamsSnap = await db.collection(getCollectionName("v2_teams")).where("conference", "in", ["Eastern", "Western"]).get();
+        const teamsSnap = await db.collection(getCollectionName("v2_teams", league)).where("conference", "in", ["Eastern", "Western"]).get();
         const activeTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         console.log(`Creating future draft picks for S${futureDraftSeasonNumber} for ${activeTeams.length} teams.`);
         for (const team of activeTeams) {
             for (let round = 1; round <= 3; round++) {
                 const pickId = `S${futureDraftSeasonNumber}_${team.id}_${round}`;
-                const pickRef = db.collection(getCollectionName("draftPicks")).doc(pickId);
+                const pickRef = db.collection(getCollectionName("draftPicks", league)).doc(pickId);
                 const pickData = {
                     pick_id: pickId,
                     pick_description: `S${futureDraftSeasonNumber} ${team.id} ${round}${round === 1 ? 'st' : round === 2 ? 'nd' : 'rd'}`,
@@ -1695,7 +2009,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
         }
 
         await batch.commit();
-        return { success: true, message: `Successfully advanced from ${activeSeasonId} to Season ${newSeasonNumber} and generated draft picks for Season ${futureDraftSeasonNumber}.` };
+        return { success: true, league, message: `Successfully advanced from ${activeSeasonId} to Season ${newSeasonNumber} and generated draft picks for Season ${futureDraftSeasonNumber}.` };
     } catch (error) {
         console.error("Error creating new season:", error);
         throw new HttpsError('internal', `Failed to create new season: ${error.message}`);
@@ -1704,6 +2018,7 @@ exports.createNewSeason = onCall({ region: "us-central1" }, async (request) => {
 
 
 exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -1712,7 +2027,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         throw new HttpsError('invalid-argument', 'A seasonNumber must be provided.');
     }
 
-    const activeSeasonQuery = db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1);
+    const activeSeasonQuery = db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1);
     const activeSeasonSnap = await activeSeasonQuery.get();
 
     if (activeSeasonSnap.empty) {
@@ -1726,7 +2041,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         throw new HttpsError('failed-precondition', `Historical season (${seasonNumber}) must be less than the current active season (S${activeSeasonNum}).`);
     }
 
-    const seasonDoc = await db.doc(`${getCollectionName('seasons')}/S${seasonNumber}`).get();
+    const seasonDoc = await db.doc(`${getCollectionName('seasons', league)}/S${seasonNumber}`).get();
     if (seasonDoc.exists) {
         throw new HttpsError('already-exists', `Season S${seasonNumber} already exists in the database.`);
     }
@@ -1734,7 +2049,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
     try {
         const batch = db.batch();
 
-        const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch, activeSeasonId);
+        const historicalSeasonRef = await createSeasonStructure(seasonNumber, batch, activeSeasonId, league);
 
         batch.set(historicalSeasonRef, {
             season_name: `Season ${seasonNumber}`,
@@ -1746,7 +2061,7 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
         }, { merge: true });
 
         await batch.commit();
-        return { success: true, message: `Successfully created historical data structure for Season ${seasonNumber}.` };
+        return { success: true, league, message: `Successfully created historical data structure for Season ${seasonNumber}.` };
     } catch (error) {
         console.error("Error creating historical season:", error);
         throw new HttpsError('internal', `Failed to create historical season: ${error.message}`);
@@ -1754,13 +2069,13 @@ exports.createHistoricalSeason = onCall({ region: "us-central1" }, async (reques
 });
 
 
-exports.updateGamesScheduledCount = onDocumentWritten(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('games')}/{gameId}`, (event) => {
+exports.updateGamesScheduledCount = onDocumentWritten(`seasons/{seasonId}/games/{gameId}`, (event) => {
     const { seasonId, gameId } = event.params;
     if (gameId === 'placeholder') {
         return null;
     }
 
-    const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
+    const seasonRef = db.collection('seasons').doc(seasonId);
     const beforeExists = event.data.before.exists;
     const afterExists = event.data.after.exists;
 
@@ -1775,8 +2090,29 @@ exports.updateGamesScheduledCount = onDocumentWritten(`${getCollectionName('seas
     return null;
 });
 
+exports.minor_updateGamesScheduledCount = onDocumentWritten(`minor_seasons/{seasonId}/minor_games/{gameId}`, (event) => {
+    const { seasonId, gameId } = event.params;
+    if (gameId === 'placeholder') {
+        return null;
+    }
 
-exports.processCompletedExhibitionGame = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('exhibition_games')}/{gameId}`, async (event) => {
+    const seasonRef = db.collection('minor_seasons').doc(seasonId);
+    const beforeExists = event.data.before.exists;
+    const afterExists = event.data.after.exists;
+
+    if (!beforeExists && afterExists) {
+        console.log(`Minor League: Incrementing games scheduled for ${seasonId}.`);
+        return seasonRef.update({ gs: FieldValue.increment(1) });
+    } else if (beforeExists && !afterExists) {
+        console.log(`Minor League: Decrementing games scheduled for ${seasonId}.`);
+        return seasonRef.update({ gs: FieldValue.increment(-1) });
+    }
+
+    return null;
+});
+
+
+exports.processCompletedExhibitionGame = onDocumentUpdated(`seasons/{seasonId}/exhibition_games/{gameId}`, async (event) => {
     const before = event.data.before.data();
     const after = event.data.after.data();
     const { seasonId, gameId } = event.params;
@@ -1790,7 +2126,22 @@ exports.processCompletedExhibitionGame = onDocumentUpdated(`${getCollectionName(
     return null;
 });
 
+exports.minor_processCompletedExhibitionGame = onDocumentUpdated(`minor_seasons/{seasonId}/minor_exhibition_games/{gameId}`, async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+    const { seasonId, gameId } = event.params;
+
+    if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
+        return null;
+    }
+
+    console.log(`Minor League: Logging completion of EXHIBITION game ${gameId} in season ${seasonId}. No stat aggregation will occur.`);
+
+    return null;
+});
+
 exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -1802,12 +2153,12 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
     console.log(`Generating postseason schedule for ${seasonId}`);
 
     try {
-        const teamsRef = db.collection(getCollectionName('v2_teams'));
+        const teamsRef = db.collection(getCollectionName('v2_teams', league));
         const teamsSnap = await teamsRef.get();
         const allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         const teamRecords = await Promise.all(allTeams.map(async (team) => {
-            const recordRef = db.doc(`${getCollectionName('v2_teams')}/${team.id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+            const recordRef = db.doc(`${getCollectionName('v2_teams', league)}/${team.id}/${getCollectionName('seasonal_records', league)}/${seasonId}`);
             const recordSnap = await recordRef.get();
             return { ...team, ...recordSnap.data() };
         }));
@@ -1820,7 +2171,7 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         }
 
         const batch = db.batch();
-        const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
+        const postGamesRef = db.collection(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName('post_games', league)}`);
 
         const existingGamesSnap = await postGamesRef.get();
         existingGamesSnap.forEach(doc => batch.delete(doc.ref));
@@ -1894,7 +2245,7 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
         createSeries('Finals', 'Finals', 7, TBD_TEAM, TBD_TEAM, dates['Finals']);
 
         await batch.commit();
-        return { message: "Postseason schedule generated successfully!" };
+        return { success: true, league, message: "Postseason schedule generated successfully!" };
 
     } catch (error) {
         console.error("Error generating postseason schedule:", error);
@@ -1904,6 +2255,7 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
 
 
 exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -1918,12 +2270,12 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
     try {
         const batch = db.batch();
 
-        const awardsParentDocRef = db.doc(`${getCollectionName('awards')}/season_${seasonNumber}`);
+        const awardsParentDocRef = db.doc(`${getCollectionName('awards', league)}/season_${seasonNumber}`);
         batch.set(awardsParentDocRef, { description: `Awards for Season ${seasonNumber}` }, { merge: true });
 
-        const awardsCollectionRef = awardsParentDocRef.collection(getCollectionName(`S${seasonNumber}_awards`));
+        const awardsCollectionRef = awardsParentDocRef.collection(getCollectionName(`S${seasonNumber}_awards`, league));
 
-        const lineupsRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('lineups')}`);
+        const lineupsRef = db.collection(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName('lineups', league)}`);
         const bestPlayerQuery = lineupsRef.orderBy('pct_above_median', 'desc').limit(1);
         const bestPlayerSnap = await bestPlayerQuery.get();
 
@@ -1940,13 +2292,13 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
             batch.set(awardsCollectionRef.doc('best_performance_player'), awardData);
         }
 
-        const dailyScoresRef = db.collection(`${getCollectionName('daily_scores')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_daily_scores`)}`);
+        const dailyScoresRef = db.collection(`${getCollectionName('daily_scores', league)}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_daily_scores`, league)}`);
         const bestTeamQuery = dailyScoresRef.orderBy('pct_above_median', 'desc').limit(1);
         const bestTeamSnap = await bestTeamQuery.get();
 
         if (!bestTeamSnap.empty) {
             const bestTeamPerf = bestTeamSnap.docs[0].data();
-            const teamRecordRef = db.doc(`${getCollectionName('v2_teams')}/${bestTeamPerf.team_id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+            const teamRecordRef = db.doc(`${getCollectionName('v2_teams', league)}/${bestTeamPerf.team_id}/${getCollectionName('seasonal_records', league)}/${seasonId}`);
             const teamRecordSnap = await teamRecordRef.get();
             const awardData = {
                 award_name: "Best Performance (Team)",
@@ -1960,7 +2312,7 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
 
         await batch.commit();
         console.log("Successfully calculated and saved performance awards.");
-        return { message: "Performance awards calculated and saved successfully!" };
+        return { success: true, league, message: "Performance awards calculated and saved successfully!" };
 
     } catch (error) {
         console.error("Error calculating performance awards:", error);
@@ -1968,7 +2320,7 @@ exports.calculatePerformanceAwards = onCall({ region: "us-central1" }, async (re
     }
 });
 
-exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_results')}/{seasonDocId}/{resultsCollectionId}/{draftPickId}`, async (event) => {
+exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{resultsCollectionId}/{draftPickId}`, async (event) => {
     const { seasonDocId, resultsCollectionId } = event.params;
     const pickData = event.data.data();
     const { team_id, player_handle, forfeit, season: draftSeason, round, overall } = pickData;
@@ -2133,8 +2485,172 @@ exports.onDraftResultCreate = onDocumentCreated(`${getCollectionName('draft_resu
     return null;
 });
 
+exports.minor_onDraftResultCreate = onDocumentCreated(`minor_draft_results/{seasonDocId}/{resultsCollectionId}/{draftPickId}`, async (event) => {
+    const { seasonDocId, resultsCollectionId } = event.params;
+    const pickData = event.data.data();
+    const { team_id, player_handle, forfeit, season: draftSeason, round, overall } = pickData;
 
-exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
+    const API_ENDPOINT_TEMPLATE = process.env.REAL_API_ENDPOINT;
+
+    if (!API_ENDPOINT_TEMPLATE) {
+        console.error("FATAL ERROR: REAL_API_ENDPOINT environment variable not set. Aborting function.");
+        return null;
+    }
+
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const seasonMatch = seasonDocId.match(/^season_(\d+)$/);
+    const collectionMatch = resultsCollectionId.match(/^S(\d+)_draft_results_dev$/) || resultsCollectionId.match(/^S(\d+)_draft_results$/);
+    if (!seasonMatch || !collectionMatch || seasonMatch[1] !== collectionMatch[1]) {
+        console.log(`Minor League: Function triggered on a non-draft path, exiting. Path: ${seasonDocId}/${resultsCollectionId}`);
+        return null;
+    }
+
+    if (forfeit || !player_handle) {
+        console.log(`Minor League: Pick ${overall} was forfeited or had no player. No action taken.`);
+        return null;
+    }
+
+    console.log(`Minor League: Processing draft pick ${overall}: ${player_handle} to team ${team_id} in ${draftSeason} draft.`);
+
+    try {
+        const batch = db.batch();
+        let playerIdToWrite = null;
+
+        const activeSeasonQuery = db.collection(getCollectionName("seasons", LEAGUES.MINOR)).where("status", "==", "active").limit(1);
+        const [activeSeasonSnap, teamRecordSnap] = await Promise.all([
+            activeSeasonQuery.get(),
+            db.doc(`${getCollectionName('v2_teams', LEAGUES.MINOR)}/${team_id}/${getCollectionName('seasonal_records', LEAGUES.MINOR)}/${draftSeason}`).get()
+        ]);
+        const activeSeasonId = activeSeasonSnap.empty ? null : activeSeasonSnap.docs[0].id;
+        const teamName = teamRecordSnap.exists ? teamRecordSnap.data().team_name : team_id;
+
+        const getOrdinal = (n) => {
+            if (n > 3 && n < 21) return n + 'th';
+            switch (n % 10) {
+                case 1: return n + "st";
+                case 2: return n + "nd";
+                case 3: return n + "rd";
+                default: return n + "th";
+            }
+        };
+        const bio = `R${round} (${getOrdinal(overall)} overall) selection by ${teamName} in ${draftSeason} draft.`;
+        const isCurrentDraft = draftSeason === activeSeasonId;
+
+        const initialStats = {
+            aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, meanrank: 0, medsum: 0,
+            post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
+            post_medrank: 0, post_meanrank: 0, post_medsum: 0, post_rel_mean: 0, post_rel_median: 0, post_total_points: 0, post_WAR: 0, rel_mean: 0, rel_median: 0,
+            WAR: 0, t100: 0, t100_pct: 0, post_t100: 0, post_t100_pct: 0, t50: 0, t50_pct: 0, post_t50: 0, post_t50_pct: 0, total_points: 0, all_star: '0'
+        };
+
+        if (isCurrentDraft) {
+            const randomDelay = Math.floor(Math.random() * 201) + 100;
+            await delay(randomDelay);
+
+            console.log(`Minor League: Current draft (${draftSeason}). Fetching player ID for: ${player_handle}.`);
+            let newPlayerId;
+
+            try {
+                const apiUrl = API_ENDPOINT_TEMPLATE.replace('{}', encodeURIComponent(player_handle));
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                        'Accept': 'application/json, text/plain, */*'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const userId = data?.user?.id;
+                    if (userId) {
+                        newPlayerId = userId;
+                        console.log(`Minor League: Successfully fetched ID for ${player_handle}: ${newPlayerId}`);
+                    }
+                } else {
+                    console.warn(`Minor League: API request failed for ${player_handle} with status: ${response.status}.`);
+                }
+            } catch (error) {
+                console.error(`Minor League: Error fetching user ID for ${player_handle}:`, error);
+            }
+
+            if (!newPlayerId) {
+                const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
+                newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
+                console.warn(`Minor League: Using fallback generated ID for ${player_handle}: ${newPlayerId}`);
+            }
+
+            playerIdToWrite = newPlayerId;
+
+            const playerRef = db.collection(getCollectionName('v2_players', LEAGUES.MINOR)).doc(newPlayerId);
+            const existingPlayerSnap = await playerRef.get();
+
+            if (existingPlayerSnap.exists) {
+                console.log(`Minor League: Player with ID '${newPlayerId}' already exists. Updating their bio and current team.`);
+                batch.update(playerRef, {
+                    bio: bio,
+                    current_team_id: team_id
+                });
+            } else {
+                batch.set(playerRef, {
+                    player_handle: player_handle,
+                    current_team_id: team_id,
+                    player_status: 'ACTIVE',
+                    bio: bio
+                });
+
+                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats', LEAGUES.MINOR)).doc(draftSeason);
+                batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
+            }
+
+        } else {
+            console.log(`Minor League: Historical draft (${draftSeason}). Checking for existing player: ${player_handle}.`);
+            const existingPlayerQuery = db.collection(getCollectionName('v2_players', LEAGUES.MINOR)).where('player_handle', '==', player_handle).limit(1);
+            const existingPlayerSnap = await existingPlayerQuery.get();
+
+            if (existingPlayerSnap.empty) {
+                console.log(`Minor League: Player not found. Creating new player for historical draft.`);
+                const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
+                playerIdToWrite = newPlayerId;
+                const playerRef = db.collection(getCollectionName('v2_players', LEAGUES.MINOR)).doc(newPlayerId);
+
+                batch.set(playerRef, {
+                    player_handle: player_handle,
+                    current_team_id: team_id,
+                    player_status: 'ACTIVE',
+                    bio: bio
+                });
+
+                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats', LEAGUES.MINOR)).doc(draftSeason);
+                batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
+            } else {
+                console.log(`Minor League: Existing player found. Updating bio only.`);
+                const playerDoc = existingPlayerSnap.docs[0];
+                playerIdToWrite = playerDoc.id;
+                const playerRef = playerDoc.ref;
+                batch.update(playerRef, { bio: bio });
+                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats', LEAGUES.MINOR)).doc(draftSeason);
+                batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
+            }
+        }
+
+        if (playerIdToWrite) {
+            console.log(`Minor League: Updating draft result for pick ${overall} with player_id: ${playerIdToWrite}`);
+            batch.update(event.data.ref, { player_id: playerIdToWrite });
+        }
+
+        await batch.commit();
+        console.log(`Minor League: Successfully processed draft pick for ${player_handle}.`);
+
+    } catch (error) {
+        console.error(`Minor League: Error processing draft pick for ${player_handle}:`, error);
+    }
+    return null;
+});
+
+
+exports.onTransactionCreate_V2 = onDocumentCreated(`transactions/{transactionId}`, async (event) => {
     const transaction = event.data.data();
     const transactionId = event.params.transactionId;
 
@@ -2253,7 +2769,126 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`${getCollectionName('transac
     return null;
 });
 
-exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transactions')}/{transactionId}`, async (event) => {
+exports.minor_onTransactionCreate_V2 = onDocumentCreated(`minor_transactions/{transactionId}`, async (event) => {
+    const transaction = event.data.data();
+    const transactionId = event.params.transactionId;
+
+    if (transaction.schema !== 'v2') {
+        console.log(`Minor League V2: Ignoring transaction ${transactionId} without v2 schema.`);
+        return null;
+    }
+
+    console.log(`Minor League V2: Processing transaction ${transactionId} of type ${transaction.type}.`);
+
+    try {
+        const batch = db.batch();
+
+        const activeSeasonQuery = db.collection(getCollectionName('seasons', LEAGUES.MINOR)).where('status', '==', 'active').limit(1);
+        const activeSeasonSnap = await activeSeasonQuery.get();
+
+        if (activeSeasonSnap.empty) {
+            throw new Error('No active season found. Cannot process transaction.');
+        }
+
+        const activeSeasonDoc = activeSeasonSnap.docs[0];
+        const activeSeasonId = activeSeasonDoc.id;
+        const currentWeek = activeSeasonDoc.data().current_week || null;
+
+        const involvedPlayers = transaction.involved_players || [];
+        const involvedPicks = transaction.involved_picks || [];
+        const involvedTeams = transaction.involved_teams || [];
+
+        const playerIds = involvedPlayers.map(p => p.id);
+        const teamIds = involvedTeams;
+
+        const playerDocsPromises = playerIds.map(id => db.collection(getCollectionName('v2_players', LEAGUES.MINOR)).doc(id).get());
+        const teamRecordDocsPromises = teamIds.map(id => {
+            if (id === 'RETIRED' || id === 'FREE_AGENT') return Promise.resolve(null);
+            return db.collection(getCollectionName('v2_teams', LEAGUES.MINOR)).doc(id).collection(getCollectionName('seasonal_records', LEAGUES.MINOR)).doc(activeSeasonId).get()
+        });
+
+
+        const [playerDocsSnap, teamRecordsDocsSnap] = await Promise.all([
+            Promise.all(playerDocsPromises),
+            Promise.all(teamRecordDocsPromises),
+        ]);
+
+        const playerHandlesMap = new Map(playerDocsSnap.map(doc => [doc.id, doc.data()?.player_handle]));
+        const teamNamesMap = new Map(teamRecordsDocsSnap.filter(Boolean).map(doc => [doc.ref.parent.parent.id, doc.data()?.team_name]));
+
+
+        for (const playerMove of involvedPlayers) {
+            const playerRef = db.collection(getCollectionName('v2_players', LEAGUES.MINOR)).doc(playerMove.id);
+            const newTeamId = playerMove.to;
+            let updateData = {};
+
+            switch (transaction.type) {
+                case 'RETIREMENT':
+                    updateData = {
+                        current_team_id: 'RETIRED',
+                        player_status: 'RETIRED'
+                    };
+                    break;
+                case 'UNRETIREMENT':
+                    updateData = {
+                        current_team_id: newTeamId,
+                        player_status: 'ACTIVE'
+                    };
+                    break;
+                default:
+                    updateData = {
+                        current_team_id: newTeamId
+                    };
+                    break;
+            }
+
+            batch.update(playerRef, updateData);
+        }
+
+        for (const pickMove of involvedPicks) {
+            const pickRef = db.collection(getCollectionName('draftPicks', LEAGUES.MINOR)).doc(pickMove.id);
+            const newOwnerId = pickMove.to;
+            batch.update(pickRef, { current_owner: newOwnerId });
+        }
+
+        const enhancedInvolvedPlayers = involvedPlayers.map(p => ({
+            ...p,
+            player_handle: playerHandlesMap.get(p.id) || 'Unknown'
+        }));
+        const enhancedInvolvedTeams = involvedTeams.map(id => ({
+            id: id,
+            team_name: teamNamesMap.get(id) || 'Unknown'
+        }));
+
+        const newTransactionData = {
+            ...transaction,
+            involved_players: enhancedInvolvedPlayers,
+            involved_teams: enhancedInvolvedTeams,
+            season: activeSeasonId,
+            week: currentWeek,
+            status: 'PROCESSED',
+            processed_at: FieldValue.serverTimestamp()
+        };
+
+        const seasonTransactionsRef = db.collection(getCollectionName('transactions', LEAGUES.MINOR)).doc('seasons').collection(activeSeasonId);
+        const newTransactionRef = seasonTransactionsRef.doc(transactionId);
+        batch.set(newTransactionRef, newTransactionData);
+
+        const originalTransactionRef = event.data.ref;
+        batch.delete(originalTransactionRef);
+
+        await batch.commit();
+
+        console.log(`Minor League V2 Transaction ${transactionId} processed successfully and moved to season ${activeSeasonId}.`);
+
+    } catch (error) {
+        console.error(`Minor League: Error processing V2 transaction ${transactionId}:`, error);
+        await event.data.ref.update({ status: 'FAILED', error: error.message });
+    }
+    return null;
+});
+
+exports.onTransactionUpdate_V2 = onDocumentCreated(`transactions/{transactionId}`, async (event) => {
     const transaction = event.data.data();
     if (transaction.schema !== 'v2') {
         console.log(`V2: Ignoring transaction count update for ${event.params.transactionId} without v2 schema.`);
@@ -2295,7 +2930,50 @@ exports.onTransactionUpdate_V2 = onDocumentCreated(`${getCollectionName('transac
     return null;
 });
 
+exports.minor_onTransactionUpdate_V2 = onDocumentCreated(`minor_transactions/{transactionId}`, async (event) => {
+    const transaction = event.data.data();
+    if (transaction.schema !== 'v2') {
+        console.log(`Minor League V2: Ignoring transaction count update for ${event.params.transactionId} without v2 schema.`);
+        return null;
+    }
+
+    const transactionId = event.params.transactionId;
+
+    const activeSeasonQuery = db.collection(getCollectionName("seasons", LEAGUES.MINOR)).where("status", "==", "active").limit(1);
+    const activeSeasonSnap = await activeSeasonQuery.get();
+
+    if (activeSeasonSnap.empty) {
+        console.error("Minor League: Could not find an active season. Cannot update transaction counts.");
+        return null;
+    }
+    const seasonId = activeSeasonSnap.docs[0].id;
+
+    console.log(`Minor League V2: Updating transaction counts for transaction ${transactionId} in season ${seasonId}`);
+
+    const involvedTeams = new Set(transaction.involved_teams || []);
+    if (involvedTeams.size === 0) {
+        console.log("Minor League: No teams involved. Skipping transaction count update.");
+        return null;
+    }
+
+    const batch = db.batch();
+    const seasonRef = db.collection(getCollectionName('seasons', LEAGUES.MINOR)).doc(seasonId);
+
+    batch.update(seasonRef, { season_trans: FieldValue.increment(1) });
+
+    for (const teamId of involvedTeams) {
+        const teamStatsRef = db.collection(getCollectionName('v2_teams', LEAGUES.MINOR)).doc(teamId).collection(getCollectionName('seasonal_records', LEAGUES.MINOR)).doc(seasonId);
+        batch.update(teamStatsRef, { total_transactions: FieldValue.increment(1) });
+    }
+
+    await batch.commit();
+    console.log(`Minor League: Successfully updated transaction counts for teams: ${[...involvedTeams].join(', ')}`);
+
+    return null;
+});
+
 exports.admin_processTransaction = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth || !request.auth.uid) {
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
@@ -2309,12 +2987,12 @@ exports.admin_processTransaction = onCall({ region: "us-central1" }, async (requ
 
     if (involvedPlayerIds.length === 0) {
         // Not a player transaction (e.g., draft pick only trade), process immediately
-        await db.collection(getCollectionName("transactions")).add({ ...transactionData, date: FieldValue.serverTimestamp() });
-        return { success: true, message: "Transaction logged successfully and will be processed immediately." };
+        await db.collection(getCollectionName("transactions", league)).add({ ...transactionData, date: FieldValue.serverTimestamp() });
+        return { success: true, league, message: "Transaction logged successfully and will be processed immediately." };
     }
 
     try {
-        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+        const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
         const livePlayerIds = new Set();
         liveGamesSnap.forEach(doc => {
             const gameData = doc.data();
@@ -2327,12 +3005,12 @@ exports.admin_processTransaction = onCall({ region: "us-central1" }, async (requ
 
         if (isPlayerInLiveGame) {
             // Player is in a live game, so hold the transaction
-            await db.collection(getCollectionName('pending_transactions')).add({ ...transactionData, date: FieldValue.serverTimestamp() });
-            return { success: true, message: "A player in this transaction is in a live game. The transaction is now pending and will be processed overnight." };
+            await db.collection(getCollectionName('pending_transactions', league)).add({ ...transactionData, date: FieldValue.serverTimestamp() });
+            return { success: true, league, message: "A player in this transaction is in a live game. The transaction is now pending and will be processed overnight." };
         } else {
             // No live players, process immediately
-            await db.collection(getCollectionName('transactions')).add({ ...transactionData, date: FieldValue.serverTimestamp() });
-            return { success: true, message: "Transaction logged successfully and will be processed immediately." };
+            await db.collection(getCollectionName('transactions', league)).add({ ...transactionData, date: FieldValue.serverTimestamp() });
+            return { success: true, league, message: "Transaction logged successfully and will be processed immediately." };
         }
 
     } catch (error) {
@@ -2381,6 +3059,42 @@ exports.releasePendingTransactions = onSchedule({
     return null;
 });
 
+exports.minor_releasePendingTransactions = onSchedule({
+    schedule: "20 6 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled job to release pending transactions (Minor League).");
+    const pendingTransSnap = await db.collection(getCollectionName('pending_transactions', LEAGUES.MINOR)).get();
+
+    if (pendingTransSnap.empty) {
+        console.log("Minor League: No pending transactions to release.");
+        return null;
+    }
+
+    console.log(`Minor League: Found ${pendingTransSnap.size} pending transactions to release.`);
+    const batch = db.batch();
+
+    for (const doc of pendingTransSnap.docs) {
+        const transactionData = doc.data();
+
+        // Create a new document in the main transactions collection
+        const newTransactionRef = db.collection(getCollectionName('transactions', LEAGUES.MINOR)).doc();
+        batch.set(newTransactionRef, transactionData);
+
+        // Delete the old document from the pending collection
+        batch.delete(doc.ref);
+    }
+
+    try {
+        await batch.commit();
+        console.log("Minor League: Successfully released all pending transactions.");
+    } catch (error) {
+        console.error("Minor League: Error releasing pending transactions:", error);
+    }
+
+    return null;
+});
+
 function calculateMedian(numbers) {
     if (numbers.length === 0) return 0;
     const sorted = [...numbers].sort((a, b) => a - b);
@@ -2405,11 +3119,13 @@ function calculateGeometricMean(numbers) {
     return Math.pow(product, 1 / nonZeroNumbers.length);
 }
 
-async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch, dailyAveragesMap, newPlayerLineups) {
+async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch, dailyAveragesMap, newPlayerLineups, league = LEAGUES.MAJOR) {
     const lineupsCollectionName = isPostseason ? 'post_lineups' : 'lineups';
     const gameDate = newPlayerLineups[0].date;
 
-    const playerLineupsQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollectionName))
+    console.log(`Updating seasonal stats for player ${playerId} in ${league} league...`);
+
+    const playerLineupsQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsCollectionName, league))
         .where('player_id', '==', playerId)
         .where('started', '==', 'TRUE')
         .where('date', '!=', gameDate);
@@ -2420,7 +3136,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     const allLineups = [...previousLineups, ...newPlayerLineups];
 
     if (allLineups.length === 0) {
-        console.log(`No lineups found for player ${playerId} in ${seasonId} (${getCollectionName(lineupsCollectionName)}). Skipping stats update.`);
+        console.log(`No lineups found for player ${playerId} in ${seasonId} for ${league} league (${getCollectionName(lineupsCollectionName, league)}). Skipping stats update.`);
         return null;
     }
 
@@ -2468,30 +3184,31 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     statsUpdate[`${prefix}t100_pct`] = games_played > 0 ? t100 / games_played : 0;
     statsUpdate[`${prefix}t50`] = t50;
     statsUpdate[`${prefix}t50_pct`] = games_played > 0 ? t50 / games_played : 0;
-    const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(playerId).collection(getCollectionName('seasonal_stats')).doc(seasonId);
+    const playerStatsRef = db.collection(getCollectionName('v2_players', league)).doc(playerId).collection(getCollectionName('seasonal_stats', league)).doc(seasonId);
     batch.set(playerStatsRef, statsUpdate, { merge: true });
 
     return statsUpdate;
 }
 
-async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores) {
+async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores, league = LEAGUES.MAJOR) {
+    console.log(`Updating all team stats for ${league} league...`);
     const prefix = isPostseason ? 'post_' : '';
     const gamesCollection = isPostseason ? 'post_games' : 'games';
     const scoresCollection = isPostseason ? 'post_daily_scores' : 'daily_scores';
     const lineupsCollection = isPostseason ? 'post_lineups' : 'lineups';
 
     const [teamsSnap, gamesSnap, scoresSnap, lineupsSnap] = await Promise.all([
-        db.collection(getCollectionName('v2_teams')).get(),
-        db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(gamesCollection)).where('completed', '==', 'TRUE').get(),
-        db.collection(getCollectionName(scoresCollection)).doc(`season_${seasonId.replace('S', '')}`).collection(getCollectionName(`S${seasonId.replace('S', '')}_${scoresCollection}`)).get(),
-        db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsCollection)).where('started', '==', 'TRUE').get()
+        db.collection(getCollectionName('v2_teams', league)).get(),
+        db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(gamesCollection, league)).where('completed', '==', 'TRUE').get(),
+        db.collection(getCollectionName(scoresCollection, league)).doc(`season_${seasonId.replace('S', '')}`).collection(getCollectionName(`S${seasonId.replace('S', '')}_${scoresCollection}`, league)).get(),
+        db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsCollection, league)).where('started', '==', 'TRUE').get()
     ]);
 
-    const playersCollectionRef = db.collection(getCollectionName('v2_players'));
+    const playersCollectionRef = db.collection(getCollectionName('v2_players', league));
     const allPlayersSnap = await playersCollectionRef.get();
     const playerStatsForTeams = new Map();
-    const playerStatPromises = allPlayersSnap.docs.map(playerDoc => 
-        playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
+    const playerStatPromises = allPlayersSnap.docs.map(playerDoc =>
+        playerDoc.ref.collection(getCollectionName('seasonal_stats', league)).doc(seasonId).get()
     );
     const seasonalStatsSnapForTeams = await Promise.all(playerStatPromises);
 
@@ -2605,7 +3322,7 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
     rankAndSort(calculatedStats, 'pam', false, `${prefix}pam_rank`);
 
     if (!isPostseason) {
-        const incompleteGamesSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('completed', '!=', 'TRUE').limit(1).get();
+        const incompleteGamesSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('games', league)).where('completed', '!=', 'TRUE').limit(1).get();
         const isRegularSeasonComplete = incompleteGamesSnap.empty;
 
         const eastConf = calculatedStats.filter(t => t.conference === 'Eastern');
@@ -2678,13 +3395,13 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores)
             });
         }
 
-        const teamStatsRef = db.collection(getCollectionName('v2_teams')).doc(teamId).collection(getCollectionName('seasonal_records')).doc(seasonId);
+        const teamStatsRef = db.collection(getCollectionName('v2_teams', league)).doc(teamId).collection(getCollectionName('seasonal_records', league)).doc(seasonId);
         batch.set(teamStatsRef, finalUpdate, { merge: true });
     }
 }
 
 
-async function processCompletedGame(event) {
+async function processCompletedGame(event, league = LEAGUES.MAJOR) {
     const before = event.data.before.data();
     const after = event.data.after.data();
     const seasonId = event.params.seasonId;
@@ -2694,7 +3411,7 @@ async function processCompletedGame(event) {
     if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
         return null;
     }
-    console.log(`V2: Processing completed game ${gameId} in season ${seasonId}`);
+    console.log(`V2: Processing completed game ${gameId} in season ${seasonId} for ${league} league`);
 
     const gameDate = after.date;
     const batch = db.batch();
@@ -2713,7 +3430,7 @@ async function processCompletedGame(event) {
             } else if (winnerId === after.team2_id) {
                 newTeam2Wins++;
             }
-            
+
             if (after.week !== 'Play-In') {
                 const winConditions = { 'Round 1': 2, 'Round 2': 2, 'Conf Finals': 3, 'Finals': 4 };
                 const winsNeeded = winConditions[after.week];
@@ -2725,9 +3442,9 @@ async function processCompletedGame(event) {
                 }
             }
 
-            const seriesGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('series_id', '==', after.series_id);
+            const seriesGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_games', league)).where('series_id', '==', after.series_id);
             const seriesGamesSnap = await seriesGamesQuery.get();
-            
+
             seriesGamesSnap.forEach(doc => {
                 batch.update(doc.ref, {
                     team1_wins: newTeam1Wins,
@@ -2740,8 +3457,8 @@ async function processCompletedGame(event) {
 
     // --- BUG FIX LOGIC START ---
     // 1. Fetch ALL games scheduled for the same date as the completed game.
-    const regGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('games')).where('date', '==', gameDate).get();
-    const postGamesQuery = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_games')).where('date', '==', gameDate).get();
+    const regGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('games', league)).where('date', '==', gameDate).get();
+    const postGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_games', league)).where('date', '==', gameDate).get();
 
     const [regGamesSnap, postGamesSnap] = await Promise.all([regGamesQuery, postGamesQuery]);
     const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
@@ -2764,7 +3481,7 @@ async function processCompletedGame(event) {
     
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 
-    const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
+    const seasonRef = db.collection(getCollectionName('seasons', league)).doc(seasonId);
     const averagesColl = isPostseason ? 'post_daily_averages' : 'daily_averages';
     const scoresColl = isPostseason ? 'post_daily_scores' : 'daily_scores';
     const lineupsColl = isPostseason ? 'post_lineups' : 'lineups';
@@ -2774,7 +3491,7 @@ async function processCompletedGame(event) {
         batch.update(seasonRef, { gp: FieldValue.increment(gamesCompletedToday) });
     }
 
-    const lineupsSnap = await db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName(lineupsColl)).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
+    const lineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsColl, league)).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
     if (lineupsSnap.empty) {
         await batch.commit();
         return null;
@@ -2790,12 +3507,12 @@ async function processCompletedGame(event) {
     const seasonNum = seasonId.replace('S', '');
     const [month, day, year] = gameDate.split('/');
     const yyyymmdd = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    const dailyAvgRef = db.doc(`${getCollectionName(averagesColl)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${averagesColl}`)}/${yyyymmdd}`);
+    const dailyAvgRef = db.doc(`${getCollectionName(averagesColl, league)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${averagesColl}`, league)}/${yyyymmdd}`);
     const dailyAvgDataForMap = { date: gameDate, week: after.week, total_players: scores.length, mean_score: mean, median_score: median, replacement_level: replacement, win: win };
     batch.set(dailyAvgRef, dailyAvgDataForMap);
 
     const fullDailyAveragesMap = new Map();
-    const averagesSnap = await db.collection(getCollectionName(averagesColl)).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_${averagesColl}`)).get();
+    const averagesSnap = await db.collection(getCollectionName(averagesColl, league)).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_${averagesColl}`, league)).get();
     averagesSnap.docs.forEach(doc => fullDailyAveragesMap.set(doc.data().date, doc.data()));
     fullDailyAveragesMap.set(gameDate, dailyAvgDataForMap);
 
@@ -2847,7 +3564,7 @@ async function processCompletedGame(event) {
         const game = doc.id === gameId ? after : doc.data();
         const currentGameId = doc.id;
         [{ id: game.team1_id, score: game.team1_score }, { id: game.team2_id, score: game.team2_score }].forEach(team => {
-            const scoreRef = db.doc(`${getCollectionName(scoresColl)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${scoresColl}`)}/${team.id}-${currentGameId}`);
+            const scoreRef = db.doc(`${getCollectionName(scoresColl, league)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${scoresColl}`, league)}/${team.id}-${currentGameId}`);
             const pam = team.score - teamMedian;
             const scoreData = {
                 week: game.week, team_id: team.id, date: gameDate, score: team.score,
@@ -2862,7 +3579,7 @@ async function processCompletedGame(event) {
     // Cascade updates to player and team seasonal stats
     let totalKarmaChangeForGame = 0;
     for (const [pid, newPlayerLineups] of lineupsByPlayer.entries()) {
-        await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, fullDailyAveragesMap, newPlayerLineups);
+        await updatePlayerSeasonalStats(pid, seasonId, isPostseason, batch, fullDailyAveragesMap, newPlayerLineups, league);
         const pointsFromThisUpdate = newPlayerLineups.reduce((sum, lineup) => sum + (lineup.points_adjusted || 0), 0);
         totalKarmaChangeForGame += pointsFromThisUpdate;
     }
@@ -2871,7 +3588,7 @@ async function processCompletedGame(event) {
         batch.update(seasonRef, { season_karma: FieldValue.increment(totalKarmaChangeForGame) });
     }
 
-    await updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores);
+    await updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores, league);
 
     await batch.commit();
     console.log(`Successfully saved all daily calculations and stats for ${gameDate}.`);
@@ -2879,8 +3596,15 @@ async function processCompletedGame(event) {
 }
 
 
-exports.onRegularGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('games')}/{gameId}`, processCompletedGame);
-exports.onPostGameUpdate_V2 = onDocumentUpdated(`${getCollectionName('seasons')}/{seasonId}/${getCollectionName('post_games')}/{gameId}`, processCompletedGame);
+exports.onRegularGameUpdate_V2 = onDocumentUpdated(`seasons/{seasonId}/games/{gameId}`, processCompletedGame);
+exports.onPostGameUpdate_V2 = onDocumentUpdated(`seasons/{seasonId}/post_games/{gameId}`, processCompletedGame);
+
+exports.minor_onRegularGameUpdate_V2 = onDocumentUpdated(`minor_seasons/{seasonId}/minor_games/{gameId}`, async (event) => {
+    return processCompletedGame(event, LEAGUES.MINOR);
+});
+exports.minor_onPostGameUpdate_V2 = onDocumentUpdated(`minor_seasons/{seasonId}/minor_post_games/{gameId}`, async (event) => {
+    return processCompletedGame(event, LEAGUES.MINOR);
+});
 
 /**
  * Helper function to rank an array of players based on specified criteria.
@@ -2924,12 +3648,12 @@ function getRanks(players, primaryStat, tiebreakerStat = null, isAscending = fal
     return rankedMap;
 }
 
-async function performPlayerRankingUpdate() {
-    console.log("Starting player ranking update...");
+async function performPlayerRankingUpdate(league = LEAGUES.MAJOR) {
+    console.log(`Starting player ranking update for ${league} league...`);
 
-    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1).get();
     if (activeSeasonSnap.empty) {
-        console.log("No active season found. Aborting player ranking update.");
+        console.log(`No active season found for ${league} league. Aborting player ranking update.`);
         return;
     }
 
@@ -2937,10 +3661,10 @@ async function performPlayerRankingUpdate() {
     const seasonId = activeSeasonDoc.id;
     const seasonGamesPlayed = activeSeasonDoc.data().gp || 0;
     const regSeasonGpMinimum = seasonGamesPlayed >= 60 ? 3 : 0;
-    const postSeasonGpMinimum = 0; 
-    const playersSnap = await db.collection(getCollectionName('v2_players')).get();
-    const statPromises = playersSnap.docs.map(playerDoc => 
-        playerDoc.ref.collection(getCollectionName('seasonal_stats')).doc(seasonId).get()
+    const postSeasonGpMinimum = 0;
+    const playersSnap = await db.collection(getCollectionName('v2_players', league)).get();
+    const statPromises = playersSnap.docs.map(playerDoc =>
+        playerDoc.ref.collection(getCollectionName('seasonal_stats', league)).doc(seasonId).get()
     );
     const statDocs = await Promise.all(statPromises);
 
@@ -2992,7 +3716,7 @@ async function performPlayerRankingUpdate() {
 
     const batch = db.batch();
     allPlayerStats.forEach(player => {
-        const playerStatsRef = db.collection(getCollectionName('v2_players')).doc(player.player_id).collection(getCollectionName('seasonal_stats')).doc(seasonId);
+        const playerStatsRef = db.collection(getCollectionName('v2_players', league)).doc(player.player_id).collection(getCollectionName('seasonal_stats', league)).doc(seasonId);
         const ranksUpdate = {};
         for (const key in leaderboards) {
             ranksUpdate[`${key}_rank`] = leaderboards[key].get(player.player_id) || null;
@@ -3001,20 +3725,20 @@ async function performPlayerRankingUpdate() {
     });
 
     await batch.commit();
-    console.log(`Player ranking update complete for season ${seasonId}.`);
+    console.log(`Player ranking update complete for ${league} league, season ${seasonId}.`);
 }
 
-async function performPerformanceRankingUpdate() {
-    console.log("Starting single-performance leaderboard update...");
-    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+async function performPerformanceRankingUpdate(league = LEAGUES.MAJOR) {
+    console.log(`Starting single-performance leaderboard update for ${league} league...`);
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1).get();
     if (activeSeasonSnap.empty) {
-        console.log("No active season found. Aborting performance leaderboard update.");
+        console.log(`No active season found for ${league} league. Aborting performance leaderboard update.`);
         return;
     }
     const seasonId = activeSeasonSnap.docs[0].id;
 
-    const lineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('lineups'));
-    const postLineupsRef = db.collection(getCollectionName('seasons')).doc(seasonId).collection(getCollectionName('post_lineups'));
+    const lineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('lineups', league));
+    const postLineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_lineups', league));
 
     const [lineupsSnap, postLineupsSnap] = await Promise.all([
         lineupsRef.get(),
@@ -3035,7 +3759,7 @@ async function performPerformanceRankingUpdate() {
             .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
             .slice(0, 250);
 
-        const leaderboardsCollection = getCollectionName('leaderboards');
+        const leaderboardsCollection = getCollectionName('leaderboards', league);
 
         const karmaDocRef = db.collection(leaderboardsCollection).doc('single_game_karma');
         const rankDocRef = db.collection(leaderboardsCollection).doc('single_game_rank');
@@ -3049,7 +3773,7 @@ async function performPerformanceRankingUpdate() {
         batch.set(karmaLeaderboardRef, { rankings: karmaLeaderboard });
         batch.set(rankLeaderboardRef, { rankings: rankLeaderboard });
 
-        console.log(`Regular season single-performance leaderboards updated for season ${seasonId}.`);
+        console.log(`Regular season single-performance leaderboards updated for ${league} league, season ${seasonId}.`);
     } else {
         console.log(`No regular season performances found for season ${seasonId}. Skipping regular season leaderboard update.`);
     }
@@ -3066,7 +3790,7 @@ async function performPerformanceRankingUpdate() {
             .sort((a, b) => (a.global_rank || 999) - (b.global_rank || 999))
             .slice(0, 250);
 
-        const postLeaderboardsCollection = getCollectionName('post_leaderboards');
+        const postLeaderboardsCollection = getCollectionName('post_leaderboards', league);
 
         const postKarmaDocRef = db.collection(postLeaderboardsCollection).doc('post_single_game_karma');
         const postRankDocRef = db.collection(postLeaderboardsCollection).doc('post_single_game_rank');
@@ -3079,7 +3803,7 @@ async function performPerformanceRankingUpdate() {
         batch.set(postKarmaLeaderboardRef, { rankings: postKarmaLeaderboard });
         batch.set(postRankLeaderboardRef, { rankings: postRankLeaderboard });
 
-        console.log(`Postseason single-performance leaderboards updated for season ${seasonId}.`);
+        console.log(`Postseason single-performance leaderboards updated for ${league} league, season ${seasonId}.`);
     } else {
         console.log(`No postseason performances found for season ${seasonId}. Skipping postseason leaderboard update.`);
     }
@@ -3092,7 +3816,22 @@ exports.updatePlayerRanks = onSchedule({
     schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    await performPlayerRankingUpdate();
+    console.log("Running scheduled player ranking update for all leagues...");
+    // Process ranking updates for both leagues
+    for (const league of Object.values(LEAGUES)) {
+        await performPlayerRankingUpdate(league);
+    }
+    console.log("Player ranking update completed for all leagues.");
+    return null;
+});
+
+exports.minor_updatePlayerRanks = onSchedule({
+    schedule: "15 5 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled player ranking update for minor league...");
+    await performPlayerRankingUpdate(LEAGUES.MINOR);
+    console.log("Minor league player ranking update completed.");
     return null;
 });
 
@@ -3100,11 +3839,27 @@ exports.updatePerformanceLeaderboards = onSchedule({
     schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    await performPerformanceRankingUpdate();
+    console.log("Running scheduled performance leaderboard update for all leagues...");
+    // Process leaderboard updates for both leagues
+    for (const league of Object.values(LEAGUES)) {
+        await performPerformanceRankingUpdate(league);
+    }
+    console.log("Performance leaderboard update completed for all leagues.");
+    return null;
+});
+
+exports.minor_updatePerformanceLeaderboards = onSchedule({
+    schedule: "15 5 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled performance leaderboard update for minor league...");
+    await performPerformanceRankingUpdate(LEAGUES.MINOR);
+    console.log("Minor league performance leaderboard update completed.");
     return null;
 });
 
 exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -3114,30 +3869,30 @@ exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async 
     }
 
     try {
-        await performPlayerRankingUpdate();
-        await performPerformanceRankingUpdate();
-        return { success: true, message: "All leaderboards have been recalculated." };
+        await performPlayerRankingUpdate(league);
+        await performPerformanceRankingUpdate(league);
+        return { success: true, league, message: "All leaderboards have been recalculated." };
     } catch (error) {
         console.error("Manual leaderboard recalculation failed:", error);
         throw new HttpsError('internal', 'An error occurred during leaderboard recalculation.');
     }
 });
 
-async function performWeekUpdate() {
-    console.log("Running logic to update current week...");
+async function performWeekUpdate(league = LEAGUES.MAJOR) {
+    console.log(`Running logic to update current week for ${league} league...`);
     try {
-        const seasonsRef = db.collection(getCollectionName('seasons'));
+        const seasonsRef = db.collection(getCollectionName('seasons', league));
         const activeSeasonQuery = seasonsRef.where("status", "==", "active").limit(1);
         const activeSeasonSnap = await activeSeasonQuery.get();
 
         if (activeSeasonSnap.empty) {
-            console.log("No active season found. Exiting week update.");
+            console.log(`No active season found for ${league} league. Exiting week update.`);
             return;
         }
 
         const activeSeasonDoc = activeSeasonSnap.docs[0];
         const seasonId = activeSeasonDoc.id;
-        console.log(`Active season is ${seasonId}. Checking for next incomplete game.`);
+        console.log(`Active season is ${seasonId} for ${league} league. Checking for next incomplete game.`);
 
         let nextGameWeek = null;
 
@@ -3161,7 +3916,7 @@ async function performWeekUpdate() {
             return earliestGame;
         };
 
-        const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games'));
+        const gamesRef = activeSeasonDoc.ref.collection(getCollectionName('games', league));
         const incompleteGamesQuery = gamesRef.where('completed', '==', 'FALSE');
         const incompleteGamesSnap = await incompleteGamesQuery.get();
 
@@ -3170,8 +3925,8 @@ async function performWeekUpdate() {
         if (earliestRegularSeasonGame) {
             nextGameWeek = earliestRegularSeasonGame.week;
         } else {
-            console.log("No incomplete regular season games found. Checking postseason...");
-            const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
+            console.log(`No incomplete regular season games found for ${league} league. Checking postseason...`);
+            const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games', league));
             const incompletePostGamesQuery = postGamesRef.where('completed', '==', 'FALSE');
             const incompletePostGamesSnap = await incompletePostGamesQuery.get();
             
@@ -3184,12 +3939,12 @@ async function performWeekUpdate() {
         // --- BUG FIX END ---
 
         if (nextGameWeek !== null) {
-            console.log(`The next game is in week/round: '${nextGameWeek}'. Updating season document.`);
+            console.log(`The next game is in week/round: '${nextGameWeek}' for ${league} league. Updating season document.`);
             await activeSeasonDoc.ref.set({
                 current_week: String(nextGameWeek)
             }, { merge: true });
         } else {
-            const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games'));
+            const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games', league));
             const allPostGamesSnap = await postGamesRef.limit(2).get(); 
 
             if (allPostGamesSnap.size > 1) {
@@ -3214,11 +3969,27 @@ exports.updateCurrentWeek = onSchedule({
     schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    await performWeekUpdate();
+    console.log("Running scheduled week update for all leagues...");
+    // Process week updates for both leagues
+    for (const league of Object.values(LEAGUES)) {
+        await performWeekUpdate(league);
+    }
+    console.log("Week update completed for all leagues.");
+    return null;
+});
+
+exports.minor_updateCurrentWeek = onSchedule({
+    schedule: "15 5 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running scheduled week update for minor league...");
+    await performWeekUpdate(LEAGUES.MINOR);
+    console.log("Minor league week update completed.");
     return null;
 });
 
 exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -3229,11 +4000,11 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
 
     console.log(`Manual trigger received for auto-finalization by admin: ${request.auth.uid}`);
     try {
-        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+        const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
 
         if (liveGamesSnap.empty) {
             console.log("No live games found to auto-finalize.");
-            return { success: true, message: "No live games found to auto-finalize." };
+            return { success: true, league, message: "No live games found to auto-finalize." };
         }
 
         console.log(`Found ${liveGamesSnap.size} games to auto-finalize.`);
@@ -3245,7 +4016,7 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
                 await delay(randomGameDelay);
 
                 console.log(`Manually auto-finalizing game ${gameDoc.id} after a ${randomGameDelay}ms delay.`);
-                await processAndFinalizeGame(gameDoc, true);
+                await processAndFinalizeGame(gameDoc, true, league);
                 console.log(`Successfully auto-finalized game ${gameDoc.id}.`);
 
             } catch (error) {
@@ -3254,7 +4025,7 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
         }
 
         console.log("Manual auto-finalization job completed.");
-        return { success: true, message: `Successfully processed ${liveGamesSnap.size} games.` };
+        return { success: true, league, message: `Successfully processed ${liveGamesSnap.size} games.` };
 
     } catch (error) {
         console.error("Error during manual auto-finalization test:", error);
@@ -3270,11 +4041,12 @@ exports.test_autoFinalizeGames = onCall({ region: "us-central1" }, async (reques
  */
 // functions/index.js
 
-async function advanceBracket(gamesToProcess, postGamesRef) {
+async function advanceBracket(gamesToProcess, postGamesRef, league = LEAGUES.MAJOR) {
     if (gamesToProcess.length === 0) {
-        console.log("advanceBracket: No games to process.");
+        console.log(`advanceBracket: No games to process for ${league} league.`);
         return;
     }
+    console.log(`Processing bracket advancement for ${league} league...`);
 
     // (advancementRules object remains the same)
     const advancementRules = {
@@ -3375,40 +4147,63 @@ async function advanceBracket(gamesToProcess, postGamesRef) {
     }
 }
 
-async function performBracketUpdate(gameDateStr) {
-    console.log(`Running logic to update playoff bracket for games on ${gameDateStr}...`);
-    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+async function performBracketUpdate(gameDateStr, league = LEAGUES.MAJOR) {
+    console.log(`Running logic to update playoff bracket for ${league} league on ${gameDateStr}...`);
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1).get();
     if (activeSeasonSnap.empty) {
-        console.log("No active season found. Exiting bracket update.");
+        console.log(`No active season found for ${league} league. Exiting bracket update.`);
         return;
     }
     const seasonId = activeSeasonSnap.docs[0].id;
-    const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
+    const postGamesRef = db.collection(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName('post_games', league)}`);
 
     const gamesPlayedSnap = await postGamesRef.where('date', '==', gameDateStr).where('completed', '==', 'TRUE').get();
     if (gamesPlayedSnap.empty) {
-        console.log(`No completed postseason games were played on ${gameDateStr}. Exiting bracket update.`);
+        console.log(`No completed postseason games were played on ${gameDateStr} for ${league} league. Exiting bracket update.`);
         return;
     }
-    console.log(`Processing ${gamesPlayedSnap.size} games from ${gameDateStr} for bracket advancement.`);
-    await advanceBracket(gamesPlayedSnap.docs, postGamesRef);
+    console.log(`Processing ${gamesPlayedSnap.size} games from ${gameDateStr} for ${league} league bracket advancement.`);
+    await advanceBracket(gamesPlayedSnap.docs, postGamesRef, league);
 }
 
 
 exports.updatePlayoffBracket = onSchedule({
-    schedule: "15 5 * * *", 
+    schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    console.log("Running daily job to update playoff bracket...");
+    console.log("Running daily job to update playoff bracket for all leagues...");
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
-    await performBracketUpdate(yesterdayStr);
-    console.log("Playoff bracket update job finished.");
+
+    // Process playoff bracket updates for both leagues
+    for (const league of Object.values(LEAGUES)) {
+        console.log(`Processing playoff bracket for ${league} league...`);
+        await performBracketUpdate(yesterdayStr, league);
+    }
+
+    console.log("Playoff bracket update job finished for all leagues.");
+    return null;
+});
+
+exports.minor_updatePlayoffBracket = onSchedule({
+    schedule: "15 5 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log("Running daily job to update playoff bracket for minor league...");
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
+
+    console.log(`Processing playoff bracket for minor league...`);
+    await performBracketUpdate(yesterdayStr, LEAGUES.MINOR);
+
+    console.log("Minor league playoff bracket update job finished.");
     return null;
 });
 
 exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -3419,19 +4214,19 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
 
     console.log("Running ON-DEMAND job to update playoff bracket for testing.");
 
-    const activeSeasonSnap = await db.collection(getCollectionName('seasons')).where('status', '==', 'active').limit(1).get();
+    const activeSeasonSnap = await db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1).get();
     if (activeSeasonSnap.empty) {
         throw new HttpsError('failed-precondition', 'No active season found.');
     }
     const seasonId = activeSeasonSnap.docs[0].id;
-    const postGamesRef = db.collection(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName('post_games')}`);
+    const postGamesRef = db.collection(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName('post_games', league)}`);
 
     const mostRecentGameQuery = postGamesRef.where('completed', '==', 'TRUE').orderBy(admin.firestore.FieldPath.documentId(), 'desc').limit(1);
     
     const mostRecentGameSnap = await mostRecentGameQuery.get();
 
     if (mostRecentGameSnap.empty) {
-        return { success: true, message: "No completed postseason games found to process." };
+        return { success: true, league, message: "No completed postseason games found to process." };
     }
     const mostRecentDate = mostRecentGameSnap.docs[0].data().date;
     console.log(`Found most recent completed game date: ${mostRecentDate}`);
@@ -3442,7 +4237,7 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
     await advanceBracket(gamesToProcessSnap.docs, postGamesRef);
 
     console.log("On-demand playoff bracket update job finished.");
-    return { success: true, message: `Processed ${gamesToProcessSnap.size} games from ${mostRecentDate}.` };
+    return { success: true, league, message: `Processed ${gamesToProcessSnap.size} games from ${mostRecentDate}.` };
 });
 
 
@@ -3455,10 +4250,11 @@ exports.test_updatePlayoffBracket = onCall({ region: "us-central1" }, async (req
 // functions/index.js
 
 exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) => {
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
+    const league = getLeagueFromRequest(request.data);
+    if (!(await isScorekeeperOrAdmin(request.auth, league))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
-    
+
     const { gameId, seasonId, collectionName, isLive } = request.data;
     if (!gameId || !seasonId || !collectionName) {
         throw new HttpsError('invalid-argument', 'Missing required parameters.');
@@ -3468,14 +4264,14 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
         let gameData, lineupsData, calculatedTeam1Score, calculatedTeam2Score, determinedWinner, team1Id, team2Id;
 
         if (isLive) {
-            const liveGameRef = db.doc(`${getCollectionName('live_games')}/${gameId}`);
+            const liveGameRef = db.doc(`${getCollectionName('live_games', league)}/${gameId}`);
             const liveGameSnap = await liveGameRef.get();
             if (!liveGameSnap.exists) throw new HttpsError('not-found', 'Live game not found.');
             
             const liveGameData = liveGameSnap.data();
             const fullLineupFromLiveGame = [...liveGameData.team1_lineup, ...liveGameData.team2_lineup];
 
-            const originalGameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(liveGameData.collectionName)}/${gameId}`);
+            const originalGameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(liveGameData.collectionName, league)}/${gameId}`);
             const originalGameSnap = await originalGameRef.get();
             if (!originalGameSnap.exists) throw new HttpsError('not-found', 'Original game data not found for the live game.');
             gameData = originalGameSnap.data();
@@ -3483,7 +4279,7 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             team2Id = gameData.team2_id;
 
             const playerIds = fullLineupFromLiveGame.map(p => p.player_id);
-            const playerDocs = await db.collection(getCollectionName('v2_players')).where(admin.firestore.FieldPath.documentId(), 'in', playerIds).get();
+            const playerDocs = await db.collection(getCollectionName('v2_players', league)).where(admin.firestore.FieldPath.documentId(), 'in', playerIds).get();
             const teamIdMap = new Map();
             playerDocs.forEach(doc => {
                 teamIdMap.set(doc.id, doc.data().current_team_id);
@@ -3499,15 +4295,15 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             determinedWinner = calculatedTeam1Score > calculatedTeam2Score ? team1Id : (calculatedTeam2Score > calculatedTeam1Score ? team2Id : '');
 
         } else {
-            const gameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(collectionName)}/${gameId}`);
+            const gameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(collectionName, league)}/${gameId}`);
             const gameSnap = await gameRef.get();
             if (!gameSnap.exists) throw new HttpsError('not-found', 'Completed game not found.');
             gameData = gameSnap.data();
             team1Id = gameData.team1_id;
             team2Id = gameData.team2_id;
 
-            const lineupsCollection = getCollectionName(collectionName.replace('games', 'lineups'));
-            const lineupsQuery = db.collection(`${getCollectionName('seasons')}/${seasonId}/${lineupsCollection}`).where('game_id', '==', gameId);
+            const lineupsCollection = getCollectionName(collectionName.replace('games', 'lineups'), league);
+            const lineupsQuery = db.collection(`${getCollectionName('seasons', league)}/${seasonId}/${lineupsCollection}`).where('game_id', '==', gameId);
             const lineupsSnap = await lineupsQuery.get();
             lineupsData = lineupsSnap.docs.map(doc => doc.data());
             
@@ -3516,8 +4312,8 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             determinedWinner = gameData.winner;
         }
 
-        const team1RecordRef = db.doc(`${getCollectionName('v2_teams')}/${team1Id}/${getCollectionName('seasonal_records')}/${seasonId}`);
-        const team2RecordRef = db.doc(`${getCollectionName('v2_teams')}/${team2Id}/${getCollectionName('seasonal_records')}/${seasonId}`);
+        const team1RecordRef = db.doc(`${getCollectionName('v2_teams', league)}/${team1Id}/${getCollectionName('seasonal_records', league)}/${seasonId}`);
+        const team2RecordRef = db.doc(`${getCollectionName('v2_teams', league)}/${team2Id}/${getCollectionName('seasonal_records', league)}/${seasonId}`);
         const [team1RecordSnap, team2RecordSnap] = await Promise.all([team1RecordRef.get(), team2RecordRef.get()]);
         
         const team1Data = team1RecordSnap.data();
@@ -3582,8 +4378,8 @@ Example 5: Aces get a blowout win thanks to heavyweight days from @flem2tuff (11
 Example 6: Stars comfortably win this match led by juggernaut days from @raiola (7th) and @willi3 (11th), followed by top 100s from @hoodispida (60th), @devinbooker (64th), and @juan.soto22 (85th). Jammers had a solid day with @swouse (28th) providing a captain advantage along with 3 more top 100s from @caustic (37th), @mccasual (78th), and @dortch (79th), but suffered from a lack of depth.
 
 Now, write a new summary based on the following data:`;
-        
-        return { success: true, promptData, systemPrompt, team1Summary, team2Summary };
+
+        return { success: true, league, promptData, systemPrompt, team1Summary, team2Summary };
 
     } catch (error) {
         console.error("CRITICAL ERROR in generateGameWriteup:", error);
@@ -3595,8 +4391,9 @@ Now, write a new summary based on the following data:`;
 
 
 exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     // 1. Security Check
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
+    if (!(await isScorekeeperOrAdmin(request.auth, league))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
 
@@ -3606,15 +4403,15 @@ exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async 
     try {
         // 2. Database Backup (Simulated) & Archive
         console.log("Step 1: Backing up and archiving live games...");
-        const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+        const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
         if (liveGamesSnap.empty) {
-            return { success: true, message: "No live games were active. Process complete." };
+            return { success: true, league, message: "No live games were active. Process complete." };
         }
 
         const archiveBatch = db.batch();
         const backupTimestamp = new Date().toISOString();
         liveGamesSnap.docs.forEach(doc => {
-            const archiveRef = db.collection(getCollectionName('archived_live_games')).doc(`${backupTimestamp}-${doc.id}`);
+            const archiveRef = db.collection(getCollectionName('archived_live_games', league)).doc(`${backupTimestamp}-${doc.id}`);
             archiveBatch.set(archiveRef, { ...doc.data(), archivedAt: FieldValue.serverTimestamp(), archivedBy: userId });
         });
         await archiveBatch.commit();
@@ -3623,34 +4420,35 @@ exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async 
         // 3. Process and Finalize Games
         console.log("Step 2: Processing and finalizing games...");
         for (const gameDoc of liveGamesSnap.docs) {
-            await processAndFinalizeGame(gameDoc, true); // Use the existing robust finalization logic
+            await processAndFinalizeGame(gameDoc, true, league); // Use the existing robust finalization logic
         }
         console.log("All live games have been finalized.");
 
         // 4. Run the full cascade of overnight processes
         console.log("Step 3: Triggering stat recalculation cascade...");
-        await performPlayerRankingUpdate();
-        await performPerformanceRankingUpdate();
-        await performWeekUpdate();
+        await performPlayerRankingUpdate(league);
+        await performPerformanceRankingUpdate(league);
+        await performWeekUpdate(league);
         const yesterday = new Date();
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
-        await performBracketUpdate(yesterdayStr);
+        await performBracketUpdate(yesterdayStr, league);
         console.log("Stat recalculation cascade complete.");
 
         // 5. Log the activity
         console.log("Step 4: Logging scorekeeper activity...");
+        // 'scorekeeper_activity_log' is a shared collection, so no league parameter needed
         const logRef = db.collection(getCollectionName('scorekeeper_activity_log')).doc();
         await logRef.set({
             action: 'finalizeAndProcess',
             userId: userId,
-            userRole: await getUserRole(request.auth),
+            userRole: await getUserRole(request.auth, league),
             timestamp: FieldValue.serverTimestamp(),
-            details: `Processed and finalized ${liveGamesSnap.size} live games.`
+            details: `Processed and finalized ${liveGamesSnap.size} live games for ${league} league.`
         });
         console.log("Activity logged successfully.");
 
-        return { success: true, message: `Successfully finalized ${liveGamesSnap.size} games and updated all stats.` };
+        return { success: true, league, message: `Successfully finalized ${liveGamesSnap.size} games and updated all stats.` };
 
     } catch (error) {
         console.error("Error during scorekeeper finalization process:", error);
@@ -3660,11 +4458,12 @@ exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async 
 });
 
 exports.getAiWriteup = onCall({ secrets: ["GOOGLE_AI_KEY"] }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     // 1. Security: Ensure the user is authenticated and is a scorekeeper or admin
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
+    if (!(await isScorekeeperOrAdmin(request.auth, league))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to run this function.');
     }
-    
+
     const { systemPrompt, promptData } = request.data;
     if (!systemPrompt || !promptData) {
         throw new HttpsError('invalid-argument', 'The function must be called with prompt data.');
@@ -3686,7 +4485,7 @@ exports.getAiWriteup = onCall({ secrets: ["GOOGLE_AI_KEY"] }, async (request) =>
         const writeup = response.text();
 
         // 4. Return the finished writeup to the client
-        return { success: true, writeup: writeup };
+        return { success: true, league, writeup: writeup };
 
     } catch (error) {
         console.error("Error calling Google AI:", error);
@@ -3695,7 +4494,8 @@ exports.getAiWriteup = onCall({ secrets: ["GOOGLE_AI_KEY"] }, async (request) =>
 });
 
 exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
-    if (!(await isScorekeeperOrAdmin(request.auth))) {
+    const league = getLeagueFromRequest(request.data);
+    if (!(await isScorekeeperOrAdmin(request.auth, league))) {
         throw new HttpsError('permission-denied', 'Must be an admin or scorekeeper to access reports.');
     }
 
@@ -3705,7 +4505,7 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
     }
 
     try {
-        const teamRecordsQuery = db.collectionGroup(getCollectionName('seasonal_records')).where('season', '==', seasonId);
+        const teamRecordsQuery = db.collectionGroup(getCollectionName('seasonal_records', league)).where('season', '==', seasonId);
         const teamRecordsSnap = await teamRecordsQuery.get();
         const teamDataMap = new Map();
         teamRecordsSnap.forEach(doc => {
@@ -3718,13 +4518,13 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
         
         if (reportType === 'deadline' || reportType === 'voteGOTD') {
             if (!date) throw new HttpsError('invalid-argument', 'A date is required for this report.');
-            
-            const seasonRef = db.collection(getCollectionName('seasons')).doc(seasonId);
+
+            const seasonRef = db.collection(getCollectionName('seasons', league)).doc(seasonId);
 
             // Create queries for all three game types
-            const regGamesQuery = seasonRef.collection(getCollectionName('games')).where('date', '==', date);
-            const postGamesQuery = seasonRef.collection(getCollectionName('post_games')).where('date', '==', date);
-            const exGamesQuery = seasonRef.collection(getCollectionName('exhibition_games')).where('date', '==', date);
+            const regGamesQuery = seasonRef.collection(getCollectionName('games', league)).where('date', '==', date);
+            const postGamesQuery = seasonRef.collection(getCollectionName('post_games', league)).where('date', '==', date);
+            const exGamesQuery = seasonRef.collection(getCollectionName('exhibition_games', league)).where('date', '==', date);
 
             // Fetch all games concurrently
             const [regGamesSnap, postGamesSnap, exGamesSnap] = await Promise.all([
@@ -3747,17 +4547,17 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
                     team2_record: team2.record,
                 };
             });
-            return { success: true, games };
+            return { success: true, league, games };
         }
 
         if (reportType === 'lineups_prepare') {
-            const liveGamesSnap = await db.collection(getCollectionName('live_games')).get();
+            const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
             if (liveGamesSnap.empty) {
-                return { success: true, games: [] };
+                return { success: true, league, games: [] };
             }
             const gamesPromises = liveGamesSnap.docs.map(async (doc) => {
                 const liveGame = doc.data();
-                const originalGameRef = db.doc(`${getCollectionName('seasons')}/${seasonId}/${getCollectionName(liveGame.collectionName)}/${doc.id}`);
+                const originalGameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(liveGame.collectionName, league)}/${doc.id}`);
                 const originalGameSnap = await originalGameRef.get();
 
                 let team1_id, team2_id;
@@ -3785,7 +4585,7 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
             });
 
             const games = (await Promise.all(gamesPromises)).filter(g => g !== null);
-            return { success: true, games };
+            return { success: true, league, games };
         }
 
         throw new HttpsError('invalid-argument', 'Unknown report type specified.');
@@ -3850,6 +4650,59 @@ exports.scheduledLiveScoringStart = onMessagePublished("start-live-scoring-topic
         return null;
     }
 });
+
+exports.minor_scheduledLiveScoringStart = onMessagePublished("minor-start-live-scoring-topic", async (event) => {
+    console.log("Received trigger to automatically start live scoring (Minor League).");
+
+    const payload = event.data.message.data ? JSON.parse(Buffer.from(event.data.message.data, 'base64').toString()) : null;
+    if (!payload || !payload.gameDate) {
+        console.error("Minor League: Pub/Sub message payload did not contain a 'gameDate'. Aborting auto-start.");
+        return null;
+    }
+    const { gameDate } = payload;
+    console.log(`Minor League: Processing auto-start for game date: ${gameDate}`);
+
+    const statusRef = db.doc(`${getCollectionName('live_scoring_status', LEAGUES.MINOR)}/status`);
+    const statusSnap = await statusRef.get();
+
+    if (statusSnap.exists && statusSnap.data().status === 'active') {
+        console.log("Minor League: Live scoring is already active. No action needed.");
+        return null;
+    }
+
+    const liveGamesSnap = await db.collection(getCollectionName('live_games', LEAGUES.MINOR)).get();
+    if (liveGamesSnap.empty) {
+        console.log("Minor League: No games have been activated in the 'live_games' collection. Aborting automatic start of live scoring.");
+        return null;
+    }
+
+    try {
+        const interval = statusSnap.exists ? statusSnap.data().interval_minutes || 5 : 5;
+
+        console.log(`Minor League: Setting live scoring status to 'active' for date ${gameDate} with a ${interval}-minute interval.`);
+        await statusRef.set({
+            status: 'active',
+            updated_by: 'automated_startup',
+            last_updated: FieldValue.serverTimestamp(),
+            interval_minutes: interval,
+            active_game_date: gameDate,
+            last_sample_completed_at: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        const usageRef = db.doc(`${getCollectionName('usage_stats', LEAGUES.MINOR)}/${gameDate}`);
+        await usageRef.set({ live_game_count: liveGamesSnap.size }, { merge: true });
+
+        console.log("Minor League: Status set to 'active'. Performing initial full score update.");
+        await performFullUpdate(LEAGUES.MINOR);
+        console.log("Minor League: Automated live scoring start process completed successfully.");
+        return null;
+    } catch (error) {
+        console.error("Minor League: CRITICAL ERROR during automated start of live scoring:", error);
+        await statusRef.set({ status: 'stopped', error: `Auto-start failed: ${error.message}` }, { merge: true });
+        return null;
+    }
+});
+
 // ===================================================================
 // LEGACY FUNCTIONS - DO NOT MODIFY
 // ===================================================================
@@ -4259,6 +5112,7 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
 
 
 exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -4271,7 +5125,7 @@ exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) 
     try {
         const tradeBlocksRef = db.collection('tradeblocks');
         const tradeBlocksSnap = await tradeBlocksRef.get();
-        
+
         const batch = db.batch();
         tradeBlocksSnap.docs.forEach(doc => {
             batch.delete(doc.ref);
@@ -4281,7 +5135,7 @@ exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) 
         batch.set(settingsRef, { status: 'closed' }, { merge: true });
 
         await batch.commit();
-        return { message: "All trade blocks have been cleared and the deadline is now active." };
+        return { success: true, league, message: "All trade blocks have been cleared and the deadline is now active." };
 
     } catch (error) {
         console.error("Error clearing trade blocks:", error);
@@ -4290,6 +5144,7 @@ exports.clearAllTradeBlocks = onCall({ region: "us-central1" }, async (request) 
 });
 
 exports.reopenTradeBlocks = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
@@ -4303,7 +5158,7 @@ exports.reopenTradeBlocks = onCall({ region: "us-central1" }, async (request) =>
         const settingsRef = db.doc('settings/tradeBlock');
         await settingsRef.set({ status: 'open' }, { merge: true });
 
-        return { message: "Trading has been successfully re-opened." };
+        return { success: true, league, message: "Trading has been successfully re-opened." };
 
     } catch (error) {
         console.error("Error reopening trade blocks:", error);

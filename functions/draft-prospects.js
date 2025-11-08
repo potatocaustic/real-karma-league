@@ -2,11 +2,32 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const { LEAGUES } = require('./league-helpers');
 
 if (admin.apps.length === 0) {
     admin.initializeApp();
 }
 const db = admin.firestore();
+
+const USE_DEV_COLLECTIONS = false;
+
+/**
+ * Returns the appropriate collection name with league prefix
+ * @param {string} baseName - Base collection name
+ * @param {string} league - League context ('major' or 'minor')
+ * @returns {string} Prefixed collection name
+ */
+const getCollectionName = (baseName, league = LEAGUES.MAJOR) => {
+  const sharedCollections = ['users', 'notifications'];
+  const devSuffix = USE_DEV_COLLECTIONS ? '_dev' : '';
+
+  if (sharedCollections.includes(baseName)) {
+    return `${baseName}${devSuffix}`;
+  }
+
+  const leaguePrefix = league === LEAGUES.MINOR ? 'minor_' : '';
+  return `${leaguePrefix}${baseName}${devSuffix}`;
+};
 
 const API_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -57,6 +78,9 @@ const fetchProspectData = async (playerHandle) => {
  * Cloud Function (v2) to add new draft prospects.
  */
 exports.addDraftProspects = onCall(async (request) => {
+    // Add league context extraction
+    const league = request.data?.league || LEAGUES.MAJOR;
+
     // v2 Auth Check
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'You must be logged in to perform this action.');
@@ -72,14 +96,14 @@ exports.addDraftProspects = onCall(async (request) => {
         throw new HttpsError('invalid-argument', 'The function must be called with a string of handles.');
     }
 
-    const activeSeasonQuery = await db.collection('seasons').where('status', '==', 'active').limit(1).get();
+    const activeSeasonQuery = await db.collection(getCollectionName('seasons', league)).where('status', '==', 'active').limit(1).get();
     if (activeSeasonQuery.empty) {
         throw new HttpsError('failed-precondition', 'Could not find an active season.');
     }
     const activeSeasonId = activeSeasonQuery.docs[0].id;
 
     const handles = handlesString.split(',').map(h => h.trim()).filter(Boolean);
-    const prospectsCollectionRef = db.collection('seasons').doc(activeSeasonId).collection('draft_prospects');
+    const prospectsCollectionRef = db.collection(getCollectionName('seasons', league)).doc(activeSeasonId).collection('draft_prospects');
 
     let successCount = 0;
     let failedHandles = [];
@@ -106,26 +130,26 @@ exports.addDraftProspects = onCall(async (request) => {
         message += ` Failed handles: ${failedHandles.join(', ')}.`;
     }
 
-    return { success: true, message };
+    return { success: true, league, message };
 });
 
 /**
- * Scheduled Cloud Function (v2) to update stats daily.
+ * Scheduled Cloud Function (v2) to update stats daily for MAJOR league.
  */
 exports.updateAllProspectsScheduled = onSchedule({
     schedule: "30 6 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    console.log('Running daily prospect update job with resiliency checks...');
+    console.log('Running daily prospect update job for MAJOR league with resiliency checks...');
 
-    const activeSeasonQuery = await db.collection('seasons').where('status', '==', 'active').limit(1).get();
+    const activeSeasonQuery = await db.collection(getCollectionName('seasons', LEAGUES.MAJOR)).where('status', '==', 'active').limit(1).get();
     if (activeSeasonQuery.empty) {
         console.error('Scheduled job failed: Could not find an active season.');
         return;
     }
     const activeSeasonId = activeSeasonQuery.docs[0].id;
 
-    const prospectsCollectionRef = db.collection('seasons').doc(activeSeasonId).collection('draft_prospects');
+    const prospectsCollectionRef = db.collection(getCollectionName('seasons', LEAGUES.MAJOR)).doc(activeSeasonId).collection('draft_prospects');
     const prospectsSnap = await prospectsCollectionRef.get();
 
     if (prospectsSnap.empty) {
@@ -184,5 +208,83 @@ exports.updateAllProspectsScheduled = onSchedule({
 
     await Promise.all(updatePromises);
     console.log(`Prospect update job complete. Processed ${prospectsSnap.size} prospects.`);
+    return;
+});
+
+/**
+ * Scheduled Cloud Function (v2) to update stats daily for MINOR league.
+ */
+exports.minor_updateAllProspectsScheduled = onSchedule({
+    schedule: "30 6 * * *",
+    timeZone: "America/Chicago",
+}, async (event) => {
+    console.log('Running daily prospect update job for MINOR league with resiliency checks...');
+
+    const activeSeasonQuery = await db.collection(getCollectionName('seasons', LEAGUES.MINOR)).where('status', '==', 'active').limit(1).get();
+    if (activeSeasonQuery.empty) {
+        console.error('Scheduled job failed: Could not find an active season for minor league.');
+        return;
+    }
+    const activeSeasonId = activeSeasonQuery.docs[0].id;
+
+    const prospectsCollectionRef = db.collection(getCollectionName('seasons', LEAGUES.MINOR)).doc(activeSeasonId).collection('draft_prospects');
+    const prospectsSnap = await prospectsCollectionRef.get();
+
+    if (prospectsSnap.empty) {
+        console.log('No prospects to update in minor league.');
+        return;
+    }
+
+    const updatePromises = prospectsSnap.docs.map(async (doc) => {
+        const prospect = doc.data();
+        const docRef = doc.ref;
+
+        try {
+            // 1. Perform reliable karmafeed request first using player_id
+            const karmaFeedResponse = await axios.get(`https://api.real.vg/user/${prospect.player_id}/karmafeed`, { headers: API_HEADERS });
+            const newKarma = karmaFeedResponse.data?.stats?.karma;
+            const newMonthlyRank = karmaFeedResponse.data?.stats?.karmaMonthRank;
+
+            const updates = {};
+            if (newKarma !== undefined) updates.karma = newKarma;
+            if (newMonthlyRank !== undefined) updates.monthly_rank = newMonthlyRank;
+
+            // 2. Perform potentially unreliable handle request
+            const handleResponse = await axios.get(`https://api.real.vg/user/${prospect.player_handle}`, { headers: API_HEADERS });
+            const handleData = handleResponse.data?.user;
+
+            // 3. Verify that the ID from the handle lookup matches the stored ID
+            if (handleData && handleData.id === prospect.player_id) {
+                // IDs match, handle is correct. Update ranked_days.
+                updates.ranked_days = handleData.daysTopHundred || 0;
+            } else {
+                // MISMATCH FOUND! Set ranked_days to null and create a notification.
+                updates.ranked_days = null;
+
+                const notification = {
+                    type: 'HANDLE_ID_MISMATCH',
+                    message: `[Minor League] Handle/ID mismatch for player '${prospect.player_handle}'. The handle may have changed.`,
+                    player_handle: prospect.player_handle,
+                    player_id: prospect.player_id,
+                    status: 'unread',
+                    module: 'manage-draft',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                };
+                await db.collection('notifications').add(notification);
+                console.warn(`Mismatch detected for handle: ${prospect.player_handle} (ID: ${prospect.player_id}). Notification created.`);
+            }
+
+            // Commit all updates for this player
+            if (Object.keys(updates).length > 0) {
+                await docRef.update(updates);
+            }
+
+        } catch (error) {
+            console.error(`Failed to process prospect ${prospect.player_handle} (ID: ${prospect.player_id}):`, error.message);
+        }
+    });
+
+    await Promise.all(updatePromises);
+    console.log(`Minor league prospect update job complete. Processed ${prospectsSnap.size} prospects.`);
     return;
 });
