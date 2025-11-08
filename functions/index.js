@@ -3813,7 +3813,7 @@ exports.scheduledLiveScoringStart = onMessagePublished("start-live-scoring-topic
     const statusRef = db.doc(`${getCollectionName('live_scoring_status')}/status`);
     const statusSnap = await statusRef.get();
 
-    if (statusSnap.exists() && statusSnap.data().status === 'active') {
+    if (statusSnap.exists && statusSnap.data().status === 'active') {
         console.log("Live scoring is already active. No action needed.");
         return null;
     }
@@ -3825,7 +3825,7 @@ exports.scheduledLiveScoringStart = onMessagePublished("start-live-scoring-topic
     }
 
     try {
-        const interval = statusSnap.exists() ? statusSnap.data().interval_minutes || 5 : 5;
+        const interval = statusSnap.exists ? statusSnap.data().interval_minutes || 5 : 5;
 
         console.log(`Setting live scoring status to 'active' for date ${gameDate} with a ${interval}-minute interval.`);
         await statusRef.set({

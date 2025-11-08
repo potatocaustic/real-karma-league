@@ -197,7 +197,7 @@ function initializeGamesSection(seasonData) {
     const gamesList = document.getElementById('recent-games');
 
     onSnapshot(statusRef, (statusSnap) => {
-        const newStatus = statusSnap.exists() ? statusSnap.data().status : 'stopped';
+        const newStatus = statusSnap.exists ? statusSnap.data().status : 'stopped';
 
         if (newStatus === currentScoringStatus) {
             return; 
