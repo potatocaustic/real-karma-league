@@ -6,6 +6,7 @@
     <title>Manage Teams - RKL Admin</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
         // Apply theme immediately to prevent flash
@@ -28,6 +29,7 @@
         <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
         <span class="header-text"> Real Karma League</span>
       </h1>
+      <div id="league-switcher-mount"></div>
       <nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
@@ -151,5 +153,10 @@
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
     <script type="module" src="/admin/manage-players.js"></script>
+    <script type="module">
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+        const switcher = createLeagueSwitcher();
+        document.getElementById('league-switcher-mount').appendChild(switcher);
+    </script>
 </body>
 </html>
