@@ -171,3 +171,10 @@ async function loadTeams() {
 }
 
 document.addEventListener('DOMContentLoaded', loadTeams);
+
+// Reload teams when league changes
+window.addEventListener('leagueChanged', (event) => {
+    const newLeague = event.detail.league;
+    console.log('League changed to:', newLeague);
+    loadTeams();
+});

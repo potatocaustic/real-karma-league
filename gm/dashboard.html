@@ -6,6 +6,7 @@
     <title>RKL GM Portal</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
         (function () {
@@ -33,6 +34,7 @@
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
+        <div id="league-switcher-mount"></div>
         <nav>
             <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
             <ul id="nav-menu">
@@ -91,5 +93,10 @@
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
     <script type="module" src="/gm/dashboard.js"></script>
+    <script type="module">
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+        const switcher = createLeagueSwitcher();
+        document.getElementById('league-switcher-mount').appendChild(switcher);
+    </script>
 </body>
 </html>

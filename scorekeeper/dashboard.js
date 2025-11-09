@@ -55,4 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+
+    // Listen for league changes
+    window.addEventListener('leagueChanged', (event) => {
+        const newLeague = event.detail.league;
+        console.log('League changed to:', newLeague);
+        // Scorekeeper dashboard doesn't display league-specific data, so just log the change
+    });
 });

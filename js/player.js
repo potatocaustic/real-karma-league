@@ -384,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('click', (event) => {
         const modal = document.getElementById('game-modal');
-        
+
         // Use event delegation for the close button since it's loaded dynamically
         if (event.target.matches('#close-modal-btn') || event.target === modal) {
             if(modal) modal.style.display = 'none';
@@ -395,4 +395,11 @@ document.addEventListener('DOMContentLoaded', () => {
             showGameDetails(clickableRow.dataset.gameid);
         }
     });
+});
+
+// Reload player data when league changes
+window.addEventListener('leagueChanged', (event) => {
+    const newLeague = event.detail.league;
+    console.log('League changed to:', newLeague);
+    loadPlayerData();
 });
