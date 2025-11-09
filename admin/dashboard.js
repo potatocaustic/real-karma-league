@@ -145,4 +145,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     }
+
+    // Reload notifications when league changes
+    window.addEventListener('leagueChanged', (event) => {
+        const newLeague = event.detail.league;
+        console.log('League changed to:', newLeague);
+
+        // Reload notifications for the new league
+        checkForNotifications();
+    });
 });

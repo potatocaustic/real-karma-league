@@ -672,3 +672,10 @@ async function initializePage() {
 }
 
 document.addEventListener('DOMContentLoaded', initializePage);
+
+// Reload schedule when league changes
+window.addEventListener('leagueChanged', (event) => {
+    const newLeague = event.detail.league;
+    console.log('League changed to:', newLeague);
+    initializePage();
+});
