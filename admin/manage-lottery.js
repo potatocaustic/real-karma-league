@@ -1,10 +1,6 @@
 // /admin/manage-lottery.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, setDoc, query, where } from '/js/firebase-init.js';
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, setDoc, query, where, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -23,7 +19,7 @@ let draftSeasonId = null;
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 await initializePage();
@@ -52,7 +48,7 @@ async function initializePage() {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
+    const seasonsSnap = await getDocs(query(collection(db, collectionNames.seasons)));
     let completedSeason = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -86,17 +82,17 @@ async function loadLotteryTeams() {
     preLotteryList.innerHTML = `<li class="loading">Loading teams...</li>`;
     finalLotteryList.innerHTML = '';
 
-    const postGamesCollectionRef = collection(db, `${getCollectionName('seasons')}/${completedSeasonId}/${getCollectionName('post_games')}`);
+    const postGamesCollectionRef = collection(db, collectionNames.seasons, completedSeasonId, getLeagueCollectionName('post_games'));
 
     const [teamsSnap, postGamesSnap] = await Promise.all([
-        getDocs(collection(db, getCollectionName("v2_teams"))),
+        getDocs(collection(db, collectionNames.teams)),
         getDocs(postGamesCollectionRef) // Fetch all post_games, not just play-in
     ]);
 
     const teamRecordsPromises = teamsSnap.docs
         .filter(doc => doc.data() && doc.data().conference)
         .map(async teamDoc => {
-            const recordRef = doc(db, `${getCollectionName('v2_teams')}/${teamDoc.id}/${getCollectionName('seasonal_records')}/${completedSeasonId}`);
+            const recordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, completedSeasonId);
             const recordSnap = await getDoc(recordRef);
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
             if (recordSnap.exists()) {
@@ -158,7 +154,7 @@ function renderLists(teams) {
 }
 
 async function loadExistingResults() {
-    const resultsRef = doc(db, getCollectionName('lottery_results'), `${draftSeasonId}_lottery_results`);
+    const resultsRef = doc(db, getLeagueCollectionName('lottery_results'), `${draftSeasonId}_lottery_results`);
     const resultsSnap = await getDoc(resultsRef);
 
     if (resultsSnap.exists()) {
@@ -241,7 +237,7 @@ async function saveLotteryResults() {
     }
 
     try {
-        const resultsRef = doc(db, getCollectionName('lottery_results'), `${draftSeasonId}_lottery_results`);
+        const resultsRef = doc(db, getLeagueCollectionName('lottery_results'), `${draftSeasonId}_lottery_results`);
         await setDoc(resultsRef, {
             season: draftSeasonId,
             final_order: finalOrderIds,

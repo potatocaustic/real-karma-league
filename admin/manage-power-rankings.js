@@ -1,10 +1,6 @@
 // /admin/manage-power-rankings.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, setDoc } from '/js/firebase-init.js';
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, setDoc, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -27,7 +23,7 @@ const TOTAL_TEAMS = 30;
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 await initializePage();
@@ -64,12 +60,12 @@ async function initializePage() {
 }
 
 async function updateTeamCache(seasonId) {
-    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
+    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) return null;
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
+        const seasonRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
@@ -81,7 +77,7 @@ async function updateTeamCache(seasonId) {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
+    const seasonsSnap = await getDocs(query(collection(db, collectionNames.seasons)));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -123,8 +119,8 @@ async function loadRankingsBoard() {
     const seasonNumber = currentSeasonId.replace('S', '');
     const prevVersion = currentVersion - 1;
 
-    const prevRankingsPath = prevVersion >= 0 ? `${getCollectionName('power_rankings')}/season_${seasonNumber}/v${prevVersion}` : null;
-    const currentRankingsPath = `${getCollectionName('power_rankings')}/season_${seasonNumber}/v${currentVersion}`;
+    const prevRankingsPath = prevVersion >= 0 ? `${getLeagueCollectionName('power_rankings')}/season_${seasonNumber}/v${prevVersion}` : null;
+    const currentRankingsPath = `${getLeagueCollectionName('power_rankings')}/season_${seasonNumber}/v${currentVersion}`;
 
     const [prevRankingsSnap, currentRankingsSnap] = await Promise.all([
         prevRankingsPath ? getDocs(collection(db, prevRankingsPath)) : Promise.resolve(null),
@@ -276,12 +272,12 @@ async function handleFormSubmit(e) {
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
         const seasonDocName = `season_${seasonNumber}`;
-        const rankingsCollectionPath = `${getCollectionName('power_rankings')}/${seasonDocName}/v${versionToSave}`;
+        const rankingsCollectionPath = `${getLeagueCollectionName('power_rankings')}/${seasonDocName}/v${versionToSave}`;
         const rankingsCollectionRef = collection(db, rankingsCollectionPath);
 
         const teamRecordsMap = new Map();
         const seasonalRecordsPromises = allTeams.map(team => {
-            const recordRef = doc(db, getCollectionName("v2_teams"), team.id, getCollectionName("seasonal_records"), currentSeasonId);
+            const recordRef = doc(db, collectionNames.teams, team.id, collectionNames.seasonalRecords, currentSeasonId);
             return getDoc(recordRef);
         });
         const seasonalRecordsSnaps = await Promise.all(seasonalRecordsPromises);
@@ -336,8 +332,8 @@ async function handleFormSubmit(e) {
                 power_losses: teamRecord.losses || 0
             });
         }
-        
-        const seasonDocRef = doc(db, getCollectionName('power_rankings'), seasonDocName);
+
+        const seasonDocRef = doc(db, getLeagueCollectionName('power_rankings'), seasonDocName);
         const versionLabel = `v${versionToSave}`;
         
         batch.set(seasonDocRef, { 

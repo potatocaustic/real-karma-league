@@ -1,10 +1,6 @@
 // /scorekeeper/dashboard.js
 
-import { auth, db, onAuthStateChanged, signOut, doc, getDoc } from '/js/firebase-init.js';
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { auth, db, onAuthStateChanged, signOut, doc, getDoc, collectionNames } from '/js/firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
@@ -19,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists()) {

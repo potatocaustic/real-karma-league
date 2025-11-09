@@ -1,10 +1,6 @@
 // /admin/manage-transactions.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, functions, serverTimestamp, query, where } from '/js/firebase-init.js';
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, functions, serverTimestamp, query, where, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -24,7 +20,7 @@ let allPicks = [];
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 loadingContainer.style.display = 'none';
@@ -43,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const seasonsQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"));
+        const seasonsQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"));
         const activeSeasonsSnap = await getDocs(seasonsQuery);
         const activeSeasonId = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
 
@@ -52,9 +48,9 @@ async function initializePage() {
         }
 
         const [playersSnap, teamsSnap, picksSnap] = await Promise.all([
-            getDocs(collection(db, getCollectionName("v2_players"))),
-            getDocs(collection(db, getCollectionName("v2_teams"))),
-            getDocs(collection(db, getCollectionName("draftPicks")))
+            getDocs(collection(db, collectionNames.players)),
+            getDocs(collection(db, collectionNames.teams)),
+            getDocs(collection(db, collectionNames.draftPicks))
         ]);
 
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -63,7 +59,7 @@ async function initializePage() {
         const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
             if (!teamDoc.data().conference) return null;
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
-            const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), activeSeasonId);
+            const seasonRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, activeSeasonId);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
             teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
             return teamData;
@@ -312,15 +308,15 @@ async function handleFormSubmit(e) {
 
         // MODIFICATION: Call the cloud function instead of writing directly to DB
         const admin_processTransaction = httpsCallable(functions, 'admin_processTransaction');
-        const result = await admin_processTransaction(transactionData);
+        const result = await admin_processTransaction({ ...transactionData, league: getCurrentLeague() });
 
         alert(result.data.message); // Show the dynamic message from the backend
         
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
-        
-        const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
+
+        const playersSnap = await getDocs(collection(db, collectionNames.players));
         allPlayers = playersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         populateAllDropdowns();
 

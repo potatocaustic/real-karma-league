@@ -1,10 +1,6 @@
 // /admin/manage-players.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, query, httpsCallable, functions } from '/js/firebase-init.js';
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, query, httpsCallable, functions, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -27,7 +23,7 @@ let isEditMode = false;
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -69,7 +65,7 @@ async function initializePage() {
 
 async function updateTeamCache(seasonId) {
     allTeams.clear();
-    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
+    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
 
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) {
@@ -77,7 +73,7 @@ async function updateTeamCache(seasonId) {
         }
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
+        const seasonRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         if (seasonRecordSnap.exists()) {
@@ -92,7 +88,7 @@ async function updateTeamCache(seasonId) {
     teamsWithData.forEach(team => allTeams.set(team.id, team));
 }
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
+    const seasonsSnap = await getDocs(query(collection(db, collectionNames.seasons)));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -116,11 +112,11 @@ async function populateSeasons() {
 async function loadAndDisplayPlayers() {
     playersListContainer.innerHTML = '<div class="loading">Loading players...</div>';
     try {
-        const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
+        const playersSnap = await getDocs(collection(db, collectionNames.players));
 
         const playerPromises = playersSnap.docs.map(async (playerDoc) => {
             const playerData = { id: playerDoc.id, ...playerDoc.data() };
-            const seasonStatsRef = doc(db, getCollectionName("v2_players"), playerDoc.id, getCollectionName("seasonal_stats"), currentSeasonId);
+            const seasonStatsRef = doc(db, collectionNames.players, playerDoc.id, collectionNames.seasonalStats, currentSeasonId);
             const seasonStatsSnap = await getDoc(seasonStatsRef);
             if (seasonStatsSnap.exists()) {
                 playerData.season_stats = seasonStatsSnap.data();
@@ -258,8 +254,8 @@ playerModal.addEventListener('click', async (e) => {
 
     try {
         const admin_updatePlayerId = httpsCallable(functions, 'admin_updatePlayerId');
-        const result = await admin_updatePlayerId({ oldPlayerId, newPlayerId });
-        
+        const result = await admin_updatePlayerId({ oldPlayerId, newPlayerId, league: getCurrentLeague() });
+
         alert(result.data.message);
         playerModal.style.display = 'none';
         await loadAndDisplayPlayers(); 
@@ -303,13 +299,13 @@ playerForm.addEventListener('submit', async (e) => {
             };
 
             const admin_updatePlayerDetails = httpsCallable(functions, 'admin_updatePlayerDetails');
-            const result = await admin_updatePlayerDetails(payload);
+            const result = await admin_updatePlayerDetails({ ...payload, league: getCurrentLeague() });
             alert(result.data.message);
 
         } else {
             // For creating a new player, we can do it on the client
             const newHandle = document.getElementById('player-handle-input').value.trim();
-            const playerRef = doc(db, getCollectionName("v2_players"), playerId);
+            const playerRef = doc(db, collectionNames.players, playerId);
             const docSnap = await getDoc(playerRef);
             if (docSnap.exists()) {
                 alert("A player with this ID already exists. Please choose a unique ID.");
@@ -317,14 +313,14 @@ playerForm.addEventListener('submit', async (e) => {
                 submitButton.textContent = 'Save Player Changes';
                 return;
             }
-            
+
             await setDoc(playerRef, {
                 player_handle: newHandle,
                 current_team_id: document.getElementById('player-team-select').value,
                 player_status: document.getElementById('player-status-select').value,
             });
 
-            const seasonStatsRef = doc(playerRef, getCollectionName("seasonal_stats"), currentSeasonId);
+            const seasonStatsRef = doc(playerRef, collectionNames.seasonalStats, currentSeasonId);
             await setDoc(seasonStatsRef, {
                 aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
                 post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,

@@ -1,11 +1,13 @@
 // /js/draft-capital.js
 
 // Import functions from your firebase-init.js
-import { 
-    db, 
-    collection, 
+import {
+    db,
+    collection,
     getDocs,
-    collectionGroup
+    collectionGroup,
+    collectionNames,
+    getLeagueCollectionName
 } from './firebase-init.js';
 
 // --- Globals ---
@@ -14,10 +16,6 @@ let currentView = 'table';
 let allDraftPicks = [];
 let allTeams = [];
 let allTransactionsLogData = [];
-
-// --- Helper Functions ---
-const USE_DEV_COLLECTIONS = false; // Set to false for production
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 function escapeHTML(str) {
   if (typeof str !== 'string') return str; 
@@ -76,11 +74,11 @@ async function loadData() {
   try {
       console.log("Loading data from Firestore...");
 
-      const draftPicksCol = collection(db, getCollectionName('draftPicks'));
+      const draftPicksCol = collection(db, collectionNames.draftPicks);
       const draftPicksSnap = await getDocs(draftPicksCol);
       allDraftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
-      const teamRecordsColGroup = collectionGroup(db, getCollectionName('seasonal_records'));
+      const teamRecordsColGroup = collectionGroup(db, collectionNames.seasonalRecords);
       const teamRecordsSnap = await getDocs(teamRecordsColGroup);
       allTeams = teamRecordsSnap.docs
           .filter(doc => doc.id.startsWith('S'))
@@ -98,7 +96,7 @@ async function loadData() {
           }, []);
       
       const activeLeagueSeason = "S8";
-      const transCol = collection(db, getCollectionName('transactions'), 'seasons', activeLeagueSeason);
+      const transCol = collection(db, collectionNames.transactions, 'seasons', activeLeagueSeason);
       const transSnap = await getDocs(transCol);
       allTransactionsLogData = transSnap.docs.map(doc => ({
           transaction_id: doc.id,

@@ -1,6 +1,6 @@
 // /gm/submit-lineup.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId, limit } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId, limit, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 let loadingContainer, gmContainer, scheduleListContainer, lineupModal, lineupForm, closeLineupModalBtn, lineupModalWarning;
@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage(userId) {
     try {
-        const teamsQuery = query(collection(db, "v2_teams"), where("gm_uid", "==", userId), limit(1));
+        const teamsQuery = query(collection(db, collectionNames.teams), where("gm_uid", "==", userId), limit(1));
         const teamSnap = await getDocs(teamsQuery);
 
         if (teamSnap.empty) {
@@ -45,7 +45,7 @@ async function initializePage(userId) {
         }
         myTeamId = teamSnap.docs[0].id;
 
-        const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
+        const seasonsQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
         const seasonSnap = await getDocs(seasonsQuery);
         if (seasonSnap.empty) {
             loadingContainer.innerHTML = '<div class="error">No active season found.</div>';
@@ -74,13 +74,13 @@ async function initializePage(userId) {
 }
 
 async function cacheCoreData(seasonId) {
-    const playersSnap = await getDocs(collection(db, "v2_players"));
+    const playersSnap = await getDocs(collection(db, collectionNames.players));
     playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
 
-    const teamsSnap = await getDocs(collection(db, "v2_teams"));
+    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordSnap = await getDoc(doc(db, "v2_teams", teamDoc.id, "seasonal_records", seasonId));
+        const seasonRecordSnap = await getDoc(doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId));
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
         return teamData;
     });
@@ -94,10 +94,10 @@ async function fetchAndDisplaySchedule() {
     countdownIntervals.forEach(clearInterval);
     countdownIntervals = [];
 
-    const gamesQuery1 = query(collection(db, "seasons", currentSeasonId, "games"), where("team1_id", "==", myTeamId));
-    const gamesQuery2 = query(collection(db, "seasons", currentSeasonId, "games"), where("team2_id", "==", myTeamId));
-    const postGamesQuery1 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team1_id", "==", myTeamId));
-    const postGamesQuery2 = query(collection(db, "seasons", currentSeasonId, "post_games"), where("team2_id", "==", myTeamId));
+    const gamesQuery1 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("games")), where("team1_id", "==", myTeamId));
+    const gamesQuery2 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("games")), where("team2_id", "==", myTeamId));
+    const postGamesQuery1 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("post_games")), where("team1_id", "==", myTeamId));
+    const postGamesQuery2 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("post_games")), where("team2_id", "==", myTeamId));
 
     const [snap1, snap2, postSnap1, postSnap2] = await Promise.all([
         getDocs(gamesQuery1), getDocs(gamesQuery2), getDocs(postGamesQuery1), getDocs(postGamesQuery2)
@@ -127,7 +127,7 @@ async function fetchAndDisplaySchedule() {
 
     const deadlinesMap = new Map();
     if (deadlineDates.length > 0) {
-        const deadlineQuery = query(collection(db, "lineup_deadlines"), where(documentId(), 'in', deadlineDates));
+        const deadlineQuery = query(collection(db, collectionNames.lineupDeadlines), where(documentId(), 'in', deadlineDates));
         const deadlinesSnap = await getDocs(deadlineQuery);
         deadlinesSnap.forEach(doc => deadlinesMap.set(doc.id, doc.data().deadline.toDate()));
     }
@@ -137,10 +137,10 @@ async function fetchAndDisplaySchedule() {
     const liveGames = new Map();
 
     if (gameIds.length > 0) {
-        const pendingQuery = query(collection(db, "pending_lineups"), where(documentId(), 'in', gameIds));
-        const liveQuery = query(collection(db, "live_games"), where(documentId(), 'in', gameIds));
+        const pendingQuery = query(collection(db, collectionNames.pendingLineups), where(documentId(), 'in', gameIds));
+        const liveQuery = query(collection(db, collectionNames.liveGames), where(documentId(), 'in', gameIds));
         const [pendingSnap, liveSnap] = await Promise.all([getDocs(pendingQuery), getDocs(liveQuery)]);
-        
+
         pendingSnap.forEach(doc => pendingLineups.set(doc.id, doc.data()));
         liveSnap.forEach(doc => liveGames.set(doc.id, doc.data()));
     }
@@ -264,9 +264,9 @@ async function handleOpenModalClick(e) {
     const gameEntry = e.target.closest('.game-entry');
     const gameId = gameEntry.dataset.gameId;
     const collectionName = gameEntry.dataset.collection;
-    const deadlineString = gameEntry.dataset.deadline; 
+    const deadlineString = gameEntry.dataset.deadline;
 
-    const gameRef = doc(db, "seasons", currentSeasonId, collectionName, gameId);
+    const gameRef = doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId);
     const gameDoc = await getDoc(gameRef);
 
     if (gameDoc.exists()) {
@@ -294,12 +294,12 @@ async function openLineupModal(game, deadlineString) {
     const myRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === myTeamId);
     let myLineupData = null;
 
-    const pendingGameSnap = await getDoc(doc(db, "pending_lineups", game.id));
+    const pendingGameSnap = await getDoc(doc(db, collectionNames.pendingLineups, game.id));
     if (pendingGameSnap.exists()) {
         const pendingData = pendingGameSnap.data();
         myLineupData = game.team1_id === myTeamId ? pendingData.team1_lineup : pendingData.team2_lineup;
     } else {
-        const liveGameSnap = await getDoc(doc(db, "live_games", game.id));
+        const liveGameSnap = await getDoc(doc(db, collectionNames.liveGames, game.id));
         if (liveGameSnap.exists()) {
             const liveData = liveGameSnap.data();
             myLineupData = game.team1_id === myTeamId ? liveData.team1_lineup : liveData.team2_lineup;
@@ -434,7 +434,7 @@ async function handleLineupFormSubmit(e) {
     
     const [month, day, year] = currentGameData.date.split('/');
     const deadlineId = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const deadlineRef = doc(db, "lineup_deadlines", deadlineId);
+    const deadlineRef = doc(db, collectionNames.lineupDeadlines, deadlineId);
     
     try {
         const deadlineSnap = await getDoc(deadlineRef);
@@ -484,8 +484,9 @@ async function handleLineupFormSubmit(e) {
         gameDate: currentGameData.date,
         submittingTeamId: myTeamId,
         [isMyTeam1 ? 'team1_lineup' : 'team2_lineup']: lineup,
+        league: getCurrentLeague()
     };
-    
+
     try {
         const stageLiveLineups = httpsCallable(functions, 'stageLiveLineups');
         await stageLiveLineups(submissionData);

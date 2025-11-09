@@ -1,6 +1,6 @@
 // /scorekeeper/writeups.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, httpsCallable } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, httpsCallable, getCurrentLeague } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = false;
@@ -225,7 +225,8 @@ async function handleGameSelection(e) {
             gameId: selectedGame.id,
             seasonId: currentSeasonId,
             collectionName: selectedGame.collectionName,
-            isLive: selectedGame.isLive // Add this new flag
+            isLive: selectedGame.isLive, // Add this new flag
+            league: getCurrentLeague()
         });
         
         if (!promptResult.data.success) {
@@ -235,9 +236,10 @@ async function handleGameSelection(e) {
         // Step 2: Call the new, secure Cloud Function with the prompt data
         writeupOutput.value = 'Prompt received. Generating writeup with Google AI...';
         const getAiWriteup = httpsCallable(functions, 'getAiWriteup');
-        const aiResult = await getAiWriteup({ 
+        const aiResult = await getAiWriteup({
             systemPrompt: promptResult.data.systemPrompt,
-            promptData: promptResult.data.promptData 
+            promptData: promptResult.data.promptData,
+            league: getCurrentLeague()
         });
 
         // Step 3: Display the final writeup from the AI

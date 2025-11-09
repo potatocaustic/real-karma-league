@@ -1,0 +1,31 @@
+/* League Switcher Component Styles */
+
+.league-switcher-container {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.league-btn {
+    padding: 8px 16px;
+    border: 2px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.league-btn:hover {
+    border-color: #4CAF50;
+    background: #f9f9f9;
+}
+
+.league-btn.active {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+}

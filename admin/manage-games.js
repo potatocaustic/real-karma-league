@@ -1,17 +1,7 @@
 // /admin/manage-games.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, deleteDoc, httpsCallable, query, where, documentId, limit } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, deleteDoc, httpsCallable, query, where, documentId, limit, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => {
-    // Handle dynamically generated collection names
-    if (baseName.includes('_awards') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('pending_lineups') || baseName.includes('lineup_deadlines')) {
-        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-    }
-    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-};
 
 // --- Page Elements ---
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
@@ -49,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         try {
             if (user) {
-                const userRef = doc(db, getCollectionName("users"), user.uid);
+                const userRef = doc(db, collectionNames.users, user.uid);
                 const userDoc = await getDoc(userRef);
                 if (userDoc.exists() && userDoc.data().role === 'admin') {
                     loadingContainer.style.display = 'none';
@@ -72,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
+        const playersSnap = await getDocs(collection(db, collectionNames.players));
         playersSnap.docs.forEach(doc => {
             allPlayers.set(doc.id, { id: doc.id, ...doc.data() });
         });
@@ -125,7 +115,7 @@ async function initializePage() {
             bracketFixButton.textContent = 'Processing...';
             try {
                 const test_updatePlayoffBracket = httpsCallable(functions, 'test_updatePlayoffBracket');
-                const result = await test_updatePlayoffBracket();
+                const result = await test_updatePlayoffBracket({ league: getCurrentLeague() });
                 alert(result.data.message);
             } catch (error) {
                 console.error("Error manually updating bracket:", error);
@@ -146,16 +136,16 @@ async function initializePage() {
 async function updateAwardsCache(seasonId) {
     awardSelections.clear();
     const seasonNumber = seasonId.replace('S', '');
-    const awardsRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
+    const awardsRef = collection(db, `${getLeagueCollectionName('awards')}/season_${seasonNumber}/${getLeagueCollectionName(`S${seasonNumber}_awards`)}`);
     const awardsSnap = await getDocs(awardsRef);
     awardsSnap.forEach(doc => awardSelections.set(doc.id, doc.data()));
 }
 
 async function updateTeamCache(seasonId) {
     allTeams.clear();
-    allGms.clear(); 
+    allGms.clear();
 
-    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
+    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
 
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) {
@@ -163,7 +153,7 @@ async function updateTeamCache(seasonId) {
         }
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
+        const seasonRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         if (seasonRecordSnap.exists()) {
@@ -188,7 +178,7 @@ async function updateTeamCache(seasonId) {
 
 async function populateSeasons() {
     try {
-        const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
+        const seasonsSnap = await getDocs(query(collection(db, collectionNames.seasons)));
         if (seasonsSnap.empty) {
             seasonSelect.innerHTML = `<option value="">No Seasons Found</option>`;
             return;
@@ -255,7 +245,7 @@ async function populateWeeks(seasonId) {
 async function fetchAndDisplayGames(seasonId, week) {
     gamesListContainer.innerHTML = '<div class="loading">Fetching games...</div>';
 
-    const liveGamesRef = collection(db, getCollectionName('live_games'));
+    const liveGamesRef = collection(db, collectionNames.liveGames);
     const liveGamesSnap = await getDocs(liveGamesRef);
     const liveGameIds = new Set(liveGamesSnap.docs.map(doc => doc.id));
 
@@ -263,7 +253,7 @@ async function fetchAndDisplayGames(seasonId, week) {
     const isExhibition = week === 'All-Star' || week === 'Relegation';
     let collectionName = isPostseason ? 'post_games' : isExhibition ? 'exhibition_games' : 'games';
 
-    const gamesQuery = query(collection(db, getCollectionName("seasons"), seasonId, getCollectionName(collectionName)), where("week", "==", week));
+    const gamesQuery = query(collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName(collectionName)), where("week", "==", week));
 
     try {
         const querySnapshot = await getDocs(gamesQuery);
@@ -285,7 +275,7 @@ async function fetchAndDisplayGames(seasonId, week) {
         const pendingLineups = new Map();
 
         if (gameIds.length > 0) {
-            const pendingQuery = query(collection(db, getCollectionName('pending_lineups')), where(documentId(), 'in', gameIds));
+            const pendingQuery = query(collection(db, collectionNames.pendingLineups), where(documentId(), 'in', gameIds));
             const pendingSnap = await getDocs(pendingQuery);
             pendingSnap.forEach(doc => {
                 pendingLineups.set(doc.id, doc.data());
@@ -361,9 +351,9 @@ async function displayDeadlineForDate(dateString) {
         return;
     }
     deadlineDisplay.innerHTML = '<p>Checking...</p>';
-    
+
     try {
-        const deadlineRef = doc(db, getCollectionName('lineup_deadlines'), dateString);
+        const deadlineRef = doc(db, collectionNames.lineupDeadlines, dateString);
         const deadlineSnap = await getDoc(deadlineRef);
 
         if (deadlineSnap.exists()) {
@@ -406,7 +396,8 @@ async function handleSetDeadline(e) {
         const result = await setLineupDeadline({
             date: formattedDateForFunction,
             time: timeInput,
-            timeZone: timeZone
+            timeZone: timeZone,
+            league: getCurrentLeague()
         });
         alert(result.data.message);
         await displayDeadlineForDate(dateInput); // Refresh the display
@@ -427,7 +418,7 @@ async function handleOpenModalClick(e) {
     const gameId = gameEntry.dataset.gameId;
     const collectionName = gameEntry.dataset.collection;
 
-    const gameRef = doc(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(collectionName), gameId);
+    const gameRef = doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId);
     const gameDoc = await getDoc(gameRef);
     if (gameDoc.exists()) {
         currentGameData = { id: gameDoc.id, ...gameDoc.data(), collectionName };
@@ -504,8 +495,8 @@ async function openLineupModal(game) {
     const team1Roster = getRosterForTeam(game.team1_id, game.week);
     const team2Roster = getRosterForTeam(game.team2_id, game.week);
 
-    const liveGameRef = doc(db, getCollectionName('live_games'), game.id);
-    const pendingGameRef = doc(db, getCollectionName('pending_lineups'), game.id);
+    const liveGameRef = doc(db, collectionNames.liveGames, game.id);
+    const pendingGameRef = doc(db, collectionNames.pendingLineups, game.id);
     const [liveGameSnap, pendingGameSnap] = await Promise.all([getDoc(liveGameRef), getDoc(pendingGameRef)]);
 
     if (pendingGameSnap.exists()) {
@@ -536,7 +527,7 @@ async function openLineupModal(game) {
         });
 
     } else {
-        const lineupsQuery = query(collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(lineupsCollectionName)), where("game_id", "==", game.id));
+        const lineupsQuery = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(lineupsCollectionName)), where("game_id", "==", game.id));
         const lineupsSnap = await getDocs(lineupsQuery);
         if (!lineupsSnap.empty) {
             lineupsSnap.forEach(d => {
@@ -709,8 +700,8 @@ async function handleLineupFormSubmit(e) {
     try {
         const batch = writeBatch(db);
         const { id: gameId, date: gameDate, collectionName, week, team1_id, team2_id } = currentGameData;
-        
-        const liveGameRef = doc(db, getCollectionName('live_games'), gameId);
+
+        const liveGameRef = doc(db, collectionNames.liveGames, gameId);
         const liveGameSnap = await getDoc(liveGameRef);
 
         if (liveGameSnap.exists()) {
@@ -769,7 +760,7 @@ async function handleLineupFormSubmit(e) {
 
         const isExhibition = collectionName === 'exhibition_games';
         const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (collectionName === 'post_games' ? 'post_lineups' : 'lineups');
-        const lineupsCollectionRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(lineupsCollectionName));
+        const lineupsCollectionRef = collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(lineupsCollectionName));
 
         const team1Roster = getRosterForTeam(team1_id, week);
         const team2Roster = getRosterForTeam(team2_id, week);
@@ -809,7 +800,7 @@ async function handleLineupFormSubmit(e) {
             batch.set(docRef, lineupData, { merge: true });
         }
 
-        const gameRef = doc(db, getCollectionName("seasons"), currentSeasonId, getCollectionName(collectionName), gameId);
+        const gameRef = doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId);
         const team1FinalScore = parseFloat(document.getElementById('team1-final-score').textContent);
         const team2FinalScore = parseFloat(document.getElementById('team2-final-score').textContent);
 
@@ -891,16 +882,17 @@ async function handleStageLiveLineups(e) {
     try {
         button.textContent = 'Submitting...';
         const stageLiveLineups = httpsCallable(functions, 'stageLiveLineups');
-        
+
         await stageLiveLineups({
             gameId,
             seasonId: currentSeasonId,
             collectionName,
             gameDate: gameDateStr,
             team1_lineup,
-            team2_lineup
+            team2_lineup,
+            league: getCurrentLeague()
         });
-        
+
         alert('Lineup(s) submitted successfully! The server will process them according to the game day schedule.');
 
         lineupModal.classList.remove('is-visible');
@@ -926,7 +918,10 @@ async function handleFinalizeLiveGame(e) {
 
     try {
         const finalizeLiveGame = httpsCallable(functions, 'finalizeLiveGame');
-        const result = await finalizeLiveGame({ gameId: currentGameData.id });
+        const result = await finalizeLiveGame({
+            gameId: currentGameData.id,
+            league: getCurrentLeague()
+        });
         alert(result.data.message);
         lineupModal.classList.remove('is-visible');
         fetchAndDisplayGames(currentSeasonId, weekSelect.value);

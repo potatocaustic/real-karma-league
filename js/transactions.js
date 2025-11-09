@@ -9,11 +9,10 @@ import {
   orderBy,
   doc,
   getDoc,
+  collectionNames,
+  getLeagueCollectionName
 } from "../js/firebase-init.js";
 
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 const ACTIVE_SEASON_ID = "S8";
 
 // --- DOM Elements ---
@@ -41,16 +40,16 @@ async function loadData() {
 
     try {
         const [transactionsSnap, allTeamsSnap, draftPicksSnap] = await Promise.all([
-            getDocs(collection(db, getCollectionName('transactions'), 'seasons', ACTIVE_SEASON_ID)),
-            getDocs(collection(db, getCollectionName('v2_teams'))),
-            getDocs(collection(db, getCollectionName('draftPicks'))),
+            getDocs(collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID)),
+            getDocs(collection(db, collectionNames.teams)),
+            getDocs(collection(db, collectionNames.draftPicks)),
         ]);
 
         allTransactions = transactionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
         const teamPromises = allTeamsSnap.docs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
-            const seasonalRecordRef = doc(db, getCollectionName('v2_teams'), teamId, getCollectionName('seasonal_records'), ACTIVE_SEASON_ID);
+            const seasonalRecordRef = doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID);
             const seasonalRecordSnap = await getDoc(seasonalRecordRef);
             return {
                 id: teamId,
@@ -101,7 +100,7 @@ async function fetchAllPlayerStats() {
     });
 
     const playerStatsPromises = Array.from(uniquePlayerIds).map(async (playerId) => {
-        const statsRef = doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), ACTIVE_SEASON_ID);
+        const statsRef = doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, ACTIVE_SEASON_ID);
         const statsSnap = await getDoc(statsRef);
         if (statsSnap.exists()) {
             allPlayerStats[playerId] = statsSnap.data();

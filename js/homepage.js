@@ -8,12 +8,10 @@ import {
     getDocs,
     query,
     where,
-    orderBy
+    orderBy,
+    collectionNames,
+    getLeagueCollectionName
 } from './firebase-init.js';
-
-// --- CONFIGURATION ---
-const USE_DEV_COLLECTIONS = false; 
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 // --- DOM ELEMENT REFERENCES ---
 const currentSeasonContainer = document.getElementById('current-season-container');
@@ -26,7 +24,7 @@ const seasonsGridContainer = document.getElementById('seasons-grid-container');
 async function initHomepage() {
     try {
         // Fetch the active season first to determine context
-        const activeSeasonQuery = query(collection(db, getCollectionName('seasons')), where("status", "==", "active"), orderBy("__name__", "desc"));
+        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"), orderBy("__name__", "desc"));
         const activeSeasonSnap = await getDocs(activeSeasonQuery);
 
         if (activeSeasonSnap.empty) {
@@ -97,7 +95,7 @@ function updateNavGrid(activeSeasonId) {
  * @param {string} activeSeasonId - The ID of the active season to mark as "Current".
  */
 async function updateLeagueHistory(activeSeasonId) {
-    const seasonsQuery = query(collection(db, getCollectionName('seasons')), orderBy('__name__', 'desc'));
+    const seasonsQuery = query(collection(db, collectionNames.seasons), orderBy('__name__', 'desc'));
     const seasonsSnap = await getDocs(seasonsQuery);
 
     const seasonHistoryPromises = seasonsSnap.docs.map(async (seasonDoc) => {
@@ -114,7 +112,7 @@ async function updateLeagueHistory(activeSeasonId) {
 
         if (!isCurrent) {
             try {
-                const champRef = doc(db, getCollectionName('awards'), `season_${seasonNum}`, getCollectionName(`S${seasonNum}_awards`), 'league-champion');
+                const champRef = doc(db, getLeagueCollectionName('awards'), `season_${seasonNum}`, `S${seasonNum}_awards`, 'league-champion');
                 const champSnap = await getDoc(champRef);
                 if (champSnap.exists()) {
                     const champData = champSnap.data();

@@ -1,6 +1,6 @@
 // /admin/manage-live-scoring.js
 
-import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, setDoc, query, collection, getDocs, limit } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, setDoc, query, collection, getDocs, limit, getCurrentLeague } from '/js/firebase-init.js';
 
 window.addEventListener('load', () => {
 
@@ -62,7 +62,7 @@ window.addEventListener('load', () => {
 
     async function populateScheduleTimes() {
         try {
-            const result = await getScheduledJobTimes();
+            const result = await getScheduledJobTimes({ league: getCurrentLeague() });
 
             // --- START DEBUGGING ---
             console.log("--- Debugging Schedule Times ---");
@@ -232,7 +232,7 @@ window.addEventListener('load', () => {
         }, 100);
 
         try {
-            await updateAllLiveScores();
+            await updateAllLiveScores({ league: getCurrentLeague() });
         } catch (error) {
             throw error;
         } finally {
@@ -354,7 +354,8 @@ window.addEventListener('load', () => {
                 await setLiveScoringStatus({
                     status: 'active',
                     interval: parseInt(intervalInput.value),
-                    gameDate: gameDate
+                    gameDate: gameDate,
+                    league: getCurrentLeague()
                 });
 
                 await runFullUpdateWithProgress();
@@ -367,7 +368,7 @@ window.addEventListener('load', () => {
         
         resumePausedBtn.addEventListener('click', async () => {
             try {
-                await setLiveScoringStatus({ status: 'active' });
+                await setLiveScoringStatus({ status: 'active', league: getCurrentLeague() });
             } catch (error) {
                 alert(`Error resuming: ${error.message}`);
             }
@@ -375,7 +376,7 @@ window.addEventListener('load', () => {
     
         pauseBtn.addEventListener('click', async () => {
             try {
-                await setLiveScoringStatus({ status: 'paused' });
+                await setLiveScoringStatus({ status: 'paused', league: getCurrentLeague() });
             } catch (error) {
                 alert(`Error pausing: ${error.message}`);
             }
@@ -384,7 +385,7 @@ window.addEventListener('load', () => {
         stopBtn.addEventListener('click', async () => {
             if (confirm("Are you sure you want to stop the live scoring system entirely?")) {
                 try {
-                    await setLiveScoringStatus({ status: 'stopped' });
+                    await setLiveScoringStatus({ status: 'stopped', league: getCurrentLeague() });
                 } catch (error) {
                     alert(`Error stopping: ${error.message}`);
                 }
@@ -425,7 +426,7 @@ window.addEventListener('load', () => {
                 recalcBtn.disabled = true;
                 recalcBtn.textContent = 'Recalculating...';
                 try {
-                    await forceLeaderboardRecalculation();
+                    await forceLeaderboardRecalculation({ league: getCurrentLeague() });
                     alert("Leaderboard recalculation completed successfully!");
                 } catch (error) {
                     console.error("Error forcing leaderboard recalculation:", error);
@@ -453,9 +454,9 @@ window.addEventListener('load', () => {
                 
                 saveScheduleBtn.disabled = true;
                 saveScheduleBtn.textContent = 'Saving...';
-                
+
                 try {
-                    const result = await updateScheduledJobTimes({ autoFinalizeTime, statUpdateTime });
+                    const result = await updateScheduledJobTimes({ autoFinalizeTime, statUpdateTime, league: getCurrentLeague() });
                     alert(result.data.message);
                 } catch (error) {
                     console.error("Error updating schedule times:", error);
@@ -475,7 +476,7 @@ window.addEventListener('load', () => {
                 testAutofinalizeBtn.disabled = true;
                 testAutofinalizeBtn.textContent = 'Processing...';
                 try {
-                    const result = await test_autoFinalizeGames();
+                    const result = await test_autoFinalizeGames({ league: getCurrentLeague() });
                     alert(result.data.message); // Display the success message from the function
                 } catch (error) {
                     console.error("Error testing auto-finalize:", error);

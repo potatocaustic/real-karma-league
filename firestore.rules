@@ -185,6 +185,74 @@ service cloud.firestore {
         allow get, list: if true;
     }
 
+    // =======================================================
+    // MINOR LEAGUE RULES
+    // =======================================================
+
+    match /minor_lineup_deadlines/{deadlineId} {
+      allow read: if request.auth != null;
+      allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /minor_pending_transactions/{docId} {
+      allow read, write: if isUserAdmin();
+    }
+
+    match /minor_pending_lineups/{gameId} {
+      allow read: if request.auth != null;
+      allow write: if isScorekeeperOrAdmin();
+    }
+
+    match /minor_archived_live_games/{doc=**} {
+      allow read: if isUserAdmin();
+      allow write: if false; // Only backend can write
+    }
+
+    match /minor_seasons/{seasonId} {
+      allow get, list: if request.auth.uid != null;
+      allow write: if isUserAdmin();
+      match /{documents=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+      }
+    }
+
+    match /minor_v2_players/{document=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_v2_teams/{document=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_draftPicks/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_live_games/{gameId} {
+      allow read: if true;
+      allow write: if isScorekeeperOrAdmin();
+    }
+
+    match /minor_transactions/{transactionId} {
+      allow read: if true;
+      allow create: if isUserAdmin();
+      allow update, delete: if false;
+    }
+
+    match /minor_transactions/seasons/{seasonId}/{transactionId} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_live_scoring_status/{doc=**} {
+      allow read: if true;
+      allow write: if isScorekeeperOrAdmin();
+    }
+
     // --- Development Rules (_dev) ---
 
     match /seasons_dev/{seasonId} {

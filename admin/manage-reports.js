@@ -1,6 +1,6 @@
 // /admin/manage-reports.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs, getCurrentLeague } from '/js/firebase-init.js';
 
 const USE_DEV_COLLECTIONS = false;
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // has been updated to return the necessary extra fields like team seeds,
             // series info, and game types, as the backend file was not provided.
             const getReportData = httpsCallable(functions, 'getReportData');
-            const result = await getReportData({ reportType, seasonId: activeSeasonId, ...options });
+            const result = await getReportData({ reportType, seasonId: activeSeasonId, ...options, league: getCurrentLeague() });
             if (result.data.success) {
                 return result.data;
             } else {

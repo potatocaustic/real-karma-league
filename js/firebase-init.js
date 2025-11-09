@@ -42,6 +42,55 @@ const IS_DEVELOPMENT = !pageConfig.useProdCollections;
 console.log(`Firebase is running in ${IS_DEVELOPMENT ? 'DEVELOPMENT' : 'PRODUCTION'} mode for this page.`);
 // ===================================================================
 
+// ===================================================================
+// LEAGUE CONTEXT MANAGEMENT
+// ===================================================================
+// League context - default to major league
+let currentLeague = 'major';
+
+// Get current league
+export function getCurrentLeague() {
+    return currentLeague;
+}
+
+// Set current league
+export function setCurrentLeague(league) {
+    if (league !== 'major' && league !== 'minor') {
+        console.error('Invalid league:', league);
+        return;
+    }
+    currentLeague = league;
+    console.log('League context switched to:', league);
+
+    // Dispatch custom event for components to react to league change
+    window.dispatchEvent(new CustomEvent('leagueChanged', { detail: { league } }));
+}
+
+// Get collection name with league context
+export function getLeagueCollectionName(baseName, league = null) {
+    const targetLeague = league || currentLeague;
+
+    // Shared collections (no prefix)
+    const sharedCollections = ['users', 'notifications', 'scorekeeper_activity_log', 'settings', 'tradeblocks'];
+    if (sharedCollections.includes(baseName)) {
+        return IS_DEVELOPMENT ? `${baseName}_dev` : baseName;
+    }
+
+    // Structured collections (no prefix, handled internally)
+    const structuredCollections = ['daily_averages', 'daily_scores', 'post_daily_averages',
+                                   'post_daily_scores', 'leaderboards', 'post_leaderboards',
+                                   'awards', 'draft_results'];
+    if (structuredCollections.includes(baseName)) {
+        return IS_DEVELOPMENT ? `${baseName}_dev` : baseName;
+    }
+
+    // League-specific collections
+    const leaguePrefix = targetLeague === 'minor' ? 'minor_' : '';
+    const devSuffix = IS_DEVELOPMENT ? '_dev' : '';
+    return `${leaguePrefix}${baseName}${devSuffix}`;
+}
+// ===================================================================
+
 const firebaseConfig = {
     apiKey: "AIzaSyDch0dQ1c9_mDzANAvfMoK1HAnMrRl1WnY",
     authDomain: "real-karma-league.firebaseapp.com",
@@ -58,16 +107,21 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app, 'us-central1');
 
+// Updated to use getters for dynamic league-aware collection names
 export const collectionNames = {
-    seasons: IS_DEVELOPMENT ? 'seasons_dev' : 'seasons',
-    users: IS_DEVELOPMENT ? 'users_dev' : 'users',
-    settings: 'settings',
-    teams: IS_DEVELOPMENT ? 'v2_teams_dev' : 'v2_teams',
-    players: IS_DEVELOPMENT ? 'v2_players_dev' : 'v2_players',
-    draftPicks: IS_DEVELOPMENT ? 'draftPicks_dev' : 'draftPicks',
-    seasonalStats: IS_DEVELOPMENT ? 'seasonal_stats_dev' : 'seasonal_stats',
-    seasonalRecords: IS_DEVELOPMENT ? 'seasonal_records_dev' : 'seasonal_records',
-    tradeblocks: 'tradeblocks'
+    get seasons() { return getLeagueCollectionName('seasons'); },
+    get users() { return getLeagueCollectionName('users'); },
+    get settings() { return getLeagueCollectionName('settings'); },
+    get teams() { return getLeagueCollectionName('v2_teams'); },
+    get players() { return getLeagueCollectionName('v2_players'); },
+    get draftPicks() { return getLeagueCollectionName('draftPicks'); },
+    get seasonalStats() { return getLeagueCollectionName('seasonal_stats'); },
+    get seasonalRecords() { return getLeagueCollectionName('seasonal_records'); },
+    get tradeblocks() { return getLeagueCollectionName('tradeblocks'); },
+    get liveGames() { return getLeagueCollectionName('live_games'); },
+    get lineupDeadlines() { return getLeagueCollectionName('lineup_deadlines'); },
+    get transactions() { return getLeagueCollectionName('transactions'); },
+    get pendingLineups() { return getLeagueCollectionName('pending_lineups'); }
 };
 
 const isLocal = window.location.hostname.includes("localhost") || window.location.hostname.includes("127.0.0.1");

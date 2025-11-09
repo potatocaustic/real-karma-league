@@ -1,17 +1,18 @@
-import { 
-    auth, 
-    db, 
-    functions, 
-    onAuthStateChanged, 
-    signOut, 
-    doc, 
-    getDoc, 
-    httpsCallable, 
-    collection, 
-    query, 
-    where, 
+import {
+    auth,
+    db,
+    functions,
+    onAuthStateChanged,
+    signOut,
+    doc,
+    getDoc,
+    httpsCallable,
+    collection,
+    query,
+    where,
     getDocs,
-    limit
+    limit,
+    getCurrentLeague
 } from '/js/firebase-init.js';
 
 // --- Notification Logic ---
@@ -98,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (confirm(confirmationMessage)) {
                         const createNewSeason = httpsCallable(functions, 'createNewSeason');
-                        const result = await createNewSeason();
+                        const result = await createNewSeason({ league: getCurrentLeague() });
                         alert(result.data.message);
                     }
                 } catch (error) {
@@ -121,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (confirm(`Are you sure you want to create the structure for historical season S${seasonNumber}? This is irreversible.`)) {
                         try {
                             const createHistoricalSeason = httpsCallable(functions, 'createHistoricalSeason');
-                            const result = await createHistoricalSeason({ seasonNumber });
+                            const result = await createHistoricalSeason({ seasonNumber, league: getCurrentLeague() });
                             alert(result.data.message);
                         } catch (error) {
                             console.error("Error creating historical season:", error);
