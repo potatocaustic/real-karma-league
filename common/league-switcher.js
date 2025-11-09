@@ -15,15 +15,29 @@ export function createLeagueSwitcher() {
         </div>
     `;
 
+    // Function to update header text based on league
+    function updateHeaderText(league) {
+        const headerTextElement = document.querySelector('.header-text');
+        if (headerTextElement) {
+            if (league === 'major') {
+                headerTextElement.textContent = ' Real Karma League';
+            } else if (league === 'minor') {
+                headerTextElement.textContent = ' Real Karma Minor League';
+            }
+        }
+    }
+
     // Add event listeners
     container.querySelector('#major-league-btn').addEventListener('click', () => {
         setCurrentLeague('major');
         updateActiveButton('major');
+        updateHeaderText('major');
     });
 
     container.querySelector('#minor-league-btn').addEventListener('click', () => {
         setCurrentLeague('minor');
         updateActiveButton('minor');
+        updateHeaderText('minor');
     });
 
     // Update active button styling
@@ -35,7 +49,9 @@ export function createLeagueSwitcher() {
     }
 
     // Initialize with current league
-    updateActiveButton(getCurrentLeague());
+    const currentLeague = getCurrentLeague();
+    updateActiveButton(currentLeague);
+    updateHeaderText(currentLeague);
 
     return container;
 }

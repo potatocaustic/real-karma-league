@@ -2,17 +2,20 @@
 
 .league-switcher-container {
     display: flex;
+    justify-content: center;
     gap: 10px;
-    padding: 10px;
-    background: #f5f5f5;
-    border-radius: 8px;
-    margin: 10px 0;
+    padding: 12px;
+    background: #333;
+    border-radius: 0;
+    margin: 0;
+    width: 100%;
 }
 
 .league-btn {
     padding: 8px 16px;
-    border: 2px solid #ddd;
-    background: white;
+    border: 2px solid #555;
+    background: #444;
+    color: #fff;
     border-radius: 6px;
     cursor: pointer;
     font-weight: 500;
@@ -21,11 +24,46 @@
 
 .league-btn:hover {
     border-color: #4CAF50;
-    background: #f9f9f9;
+    background: #555;
 }
 
 .league-btn.active {
     background: #4CAF50;
     color: white;
     border-color: #4CAF50;
+}
+
+/* Dark mode support */
+.dark-mode .league-switcher-container {
+    background: #333;
+}
+
+.dark-mode .league-btn {
+    background: #444;
+    border-color: #555;
+    color: #fff;
+}
+
+.dark-mode .league-btn:hover {
+    background: #555;
+    border-color: #4CAF50;
+}
+
+.dark-mode .league-btn.active {
+    background: #4CAF50;
+    color: white;
+    border-color: #4CAF50;
+}
+
+/* Mobile optimization */
+@media (max-width: 600px) {
+    .league-switcher-container {
+        padding: 10px 8px;
+        gap: 8px;
+    }
+
+    .league-btn {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
 }
