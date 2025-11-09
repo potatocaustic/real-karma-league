@@ -1,10 +1,6 @@
 // /admin/manage-teams.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, setDoc, httpsCallable, functions } from '/js/firebase-init.js';
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, setDoc, httpsCallable, functions, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -30,7 +26,7 @@ let currentSeasonId = "";
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -76,7 +72,7 @@ async function initializePage() {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
+    const seasonsSnap = await getDocs(query(collection(db, collectionNames.seasons)));
     let activeSeasonId = null;
 
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
@@ -106,13 +102,13 @@ async function loadAndDisplayTeams() {
     }
 
     try {
-        const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
+        const teamsSnap = await getDocs(collection(db, collectionNames.teams));
         const validTeamDocs = teamsSnap.docs.filter(doc => doc.data().conference);
 
         const teamPromises = validTeamDocs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
             const teamData = { id: teamId, ...teamDoc.data() };
-            const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamId, getCollectionName("seasonal_records"), currentSeasonId);
+            const seasonRecordRef = doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, currentSeasonId);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
 
             if (seasonRecordSnap.exists()) {
@@ -201,8 +197,8 @@ async function handleTeamFormSubmit(e) {
         team_name: document.getElementById('team-name-input').value
     };
 
-    const teamRef = doc(db, getCollectionName("v2_teams"), teamId);
-    const seasonRecordRef = doc(teamRef, getCollectionName("seasonal_records"), currentSeasonId);
+    const teamRef = doc(db, collectionNames.teams, teamId);
+    const seasonRecordRef = doc(teamRef, collectionNames.seasonalRecords, currentSeasonId);
 
     try {
         await updateDoc(teamRef, rootData);
@@ -242,7 +238,7 @@ async function handleRebrandFormSubmit(e) {
 
     try {
         const rebrandTeam = httpsCallable(functions, 'rebrandTeam');
-        const result = await rebrandTeam({ oldTeamId, newTeamId, newTeamName });
+        const result = await rebrandTeam({ oldTeamId, newTeamId, newTeamName, league: getCurrentLeague() });
         alert(result.data.message);
         rebrandModal.style.display = 'none';
         await loadAndDisplayTeams();

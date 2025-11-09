@@ -1,6 +1,6 @@
 // /scorekeeper/live-scoring.js
 
-import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, query, collection, getDocs } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, query, collection, getDocs, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 window.addEventListener('load', () => {
 
@@ -23,16 +23,6 @@ window.addEventListener('load', () => {
     const progressTitle = document.getElementById('progress-title');
     const progressStatus = document.getElementById('progress-status');
     const progressCloseBtn = document.getElementById('progress-close-btn');
-
-    // --- DEV ENVIRONMENT CONFIG ---
-    const pageConfig = window.firebasePageConfig || {};
-    const USE_DEV_COLLECTIONS = !pageConfig.useProdCollections;
-    const getCollectionName = (baseName) => {
-        if (baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('live_games')) {
-            return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-        }
-        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-    };
 
     // --- Firebase Callable Functions ---
     const updateAllLiveScores = httpsCallable(functions, 'updateAllLiveScores');
@@ -76,7 +66,7 @@ window.addEventListener('load', () => {
     }
     
     async function runFullUpdateWithProgress(isFinalizing = false) {
-        const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
+        const liveGamesQuery = query(collection(db, collectionNames.liveGames));
         const liveGamesSnap = await getDocs(liveGamesQuery);
         const playerCount = liveGamesSnap.docs.reduce((sum, doc) => sum + doc.data().team1_lineup.length + doc.data().team2_lineup.length, 0);
 
@@ -106,7 +96,7 @@ window.addEventListener('load', () => {
             }, 100);
 
             try {
-                await updateAllLiveScores();
+                await updateAllLiveScores({ league: getCurrentLeague() });
             } catch (error) {
                 throw error;
             } finally {
@@ -122,7 +112,7 @@ window.addEventListener('load', () => {
             progressBar.style.width = '50%';
             progressCounter.textContent = 'Processing... Please wait.';
             try {
-                const result = await scorekeeperFinalizeAndProcess();
+                const result = await scorekeeperFinalizeAndProcess({ league: getCurrentLeague() });
                 progressBar.style.width = '100%';
                 progressTitle.textContent = "Finalization Complete!";
                 progressStatus.textContent = result.data.message;
@@ -136,7 +126,7 @@ window.addEventListener('load', () => {
 
     function initializeControlPanel() {
         const logScorekeeperActivity = httpsCallable(functions, 'logScorekeeperActivity');
-        const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+        const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
 
         onSnapshot(statusRef, (docSnap) => {
             if (docSnap.exists()) {
@@ -192,7 +182,8 @@ window.addEventListener('load', () => {
                 try {
                     await logScorekeeperActivity({
                         action: 'manual_update',
-                        details: 'User triggered a full manual score update from the live scoring panel.'
+                        details: 'User triggered a full manual score update from the live scoring panel.',
+                        league: getCurrentLeague()
                     });
                     await runFullUpdateWithProgress(false);
                 } catch (error) {
@@ -254,7 +245,7 @@ window.addEventListener('load', () => {
     // --- Main Authentication and Initialization Logic ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && (userDoc.data().role === 'admin' || userDoc.data().role === 'scorekeeper')) {
                 loadingContainer.style.display = 'none';

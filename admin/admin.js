@@ -1,6 +1,6 @@
 // /admin/admin.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs, getCurrentLeague } from '/js/firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // MODIFICATION: Use the dynamic confirmation message.
                     if (confirm(confirmationMessage)) {
                         const createNewSeason = httpsCallable(functions, 'createNewSeason');
-                        const result = await createNewSeason();
+                        const result = await createNewSeason({ league: getCurrentLeague() });
                         alert(result.data.message);
                     }
                 } catch (error) {
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (confirm(`Are you sure you want to create the structure for historical season S${seasonNumber}? This is irreversible.`)) {
                         try {
                             const createHistoricalSeason = httpsCallable(functions, 'createHistoricalSeason');
-                            const result = await createHistoricalSeason({ seasonNumber });
+                            const result = await createHistoricalSeason({ seasonNumber, league: getCurrentLeague() });
                             alert(result.data.message);
                         } catch (error) {
                             console.error("Error creating historical season:", error);

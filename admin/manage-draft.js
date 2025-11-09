@@ -1,18 +1,19 @@
-import { 
-    auth, 
-    db, 
-    functions, 
-    httpsCallable, 
-    onAuthStateChanged, 
-    doc, 
-    getDoc, 
-    collection, 
-    getDocs, 
-    writeBatch, 
-    query, 
-    where, 
-    updateDoc, 
-    orderBy 
+import {
+    auth,
+    db,
+    functions,
+    httpsCallable,
+    onAuthStateChanged,
+    doc,
+    getDoc,
+    collection,
+    getDocs,
+    writeBatch,
+    query,
+    where,
+    updateDoc,
+    orderBy,
+    getCurrentLeague
 } from '/js/firebase-init.js';
 
 // --- Page Elements ---
@@ -189,7 +190,7 @@ async function handleProspectsSubmit(e) {
 
     try {
         const addDraftProspects = httpsCallable(functions, 'addDraftProspects');
-        const result = await addDraftProspects({ handles });
+        const result = await addDraftProspects({ handles, league: getCurrentLeague() });
         alert(result.data.message);
         handlesTextarea.value = ''; // Clear textarea on success
     } catch (error) {

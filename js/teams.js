@@ -7,11 +7,11 @@ import {
   query,
   where,
   collectionGroup,
+  collectionNames,
+  getLeagueCollectionName
 } from './firebase-init.js';
 
 const SEASON_ID = 'S8';
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 function getPlayoffIndicator(rankInConference) {
   if (rankInConference <= 6) {
@@ -89,10 +89,10 @@ async function loadTeams() {
   easternTeamsGrid.innerHTML = '<div class="loading">Loading Eastern Conference teams...</div>';
   westernTeamsGrid.innerHTML = '<div class="loading">Loading Western Conference teams...</div>';
 
-  console.log("Attempting to load teams for season:", SEASON_ID, "in dev mode:", USE_DEV_COLLECTIONS);
+  console.log("Attempting to load teams for season:", SEASON_ID);
   try {
-    const teamsRef = collection(db, getCollectionName('v2_teams'));
-    const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')));
+    const teamsRef = collection(db, collectionNames.teams);
+    const recordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords));
 
     console.log("Starting parallel Firestore queries...");
     const [teamsSnap, recordsSnap] = await Promise.all([

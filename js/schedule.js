@@ -1,10 +1,7 @@
 // /js/schedule.js
 
 import { generateLineupTable } from '../js/main.js';
-import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot } from '../js/firebase-init.js';
-
-const USE_DEV_COLLECTIONS = false; // Set to false for production
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot, collectionNames, getLeagueCollectionName } from '../js/firebase-init.js';
 
 let activeSeasonId = '';
 let allTeams = [];
@@ -85,28 +82,27 @@ function getPostseasonGameLabel(seriesName) {
 
 // --- DATA FETCHING ---
 async function getActiveSeason() {
-    const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
+    const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
     const seasonsSnapshot = await getDocs(seasonsQuery);
     if (seasonsSnapshot.empty) throw new Error("No active season found.");
     activeSeasonId = seasonsSnapshot.docs[0].id;
 }
 
 async function fetchInitialPageData(seasonId) {
-    const teamsCollection = getCollectionName('v2_teams');
-    const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
-    const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
-    const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
+    const gamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('games'));
+    const postGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('post_games'));
+    const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('exhibition_games'));
 
     const [teamsSnapshot, gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
-        getDocs(collection(db, teamsCollection)),
+        getDocs(collection(db, collectionNames.teams)),
         getDocs(gamesRef),
         getDocs(postGamesRef),
         getDocs(exhibitionGamesRef),
     ]);
-    
+
     const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
         let teamData = { id: teamDoc.id, ...teamDoc.data(), wins: 0, losses: 0 }; // Start with base data and default record
-        const seasonalRecordRef = doc(db, teamsCollection, teamDoc.id, getCollectionName('seasonal_records'), seasonId);
+        const seasonalRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
         if (seasonalRecordSnap.exists()) {
             teamData = { ...teamData, ...seasonalRecordSnap.data() }; // Merge seasonal record if it exists
@@ -163,7 +159,7 @@ function determineInitialWeek() {
 }
 
 function listenForLiveGames() {
-    const liveQuery = query(collection(db, getCollectionName('live_games')));
+    const liveQuery = query(collection(db, collectionNames.liveGames));
     onSnapshot(liveQuery, (snapshot) => {
         const liveGamesChanged = snapshot.docChanges().length > 0;
         liveGamesCache.clear();
@@ -180,7 +176,7 @@ function listenForLiveGames() {
 }
 
 function listenForScoringStatus() {
-    const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+    const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
     onSnapshot(statusRef, (docSnap) => {
         const newStatus = docSnap.exists() ? docSnap.data().status : 'stopped';
         if (newStatus !== liveScoringStatus) {
@@ -478,8 +474,8 @@ async function calculateAndDisplayStandouts(week) {
     if (standoutWeekEl) standoutWeekEl.textContent = week;
 
     const seasonNum = activeSeasonId.replace('S', '');
-    const dailyScoresRef = collection(db, getCollectionName('daily_scores'), `season_${seasonNum}`, getCollectionName(`S${seasonNum}_daily_scores`));
-    const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('lineups'));
+    const dailyScoresRef = collection(db, getLeagueCollectionName('daily_scores'), `season_${seasonNum}`, `S${seasonNum}_daily_scores`);
+    const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('lineups'));
     const dailyScoresQuery = query(dailyScoresRef, where('week', '==', week));
     const lineupsQuery = query(lineupsRef, where('week', '==', week));
     const [dailyScoresSnap, lineupsSnap] = await Promise.all([getDocs(dailyScoresQuery), getDocs(lineupsQuery)]);
@@ -542,16 +538,16 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 liveGameData.team2_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
             }
         } else {
-            const lineupsCollectionName = getCollectionName(isGamePostseason ? 'post_lineups' : 'lineups');
-            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
+            const lineupsCollectionName = isGamePostseason ? getLeagueCollectionName('post_lineups') : getLeagueCollectionName('lineups');
+            const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
             lineupsSnap.forEach(doc => allPlayerIdsInGame.push(doc.data().player_id));
         }
 
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
-        const playerStatsPromises = uniquePlayerIds.map(playerId => 
-            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
+        const playerStatsPromises = uniquePlayerIds.map(playerId =>
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, activeSeasonId))
         );
         const playerStatsDocs = await Promise.all(playerStatsPromises);
         
@@ -586,8 +582,15 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
         } else {
             const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
-            const lineupsCollectionName = getCollectionName(isExhibition ? 'exhibition_lineups' : (isGamePostseason ? 'post_lineups' : 'lineups'));
-            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
+            let lineupsCollectionName;
+            if (isExhibition) {
+                lineupsCollectionName = getLeagueCollectionName('exhibition_lineups');
+            } else if (isGamePostseason) {
+                lineupsCollectionName = getLeagueCollectionName('post_lineups');
+            } else {
+                lineupsCollectionName = getLeagueCollectionName('lineups');
+            }
+            const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             
             const lineupsSnap = await getDocs(lineupsQuery);

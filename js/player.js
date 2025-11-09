@@ -1,9 +1,8 @@
 // /js/player.js
-import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup } from './firebase-init.js';
+import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
-const USE_DEV_COLLECTIONS = false; 
 const SEASON_ID = 'S8';
 
 // --- Global State ---
@@ -11,16 +10,6 @@ let allTeamsData = new Map();
 let allGamesData = new Map();
 let playerLineups = [];
 let currentPlayer = null;
-
-/**
- * Gets the correct Firestore collection name based on the environment.
- */
-const getCollectionName = (baseName) => {
-    if (baseName === 'seasonal_records' || baseName === 'seasonal_stats') {
-        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-    }
-    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-};
 
 
 /**
@@ -72,11 +61,11 @@ async function loadPlayerData() {
         if (playerId) {
             // --- If an ID is provided, fetch the player directly (current logic) ---
             finalPlayerId = playerId;
-            const playerRef = doc(db, getCollectionName('v2_players'), finalPlayerId);
+            const playerRef = doc(db, collectionNames.players, finalPlayerId);
             playerSnap = await getDoc(playerRef);
         } else {
             // --- If a HANDLE is provided, query to find the player ---
-            const playersRef = collection(db, getCollectionName('v2_players'));
+            const playersRef = collection(db, collectionNames.players);
             const q = query(playersRef, where('player_handle', '==', playerHandle));
             const querySnapshot = await getDocs(q);
 
@@ -102,9 +91,9 @@ async function loadPlayerData() {
         // Use document.title for a more robust way to set the page title
         document.title = `${playerData.player_handle} - RKL ${SEASON_ID}`;
 
-        const seasonalStatsRef = doc(db, `${getCollectionName('v2_players')}/${finalPlayerId}/${getCollectionName('seasonal_stats')}`, SEASON_ID);
-        const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
-        const activeSeasonQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
+        const seasonalStatsRef = doc(db, collectionNames.players, finalPlayerId, collectionNames.seasonalStats, SEASON_ID);
+        const teamsQuery = query(collection(db, collectionNames.teams));
+        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
 
         const [seasonalStatsSnap, teamsSnap, activeSeasonSnap] = await Promise.all([
             getDoc(seasonalStatsRef),
@@ -134,7 +123,7 @@ async function loadPlayerData() {
         }
         
         const seasonalRecordsQuery = query(
-            collectionGroup(db, getCollectionName('seasonal_records')),
+            collectionGroup(db, collectionNames.seasonalRecords),
             where('season', '==', SEASON_ID)
         );
         const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
@@ -145,15 +134,15 @@ async function loadPlayerData() {
                 Object.assign(teamData, recordDoc.data());
             }
         });
-        
+
         generateIconStylesheet(allTeamsData);
 
         const lineupsQuery = query(
-            collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups')),
+            collection(db, collectionNames.seasons, SEASON_ID, getLeagueCollectionName('lineups')),
             where('player_id', '==', finalPlayerId),
             where('started', '==', 'TRUE')
         );
-        const gamesQuery = query(collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('games')));
+        const gamesQuery = query(collection(db, collectionNames.seasons, SEASON_ID, getLeagueCollectionName('games')));
 
         const [lineupsSnap, gamesSnap] = await Promise.all([
             getDocs(lineupsQuery),
@@ -349,17 +338,17 @@ async function showGameDetails(gameId) {
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formattedDate}`;
 
         const lineupsQuery = query(
-            collection(db, getCollectionName('seasons'), SEASON_ID, getCollectionName('lineups')),
+            collection(db, collectionNames.seasons, SEASON_ID, getLeagueCollectionName('lineups')),
             where('game_id', '==', gameId),
             where('started', '==', 'TRUE')
         );
         const lineupsSnap = await getDocs(lineupsQuery);
-        
+
         const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
 
-        const playerStatsPromises = uniquePlayerIds.map(playerId => 
-            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), SEASON_ID))
+        const playerStatsPromises = uniquePlayerIds.map(playerId =>
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, SEASON_ID))
         );
         const playerStatsDocs = await Promise.all(playerStatsPromises);
         

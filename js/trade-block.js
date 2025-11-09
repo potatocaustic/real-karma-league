@@ -16,7 +16,8 @@ import {
     limit,
     documentId,
     orderBy,
-    collectionNames
+    collectionNames,
+    getCurrentLeague
 } from './firebase-init.js';
 
 const container = document.getElementById('trade-blocks-container');
@@ -420,7 +421,7 @@ function addUniversalClickListener(isAdmin) {
                     buttonTarget.disabled = true;
                     const action = httpsCallable(functions, callableName);
                     currentUser.getIdToken(true).then(() => {
-                        return action();
+                        return action({ league: getCurrentLeague() });
                     }).then(result => {
                         alert(result.data.message);
                         window.location.reload();

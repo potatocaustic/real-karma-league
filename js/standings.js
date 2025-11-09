@@ -1,8 +1,4 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup } from './firebase-init.js';
-
-// --- CONFIGURATION ---
-const USE_DEV_COLLECTIONS = false; // Set to false for production
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
 // --- GLOBAL STATE ---
 let activeSeasonId = '';
@@ -33,7 +29,7 @@ const prVersionSelect = document.getElementById('pr-version-select');
 // --- DATA FETCHING ---
 
 async function getActiveSeason() {
-    const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
+    const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
     const seasonsSnapshot = await getDocs(seasonsQuery);
     if (seasonsSnapshot.empty) throw new Error("No active season found.");
     const seasonDoc = seasonsSnapshot.docs[0];
@@ -42,11 +38,8 @@ async function getActiveSeason() {
 }
 
 async function fetchAllTeamsAndRecords() {
-    const teamsCollectionName = getCollectionName('v2_teams');
-    const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
-
-    const teamsQuery = query(collection(db, teamsCollectionName), where('conference', 'in', ['Eastern', 'Western']));
-    const recordsQuery = query(collectionGroup(db, seasonalRecordsCollectionName)); 
+    const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', ['Eastern', 'Western']));
+    const recordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords)); 
 
     const [teamsSnapshot, recordsSnapshot] = await Promise.all([
         getDocs(teamsQuery),
@@ -72,7 +65,7 @@ async function fetchAllTeamsAndRecords() {
 
 async function fetchAllPowerRankings() {
     const seasonDocName = `season_${activeSeasonId.replace('S', '')}`;
-    const seasonDocRef = doc(db, getCollectionName('power_rankings'), seasonDocName);
+    const seasonDocRef = doc(db, getLeagueCollectionName('power_rankings'), seasonDocName);
     const seasonDocSnap = await getDoc(seasonDocRef);
 
     if (!seasonDocSnap.exists() || !seasonDocSnap.data().latest_version) {
@@ -88,7 +81,7 @@ async function fetchAllPowerRankings() {
     const fetchPromises = [];
     for (let i = 0; i <= latestVersionNumber; i++) {
         const versionString = `v${i}`;
-        const prCollectionRef = collection(db, getCollectionName('power_rankings'), seasonDocName, versionString);
+        const prCollectionRef = collection(db, getLeagueCollectionName('power_rankings'), seasonDocName, versionString);
         fetchPromises.push(getDocs(prCollectionRef));
     }
 

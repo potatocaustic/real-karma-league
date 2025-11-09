@@ -1,13 +1,11 @@
 // /js/draft-lottery.js
 
 import './main.js'; // Import main.js to run it first
-import { db, collection, getDocs, doc, getDoc, query, where } from './firebase-init.js';
+import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
 // --- DATA AND CONFIGURATION ---
 const PREVIOUS_SEASON_ID = 'S8';
 const DRAFT_SEASON_ID = 'S9';
-const USE_DEV_COLLECTIONS = false; // Set to false for production
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 const lotteryOdds = [
     { seed: 1, chances: 140, pct1st: 14.0, pctTop4: 52.14 }, { seed: 2, chances: 140, pct1st: 14.0, pctTop4: 52.14 },
@@ -211,23 +209,23 @@ async function initializeApp() {
 
     try {
         // 1. Fetch official lottery results first
-        const lotteryResultsRef = doc(db, getCollectionName('lottery_results'), `${DRAFT_SEASON_ID}_lottery_results`);
+        const lotteryResultsRef = doc(db, getLeagueCollectionName('lottery_results'), `${DRAFT_SEASON_ID}_lottery_results`);
         const lotteryResultsSnap = await getDoc(lotteryResultsRef);
         if (lotteryResultsSnap.exists()) {
             finalLotteryResults = lotteryResultsSnap.data().final_order || null;
         }
 
         // 2. Fetch all necessary data in parallel
-        const teamsQuery = query(collection(db, getCollectionName('v2_teams')), where('conference', 'in', ['Eastern', 'Western']));
-        
+        const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', ['Eastern', 'Western']));
+
         // ***** FIX: Query for draft picks using strings for season and round *****
         const draftPicksQuery = query(
-            collection(db, getCollectionName('draftPicks')), 
-            where('season', '==', DRAFT_SEASON_ID.replace('S','')), 
+            collection(db, collectionNames.draftPicks),
+            where('season', '==', DRAFT_SEASON_ID.replace('S','')),
             where('round', '==', '1')
         );
-        
-        const postGamesQuery = collection(db, getCollectionName('seasons'), PREVIOUS_SEASON_ID, getCollectionName('post_games'));
+
+        const postGamesQuery = collection(db, collectionNames.seasons, PREVIOUS_SEASON_ID, getLeagueCollectionName('post_games'));
 
         const [teamsSnap, draftPicksSnap, postseasonGamesSnap] = await Promise.all([
             getDocs(teamsQuery),
@@ -245,7 +243,7 @@ async function initializeApp() {
         const teamRecordsPromises = teamsSnap.docs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
             const teamBaseData = teamDoc.data();
-            const recordRef = doc(db, getCollectionName('v2_teams'), teamId, getCollectionName('seasonal_records'), PREVIOUS_SEASON_ID);
+            const recordRef = doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, PREVIOUS_SEASON_ID);
             const recordSnap = await getDoc(recordRef);
             if (recordSnap.exists()) {
                 return { team_id: teamId, ...teamBaseData, ...recordSnap.data() };

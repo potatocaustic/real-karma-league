@@ -1,7 +1,5 @@
-import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where } from './firebase-init.js';
+import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-const USE_DEV_COLLECTIONS = false; // Set to false for production
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 const SEASON_ID = 'S8';
 
 function formatKarma(value) {
@@ -168,18 +166,17 @@ let leaderboardSortState = {
 };
 
 async function fetchSingleGameLeaderboard(boardName) {
-    const docRef = doc(db, getCollectionName('leaderboards'), boardName, SEASON_ID, 'data');
+    const docRef = doc(db, getLeagueCollectionName('leaderboards'), boardName, SEASON_ID, 'data');
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? (docSnap.data().rankings || []) : [];
 }
 
 async function fetchTeamsData(seasonId) {
-    const teamsCollectionName = getCollectionName('v2_teams');
-    const teamsSnap = await getDocs(collection(db, teamsCollectionName));
-    
+    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
+
     const teamsDataPromises = teamsSnap.docs.map(async (teamDoc) => {
         const teamData = teamDoc.data();
-        const seasonalRecordRef = doc(db, teamsCollectionName, teamDoc.id, getCollectionName('seasonal_records'), seasonId);
+        const seasonalRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
         const seasonalRecordSnap = await getDoc(seasonalRecordRef);
 
         if (seasonalRecordSnap.exists()) {
@@ -196,8 +193,8 @@ async function fetchTeamsData(seasonId) {
 }
 
 async function fetchAllPlayerStats(seasonId) {
-    const playersQuery = query(collection(db, getCollectionName('v2_players')));
-    const statsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
+    const playersQuery = query(collection(db, collectionNames.players));
+    const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats));
 
     const [playersSnap, statsSnap] = await Promise.all([
         getDocs(playersQuery),
@@ -235,7 +232,7 @@ async function loadData() {
     leaderboardBody.innerHTML = '<tr><td colspan="4" class="loading">Loading S8 data from Firestore...</td></tr>';
     
     try {
-        const activeSeasonQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'));
+        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
         const [playerStats, teams, singleGameKarma, singleGameRank, activeSeasonSnap] = await Promise.all([
             fetchAllPlayerStats(SEASON_ID),
             fetchTeamsData(SEASON_ID),

@@ -1,10 +1,6 @@
 // /admin/manage-schedule.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, writeBatch, deleteDoc, setDoc, httpsCallable } from '/js/firebase-init.js';
-
-// --- DEV ENVIRONMENT CONFIG ---
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, writeBatch, deleteDoc, setDoc, httpsCallable, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -30,7 +26,7 @@ let currentSeasonId = '';
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 await initializePage();
@@ -45,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const seasonsSnap = await getDocs(collection(db, getCollectionName("seasons")));
+        const seasonsSnap = await getDocs(collection(db, collectionNames.seasons));
         if (seasonsSnap.empty) {
             adminContainer.innerHTML = `<div class="error">No seasons found in the database.</div>`;
             loadingContainer.style.display = 'none';
@@ -98,10 +94,10 @@ async function initializePage() {
 }
 
 async function updateTeamCache(seasonId) {
-    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
+    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
+        const seasonRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
@@ -137,9 +133,9 @@ async function loadSchedules() {
     exhibitionGamesByWeek = {};
 
     const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
-        getDocs(collection(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName('games')}`)),
-        getDocs(collection(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName('post_games')}`)),
-        getDocs(collection(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName('exhibition_games')}`))
+        getDocs(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName('games'))),
+        getDocs(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName('post_games'))),
+        getDocs(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName('exhibition_games')))
     ]);
 
     gamesSnap.forEach(doc => {
@@ -286,7 +282,7 @@ async function saveGame(andExit = true) {
         saveAnotherBtn.disabled = true;
         saveAnotherBtn.textContent = 'Saving...';
 
-        await setDoc(doc(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName(collectionName)}`, gameId), gameData);
+        await setDoc(doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId), gameData);
         await loadSchedules();
 
         if (andExit) {
@@ -315,7 +311,7 @@ async function handleDeleteGame(e) {
 
     if (confirm("Are you sure you want to delete this game?")) {
         try {
-            await deleteDoc(doc(db, `${getCollectionName('seasons')}/${currentSeasonId}/${getCollectionName(collectionName)}`, gameId));
+            await deleteDoc(doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId));
             await loadSchedules();
         } catch (error) {
             console.error("Error deleting game:", error);
@@ -344,7 +340,7 @@ async function handleGeneratePostseason() {
 
     try {
         const generateSchedule = httpsCallable(functions, 'generatePostseasonSchedule');
-        const result = await generateSchedule({ seasonId: currentSeasonId, dates });
+        const result = await generateSchedule({ seasonId: currentSeasonId, dates, league: getCurrentLeague() });
         alert(result.data.message);
         await loadSchedules();
     } catch (error) {

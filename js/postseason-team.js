@@ -7,35 +7,15 @@ import {
     getDoc,
     getDocs,
     query,
-    where
+    where,
+    collectionNames,
+    getLeagueCollectionName
 } from './firebase-init.js';
 
 import { generateLineupTable } from './main.js';
 
 // --- CONFIGURATION ---
 const ACTIVE_SEASON_ID = 'S8';
-/**
- * **Set to true to use development collections (e.g., "v2_teams_dev").**
- * This should be false for the live production site.
- */
-const USE_DEV_COLLECTIONS = false;
-
-/**
- * **Gets the correct collection name based on the environment.**
- * @param {string} baseName The base name of the collection.
- * @returns {string} The collection name with or without the _dev suffix.
- */
-function getCollectionName(baseName) {
-    const devSuffix = '_dev';
-    if (!USE_DEV_COLLECTIONS) {
-        return baseName;
-    }
-    // In dev mode, append _dev to all relevant collections
-    if (baseName.includes('_scores') || baseName.includes('_averages') || baseName.includes('_lineups') || baseName.includes('_games') || baseName.includes('_results') || baseName.includes('live_') || baseName.includes('usage_') || baseName.includes('seasonal_')) {
-        return `${baseName}${devSuffix}`;
-    }
-    return `${baseName}${devSuffix}`;
-}
 
 
 // --- STATE MANAGEMENT ---
@@ -89,20 +69,20 @@ async function loadPageData() {
         }
         
         // --- DEFINE ALL DATA PROMISES ---
-        const allTeamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
-        const teamRecordPromises = allTeamsSnap.docs.map(teamDoc => 
-            getDoc(doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), ACTIVE_SEASON_ID))
+        const allTeamsSnap = await getDocs(collection(db, collectionNames.teams));
+        const teamRecordPromises = allTeamsSnap.docs.map(teamDoc =>
+            getDoc(doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, ACTIVE_SEASON_ID))
         );
         const allTeamsRecordsPromise = Promise.all(teamRecordPromises);
 
-        const teamDocPromise = getDoc(doc(db, getCollectionName("v2_teams"), teamId));
-        const teamSeasonalPromise = getDoc(doc(db, getCollectionName("v2_teams"), teamId, getCollectionName("seasonal_records"), ACTIVE_SEASON_ID));
+        const teamDocPromise = getDoc(doc(db, collectionNames.teams, teamId));
+        const teamSeasonalPromise = getDoc(doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID));
 
-        const rosterQuery = query(collection(db, getCollectionName("v2_players")), where("current_team_id", "==", teamId));
+        const rosterQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const rosterPromise = getDocs(rosterQuery);
 
         // Fetch POSTSEASON games instead of regular season
-        const schedulePromise = getDocs(collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("post_games")));
+        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName('post_games')));
 
         // --- AWAIT ALL PROMISES ---
         const [
@@ -143,7 +123,7 @@ async function loadPageData() {
         // --- PROCESS ROSTER & PLAYER SEASONAL STATS (MULTI-STEP) ---
         const playerDocs = rosterSnap.docs;
         const playerSeasonalStatsPromises = playerDocs.map(pDoc =>
-            getDoc(doc(db, getCollectionName("v2_players"), pDoc.id, getCollectionName("seasonal_stats"), ACTIVE_SEASON_ID))
+            getDoc(doc(db, collectionNames.players, pDoc.id, collectionNames.seasonalStats, ACTIVE_SEASON_ID))
         );
         const playerSeasonalStatsSnaps = await Promise.all(playerSeasonalStatsPromises);
 
@@ -306,7 +286,7 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     
     try {
         const q = query(
-            collection(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("post_lineups")), // Query post_lineups
+            collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName('post_lineups')), // Query post_lineups
             where("date", "==", gameDate),
             where("team_id", "in", [team1_id, team2_id]),
             where("started", "==", "TRUE")
@@ -316,8 +296,8 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
         const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
 
-        const playerStatsPromises = uniquePlayerIds.map(playerId => 
-            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), ACTIVE_SEASON_ID))
+        const playerStatsPromises = uniquePlayerIds.map(playerId =>
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, ACTIVE_SEASON_ID))
         );
         const playerStatsDocs = await Promise.all(playerStatsPromises);
         
@@ -346,7 +326,7 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
         
         if (!gameDocId) throw new Error("Could not find game document ID.");
 
-        const gameSnap = await getDoc(doc(db, getCollectionName("seasons"), ACTIVE_SEASON_ID, getCollectionName("post_games"), gameDocId));
+        const gameSnap = await getDoc(doc(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("post_games"), gameDocId));
         const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
 
         modalContentEl.innerHTML = `

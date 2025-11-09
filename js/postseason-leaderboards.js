@@ -1,8 +1,6 @@
 // /js/postseason-leaderboards.js
-import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where } from './firebase-init.js';
+import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 const SEASON_ID = 'S8';
 
 // Helper formatting functions
@@ -121,15 +119,15 @@ let leaderboardSortState = { columnField: null, direction: 'desc' };
 // --- Data Fetching Functions ---
 
 async function fetchSingleGameLeaderboard(boardName) {
-    const docRef = doc(db, getCollectionName('post_leaderboards'), boardName, SEASON_ID, 'data');
+    const docRef = doc(db, getLeagueCollectionName('post_leaderboards'), boardName, SEASON_ID, 'data');
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? (docSnap.data().rankings || []) : [];
 }
 
 async function fetchAllData() {
-    const playersQuery = query(collection(db, getCollectionName('v2_players')));
-    const teamsQuery = query(collection(db, getCollectionName('v2_teams')));
-    const recordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')), where('season', '==', SEASON_ID));
+    const playersQuery = query(collection(db, collectionNames.players));
+    const teamsQuery = query(collection(db, collectionNames.teams));
+    const recordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', SEASON_ID));
 
     const [playersSnap, teamsSnap, recordsSnap, singleGameKarma, singleGameRank] = await Promise.all([
         getDocs(playersQuery),
@@ -139,7 +137,7 @@ async function fetchAllData() {
         fetchSingleGameLeaderboard('post_single_game_rank')
     ]);
 
-    const statsPromises = playersSnap.docs.map(pDoc => getDoc(doc(db, getCollectionName('v2_players'), pDoc.id, getCollectionName('seasonal_stats'), SEASON_ID)));
+    const statsPromises = playersSnap.docs.map(pDoc => getDoc(doc(db, collectionNames.players, pDoc.id, collectionNames.seasonalStats, SEASON_ID)));
     const statsSnaps = await Promise.all(statsPromises);
 
     const recordsMap = new Map(recordsSnap.docs.map(doc => [doc.ref.parent.parent.id, doc.data()]));

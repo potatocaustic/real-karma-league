@@ -1,6 +1,6 @@
 // /admin/manage-awards.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where, getCurrentLeague } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = false;
@@ -372,7 +372,7 @@ async function handleCalculationTrigger() {
     calculateBtn.textContent = 'Calculating...';
     try {
         const calculatePerformanceAwards = httpsCallable(functions, 'calculatePerformanceAwards');
-        const result = await calculatePerformanceAwards({ seasonId: currentSeasonId });
+        const result = await calculatePerformanceAwards({ seasonId: currentSeasonId, league: getCurrentLeague() });
         alert(result.data.message);
         await loadExistingAwards();
     } catch (error) {

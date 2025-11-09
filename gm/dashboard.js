@@ -1,30 +1,17 @@
-import { 
-    auth, 
-    db, 
-    onAuthStateChanged, 
-    signOut, 
-    doc, 
+import {
+    auth,
+    db,
+    onAuthStateChanged,
+    signOut,
+    doc,
     getDoc,
     collection,
     query,
     where,
     limit,
-    getDocs
+    getDocs,
+    collectionNames
 } from '/js/firebase-init.js';
-
-
-// ======================= MODIFICATION START =======================
-// This helper function makes the script self-sufficient, just like manage-games.js.
-// Set to 'false' when deploying to production.
-const USE_DEV_COLLECTIONS = false; 
-const getCollectionName = (baseName) => {
-    // Note: The admin dashboard uses 'users', but the GM logic relies on 'v2_teams' which has the gm_uid field.
-    if (baseName === 'teams') {
-        return USE_DEV_COLLECTIONS ? 'v2_teams_dev' : 'v2_teams';
-    }
-    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-};
-// ======================= MODIFICATION END =======================
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -34,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName('users'), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -46,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const teamsQuery = query(collection(db, getCollectionName('teams')), where("gm_uid", "==", user.uid), limit(1));
+            const teamsQuery = query(collection(db, collectionNames.teams), where("gm_uid", "==", user.uid), limit(1));
             const teamSnap = await getDocs(teamsQuery);
 
             if (!teamSnap.empty) {
