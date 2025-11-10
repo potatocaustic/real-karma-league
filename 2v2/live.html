@@ -33,23 +33,33 @@
       padding: 1.5rem;
       border-left: 4px solid #dc3545;
       transition: background-color 0.3s, border-color 0.3s;
+      cursor: pointer;
+    }
+
+    .game-card:hover {
+      background-color: #e9ecef;
     }
 
     .game-teams {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
+      gap: 1.5rem;
     }
 
-    .team {
+    .team-section {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .team-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0.5rem 0;
     }
 
-    .team.winner {
+    .team-header.winner {
       font-weight: bold;
       color: #28a745;
     }
@@ -69,93 +79,47 @@
       color: #28a745;
     }
 
-    .game-details {
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid #ddd;
-    }
-
-    .game-details-header {
-      cursor: pointer;
-      padding: 0.5rem;
-      background-color: #e9ecef;
-      border-radius: 4px;
-      text-align: center;
-      font-weight: 500;
-      margin-bottom: 0.75rem;
-      transition: background-color 0.2s;
-    }
-
-    .game-details-header:hover {
-      background-color: #dee2e6;
-    }
-
     .team-roster {
-      margin-bottom: 1.5rem;
+      display: none;
+      margin-left: 1rem;
     }
 
-    .roster-title {
-      font-weight: bold;
-      margin-bottom: 0.5rem;
-      color: #666;
-      font-size: 0.95rem;
+    .team-roster.show {
+      display: block;
     }
 
     .player-row {
       padding: 0.5rem 0.75rem;
-      background-color: #f8f9fa;
+      background-color: #fff;
       border-radius: 4px;
       margin-bottom: 0.4rem;
       font-size: 0.9rem;
       transition: background-color 0.3s;
     }
 
-    .roster-content {
-      display: none;
-    }
-
-    .roster-content.show {
-      display: block;
-    }
-
     /* Dark mode styles */
     .dark-mode .game-card {
       background-color: #2c2c2c;
       border-color: #444;
+      border-left-color: #ef5350;
     }
 
-    .dark-mode .game-card {
-      border-left-color: #ef5350;
+    .dark-mode .game-card:hover {
+      background-color: #3a3a3a;
     }
 
     .dark-mode .team-score {
       color: #e0e0e0;
     }
 
-    .dark-mode .team.winner,
+    .dark-mode .team-header.winner,
     .dark-mode .team-score.winner {
       color: #66bb6a;
     }
 
-    .dark-mode .roster-title {
-      color: #aaa;
-    }
-
     .dark-mode .player-row {
-      background-color: #333;
+      background-color: #1e1e1e;
       color: #fff;
-    }
-
-    .dark-mode .game-details {
-      border-top-color: #444;
-    }
-
-    .dark-mode .game-details-header {
-      background-color: #3a3a3a;
-    }
-
-    .dark-mode .game-details-header:hover {
-      background-color: #444;
     }
 
     @media (max-width: 768px) {
@@ -312,36 +276,32 @@
     }
 
     function createGameHTML(team1, team2, t1Total, t2Total, t1Rows, t2Rows, index) {
-      const detailsId = `details-${index}`;
+      const roster1Id = `roster1-${index}`;
+      const roster2Id = `roster2-${index}`;
       const isWinner1 = t1Total > t2Total;
       const isWinner2 = t2Total > t1Total;
 
       return `
-        <div class="game-card">
+        <div class="game-card" onclick="
+          document.getElementById('${roster1Id}').classList.toggle('show');
+          document.getElementById('${roster2Id}').classList.toggle('show');
+        ">
           <div class="game-teams">
-            <div class="team ${isWinner1 ? 'winner' : ''}">
-              <span class="team-name">${team1}</span>
-              <span class="team-score ${isWinner1 ? 'winner' : ''}">${t1Total}</span>
-            </div>
-            <div class="team ${isWinner2 ? 'winner' : ''}">
-              <span class="team-name">${team2}</span>
-              <span class="team-score ${isWinner2 ? 'winner' : ''}">${t2Total}</span>
-            </div>
-          </div>
-          <div class="game-details">
-            <div class="game-details-header" onclick="
-              const content = document.getElementById('${detailsId}');
-              content.classList.toggle('show');
-            ">
-              View Player Details ▼
-            </div>
-            <div class="roster-content" id="${detailsId}">
-              <div class="team-roster">
-                <div class="roster-title">${team1}</div>
+            <div class="team-section">
+              <div class="team-header ${isWinner1 ? 'winner' : ''}">
+                <span class="team-name">${team1}</span>
+                <span class="team-score ${isWinner1 ? 'winner' : ''}">${t1Total}</span>
+              </div>
+              <div class="team-roster" id="${roster1Id}">
                 ${t1Rows.join('')}
               </div>
-              <div class="team-roster">
-                <div class="roster-title">${team2}</div>
+            </div>
+            <div class="team-section">
+              <div class="team-header ${isWinner2 ? 'winner' : ''}">
+                <span class="team-name">${team2}</span>
+                <span class="team-score ${isWinner2 ? 'winner' : ''}">${t2Total}</span>
+              </div>
+              <div class="team-roster" id="${roster2Id}">
                 ${t2Rows.join('')}
               </div>
             </div>
