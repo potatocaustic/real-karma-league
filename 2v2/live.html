@@ -2,114 +2,126 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>2v2 Live Scores</title>
+  <link rel="stylesheet" href="/css/global-styles.css">
+  <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    (function () {
+      const theme = localStorage.getItem('theme');
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark-mode');
+      }
+    })();
+  </script>
+  <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+  </script>
+  <script defer src="/_vercel/insights/script.js"></script>
   <style>
-    :root {
-      --bg-color: #121212;
-      --card-color: #1e1e1e;
-      --accent-color: #00ff88;
-      --text-color: #ffffff;
-      --text-muted: #aaa;
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Segoe UI', Roboto, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      min-height: 100vh;
-      padding: 24px;
-      max-width: 760px;
-      margin: auto;
-    }
-
-    h1 {
-      text-align: center;
-      font-size: 32px;
-      margin-bottom: 16px;
-    }
-
-    .loading {
-      text-align: center;
-      font-size: 14px;
-      color: var(--accent-color);
-      margin-bottom: 16px;
-    }
-
-    .home-link {
-      display: block;
-      text-align: center;
-      margin-top: 30px;
-      font-size: 14px;
-      color: var(--accent-color);
-      text-decoration: none;
-      transition: opacity 0.2s;
-    }
-
-    .home-link:hover {
-      opacity: 0.7;
-    }
-
     .game-container {
-      background-color: var(--card-color);
-      border-radius: 16px;
-      margin-bottom: 24px;
-      box-shadow: 0 0 12px rgba(0, 255, 136, 0.15);
+      background-color: #fff;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       overflow: hidden;
+      transition: background-color 0.3s, box-shadow 0.3s;
     }
 
     .game-header {
-      padding: 16px 20px;
-      background-color: #2a2a2a;
+      padding: 1rem 1.25rem;
+      background-color: #333;
+      color: white;
       cursor: pointer;
-      border-bottom: 1px solid #333;
+      border-bottom: 1px solid #ddd;
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-weight: 600;
-      font-size: 17px;
+      font-size: 1.1rem;
       transition: background 0.2s ease;
     }
 
     .game-header:hover {
-      background-color: #353535;
+      background-color: #555;
     }
 
     .game-body {
       display: none;
-      padding: 20px;
+      padding: 1.25rem;
     }
 
     .team-roster {
-      margin-bottom: 24px;
+      margin-bottom: 1.5rem;
     }
 
     .roster-title {
       font-weight: bold;
-      margin-bottom: 8px;
-      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+      color: #666;
+      font-size: 0.95rem;
     }
 
     .player-row {
-      padding: 6px 12px;
+      padding: 0.5rem 0.75rem;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+      transition: background-color 0.3s;
+    }
+
+    /* Dark mode styles */
+    .dark-mode .game-container {
+      background-color: #2a2a2a;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .dark-mode .game-header {
+      background-color: #1a1a1a;
+      border-bottom-color: #444;
+    }
+
+    .dark-mode .game-header:hover {
       background-color: #333;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      font-size: 14px;
+    }
+
+    .dark-mode .roster-title {
+      color: #aaa;
+    }
+
+    .dark-mode .player-row {
+      background-color: #333;
+      color: #fff;
     }
   </style>
 </head>
 <body>
-  <h1>2v2 Tourney Live Scores</h1>
-  <div class="loading" id="loading-indicator">Loading...</div>
-  <div id="games-container"></div>
+  <header>
+    <button id="theme-toggle-btn" aria-label="Toggle Theme">
+      <span class="sun-icon">☀️</span>
+      <span class="moon-icon">🌙</span>
+    </button>
+    <h1>
+      <a href="/index.html" class="header-link">
+        <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+        <span class="header-text">Real Karma League</span>
+      </a>
+    </h1>
+  </header>
+  <main>
+    <div class="page-header">
+      <h2>2v2 Tourney Live Scores</h2>
+      <p>Live matchup scores for today's games</p>
+    </div>
+    <div class="loading" id="loading-indicator">Loading...</div>
+    <div id="games-container"></div>
+  </main>
+  <footer>
+    <p>@caustic on Real</p>
+    <a href="/gm/dashboard.html">GM Portal</a>
+  </footer>
   <script>
     const scheduleCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSpWzfvc-MwID3Tj-SkourUAzBYqwfDOK6SJTBpyfgplNEtzpDxOGqgV09ztCUq9v_3p5olQdoMoMO6/pub?output=csv';
     const rosterCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS4_SVg1vjgXMH3UN4KTz9WJqKMa5Ot0PXj9whT1MDW1fBTAY-fKTjGziUb9TALcU-hFpu6AiBxaZ7C/pub?output=csv';
@@ -198,7 +210,7 @@
       return results;
     }
 
-    async function processTeam(players, updateProgress) {
+    async function processTeam(players) {
       let teamTotal = 0;
       const rows = await limitedMap(players, 10, async p => {
         const userId = p['User ID']?.trim();
@@ -220,7 +232,7 @@
           : `${userAt}: ${rounded}`;
 
         return `<div class="player-row">${label}</div>`;
-      }, updateProgress);
+      });
       return { rows, total: Math.round(teamTotal) };
     }
 
@@ -261,12 +273,6 @@
         const games = parseCSV(scheduleRes.data).filter(g => g.Date?.trim() === today);
         const players = parseCSV(rosterRes.data).filter(p => p['playing?']?.toLowerCase() === 'yes');
 
-        let loaded = 0;
-        const total = players.length;
-        const updateProgress = () => {
-          loading.textContent = `Loaded ${loaded++} out of ${total} players...`;
-        };
-
         for (let i = 0; i < games.length; i++) {
           const game = games[i];
           const t1 = game['Team 1'];
@@ -275,14 +281,14 @@
           const t2Players = players.filter(p => p.Team === t2);
 
           const [t1Data, t2Data] = await Promise.all([
-            processTeam(t1Players, updateProgress),
-            processTeam(t2Players, updateProgress)
+            processTeam(t1Players),
+            processTeam(t2Players)
           ]);
 
           container.innerHTML += createGameHTML(t1, t2, t1Data.total, t2Data.total, t1Data.rows, t2Data.rows, i);
         }
 
-        loading.textContent = 'Done.';
+        loading.style.display = 'none';
       } catch (e) {
         loading.textContent = 'Failed to load game data.';
         console.error(e);
@@ -291,5 +297,6 @@
 
     loadGames();
   </script>
+  <script src="/js/main.js" type="module" defer></script>
 </body>
 </html>
