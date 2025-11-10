@@ -20,36 +20,74 @@
   </script>
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
-    .game-container {
-      background-color: #fff;
+    .games-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .game-card {
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
       border-radius: 8px;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      overflow: hidden;
-      transition: background-color 0.3s, box-shadow 0.3s;
+      padding: 1.5rem;
+      border-left: 4px solid #dc3545;
+      transition: background-color 0.3s, border-color 0.3s;
     }
 
-    .game-header {
-      padding: 1rem 1.25rem;
-      background-color: #333;
-      color: white;
-      cursor: pointer;
-      border-bottom: 1px solid #ddd;
+    .game-teams {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .team {
+      display: flex;
       align-items: center;
-      font-weight: 600;
-      font-size: 1.1rem;
-      transition: background 0.2s ease;
+      justify-content: space-between;
+      padding: 0.5rem 0;
     }
 
-    .game-header:hover {
-      background-color: #555;
+    .team.winner {
+      font-weight: bold;
+      color: #28a745;
     }
 
-    .game-body {
-      display: none;
-      padding: 1.25rem;
+    .team-name {
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .team-score {
+      font-weight: bold;
+      color: #333;
+      font-size: 1.2rem;
+    }
+
+    .team-score.winner {
+      color: #28a745;
+    }
+
+    .game-details {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid #ddd;
+    }
+
+    .game-details-header {
+      cursor: pointer;
+      padding: 0.5rem;
+      background-color: #e9ecef;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: 500;
+      margin-bottom: 0.75rem;
+      transition: background-color 0.2s;
+    }
+
+    .game-details-header:hover {
+      background-color: #dee2e6;
     }
 
     .team-roster {
@@ -72,19 +110,31 @@
       transition: background-color 0.3s;
     }
 
+    .roster-content {
+      display: none;
+    }
+
+    .roster-content.show {
+      display: block;
+    }
+
     /* Dark mode styles */
-    .dark-mode .game-container {
-      background-color: #2a2a2a;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    .dark-mode .game-card {
+      background-color: #2c2c2c;
+      border-color: #444;
     }
 
-    .dark-mode .game-header {
-      background-color: #1a1a1a;
-      border-bottom-color: #444;
+    .dark-mode .game-card {
+      border-left-color: #ef5350;
     }
 
-    .dark-mode .game-header:hover {
-      background-color: #333;
+    .dark-mode .team-score {
+      color: #e0e0e0;
+    }
+
+    .dark-mode .team.winner,
+    .dark-mode .team-score.winner {
+      color: #66bb6a;
     }
 
     .dark-mode .roster-title {
@@ -94,6 +144,24 @@
     .dark-mode .player-row {
       background-color: #333;
       color: #fff;
+    }
+
+    .dark-mode .game-details {
+      border-top-color: #444;
+    }
+
+    .dark-mode .game-details-header {
+      background-color: #3a3a3a;
+    }
+
+    .dark-mode .game-details-header:hover {
+      background-color: #444;
+    }
+
+    @media (max-width: 768px) {
+      .games-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -109,6 +177,13 @@
         <span class="header-text">Real Karma League</span>
       </a>
     </h1>
+    <nav>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+      <ul id="nav-menu">
+        <li><a href="/index.html">Home</a></li>
+        <li><a href="/2v2/live.html">2v2 Live Scores</a></li>
+      </ul>
+    </nav>
   </header>
   <main>
     <div class="page-header">
@@ -116,7 +191,7 @@
       <p>Live matchup scores for today's games</p>
     </div>
     <div class="loading" id="loading-indicator">Loading...</div>
-    <div id="games-container"></div>
+    <div class="games-grid" id="games-container"></div>
   </main>
   <footer>
     <p>@caustic on Real</p>
@@ -237,23 +312,38 @@
     }
 
     function createGameHTML(team1, team2, t1Total, t2Total, t1Rows, t2Rows, index) {
-      const id = `game-${index}`;
+      const detailsId = `details-${index}`;
+      const isWinner1 = t1Total > t2Total;
+      const isWinner2 = t2Total > t1Total;
+
       return `
-        <div class="game-container">
-          <div class="game-header" onclick="
-            const body = document.getElementById('${id}');
-            body.style.display = body.style.display === 'block' ? 'none' : 'block';
-          ">
-            ${team1} (${t1Total}) vs ${team2} (${t2Total})
-          </div>
-          <div class="game-body" id="${id}">
-            <div class="team-roster">
-              <div class="roster-title">${team1}</div>
-              ${t1Rows.join('')}
+        <div class="game-card">
+          <div class="game-teams">
+            <div class="team ${isWinner1 ? 'winner' : ''}">
+              <span class="team-name">${team1}</span>
+              <span class="team-score ${isWinner1 ? 'winner' : ''}">${t1Total}</span>
             </div>
-            <div class="team-roster">
-              <div class="roster-title">${team2}</div>
-              ${t2Rows.join('')}
+            <div class="team ${isWinner2 ? 'winner' : ''}">
+              <span class="team-name">${team2}</span>
+              <span class="team-score ${isWinner2 ? 'winner' : ''}">${t2Total}</span>
+            </div>
+          </div>
+          <div class="game-details">
+            <div class="game-details-header" onclick="
+              const content = document.getElementById('${detailsId}');
+              content.classList.toggle('show');
+            ">
+              View Player Details ▼
+            </div>
+            <div class="roster-content" id="${detailsId}">
+              <div class="team-roster">
+                <div class="roster-title">${team1}</div>
+                ${t1Rows.join('')}
+              </div>
+              <div class="team-roster">
+                <div class="roster-title">${team2}</div>
+                ${t2Rows.join('')}
+              </div>
             </div>
           </div>
         </div>`;
