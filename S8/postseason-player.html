@@ -105,7 +105,9 @@
     </footer>
 
     <div id="game-modal-container"></div>
-
+    <script>
+      window.firebasePageConfig = { useProdCollections: true };
+    </script>
     <script src="/js/main.js" type="module"></script>
      <script>
       fetch('/common/game-modal-component.html')
