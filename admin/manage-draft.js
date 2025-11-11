@@ -30,6 +30,88 @@ let allTeams = [];
 let currentSeasonId = null;
 const TOTAL_PICKS = 90;
 
+// --- Auto-Save Cache ---
+const CACHE_KEY_PREFIX = 'draft_entries_cache_';
+let autoSaveTimeout = null;
+
+// --- Cache Helper Functions ---
+function getCacheKey() {
+    return `${CACHE_KEY_PREFIX}${currentSeasonId}`;
+}
+
+function saveDraftCache() {
+    if (!currentSeasonId) return;
+
+    const cacheData = {};
+    for (let i = 1; i <= TOTAL_PICKS; i++) {
+        const row = document.getElementById(`pick-row-${i}`);
+        if (!row) continue;
+
+        const teamId = row.querySelector('.team-select')?.value || '';
+        const playerHandle = row.querySelector('.player-handle-input')?.value.trim() || '';
+        const isForfeited = row.querySelector('.forfeit-checkbox')?.checked || false;
+
+        // Only cache if there's actual data
+        if (teamId || playerHandle || isForfeited) {
+            cacheData[i] = { teamId, playerHandle, isForfeited };
+        }
+    }
+
+    try {
+        localStorage.setItem(getCacheKey(), JSON.stringify(cacheData));
+        updateAutoSaveIndicator('Saved');
+        console.log('Draft entries cached locally');
+    } catch (error) {
+        console.error('Error saving draft cache:', error);
+        updateAutoSaveIndicator('Error saving');
+    }
+}
+
+function loadDraftCache() {
+    if (!currentSeasonId) return null;
+
+    try {
+        const cached = localStorage.getItem(getCacheKey());
+        return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+        console.error('Error loading draft cache:', error);
+        return null;
+    }
+}
+
+function clearDraftCache() {
+    if (!currentSeasonId) return;
+
+    try {
+        localStorage.removeItem(getCacheKey());
+        updateAutoSaveIndicator('Cache cleared');
+        console.log('Draft cache cleared');
+    } catch (error) {
+        console.error('Error clearing draft cache:', error);
+    }
+}
+
+function debouncedSave() {
+    updateAutoSaveIndicator('Saving...');
+    if (autoSaveTimeout) clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+        saveDraftCache();
+    }, 500); // Save 500ms after last change
+}
+
+function updateAutoSaveIndicator(status) {
+    const indicator = document.getElementById('auto-save-indicator');
+    if (indicator) {
+        indicator.textContent = status;
+        indicator.style.opacity = '1';
+
+        // Fade out after 2 seconds
+        setTimeout(() => {
+            indicator.style.opacity = '0.5';
+        }, 2000);
+    }
+}
+
 // --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
@@ -94,6 +176,13 @@ async function initializePage() {
 
         document.getElementById('progress-close-btn').addEventListener('click', () => {
             document.getElementById('progress-modal').style.display = 'none';
+        });
+
+        document.getElementById('clear-cache-btn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear the cached draft entries? This cannot be undone.')) {
+                clearDraftCache();
+                loadDraftBoard(); // Reload the board from database
+            }
         });
 
     } catch (error) {
@@ -276,6 +365,36 @@ async function loadDraftBoard() {
     }
     draftTableBody.innerHTML = tableHTML;
 
+    // Load cached data (takes precedence over database data)
+    const cachedData = loadDraftCache();
+    if (cachedData && Object.keys(cachedData).length > 0) {
+        console.log('Loading cached draft entries...');
+        for (const [overall, data] of Object.entries(cachedData)) {
+            const row = document.getElementById(`pick-row-${overall}`);
+            if (!row) continue;
+
+            const teamSelect = row.querySelector('.team-select');
+            const playerInput = row.querySelector('.player-handle-input');
+            const forfeitCheckbox = row.querySelector('.forfeit-checkbox');
+
+            if (data.teamId) teamSelect.value = data.teamId;
+            if (data.playerHandle) playerInput.value = data.playerHandle;
+            if (data.isForfeited !== undefined) forfeitCheckbox.checked = data.isForfeited;
+
+            // Update row state
+            const isDisabled = data.isForfeited;
+            row.classList.toggle('is-forfeited', isDisabled);
+            teamSelect.disabled = isDisabled;
+            playerInput.disabled = isDisabled;
+        }
+        updateAutoSaveIndicator('Loaded from cache');
+    }
+
+    // Add auto-save event listeners
+    draftTableBody.querySelectorAll('.team-select, .player-handle-input').forEach(input => {
+        input.addEventListener('input', debouncedSave);
+    });
+
     draftTableBody.querySelectorAll('.forfeit-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', (e) => {
             const overall = e.target.dataset.overall;
@@ -285,6 +404,9 @@ async function loadDraftBoard() {
             row.classList.toggle('is-forfeited', isDisabled);
             row.querySelector('.team-select').disabled = isDisabled;
             row.querySelector('.player-handle-input').disabled = isDisabled;
+
+            // Trigger auto-save
+            debouncedSave();
         });
     });
 }
@@ -323,6 +445,10 @@ async function handleDraftSubmit(e) {
         }
 
         await batch.commit();
+
+        // Clear the cache after successful submission
+        clearDraftCache();
+
         alert('Draft results submitted successfully! Player creation is now processing in the background.');
 
     } catch (error) {
