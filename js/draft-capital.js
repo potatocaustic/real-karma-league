@@ -95,7 +95,7 @@ async function loadData() {
               return acc;
           }, []);
       
-      const activeLeagueSeason = "S8";
+      const activeLeagueSeason = "S9";
       const transCol = collection(db, collectionNames.transactions, 'seasons', activeLeagueSeason);
       const transSnap = await getDocs(transCol);
       allTransactionsLogData = transSnap.docs.map(doc => ({
