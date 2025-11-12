@@ -2439,17 +2439,53 @@ exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{re
             }
 
         } else { // Historical draft
-            console.log(`Historical draft (${draftSeason}). Checking for existing player: ${player_handle}.`);
-            const existingPlayerQuery = db.collection(getCollectionName('v2_players')).where('player_handle', '==', player_handle).limit(1);
-            const existingPlayerSnap = await existingPlayerQuery.get();
+            const randomDelay = Math.floor(Math.random() * 201) + 100;
+            await delay(randomDelay);
 
-            if (existingPlayerSnap.empty) {
-                console.log(`Player not found. Creating new player for historical draft.`);
+            console.log(`Historical draft (${draftSeason}). Fetching player ID for: ${player_handle}.`);
+            let newPlayerId;
+
+            try {
+                const apiUrl = API_ENDPOINT_TEMPLATE.replace('{}', encodeURIComponent(player_handle));
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+                        'Accept': 'application/json, text/plain, */*'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    const userId = data?.user?.id;
+                    if (userId) {
+                        newPlayerId = userId;
+                        console.log(`Successfully fetched ID for ${player_handle}: ${newPlayerId}`);
+                    }
+                } else {
+                    console.warn(`API request failed for ${player_handle} with status: ${response.status}.`);
+                }
+            } catch (error) {
+                console.error(`Error fetching user ID for ${player_handle}:`, error);
+            }
+
+            if (!newPlayerId) {
                 const sanitizedHandle = player_handle.toLowerCase().replace(/[^a-z0-9]/g, '');
-                const newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
-                playerIdToWrite = newPlayerId; // Set the ID to be written back
-                const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
+                newPlayerId = `${sanitizedHandle}${draftSeason.replace('S', '')}${overall}`;
+                console.warn(`Using fallback generated ID for ${player_handle}: ${newPlayerId}`);
+            }
 
+            playerIdToWrite = newPlayerId; // Set the ID to be written back
+
+            const playerRef = db.collection(getCollectionName('v2_players')).doc(newPlayerId);
+            const existingPlayerSnap = await playerRef.get();
+
+            if (existingPlayerSnap.exists) {
+                console.log(`Player with ID '${newPlayerId}' already exists. Updating their bio.`);
+                batch.update(playerRef, { bio: bio });
+                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
+                batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
+            } else {
+                console.log(`Player not found. Creating new player for historical draft.`);
                 batch.set(playerRef, {
                     player_handle: player_handle,
                     current_team_id: team_id,
@@ -2459,14 +2495,6 @@ exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{re
 
                 const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
                 batch.set(seasonStatsRef, { ...initialStats, rookie: '1' });
-            } else {
-                console.log(`Existing player found. Updating bio only.`);
-                const playerDoc = existingPlayerSnap.docs[0];
-                playerIdToWrite = playerDoc.id; // Set the ID to be written back
-                const playerRef = playerDoc.ref;
-                batch.update(playerRef, { bio: bio });
-                const seasonStatsRef = playerRef.collection(getCollectionName('seasonal_stats')).doc(draftSeason);
-                batch.set(seasonStatsRef, { ...initialStats, rookie: '0' });
             }
         }
 
