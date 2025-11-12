@@ -3972,19 +3972,30 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
                 current_week: String(nextGameWeek)
             }, { merge: true });
         } else {
-            const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games', league));
-            const allPostGamesSnap = await postGamesRef.limit(2).get(); 
+            // Check if there are any regular season games scheduled at all
+            const anyGamesSnap = await gamesRef.limit(1).get();
 
-            if (allPostGamesSnap.size > 1) {
-                console.log("No incomplete games found anywhere. Postseason is complete. Setting current week to 'Season Complete'.");
+            if (anyGamesSnap.empty) {
+                console.log(`No games scheduled yet for ${league} league. Defaulting to Week 1.`);
                 await activeSeasonDoc.ref.set({
-                    current_week: "Season Complete"
+                    current_week: "Week 1"
                 }, { merge: true });
             } else {
-                console.log("Regular season complete. Awaiting postseason schedule generation.");
-                await activeSeasonDoc.ref.set({
-                    current_week: "End of Regular Season"
-                }, { merge: true });
+                // Regular season has games but all are complete, check postseason status
+                const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games', league));
+                const allPostGamesSnap = await postGamesRef.limit(2).get();
+
+                if (allPostGamesSnap.size > 1) {
+                    console.log("No incomplete games found anywhere. Postseason is complete. Setting current week to 'Season Complete'.");
+                    await activeSeasonDoc.ref.set({
+                        current_week: "Season Complete"
+                    }, { merge: true });
+                } else {
+                    console.log("Regular season complete. Awaiting postseason schedule generation.");
+                    await activeSeasonDoc.ref.set({
+                        current_week: "End of Regular Season"
+                    }, { merge: true });
+                }
             }
         }
         console.log("Successfully updated the current week.");
