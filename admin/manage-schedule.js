@@ -82,6 +82,12 @@ async function initializePage() {
         generatePostseasonBtn.addEventListener('click', handleGeneratePostseason);
         regularSeasonContainer.addEventListener('click', handleDeleteGame);
 
+        // Add event listener for force week update button
+        const forceWeekUpdateBtn = document.getElementById('force-week-update-btn');
+        if (forceWeekUpdateBtn) {
+            forceWeekUpdateBtn.addEventListener('click', handleForceWeekUpdate);
+        }
+
         loadingContainer.style.display = 'none';
         adminContainer.style.display = 'block';
 
@@ -331,7 +337,7 @@ async function handleGeneratePostseason() {
 
     document.querySelectorAll('#postseason-dates-container input[type="date"]').forEach(input => {
         const roundName = input.dataset.roundName;
-        
+
         if (dates[roundName] && input.value) {
             const [year, month, day] = input.value.split('-');
             dates[roundName].push(`${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`);
@@ -349,5 +355,26 @@ async function handleGeneratePostseason() {
     } finally {
         generatePostseasonBtn.disabled = false;
         generatePostseasonBtn.textContent = 'Generate/Update Postseason Schedule';
+    }
+}
+
+async function handleForceWeekUpdate() {
+    const button = document.getElementById('force-week-update-btn');
+    const statusDiv = document.getElementById('week-update-status');
+
+    button.disabled = true;
+    button.textContent = 'Updating...';
+    statusDiv.innerHTML = '<p style="color: #666;">Processing week update...</p>';
+
+    try {
+        const forceWeekUpdate = httpsCallable(functions, 'forceWeekUpdate');
+        const result = await forceWeekUpdate({ league: getCurrentLeague() });
+        statusDiv.innerHTML = `<p style="color: green;">✓ ${result.data.message}</p>`;
+    } catch (error) {
+        console.error("Error forcing week update:", error);
+        statusDiv.innerHTML = `<p style="color: red;">✗ Error: ${error.message}</p>`;
+    } finally {
+        button.disabled = false;
+        button.textContent = '🔄 Update Current Week';
     }
 }

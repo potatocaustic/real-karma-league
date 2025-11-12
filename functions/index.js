@@ -3906,6 +3906,25 @@ exports.forceLeaderboardRecalculation = onCall({ region: "us-central1" }, async 
     }
 });
 
+exports.forceWeekUpdate = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    }
+
+    try {
+        await performWeekUpdate(league);
+        return { success: true, league, message: "Current week has been updated." };
+    } catch (error) {
+        console.error("Manual week update failed:", error);
+        throw new HttpsError('internal', 'An error occurred during week update.');
+    }
+});
+
 async function performWeekUpdate(league = LEAGUES.MAJOR) {
     console.log(`Running logic to update current week for ${league} league...`);
     try {
