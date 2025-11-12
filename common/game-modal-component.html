@@ -47,6 +47,34 @@
         color: white;
         margin: 0;
         font-size: 1.4rem;
+        flex: 1;
+    }
+
+    .modal-header-icons {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .icon-btn {
+        background: none;
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .icon-btn:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .icon-btn.active {
+        background-color: rgba(255, 255, 255, 0.2);
     }
 
     .close-btn {
@@ -66,6 +94,15 @@
 
     .modal-body {
         padding: 2rem;
+    }
+
+    #game-flow-chart-area {
+        padding: 1rem;
+        min-height: 400px;
+    }
+
+    #game-flow-chart {
+        max-height: 500px;
     }
 
     .game-details-grid {
@@ -373,11 +410,22 @@
     <div class="modal-content">
         <div class="modal-header">
             <h3 id="modal-title">Game Details</h3>
-            <button class="close-btn" id="close-modal-btn">&times;</button>
+            <div class="modal-header-icons">
+                <button class="icon-btn" id="game-flow-chart-btn" title="Game Flow Chart" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                        <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                    </svg>
+                </button>
+                <button class="close-btn" id="close-modal-btn">&times;</button>
+            </div>
         </div>
         <div class="modal-body">
             <div id="game-details-content-area">
                 <div class="loading">Loading game details...</div>
+            </div>
+            <div id="game-flow-chart-area" style="display: none;">
+                <canvas id="game-flow-chart"></canvas>
             </div>
         </div>
     </div>

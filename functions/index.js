@@ -802,6 +802,104 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     await batch.commit();
 
+    // === FEATURE 1: Record Game Flow Snapshots ===
+    const timestamp = admin.firestore.Timestamp.now();
+    const snapshotBatch = db.batch();
+
+    for (const gameDoc of liveGamesSnap.docs) {
+        const gameData = gameDoc.data();
+        const team1_total = gameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+        const team2_total = gameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+
+        const snapshotRef = db.collection(getCollectionName('game_flow_snapshots', league)).doc(gameDoc.id);
+        snapshotBatch.set(snapshotRef, {
+            snapshots: FieldValue.arrayUnion({
+                timestamp: timestamp,
+                team1_score: team1_total,
+                team2_score: team2_total
+            })
+        }, { merge: true });
+    }
+
+    await snapshotBatch.commit();
+    console.log(`Game flow snapshots recorded for ${liveGamesSnap.size} games.`);
+
+    // === FEATURE 2: Calculate Daily Leaderboard ===
+    try {
+        const allPlayers = [];
+        const playerGameCount = new Map(); // Track how many games each player is in
+
+        for (const gameDoc of liveGamesSnap.docs) {
+            const gameData = gameDoc.data();
+            const allStarters = [...gameData.team1_lineup, ...gameData.team2_lineup];
+
+            for (const player of allStarters) {
+                const playerId = player.player_id;
+
+                // For preseason: only count each player once
+                if (!playerGameCount.has(playerId)) {
+                    allPlayers.push({
+                        player_id: playerId,
+                        player_name: player.player_name || 'Unknown',
+                        handle: player.handle || 'Unknown',
+                        team_id: player.team_id,
+                        team_name: player.team_name || 'Unknown',
+                        score: player.final_score || 0,
+                        global_rank: player.global_rank || -1
+                    });
+                    playerGameCount.set(playerId, 1);
+                } else {
+                    // Player is in multiple games (preseason) - use their best score
+                    const existingPlayer = allPlayers.find(p => p.player_id === playerId);
+                    if (existingPlayer && (player.final_score || 0) > existingPlayer.score) {
+                        existingPlayer.score = player.final_score || 0;
+                        existingPlayer.global_rank = player.global_rank || -1;
+                    }
+                }
+            }
+        }
+
+        // Sort by score descending
+        allPlayers.sort((a, b) => b.score - a.score);
+
+        // Assign ranks
+        allPlayers.forEach((player, index) => {
+            player.rank = index + 1;
+        });
+
+        // Calculate median
+        const medianScore = allPlayers.length > 0 ?
+            (allPlayers.length % 2 === 0
+                ? (allPlayers[Math.floor(allPlayers.length / 2) - 1].score + allPlayers[Math.floor(allPlayers.length / 2)].score) / 2
+                : allPlayers[Math.floor(allPlayers.length / 2)].score)
+            : 0;
+
+        // Calculate percent vs median for all players
+        allPlayers.forEach(player => {
+            player.percent_vs_median = medianScore !== 0
+                ? ((player.score - medianScore) / Math.abs(medianScore)) * 100
+                : 0;
+        });
+
+        const top3 = allPlayers.slice(0, 3);
+        const bottom3 = allPlayers.slice(-3).reverse();
+
+        const leaderboardRef = db.collection(getCollectionName('daily_leaderboards', league)).doc(gameDate);
+        await leaderboardRef.set({
+            date: gameDate,
+            timestamp: timestamp,
+            top_3: top3,
+            bottom_3: bottom3,
+            median_score: medianScore,
+            all_players: allPlayers
+        });
+
+        console.log(`Daily leaderboard calculated and stored for ${gameDate} with ${allPlayers.length} players.`);
+    } catch (leaderboardError) {
+        console.error('Error calculating daily leaderboard:', leaderboardError);
+        // Don't fail the entire update if leaderboard fails
+    }
+
     const usageRef = db.doc(`${getCollectionName('usage_stats', league)}/${gameDate}`);
     await usageRef.set({
         api_requests_full_update: FieldValue.increment(apiRequests)
