@@ -1,7 +1,7 @@
 // /js/draft-lottery-S8.js
 
-import './main.js'; // Import main.js to run it first
-import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
+import '../../main.js'; // Import main.js to run it first
+import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from '../../firebase-init.js';
 
 // --- DATA AND CONFIGURATION ---
 const PREVIOUS_SEASON_ID = 'S8';

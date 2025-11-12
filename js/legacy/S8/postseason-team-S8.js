@@ -1,4 +1,4 @@
-// /js/team.js
+// /js/postseason-team-S8.js
 
 import {
     db,
@@ -10,9 +10,9 @@ import {
     where,
     collectionNames,
     getLeagueCollectionName
-} from './firebase-init.js';
+} from '../../firebase-init.js';
 
-import { generateLineupTable } from './main.js';
+import { generateLineupTable } from '../../main.js';
 
 // --- CONFIGURATION ---
 const ACTIVE_SEASON_ID = 'S8';
@@ -24,10 +24,8 @@ let teamData = null; // For v2_teams/{id} root doc
 let teamSeasonalData = null; // For v2_teams/{id}/seasonal_records/S8 doc
 let rosterPlayers = []; // Array of combined player + seasonal_stats objects
 let allScheduleData = [];
-let allDraftPicks = [];
-let allTransactions = [];
 let allTeamsSeasonalRecords = new Map(); // Map of teamId -> seasonal_record for getTeamName()
-let rosterSortState = { column: 'rel_median', direction: 'desc' };
+let rosterSortState = { column: 'post_rel_median', direction: 'desc' };
 
 /**
  * Initializes the page, fetching and injecting the modal, and then loading all data.
@@ -83,15 +81,8 @@ async function loadPageData() {
         const rosterQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const rosterPromise = getDocs(rosterQuery);
 
-        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("games")));
-
-        const draftPicksPromise = getDocs(collection(db, collectionNames.draftPicks));
-        const transactionsPromise = getDocs(collection(db, collectionNames.transactions, "seasons", ACTIVE_SEASON_ID));
-
-        // NEW: Fetch the active season document for postseason button logic
-        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
-        const activeSeasonPromise = getDocs(activeSeasonQuery);
-
+        // Fetch POSTSEASON games instead of regular season
+        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName('post_games')));
 
         // --- AWAIT ALL PROMISES ---
         const [
@@ -99,19 +90,13 @@ async function loadPageData() {
             teamDocSnap,
             teamSeasonalSnap,
             rosterSnap,
-            scheduleSnap,
-            draftPicksSnap,
-            transactionsSnap,
-            activeSeasonSnap // NEW: Active season snapshot
+            scheduleSnap
         ] = await Promise.all([
             allTeamsRecordsPromise,
             teamDocPromise,
             teamSeasonalPromise,
             rosterPromise,
-            schedulePromise,
-            draftPicksPromise,
-            transactionsPromise,
-            activeSeasonPromise // NEW: Active season promise
+            schedulePromise
         ]);
 
         // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
@@ -134,9 +119,7 @@ async function loadPageData() {
 
         // --- PROCESS OTHER DATA ---
         allScheduleData = scheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        allDraftPicks = draftPicksSnap.docs.map(d => d.data());
-        allTransactions = transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
-
+        
         // --- PROCESS ROSTER & PLAYER SEASONAL STATS (MULTI-STEP) ---
         const playerDocs = rosterSnap.docs;
         const playerSeasonalStatsPromises = playerDocs.map(pDoc =>
@@ -153,14 +136,10 @@ async function loadPageData() {
             };
         });
 
-        // NEW: Set button visibility
-        setPostseasonButtonVisibility(activeSeasonSnap);
-
         // --- RENDER ALL PAGE COMPONENTS ---
         displayTeamHeader();
         loadRoster();
         loadSchedule();
-        loadDraftCapital();
 
     } catch (error) {
         console.error("A critical error occurred during data loading:", error);
@@ -172,9 +151,14 @@ async function loadPageData() {
 
 function displayTeamHeader() {
     const teamName = teamSeasonalData.team_name || teamData.id;
-    document.getElementById('page-title').textContent = `${teamName} - RKL Season 8`;
+    document.getElementById('page-title').textContent = `${teamName} Postseason - RKL Season 8`;
 
-    const { wins = 0, losses = 0, pam = 0, total_transactions = 0, postseed = 0, pam_rank = 0, med_starter_rank = 0, msr_rank = 0 } = teamSeasonalData;
+    // Setup button to link back to regular season page
+    const regularSeasonBtn = document.getElementById('regular-season-btn');
+    regularSeasonBtn.href = `team.html?id=${teamId}`;
+    regularSeasonBtn.style.display = 'inline-block';
+
+    const { post_wins = 0, post_losses = 0, post_pam = 0, post_med_starter_rank = 0, post_msr_rank = 0, post_pam_rank = 0 } = teamSeasonalData;
 
     const teamIdClassName = `icon-${teamData.id.replace(/[^a-zA-Z0-9]/g, '')}`;
 
@@ -182,42 +166,29 @@ function displayTeamHeader() {
         <div style="display: flex; align-items: center; gap: 1.5rem;">
             <div class="team-logo-css team-logo-large ${teamIdClassName}" role="img" aria-label="${teamName}"></div>
             <div class="team-details">
-            <h2>${teamName}</h2>
-            <div class="team-subtitle">${teamData.id} • ${teamData.conference} Conference</div>
-            <div class="gm-info">General Manager: ${teamData.current_gm_handle}</div>
+                <h2>${teamName}</h2>
+                <div class="postseason-subtitle">Postseason Profile</div>
+                <div class="team-subtitle">${teamData.id} • ${teamData.conference} Conference</div>
+                <div class="gm-info">General Manager: ${teamData.current_gm_handle}</div>
             </div>
         </div>`;
 
     const teamStatsContainer = document.getElementById('team-stats');
     teamStatsContainer.innerHTML = `
-        <a href="standings.html" class="stat-card-link">
-            <div class="stat-card">
-                <div class="stat-value ${wins > losses ? 'positive' : losses > wins ? 'negative' : ''}">${wins}-${losses}</div>
-                <div class="stat-label">Record</div>
-                <div class="stat-rank">${getOrdinal(postseed)} in ${teamData.conference} Conference</div>
-            </div>
-        </a>
-        <a href="standings.html?view=fullLeague&sortBy=pam&sortDirection=desc" class="stat-card-link">
-            <div class="stat-card">
-                <div class="stat-value ${pam > 0 ? 'positive' : pam < 0 ? 'negative' : ''}">${Math.round(pam).toLocaleString()}</div>
-                <div class="stat-label">PAM</div>
-                <div class="stat-rank">${getOrdinal(pam_rank)} Overall</div>
-            </div>
-        </a>
-        <a href="standings.html?view=fullLeague&sortBy=med_starter_rank&sortDirection=asc" class="stat-card-link">
-            <div class="stat-card">
-                <div class="stat-value">${Math.round(med_starter_rank)}</div>
-                <div class="stat-label">Median Starter Rank</div>
-                <div class="stat-rank">${getOrdinal(msr_rank)} Overall</div>
-            </div>
-        </a>
-        <a href="transactions.html?teamFilter=${teamData.id}" class="stat-card-link">
-            <div class="stat-card">
-                <div class="stat-value">${total_transactions}</div>
-                <div class="stat-label">Transactions</div>
-                <div class="stat-rank">&nbsp;</div>
-            </div>
-        </a>`;
+        <div class="stat-card">
+            <div class="stat-value ${post_wins > post_losses ? 'positive' : post_losses > post_wins ? 'negative' : ''}">${post_wins}-${post_losses}</div>
+            <div class="stat-label">Postseason Record</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value ${post_pam > 0 ? 'positive' : post_pam < 0 ? 'negative' : ''}">${Math.round(post_pam).toLocaleString()}</div>
+            <div class="stat-label">Postseason PAM</div>
+            <div class="stat-rank">${getOrdinal(post_pam_rank)} Overall</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${Math.round(post_med_starter_rank)}</div>
+            <div class="stat-label">Median Starter Rank</div>
+            <div class="stat-rank">${getOrdinal(post_msr_rank)} Overall</div>
+        </div>`;
     teamStatsContainer.style.display = 'grid';
 }
 
@@ -237,19 +208,19 @@ function loadRoster() {
     const teamIdClassName = `icon-${teamData.id.replace(/[^a-zA-Z0-9]/g, '')}`;
     const rosterHTML = rosterPlayers.map(player => {
         const {
-            rel_median = 0,
-            games_played = 0,
+            post_rel_median = 0,
+            post_games_played = 0,
             all_star = '0',
             rookie = '0',
-            WAR = 0,
-            medrank = 0,
+            post_WAR = 0,
+            post_medrank = 0,
             player_handle,
             id: playerId
         } = player;
 
         const isAllStar = all_star === '1';
         const isRookie = rookie === '1';
-        const medianRankDisplay = medrank > 0 ? medrank : '-';
+        const medianRankDisplay = post_medrank > 0 ? post_medrank : '-';
 
         return `
             <div class="player-item">
@@ -262,22 +233,22 @@ function loadRoster() {
                         ${isRookie ? ` <span class="rookie-badge">R</span>` : ''}
                         ${isAllStar ? ' <span class="all-star-badge">★</span>' : ''}
                     </a>
-                    <div class="player-stats">${games_played} games • ${medianRankDisplay} med rank</div>
+                    <div class="player-stats">${post_games_played} games • ${medianRankDisplay} med rank</div>
                 </div>
-                <div class="player-rel">${parseFloat(rel_median).toFixed(3)}</div>
-                <div class="player-war">${parseFloat(WAR).toFixed(2)}</div>
+                <div class="player-rel">${parseFloat(post_rel_median).toFixed(3)}</div>
+                <div class="player-war">${parseFloat(post_WAR).toFixed(2)}</div>
             </div>`;
     }).join('');
 
-    const relSortIndicator = rosterSortState.column === 'rel_median' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
-    const warSortIndicator = rosterSortState.column === 'WAR' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+    const relSortIndicator = rosterSortState.column === 'post_rel_median' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
+    const warSortIndicator = rosterSortState.column === 'post_WAR' ? (rosterSortState.direction === 'desc' ? ' ▼' : ' ▲') : '';
 
     const finalHTML = `
         <div class="roster-header">
             <span class="roster-logo-header-col desktop-only-roster-logo"></span>
             <span class="header-player">Player</span>
-            <span class="header-rel sortable" onclick="handleRosterSort('rel_median')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
-            <span class="header-war sortable" onclick="handleRosterSort('WAR')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
+            <span class="header-rel sortable" onclick="handleRosterSort('post_rel_median')">REL Median<span class="sort-indicator">${relSortIndicator}</span></span>
+            <span class="header-war sortable" onclick="handleRosterSort('post_WAR')">WAR<span class="sort-indicator">${warSortIndicator}</span></span>
         </div>
         <div class="roster-content">${rosterHTML}</div>`;
 
@@ -290,7 +261,7 @@ function loadSchedule() {
         .sort((a, b) => new Date(normalizeDate(a.date)) - new Date(normalizeDate(b.date)));
 
     if (teamGames.length === 0) {
-        document.getElementById('team-schedule').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No games scheduled</div>';
+        document.getElementById('team-schedule').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No postseason games scheduled</div>';
         return;
     }
 
@@ -300,47 +271,6 @@ function loadSchedule() {
 
     document.getElementById('team-schedule').innerHTML = gamesHTML;
 }
-
-function loadDraftCapital() {
-    const teamPicks = allDraftPicks
-        .filter(pick => pick.current_owner === teamId)
-        .sort((a, b) => (parseInt(a.season || 0) - parseInt(b.season || 0)) || (parseInt(a.round || 0) - parseInt(b.round || 0)));
-
-    if (teamPicks.length === 0) {
-        document.getElementById('draft-picks').innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">No draft picks owned</div>';
-        return;
-    }
-
-    const picksBySeason = teamPicks.reduce((acc, pick) => {
-        (acc[pick.season] = acc[pick.season] || []).push(pick);
-        return acc;
-    }, {});
-
-    const seasonsHTML = Object.keys(picksBySeason).sort((a,b) => a-b).map(season => {
-        const picks = picksBySeason[season];
-        const picksHTML = picks.map(pick => generatePickItemHTML(pick)).join('');
-        const seasonColor = getSeasonColor(parseInt(season));
-        
-        return `<div class="season-group" style="margin-bottom: 1.5rem;">
-            <div class="season-header" style="background-color: ${seasonColor}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
-                <span>Season ${season} Draft</span>
-                <span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">
-                    ${picks.length} pick${picks.length !== 1 ? "s" : ""}
-                </span>
-            </div>
-            <div class="season-picks" style="border: 1px solid ${seasonColor}; border-top: none; border-radius: 0 0 6px 6px;">${picksHTML}</div>
-        </div>`;
-    }).join('');
-    
-    const totalPicks = teamPicks.length;
-    const summaryPendingForfeitureCount = teamPicks.filter(p => p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE').length;
-    const summaryOwnPicks = teamPicks.filter(p => p.original_team === teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
-    const summaryAcquiredPicks = teamPicks.filter(p => p.original_team !== teamId && !(p.notes && p.notes.toUpperCase() === 'PENDING FORFEITURE')).length;
-    const summaryHTML = generateDraftSummaryHTML(totalPicks, summaryOwnPicks, summaryAcquiredPicks, summaryPendingForfeitureCount);
-
-    document.getElementById('draft-picks').innerHTML = summaryHTML + seasonsHTML;
-}
-
 
 // --- MODAL & EVENT HANDLERS ---
 
@@ -356,13 +286,13 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     
     try {
         const q = query(
-            collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("lineups")),
-            where("date", "==", gameDate), // Query with the original M/D/YYYY date
+            collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName('post_lineups')), // Query post_lineups
+            where("date", "==", gameDate),
             where("team_id", "in", [team1_id, team2_id]),
             where("started", "==", "TRUE")
         );
         const lineupsSnap = await getDocs(q);
-
+        
         const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
 
@@ -386,23 +316,22 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
         const team1Lineups = lineupsData.filter(l => l.team_id === team1_id);
         const team2Lineups = lineupsData.filter(l => l.team_id === team2_id);
 
-        const team1Record = getTeamRecordAtDate(team1_id, gameDate).split('-').map(Number);
-        const team2Record = getTeamRecordAtDate(team2_id, gameDate).split('-').map(Number);
-
-        const team1Info = { id: team1_id, team_name: getTeamName(team1_id), wins: team1Record[0], losses: team1Record[1] };
-        const team2Info = { id: team2_id, team_name: getTeamName(team2_id), wins: team2Record[0], losses: team2Record[1] };
+        const team1Record = getTeamRecordAtDate(team1_id, gameDate, true);
+        const team2Record = getTeamRecordAtDate(team2_id, gameDate, true);
+        
+        const team1Info = { id: team1_id, team_name: getTeamName(team1_id), wins: team1Record.wins, losses: team1Record.losses };
+        const team2Info = { id: team2_id, team_name: getTeamName(team2_id), wins: team2Record.wins, losses: team2Record.losses };
         
         const gameDocId = allScheduleData.find(g => g.date === gameDate && g.team1_id === team1_id && g.team2_id === team2_id)?.id;
         
-        if (!gameDocId) {
-            throw new Error("Could not find game document ID.");
-        }
+        if (!gameDocId) throw new Error("Could not find game document ID.");
 
-        const gameSnap = await getDoc(doc(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("games"), gameDocId));
+        const gameSnap = await getDoc(doc(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("post_games"), gameDocId));
         const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
 
         modalContentEl.innerHTML = `
             <div class="game-details-grid">
+                // FIX #2: Removed the incorrect final 'true' argument, which was triggering the 'live' indicator.
                 ${generateLineupTable(team1Lineups, team1Info, winnerId === team1_id)}
                 ${generateLineupTable(team2Lineups, team2Info, winnerId === team2_id)}
             </div>`;
@@ -430,24 +359,6 @@ function handleRosterSort(column) {
 
 // --- HELPER & UTILITY FUNCTIONS ---
 
-// NEW: Function to control postseason button visibility
-function setPostseasonButtonVisibility(activeSeasonSnap) {
-    const postseasonBtn = document.getElementById('postseason-profile-btn');
-    if (!postseasonBtn) return;
-
-    if (!activeSeasonSnap.empty) {
-        const currentWeek = activeSeasonSnap.docs[0].data().current_week;
-        const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
-
-        if (postseasonWeeks.includes(currentWeek)) {
-            postseasonBtn.style.display = 'inline-block';
-            // Set the link to the postseason team page using the current teamId
-            postseasonBtn.href = `postseason-team.html?id=${teamId}`;
-        }
-    }
-}
-
-
 function generateIconStylesheet(teamIdList) {
     const iconStyles = teamIdList.map(id => {
         if (!id) return '';
@@ -471,8 +382,10 @@ function getTeamName(id) {
     return allTeamsSeasonalRecords.get(id)?.team_name || id;
 }
 
-function getTeamRecordAtDate(teamIdForRecord, targetDate) {
+function getTeamRecordAtDate(teamIdForRecord, targetDate, isPostseason = false) {
     const normalizedTargetDate = normalizeDate(targetDate);
+    const collection = isPostseason ? 'post_games' : 'games';
+
     const completedGames = allScheduleData.filter(game => {
         const normalizedGameDate = normalizeDate(game.date);
         return normalizedGameDate && normalizedGameDate <= normalizedTargetDate &&
@@ -486,7 +399,19 @@ function getTeamRecordAtDate(teamIdForRecord, targetDate) {
         else if (game.winner) losses++;
     });
 
-    return `${wins}-${losses}`;
+    return { wins, losses, recordString: `${wins}-${losses}` };
+}
+
+// FIX #1: Added this helper function to get week abbreviations
+function getWeekAbbreviation(weekName) {
+    if (!weekName) return 'TBD';
+    const lower = weekName.toLowerCase();
+    if (lower.includes('play-in')) return 'PI';
+    if (lower.includes('round 1')) return 'R1';
+    if (lower.includes('round 2')) return 'R2';
+    if (lower.includes('conf finals')) return 'CF';
+    if (lower.includes('finals')) return 'F';
+    return weekName.substring(0, 2).toUpperCase(); // Fallback for other potential rounds
 }
 
 function generateGameItemHTML(game) {
@@ -497,8 +422,8 @@ function generateGameItemHTML(game) {
     const teamName = getTeamName(teamId);
     const opponentName = getTeamName(opponentId);
     
-    const teamRecord = getTeamRecordAtDate(teamId, game.date);
-    const opponentRecord = getTeamRecordAtDate(opponentId, game.date);
+    const teamRecord = getTeamRecordAtDate(teamId, game.date, true).recordString;
+    const opponentRecord = getTeamRecordAtDate(opponentId, game.date, true).recordString;
 
     let clickHandler = '', teamScoreText = '-', oppScoreText = '-', teamScoreClass = 'upcoming', oppScoreClass = 'upcoming';
     let teamWon = false, oppWon = false;
@@ -514,13 +439,13 @@ function generateGameItemHTML(game) {
         oppScoreClass = oppWon ? 'win' : 'loss';
         clickHandler = `onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}')" style="cursor: pointer;"`;
     }
-
+    
     const teamIdClassName = `icon-${teamId.replace(/[^a-zA-Z0-9]/g, '')}`;
     const opponentIdClassName = `icon-${opponentId.replace(/[^a-zA-Z0-9]/g, '')}`;
-
+    
     const desktopHTML = `
         <div class="game-info-table">
-            <div class="week-cell"><div class="week-badge">${game.week || 'TBD'}</div></div>
+            <div class="week-cell"><div class="week-badge">${getWeekAbbreviation(game.week)}</div></div>
             <div class="date-cell"><div class="date-badge">${formatDateMMDD(normalizeDate(game.date))}</div></div>
         </div>
         <div class="game-content-table">
@@ -541,7 +466,7 @@ function generateGameItemHTML(game) {
     
     const mobileHTML = `
         <div class="game-matchup">
-            <div class="week-badge">${game.week || 'TBD'}</div>
+            <div class="week-badge">${getWeekAbbreviation(game.week)}</div>
             <div class="team">
                 <div class="team-logo-css ${teamIdClassName}" style="width: 32px; height: 32px;"></div>
                 <div class="team-info"><span class="team-name ${teamWon ? 'win' : oppWon ? 'loss' : ''}">${teamName}</span><span class="team-record">${teamRecord}</span></div>
@@ -557,98 +482,6 @@ function generateGameItemHTML(game) {
     return `<div class="game-item" ${clickHandler}>${desktopHTML}${mobileHTML}</div>`;
 }
 
-/**
- * **MODIFIED FUNCTION**
- * Generates the HTML for a single draft pick item, including refined logic for
- * creating links to S8 or legacy S7 transaction pages.
- */
-function generatePickItemHTML(pick) {
-    const isOriginalOwner = pick.original_team === teamId;
-    const isForfeiture = pick.notes && pick.notes.toUpperCase() === 'PENDING FORFEITURE';
-    const originalTeamName = getTeamName(pick.original_team);
-    const originalTeamRecord = allTeamsSeasonalRecords.get(pick.original_team);
-    const originalTeamIdClassName = `icon-${pick.original_team.replace(/[^a-zA-Z0-9]/g, '')}`;
-
-    let statusText = 'Acquired';
-    let containerClass = 'pick-item-enhanced';
-    if (isForfeiture) {
-        statusText = 'Pending Forfeiture';
-        containerClass += ' pick-forfeiture';
-    } else if (isOriginalOwner) {
-        statusText = `<span class="pick-status-own">Own Pick</span>`;
-    }
-
-    let originHTML = `<div class="pick-origin">Original Pick</div>`;
-
-    if (!isOriginalOwner && !isForfeiture) {
-        // Find S8 transaction first
-        const transactionS8 = allTransactions.find(t => t.involved_picks?.some(p => p.id === pick.pick_id));
-
-        if (transactionS8) {
-            // S8 Logic with refined verbiage
-            const pickMoveData = transactionS8.involved_picks.find(p => p.id === pick.pick_id);
-            const fromTeamId = pickMoveData ? pickMoveData.from : null;
-            const fromTeamData = fromTeamId ? transactionS8.involved_teams.find(t => t.id === fromTeamId) : null;
-            
-            let viaText = `from ${originalTeamName}`; // Default verbiage
-            if (fromTeamData && fromTeamData.id !== pick.original_team) {
-                viaText = `via ${fromTeamData.team_name} (from ${originalTeamName})`;
-            }
-
-            let statsText = '';
-            if (originalTeamRecord) {
-                statsText = `(${originalTeamRecord.wins}-${originalTeamRecord.losses}, ${Math.round(originalTeamRecord.pam)} PAM)`;
-            }
-
-            const transactionLink = `/S8/transactions.html?id=${transactionS8.id}`;
-            originHTML = `<div class="pick-origin"><a href="${transactionLink}">${viaText} <span class="pick-origin-stats">${statsText}</span></a></div>`;
-        
-        } else {
-            // No S8 transaction found, handle as Legacy (S7 or pre-S7)
-            let statsText = '';
-            if (originalTeamRecord) {
-                 statsText = `(${originalTeamRecord.wins}-${originalTeamRecord.losses}, ${Math.round(originalTeamRecord.pam)} PAM)`;
-            }
-            
-            // Check for a trade_id to determine if it's a linkable S7 trade or a non-linkable pre-S7 trade.
-            if (pick.trade_id) {
-                // Has a trade_id, so it's a linkable S7 trade. Add teamFilter to the URL.
-                const legacyLink = `/S7/transactions.html?pick_id=${pick.pick_id}`;
-                const verbiage = `from ${originalTeamName} <span class="pick-origin-stats">${statsText}</span>`;
-                originHTML = `<div class="pick-origin"><a href="${legacyLink}">${verbiage}</a></div>`;
-            } else {
-                // No trade_id, so it's pre-S7. Display text without a link and with a modified class for styling.
-                const verbiage = `from ${originalTeamName} <span class="pick-origin-stats unlinked">${statsText}</span>`;
-                originHTML = `<div class="pick-origin">${verbiage}</div>`;
-            }
-        }
-    }
-
-    return `
-        <div class="${containerClass}">
-            <div class="pick-main-info">
-                <a href="team.html?id=${pick.original_team}">
-                    <div class="team-logo-css pick-team-logo ${originalTeamIdClassName}"></div>
-                </a>
-                <div class="pick-text-content">
-                    <span class="pick-description">${pick.pick_description}</span>
-                    ${originHTML}
-                </div>
-            </div>
-            <div class="pick-status">${statusText}</div>
-        </div>`;
-}
-
-function generateDraftSummaryHTML(total, own, acquired, forfeiture) {
-    return `<div class="draft-summary">
-        <div class="draft-summary-grid">
-            <div><div class="draft-summary-value total">${total}</div><div class="draft-summary-label">Total Picks</div></div>
-            <div><div class="draft-summary-value own">${own}</div><div class="draft-summary-label">Own Picks</div></div>
-            <div><div class="draft-summary-value acquired">${acquired}</div><div class="draft-summary-label">Acquired</div></div>
-            ${forfeiture > 0 ? `<div><div class="draft-summary-value forfeiture">${forfeiture}</div><div class="draft-summary-label">Forfeiture</div></div>` : ''}
-        </div>
-    </div>`;
-}
 
 function normalizeDate(dateInput) {
     if (!dateInput) return null;
@@ -658,10 +491,9 @@ function normalizeDate(dateInput) {
     } else {
         const parts = dateInput.split('/');
         if (parts.length === 3) {
-            // Assuming M/D/YYYY format
             date = new Date(Date.UTC(parts[2], parts[0] - 1, parts[1]));
         } else {
-            return null; // Invalid format
+            return null;
         }
     }
     if (isNaN(date.getTime())) return null;
@@ -691,12 +523,6 @@ function getOrdinal(num) {
     const s = ["th", "st", "nd", "rd"], v = n % 100;
     return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
-
-function getSeasonColor(season) {
-    const colors = { 8: '#0d6efd', 9: '#198754', 10: '#ffc107', 11: '#dc3545', 12: '#6c757d' };
-    return colors[season] || '#6c757d';
-}
-
 
 // --- GLOBAL EXPORTS & INITIALIZATION ---
 window.handleRosterSort = handleRosterSort;

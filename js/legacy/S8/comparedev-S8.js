@@ -8,7 +8,7 @@ import {
     where,
     limit,
     collectionGroup
-} from '../js/firebase-init.js';
+} from '../../firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Global State ---

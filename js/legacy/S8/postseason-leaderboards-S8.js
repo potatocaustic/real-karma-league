@@ -1,5 +1,5 @@
 // /js/postseason-leaderboards.js
-import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
+import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from '../../firebase-init.js';
 
 const SEASON_ID = 'S8';
 
