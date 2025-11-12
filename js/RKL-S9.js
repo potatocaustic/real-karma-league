@@ -555,7 +555,19 @@ function loadSeasonInfo(seasonData) {
     if (!currentWeekSpan || !seasonStatsContainer || !playoffBtnContainer) return;
 
     const currentWeek = seasonData.current_week || '1';
-    
+
+    // Handle "End of Regular Season" - treat it as regular season, not postseason
+    if (currentWeek === "End of Regular Season") {
+        currentWeekSpan.textContent = currentWeek;
+        playoffBtnContainer.style.display = 'none';
+        seasonStatsContainer.innerHTML = `
+            <p><strong>${seasonData.gp || 0} of ${seasonData.gs || 0}</strong> regular season games complete</p>
+            <p><strong>${seasonData.season_trans || 0}</strong> transactions made</p>
+            <p><strong>${Math.round(seasonData.season_karma || 0).toLocaleString()}</strong> total karma earned</p>
+        `;
+        return;
+    }
+
     if (currentWeek === "Season Complete") {
         // Find the champion from the cached games data
         const finalsGames = allGamesCache.filter(g => g.series_id === 'Finals');
