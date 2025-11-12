@@ -15,7 +15,7 @@ import {
 import { generateLineupTable } from './main.js';
 
 // --- CONFIGURATION ---
-const ACTIVE_SEASON_ID = 'S8';
+const ACTIVE_SEASON_ID = 'S9';
 
 
 // --- STATE MANAGEMENT ---
