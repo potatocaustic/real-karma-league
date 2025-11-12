@@ -108,6 +108,13 @@
                 <div id="postseason-schedule-container" style="margin-top: 1.5rem;"></div>
             </div>
         </div>
+
+        <div style="margin-top: 2rem; padding: 1.5rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--card-bg);">
+            <h3>Administrative Tools</h3>
+            <p style="margin-bottom: 1rem;">Manually trigger the current week calculation. This will scan all games and update the season's current week based on the next incomplete game.</p>
+            <button id="force-week-update-btn" class="btn-admin-secondary">🔄 Update Current Week</button>
+            <div id="week-update-status" style="margin-top: 1rem;"></div>
+        </div>
     </main>
 
     <div id="game-modal" class="modal-admin">
