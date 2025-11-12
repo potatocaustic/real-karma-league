@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     try {
-        const prospectsCollectionRef = collection(db, 'seasons/S8/draft_prospects');
+        const prospectsCollectionRef = collection(db, 'seasons/S9/draft_prospects');
         const querySnapshot = await getDocs(prospectsCollectionRef);
 
         prospectsData = querySnapshot.docs.map(doc => doc.data());
