@@ -852,6 +852,13 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
         return;
     }
 
+    // Detect dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const tooltipBg = isDarkMode ? '#383838' : '#fff';
+    const tooltipBorder = isDarkMode ? '#555' : '#ccc';
+
     // Sort snapshots by timestamp
     const sortedSnapshots = [...snapshots].sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
 
@@ -878,7 +885,9 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
                 borderWidth: 3,
                 tension: 0.1,
                 pointRadius: 4,
-                pointHoverRadius: 6
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#007bff',
+                pointBorderColor: '#fff'
             }, {
                 label: team2Name,
                 data: team2Scores,
@@ -887,7 +896,9 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
                 borderWidth: 3,
                 tension: 0.1,
                 pointRadius: 4,
-                pointHoverRadius: 6
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#dc3545',
+                pointBorderColor: '#fff'
             }]
         },
         options: {
@@ -901,13 +912,23 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
                 title: {
                     display: true,
                     text: 'Game Flow Chart',
-                    font: { size: 18 }
+                    font: { size: 18 },
+                    color: textColor
                 },
                 legend: {
                     display: true,
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        color: textColor,
+                        font: { size: 14 }
+                    }
                 },
                 tooltip: {
+                    backgroundColor: tooltipBg,
+                    titleColor: textColor,
+                    bodyColor: textColor,
+                    borderColor: tooltipBorder,
+                    borderWidth: 1,
                     callbacks: {
                         label: function(context) {
                             return context.dataset.label + ': ' + Math.round(context.parsed.y).toLocaleString();
@@ -919,13 +940,27 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
                 x: {
                     title: {
                         display: true,
-                        text: 'Time'
+                        text: 'Time',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
                     }
                 },
                 y: {
                     title: {
                         display: true,
-                        text: 'Score'
+                        text: 'Score',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
                     },
                     beginAtZero: true
                 }
