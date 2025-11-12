@@ -4001,7 +4001,7 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
                 // No games scheduled at all - beginning of season
                 console.log(`No games scheduled yet for ${league} league. Defaulting to Week 1.`);
                 await activeSeasonDoc.ref.set({
-                    current_week: "Week 1"
+                    current_week: "1"
                 }, { merge: true });
             } else {
                 // There are games. Check if they're all completed or if this is a data issue
@@ -4030,14 +4030,14 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
                     // No Week 1 games exist yet - this is the beginning of the season
                     console.log(`No Week 1 games found. Season hasn't started yet. Defaulting to Week 1.`);
                     await activeSeasonDoc.ref.set({
-                        current_week: "Week 1"
+                        current_week: "1"
                     }, { merge: true });
                 } else {
                     // Has Week 1 games but some are not completed - something is wrong
                     // This shouldn't happen as we already checked for incomplete games above
                     console.log(`Unexpected state: Has Week 1 games but not all complete. Defaulting to Week 1.`);
                     await activeSeasonDoc.ref.set({
-                        current_week: "Week 1"
+                        current_week: "1"
                     }, { merge: true });
                 }
             }
