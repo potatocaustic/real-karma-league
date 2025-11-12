@@ -4,8 +4,8 @@ import './main.js'; // Import main.js to run it first
 import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
 // --- DATA AND CONFIGURATION ---
-const PREVIOUS_SEASON_ID = 'S8';
-const DRAFT_SEASON_ID = 'S9';
+const PREVIOUS_SEASON_ID = 'S9';
+const DRAFT_SEASON_ID = 'S10';
 
 const lotteryOdds = [
     { seed: 1, chances: 140, pct1st: 14.0, pctTop4: 52.14 }, { seed: 2, chances: 140, pct1st: 14.0, pctTop4: 52.14 },
