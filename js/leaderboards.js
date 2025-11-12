@@ -1,6 +1,6 @@
 import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-const SEASON_ID = 'S8';
+const SEASON_ID = 'S9';
 
 function formatKarma(value) {
     return Math.round(parseFloat(value || 0)).toLocaleString();
