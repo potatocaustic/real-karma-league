@@ -3,7 +3,7 @@ import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, co
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
-const SEASON_ID = 'S9';
+const SEASON_ID = 'S8';
 
 // --- Global State ---
 let allTeamsData = new Map();
