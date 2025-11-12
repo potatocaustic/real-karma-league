@@ -246,6 +246,15 @@ function addAssetToTrade(event) {
 async function handleFormSubmit(e) {
     e.preventDefault();
     const type = typeSelect.value;
+
+    // Get the submit button and store original text
+    const submitButton = transactionForm.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.textContent;
+
+    // Disable button and show loading state
+    submitButton.disabled = true;
+    submitButton.textContent = 'Logging...';
+
     // We remove serverTimestamp() from here because the backend will add it.
     let transactionData = { type, schema: 'v2', notes: document.getElementById('transaction-notes').value.trim(), status: 'PENDING' };
 
@@ -323,6 +332,10 @@ async function handleFormSubmit(e) {
     } catch (error) {
         console.error("Error logging transaction:", error);
         alert(`Error: ${error.message}`);
+
+        // Re-enable button and restore original text on error
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
     }
 }
 

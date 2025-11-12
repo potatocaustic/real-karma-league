@@ -2760,6 +2760,46 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`transactions/{transactionId}
             batch.update(pickRef, { current_owner: newOwnerId });
         }
 
+        // Remove involved players/picks from trade blocks
+        const involvedPlayerIds = involvedPlayers.map(p => p.id);
+        const involvedPickIds = involvedPicks.map(p => p.id);
+
+        if (involvedPlayerIds.length > 0 || involvedPickIds.length > 0) {
+            const tradeBlocksSnap = await db.collection('tradeblocks').get();
+
+            tradeBlocksSnap.forEach(blockDoc => {
+                const blockData = blockDoc.data();
+                let needsUpdate = false;
+
+                // Filter out involved players
+                const updatedPlayers = (blockData.on_the_block || []).filter(player => {
+                    if (involvedPlayerIds.includes(player.id)) {
+                        needsUpdate = true;
+                        return false;
+                    }
+                    return true;
+                });
+
+                // Filter out involved picks
+                const updatedPicks = (blockData.picks_available_ids || []).filter(pick => {
+                    if (involvedPickIds.includes(pick.id)) {
+                        needsUpdate = true;
+                        return false;
+                    }
+                    return true;
+                });
+
+                // Only update if something was removed
+                if (needsUpdate) {
+                    batch.update(blockDoc.ref, {
+                        on_the_block: updatedPlayers,
+                        picks_available_ids: updatedPicks
+                    });
+                    console.log(`Removed ${involvedPlayerIds.length} player(s) and ${involvedPickIds.length} pick(s) from trade block ${blockDoc.id}`);
+                }
+            });
+        }
+
         const enhancedInvolvedPlayers = involvedPlayers.map(p => ({
             ...p,
             player_handle: playerHandlesMap.get(p.id) || 'Unknown'
@@ -2877,6 +2917,46 @@ exports.minor_onTransactionCreate_V2 = onDocumentCreated(`minor_transactions/{tr
             const pickRef = db.collection(getCollectionName('draftPicks', LEAGUES.MINOR)).doc(pickMove.id);
             const newOwnerId = pickMove.to;
             batch.update(pickRef, { current_owner: newOwnerId });
+        }
+
+        // Remove involved players/picks from trade blocks
+        const involvedPlayerIds = involvedPlayers.map(p => p.id);
+        const involvedPickIds = involvedPicks.map(p => p.id);
+
+        if (involvedPlayerIds.length > 0 || involvedPickIds.length > 0) {
+            const tradeBlocksSnap = await db.collection('minor_tradeblocks').get();
+
+            tradeBlocksSnap.forEach(blockDoc => {
+                const blockData = blockDoc.data();
+                let needsUpdate = false;
+
+                // Filter out involved players
+                const updatedPlayers = (blockData.on_the_block || []).filter(player => {
+                    if (involvedPlayerIds.includes(player.id)) {
+                        needsUpdate = true;
+                        return false;
+                    }
+                    return true;
+                });
+
+                // Filter out involved picks
+                const updatedPicks = (blockData.picks_available_ids || []).filter(pick => {
+                    if (involvedPickIds.includes(pick.id)) {
+                        needsUpdate = true;
+                        return false;
+                    }
+                    return true;
+                });
+
+                // Only update if something was removed
+                if (needsUpdate) {
+                    batch.update(blockDoc.ref, {
+                        on_the_block: updatedPlayers,
+                        picks_available_ids: updatedPicks
+                    });
+                    console.log(`Minor League: Removed ${involvedPlayerIds.length} player(s) and ${involvedPickIds.length} pick(s) from trade block ${blockDoc.id}`);
+                }
+            });
         }
 
         const enhancedInvolvedPlayers = involvedPlayers.map(p => ({
