@@ -231,6 +231,7 @@ async function handleSeasonChange(defaultWeek = null) {
 
 async function populateWeeks(seasonId) {
     let weekOptions = '';
+    weekOptions += `<option value="Preseason">Preseason</option>`;
     for (let i = 1; i <= 15; i++) weekOptions += `<option value="${i}">Week ${i}</option>`;
     weekOptions += `<option value="All-Star">All-Star</option>`;
     weekOptions += `<option value="Relegation">Relegation</option>`;
@@ -249,8 +250,8 @@ async function fetchAndDisplayGames(seasonId, week) {
     const liveGamesSnap = await getDocs(liveGamesRef);
     const liveGameIds = new Set(liveGamesSnap.docs.map(doc => doc.id));
 
-    const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation';
-    const isExhibition = week === 'All-Star' || week === 'Relegation';
+    const isPostseason = !/^\d+$/.test(week) && week !== 'All-Star' && week !== 'Relegation' && week !== 'Preseason';
+    const isExhibition = week === 'All-Star' || week === 'Relegation' || week === 'Preseason';
     let collectionName = isPostseason ? 'post_games' : isExhibition ? 'exhibition_games' : 'games';
 
     const gamesQuery = query(collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName(collectionName)), where("week", "==", week));
