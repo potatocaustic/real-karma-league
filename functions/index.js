@@ -3991,28 +3991,53 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
                 current_week: String(nextGameWeek)
             }, { merge: true });
         } else {
-            // Check if there are any regular season games scheduled at all
-            const anyGamesSnap = await gamesRef.limit(1).get();
+            // No incomplete games found. Check if we're at the beginning of the season or the end.
+            // Get all regular season games to determine the season state
+            const allGamesSnap = await gamesRef.get();
 
-            if (anyGamesSnap.empty) {
+            console.log(`Found ${allGamesSnap.size} total regular season games for ${league} league.`);
+
+            if (allGamesSnap.empty) {
+                // No games scheduled at all - beginning of season
                 console.log(`No games scheduled yet for ${league} league. Defaulting to Week 1.`);
                 await activeSeasonDoc.ref.set({
                     current_week: "Week 1"
                 }, { merge: true });
             } else {
-                // Regular season has games but all are complete, check postseason status
-                const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games', league));
-                const allPostGamesSnap = await postGamesRef.limit(2).get();
+                // There are games. Check if they're all completed or if this is a data issue
+                const allCompleted = allGamesSnap.docs.every(doc => doc.data().completed === 'TRUE');
+                const hasWeek1Games = allGamesSnap.docs.some(doc => doc.data().week === 'Week 1');
 
-                if (allPostGamesSnap.size > 1) {
-                    console.log("No incomplete games found anywhere. Postseason is complete. Setting current week to 'Season Complete'.");
+                console.log(`All games completed: ${allCompleted}, Has Week 1 games: ${hasWeek1Games}`);
+
+                if (allCompleted && hasWeek1Games) {
+                    // Regular season has been played, check postseason status
+                    const postGamesRef = activeSeasonDoc.ref.collection(getCollectionName('post_games', league));
+                    const allPostGamesSnap = await postGamesRef.limit(2).get();
+
+                    if (allPostGamesSnap.size > 1) {
+                        console.log("No incomplete games found anywhere. Postseason is complete. Setting current week to 'Season Complete'.");
+                        await activeSeasonDoc.ref.set({
+                            current_week: "Season Complete"
+                        }, { merge: true });
+                    } else {
+                        console.log("Regular season complete. Awaiting postseason schedule generation.");
+                        await activeSeasonDoc.ref.set({
+                            current_week: "End of Regular Season"
+                        }, { merge: true });
+                    }
+                } else if (!hasWeek1Games) {
+                    // No Week 1 games exist yet - this is the beginning of the season
+                    console.log(`No Week 1 games found. Season hasn't started yet. Defaulting to Week 1.`);
                     await activeSeasonDoc.ref.set({
-                        current_week: "Season Complete"
+                        current_week: "Week 1"
                     }, { merge: true });
                 } else {
-                    console.log("Regular season complete. Awaiting postseason schedule generation.");
+                    // Has Week 1 games but some are not completed - something is wrong
+                    // This shouldn't happen as we already checked for incomplete games above
+                    console.log(`Unexpected state: Has Week 1 games but not all complete. Defaulting to Week 1.`);
                     await activeSeasonDoc.ref.set({
-                        current_week: "End of Regular Season"
+                        current_week: "Week 1"
                     }, { merge: true });
                 }
             }
