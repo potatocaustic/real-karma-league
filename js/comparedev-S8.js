@@ -1,4 +1,4 @@
-// /js/comparedev.js
+// /js/comparedev-S8.js
 
 import {
     db,
