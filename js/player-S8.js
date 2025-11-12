@@ -1,4 +1,4 @@
-// /js/player.js
+// /js/player-S8.js
 import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
 
