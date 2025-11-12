@@ -24,6 +24,7 @@
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
@@ -140,7 +141,14 @@
 
             <div class="recent-games">
                 <div class="games-header">
-                    <h3 id="games-header-title">Recent Games</h3>
+                    <div class="games-header-left">
+                        <button id="daily-leaderboard-icon" class="header-icon-btn" title="Daily Leaderboard" style="display: none;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                                <path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/>
+                            </svg>
+                        </button>
+                        <h3 id="games-header-title">Recent Games</h3>
+                    </div>
                     <div id="live-scoring-info-icon-container" style="display: none;" title="Live scoring info">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="24" height="24">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
@@ -148,6 +156,7 @@
                     </div>
                 </div>
                 <div class="games-list" id="recent-games"><div class="loading">Loading recent games...</div></div>
+                <div id="daily-leaderboard-view" style="display: none;"></div>
                 <div class="view-full"><a href="schedule.html">View Full Schedule →</a></div>
             </div>
         </div>

@@ -252,7 +252,13 @@ window.addEventListener('load', () => {
 
         onSnapshot(statusRef, (docSnap) => {
             if (docSnap.exists()) {
-                const { status = 'stopped', interval_minutes = 5, last_full_update_completed, last_sample_results, active_game_date, last_sample_completed_at } = docSnap.data();
+                const { status = 'stopped', interval_minutes = 5, last_full_update_completed, last_sample_results, active_game_date, last_sample_completed_at, show_live_features = true } = docSnap.data();
+
+                // Update the toggle checkbox
+                const featuresToggle = document.getElementById('show-live-features-toggle');
+                if (featuresToggle) {
+                    featuresToggle.checked = show_live_features;
+                }
                 
                 sampleProgressContainer.style.display = 'none';
                 sampleProgressBar.style.width = '0%';
@@ -491,6 +497,25 @@ window.addEventListener('load', () => {
         progressCloseBtn.addEventListener('click', () => {
             progressModal.style.display = 'none';
         });
+
+        // Live features toggle handler
+        const featuresToggle = document.getElementById('show-live-features-toggle');
+        if (featuresToggle) {
+            featuresToggle.addEventListener('change', async () => {
+                try {
+                    const currentLeague = getCurrentLeague();
+                    await setDoc(doc(db, getCollectionName('live_scoring_status', currentLeague), 'status'), {
+                        show_live_features: featuresToggle.checked
+                    }, { merge: true });
+                    console.log('Live features visibility updated:', featuresToggle.checked);
+                } catch (error) {
+                    console.error('Error updating live features toggle:', error);
+                    alert(`Error updating setting: ${error.message}`);
+                    // Revert the checkbox on error
+                    featuresToggle.checked = !featuresToggle.checked;
+                }
+            });
+        }
     }
 
     // --- Main Authentication and Initialization Logic ---

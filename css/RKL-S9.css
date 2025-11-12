@@ -298,23 +298,51 @@ main {
     text-align: center;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.games-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
     justify-content: center;
-    position: relative; /* Needed for absolute positioning of the icon */
+}
+
+.header-icon-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-icon-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-icon-btn.active {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 #live-scoring-info-icon-container {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
     cursor: pointer;
     color: white;
     opacity: 0.7;
     transition: opacity 0.2s ease;
+    padding: 0.5rem;
+    border-radius: 4px;
 }
 
 #live-scoring-info-icon-container:hover {
     opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .games-header h3 {
@@ -767,5 +795,146 @@ main {
         padding: 0.8rem 1.5rem; /* Adjust padding */
         letter-spacing: normal; /* Remove extra letter spacing */
         white-space: nowrap; /* Ensure text stays on one line */
+    }
+}
+
+/* Daily Leaderboard Styles */
+#daily-leaderboard-view {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+    transition: background-color 0.3s;
+}
+
+.dark-mode #daily-leaderboard-view {
+    background-color: #2c2c2c;
+}
+
+#daily-leaderboard-view .loading {
+    color: #333;
+}
+
+.dark-mode #daily-leaderboard-view .loading {
+    color: #e0e0e0;
+}
+
+.leaderboard-section {
+    margin-bottom: 2rem;
+}
+
+.leaderboard-section:last-child {
+    margin-bottom: 0;
+}
+
+.leaderboard-section h4 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+}
+
+.dark-mode .leaderboard-section h4 {
+    color: #e0e0e0;
+}
+
+.leaderboard-stat {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.dark-mode .leaderboard-stat {
+    background-color: #383838;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.leaderboard-stat:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.leaderboard-player-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.leaderboard-rank {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #666;
+    min-width: 30px;
+}
+
+.dark-mode .leaderboard-rank {
+    color: #aaa;
+}
+
+.leaderboard-player-name {
+    font-weight: 500;
+}
+
+.leaderboard-team-name {
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.dark-mode .leaderboard-team-name {
+    color: #999;
+}
+
+.leaderboard-score {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.leaderboard-score.positive {
+    color: #28a745;
+}
+
+.leaderboard-score.negative {
+    color: #dc3545;
+}
+
+.leaderboard-median {
+    background-color: #007bff;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 1.5rem 0;
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.leaderboard-percent-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .leaderboard-player-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+
+    .leaderboard-rank {
+        min-width: 20px;
+    }
+
+    .leaderboard-section h4 {
+        font-size: 1rem;
+    }
+
+    .leaderboard-median {
+        font-size: 1.2rem;
+        padding: 1rem;
     }
 }

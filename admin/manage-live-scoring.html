@@ -134,6 +134,28 @@
             <button id="force-recalc-btn" class="btn-admin-edit" style="margin-top:1rem; width:100%;">Force Leaderboard Recalc</button>
             <hr style="margin: 1.5rem 0;">
 
+            <h4>Live Feature Controls</h4>
+            <div class="form-group-admin">
+                <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer;">
+                    <input type="checkbox" id="show-live-features-toggle" style="width: auto; cursor: pointer;">
+                    <span>Show Game Flow Chart & Daily Leaderboard Icons</span>
+                </label>
+                <p class="feature-toggle-description">
+                    Toggle this off to hide the new feature icons from the public view while debugging.
+                </p>
+            </div>
+            <style>
+                .feature-toggle-description {
+                    font-size: 0.9rem;
+                    color: #666;
+                    margin-top: 0.5rem;
+                }
+                .dark-mode .feature-toggle-description {
+                    color: #aaa;
+                }
+            </style>
+            <hr style="margin: 1.5rem 0;">
+
             <h4>Last Sample Results</h4>
             <div id="last-sample-log">
                 <p>No sample run yet.</p>

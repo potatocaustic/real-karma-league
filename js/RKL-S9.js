@@ -9,6 +9,7 @@ let activeSeasonId = '';
 let allTeams = [];
 let allGamesCache = []; // Caches all games for the season
 let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
+let showLiveFeatures = true; // Controls visibility of new live features
 
 // --- UTILITY FUNCTIONS ---
 function formatInThousands(value) {
@@ -197,10 +198,12 @@ function initializeGamesSection(seasonData) {
     const gamesList = document.getElementById('recent-games');
 
     onSnapshot(statusRef, (statusSnap) => {
-        const newStatus = statusSnap.exists ? statusSnap.data().status : 'stopped';
+        const statusData = statusSnap.exists ? statusSnap.data() : {};
+        const newStatus = statusData.status || 'stopped';
+        showLiveFeatures = statusData.show_live_features !== false; // Default to true if not set
 
         if (newStatus === currentScoringStatus) {
-            return; 
+            return;
         }
 
         currentScoringStatus = newStatus; 
@@ -244,7 +247,16 @@ function loadLiveGames() {
     if (infoIconContainer) {
         infoIconContainer.style.display = 'block';
     }
-    
+
+    // Show daily leaderboard icon during live scoring (if admin allows)
+    const leaderboardIcon = document.getElementById('daily-leaderboard-icon');
+    if (leaderboardIcon && showLiveFeatures) {
+        leaderboardIcon.style.display = 'flex';
+        leaderboardIcon.onclick = () => toggleDailyLeaderboard();
+    } else if (leaderboardIcon) {
+        leaderboardIcon.style.display = 'none';
+    }
+
     gamesList.innerHTML = '<div class="loading">Connecting to live games...</div>';
 
     const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
@@ -411,6 +423,18 @@ async function loadRecentGames() {
 
     if (infoIconContainer) {
         infoIconContainer.style.display = 'none';
+    }
+
+    // Hide daily leaderboard icon when not in live mode
+    const leaderboardIcon = document.getElementById('daily-leaderboard-icon');
+    const leaderboardView = document.getElementById('daily-leaderboard-view');
+    if (leaderboardIcon) {
+        leaderboardIcon.style.display = 'none';
+        leaderboardIcon.classList.remove('active');
+    }
+    if (leaderboardView) {
+        leaderboardView.style.display = 'none';
+        leaderboardView.innerHTML = '';
     }
 
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
@@ -763,6 +787,25 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
             </div>
         `;
 
+        // Fetch and prepare game flow chart (if admin allows and data exists)
+        const chartBtn = document.getElementById('game-flow-chart-btn');
+        const flowData = await fetchGameFlowData(gameId);
+
+        if (flowData && flowData.length > 0 && showLiveFeatures) {
+            // Show chart button
+            if (chartBtn) {
+                chartBtn.style.display = 'flex';
+                chartBtn.onclick = () => toggleGameFlowChart();
+            }
+
+            // Pre-render the chart (hidden initially)
+            renderGameFlowChart(flowData, team1.team_name, team2.team_name);
+        } else {
+            if (chartBtn) {
+                chartBtn.style.display = 'none';
+            }
+        }
+
     } catch (error) {
         console.error("Error loading game details:", error);
         contentArea.innerHTML = `<div class="error">Could not load game details.</div>`;
@@ -770,10 +813,336 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
 }
 
 
+// --- GAME FLOW CHART FUNCTIONS ---
+let gameFlowChartInstance = null;
+let currentGameFlowData = null;
+
+async function fetchGameFlowData(gameId) {
+    try {
+        const flowRef = doc(db, getCollectionName('game_flow_snapshots'), gameId);
+        const flowSnap = await getDoc(flowRef);
+
+        if (flowSnap.exists()) {
+            return flowSnap.data().snapshots || [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Error fetching game flow data:', error);
+        return [];
+    }
+}
+
+function renderGameFlowChart(snapshots, team1Name, team2Name) {
+    const chartArea = document.getElementById('game-flow-chart-area');
+    const canvas = document.getElementById('game-flow-chart');
+
+    if (!canvas || !chartArea) {
+        console.error('Chart elements not found');
+        return;
+    }
+
+    // Destroy existing chart if any
+    if (gameFlowChartInstance) {
+        gameFlowChartInstance.destroy();
+        gameFlowChartInstance = null;
+    }
+
+    if (snapshots.length === 0) {
+        chartArea.innerHTML = '<div class="loading" style="padding: 2rem; text-align: center;">No game flow data available for this matchup.</div>';
+        return;
+    }
+
+    // Detect dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const tooltipBg = isDarkMode ? '#383838' : '#fff';
+    const tooltipBorder = isDarkMode ? '#555' : '#ccc';
+
+    // Sort snapshots by timestamp
+    const sortedSnapshots = [...snapshots].sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+
+    // Prepare data for Chart.js
+    const labels = sortedSnapshots.map(s => {
+        const date = s.timestamp.toDate();
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    });
+
+    const team1Scores = sortedSnapshots.map(s => s.team1_score);
+    const team2Scores = sortedSnapshots.map(s => s.team2_score);
+
+    const ctx = canvas.getContext('2d');
+
+    gameFlowChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: team1Name,
+                data: team1Scores,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#007bff',
+                pointBorderColor: '#fff'
+            }, {
+                label: team2Name,
+                data: team2Scores,
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#dc3545',
+                pointBorderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Game Flow Chart',
+                    font: { size: 18 },
+                    color: textColor
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: textColor,
+                        font: { size: 14 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: tooltipBg,
+                    titleColor: textColor,
+                    bodyColor: textColor,
+                    borderColor: tooltipBorder,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + Math.round(context.parsed.y).toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Score',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function toggleGameFlowChart() {
+    const contentArea = document.getElementById('game-details-content-area');
+    const chartArea = document.getElementById('game-flow-chart-area');
+    const chartBtn = document.getElementById('game-flow-chart-btn');
+
+    if (!contentArea || !chartArea || !chartBtn) return;
+
+    if (contentArea.style.display === 'none') {
+        // Switch back to traditional view
+        contentArea.style.display = 'block';
+        chartArea.style.display = 'none';
+        chartBtn.classList.remove('active');
+    } else {
+        // Switch to chart view
+        contentArea.style.display = 'none';
+        chartArea.style.display = 'block';
+        chartBtn.classList.add('active');
+    }
+}
+
 function closeModal() {
     const modal = document.getElementById('game-modal');
     if (modal) {
         modal.style.display = 'none';
+    }
+
+    // Clean up chart
+    if (gameFlowChartInstance) {
+        gameFlowChartInstance.destroy();
+        gameFlowChartInstance = null;
+    }
+
+    // Reset views
+    const contentArea = document.getElementById('game-details-content-area');
+    const chartArea = document.getElementById('game-flow-chart-area');
+    const chartBtn = document.getElementById('game-flow-chart-btn');
+
+    if (contentArea) contentArea.style.display = 'block';
+    if (chartArea) chartArea.style.display = 'none';
+    if (chartBtn) {
+        chartBtn.classList.remove('active');
+        chartBtn.style.display = 'none';
+    }
+}
+
+// --- DAILY LEADERBOARD FUNCTIONS ---
+async function fetchDailyLeaderboard(gameDate) {
+    try {
+        const leaderboardRef = doc(db, getCollectionName('daily_leaderboards'), gameDate);
+        const leaderboardSnap = await getDoc(leaderboardRef);
+
+        if (leaderboardSnap.exists()) {
+            return leaderboardSnap.data();
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching daily leaderboard:', error);
+        return null;
+    }
+}
+
+function renderDailyLeaderboard(leaderboardData) {
+    const leaderboardView = document.getElementById('daily-leaderboard-view');
+
+    if (!leaderboardView) {
+        console.error('Daily leaderboard view element not found');
+        return;
+    }
+
+    if (!leaderboardData) {
+        leaderboardView.innerHTML = '<div class="loading" style="padding: 2rem; text-align: center;">No leaderboard data available for today.</div>';
+        return;
+    }
+
+    const { top_3, bottom_3, median_score, all_players } = leaderboardData;
+
+    // Build Top 3 section
+    const top3HTML = top_3.map(player => `
+        <div class="leaderboard-stat">
+            <div class="leaderboard-player-info">
+                <span class="leaderboard-rank">#${player.rank}</span>
+                <div>
+                    <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
+                    <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
+                </div>
+            </div>
+            <span class="leaderboard-score">${formatInThousands(player.score)}</span>
+        </div>
+    `).join('');
+
+    // Build Bottom 3 section
+    const bottom3HTML = bottom_3.map(player => `
+        <div class="leaderboard-stat">
+            <div class="leaderboard-player-info">
+                <span class="leaderboard-rank">#${player.rank}</span>
+                <div>
+                    <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
+                    <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
+                </div>
+            </div>
+            <span class="leaderboard-score">${formatInThousands(player.score)}</span>
+        </div>
+    `).join('');
+
+    // Build Percent vs Median section
+    const percentListHTML = all_players.map(player => {
+        const percentClass = player.percent_vs_median >= 0 ? 'positive' : 'negative';
+        const percentSign = player.percent_vs_median >= 0 ? '+' : '';
+        return `
+            <div class="leaderboard-stat">
+                <div class="leaderboard-player-info">
+                    <span class="leaderboard-rank">#${player.rank}</span>
+                    <div>
+                        <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
+                        <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
+                    </div>
+                </div>
+                <span class="leaderboard-score ${percentClass}">${percentSign}${player.percent_vs_median.toFixed(1)}%</span>
+            </div>
+        `;
+    }).join('');
+
+    leaderboardView.innerHTML = `
+        <div class="leaderboard-section">
+            <h4>🏆 Top 3 Performers</h4>
+            ${top3HTML}
+        </div>
+
+        <div class="leaderboard-section">
+            <h4>📊 Median Daily Score</h4>
+            <div class="leaderboard-median">${formatInThousands(median_score)}</div>
+        </div>
+
+        <div class="leaderboard-section">
+            <h4>📉 Bottom 3 Performers</h4>
+            ${bottom3HTML}
+        </div>
+
+        <div class="leaderboard-section">
+            <h4>📈 All Players (% vs Median)</h4>
+            <div class="leaderboard-percent-list">
+                ${percentListHTML}
+            </div>
+        </div>
+    `;
+}
+
+async function toggleDailyLeaderboard() {
+    const gamesList = document.getElementById('recent-games');
+    const leaderboardView = document.getElementById('daily-leaderboard-view');
+    const leaderboardIcon = document.getElementById('daily-leaderboard-icon');
+
+    if (!gamesList || !leaderboardView || !leaderboardIcon) return;
+
+    if (leaderboardView.style.display === 'none') {
+        // Switch to leaderboard view
+        gamesList.style.display = 'none';
+        leaderboardView.style.display = 'block';
+        leaderboardIcon.classList.add('active');
+
+        // Fetch and render leaderboard if not already rendered
+        if (leaderboardView.innerHTML === '') {
+            leaderboardView.innerHTML = '<div class="loading">Loading leaderboard...</div>';
+
+            // Get today's date in YYYY-MM-DD format
+            const today = new Date().toISOString().split('T')[0];
+            const leaderboardData = await fetchDailyLeaderboard(today);
+            renderDailyLeaderboard(leaderboardData);
+        }
+    } else {
+        // Switch back to games list
+        gamesList.style.display = 'block';
+        leaderboardView.style.display = 'none';
+        leaderboardIcon.classList.remove('active');
     }
 }
 
