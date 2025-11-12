@@ -11,7 +11,7 @@ import {
 } from './firebase-init.js';
 
 // --- Globals ---
-let currentSeason = 9; // Default to Season 9 draft
+let currentSeason = 10; 
 let currentView = 'table';
 let allDraftPicks = [];
 let allTeams = [];
