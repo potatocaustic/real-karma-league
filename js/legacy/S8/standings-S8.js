@@ -1,4 +1,4 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup } from './firebase-init.js';
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup } from '../../firebase-init.js';
 
 // --- CONFIGURATION ---
 const USE_DEV_COLLECTIONS = false; // Set to false for production

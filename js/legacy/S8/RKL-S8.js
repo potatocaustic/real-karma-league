@@ -1,5 +1,5 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId } from '../js/firebase-init.js';
-import { generateLineupTable } from './main.js';
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId } from '../../firebase-init.js';
+import { generateLineupTable } from '../../main.js';
 
 const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;

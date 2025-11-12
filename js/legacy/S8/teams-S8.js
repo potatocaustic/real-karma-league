@@ -9,7 +9,7 @@ import {
   collectionGroup,
   collectionNames,
   getLeagueCollectionName
-} from './firebase-init.js';
+} from '../../firebase-init.js';
 
 const SEASON_ID = 'S8';
 

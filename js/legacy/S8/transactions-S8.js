@@ -11,7 +11,7 @@ import {
   getDoc,
   collectionNames,
   getLeagueCollectionName
-} from "../js/firebase-init.js";
+} from "../../firebase-init.js";
 
 const ACTIVE_SEASON_ID = "S8";
 

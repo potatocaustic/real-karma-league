@@ -1,6 +1,6 @@
 // /js/postseason-player-S8.js
-import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
-import { generateLineupTable } from './main.js';
+import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, collectionNames, getLeagueCollectionName } from '../../firebase-init.js';
+import { generateLineupTable } from '../../main.js';
 
 // --- Configuration ---
 const SEASON_ID = 'S8';
