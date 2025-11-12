@@ -13,7 +13,7 @@ import {
   getLeagueCollectionName
 } from "../js/firebase-init.js";
 
-const ACTIVE_SEASON_ID = "S8";
+const ACTIVE_SEASON_ID = "S9";
 
 // --- DOM Elements ---
 const transactionsListEl = document.getElementById('transactions-list');
