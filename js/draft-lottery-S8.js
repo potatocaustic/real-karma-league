@@ -1,4 +1,4 @@
-// /js/draft-lottery-S9.js
+// /js/draft-lottery-S8.js
 
 import './main.js'; // Import main.js to run it first
 import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
