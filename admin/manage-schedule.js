@@ -178,7 +178,7 @@ function renderSchedule(container, allowDelete = true, gamesSource = gamesByWeek
     }
 
     let finalHTML = '';
-    const weekOrder = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'All-Star', 'Relegation', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
+    const weekOrder = ['Preseason', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', 'All-Star', 'Relegation', 'Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals'];
     const sortedWeeks = Object.keys(gamesSource).sort((a, b) => weekOrder.indexOf(a) - weekOrder.indexOf(b));
 
     for (const week of sortedWeeks) {
@@ -191,7 +191,7 @@ function renderSchedule(container, allowDelete = true, gamesSource = gamesByWeek
                 <tr>
                     <td>${game.date}</td>
                     <td>${team1} vs ${team2}</td>
-                    ${allowDelete ? `<td><button class="btn-admin-delete" data-game-id="${game.id}" data-is-exhibition="${game.week === 'All-Star' || game.week === 'Relegation'}">Delete</button></td>` : '<td></td>'}
+                    ${allowDelete ? `<td><button class="btn-admin-delete" data-game-id="${game.id}" data-is-exhibition="${game.week === 'All-Star' || game.week === 'Relegation' || game.week === 'Preseason'}">Delete</button></td>` : '<td></td>'}
                 </tr>
             `;
         });
@@ -203,6 +203,7 @@ function renderSchedule(container, allowDelete = true, gamesSource = gamesByWeek
 function openGameModal() {
     gameForm.reset();
     let weekOptions = '<option value="">-- Select a Week --</option>';
+    weekOptions += `<option value="Preseason">Preseason</option>`;
     for (let i = 1; i <= 15; i++) {
         weekOptions += `<option value="${i}">Week ${i}</option>`;
     }
@@ -228,7 +229,7 @@ function populateAvailableTeams() {
 
     let availableTeams;
 
-    if (week === 'All-Star' || week === 'Relegation') {
+    if (week === 'All-Star' || week === 'Relegation' || week === 'Preseason') {
         availableTeams = allTeams;
     } else {
         const scheduledTeams = new Set();
@@ -276,7 +277,7 @@ async function saveGame(andExit = true) {
         completed: 'FALSE', team1_score: 0, team2_score: 0, winner: ''
     };
 
-    const isExhibition = week === 'All-Star' || week === 'Relegation';
+    const isExhibition = week === 'All-Star' || week === 'Relegation' || week === 'Preseason';
     const collectionName = isExhibition ? 'exhibition_games' : 'games';
     const gameId = `${formattedDateForId}-${team1Id}-${team2Id}`;
     
