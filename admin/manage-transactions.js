@@ -320,7 +320,11 @@ async function handleFormSubmit(e) {
         const result = await admin_processTransaction({ ...transactionData, league: getCurrentLeague() });
 
         alert(result.data.message); // Show the dynamic message from the backend
-        
+
+        // Re-enable button and restore original text after success
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
