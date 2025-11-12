@@ -11,7 +11,7 @@ import {
   getLeagueCollectionName
 } from './firebase-init.js';
 
-const SEASON_ID = 'S8';
+const SEASON_ID = 'S9';
 
 function getPlayoffIndicator(rankInConference) {
   if (rankInConference <= 6) {
