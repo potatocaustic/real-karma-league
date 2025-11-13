@@ -852,10 +852,10 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
                 // For preseason: only count each player once
                 if (!playerGameCount.has(playerId)) {
                     allPlayers.push({
-                        player_id: playerId,
+                        player_id: playerId || '',
                         player_name: player.player_name || 'Unknown',
                         handle: player.handle || 'Unknown',
-                        team_id: player.team_id,
+                        team_id: player.team_id || '',
                         team_name: player.team_name || 'Unknown',
                         score: player.final_score || 0,
                         global_rank: player.global_rank || -1
