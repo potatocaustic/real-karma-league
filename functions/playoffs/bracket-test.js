@@ -1,17 +1,10 @@
 // functions/playoffs/bracket-test.js
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/firebase-helpers');
 const { advanceBracket } = require('./bracket-advancement');
 const { processAndFinalizeGame } = require('../live-scoring/live-games');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Test function to manually trigger playoff bracket updates

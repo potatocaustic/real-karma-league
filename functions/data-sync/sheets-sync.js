@@ -1,16 +1,10 @@
 // functions/data-sync/sheets-sync.js
 
 const { onRequest } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const fetch = require("node-fetch");
 const { deleteCollection } = require('../utils/firebase-helpers');
 const { parseCSV, parseNumber, getSafeDateString } = require('../utils/csv-parser');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 
 /**
  * Syncs Google Sheets data to Firestore

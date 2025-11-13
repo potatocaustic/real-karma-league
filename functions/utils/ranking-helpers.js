@@ -1,13 +1,7 @@
 // functions/utils/ranking-helpers.js
 
-const admin = require("firebase-admin");
+const { admin, db } = require('./firebase-admin');
 const { getCollectionName, LEAGUES } = require('./firebase-helpers');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 
 /**
  * Generates a ranked map of players based on a primary stat and optional tiebreaker

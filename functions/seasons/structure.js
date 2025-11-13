@@ -1,14 +1,7 @@
 // functions/seasons/structure.js
 
-const admin = require("firebase-admin");
+const { admin, db } = require('../utils/firebase-admin');
 const { getCollectionName } = require('../utils/firebase-helpers');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Creates the full data structure for a new season including:

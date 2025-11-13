@@ -1,12 +1,7 @@
 // functions/utils/firebase-helpers.js
 
 const { HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
+const { admin } = require('./firebase-admin');
 
 const USE_DEV_COLLECTIONS = false;
 

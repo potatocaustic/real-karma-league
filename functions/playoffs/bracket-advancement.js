@@ -1,14 +1,7 @@
 // functions/playoffs/bracket-advancement.js
 
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const { LEAGUES } = require('../utils/firebase-helpers');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Core logic for advancing teams in the playoff bracket.

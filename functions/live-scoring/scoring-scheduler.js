@@ -2,17 +2,11 @@
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onMessagePublished } = require("firebase-functions/v2/pubsub");
-const admin = require("firebase-admin");
+const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
 const { getCollectionName, LEAGUES } = require('../utils/firebase-helpers');
 const { performFullUpdate } = require('./live-status');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 
 /**
  * Scheduled sampler for major league

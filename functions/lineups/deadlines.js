@@ -1,16 +1,10 @@
 // functions/lineups/deadlines.js
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
 const { CloudSchedulerClient } = require("@google-cloud/scheduler");
 const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-helpers');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 const schedulerClient = new CloudSchedulerClient();
 
 /**

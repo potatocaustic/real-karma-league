@@ -1,13 +1,7 @@
 // functions/utils/auth-helpers.js
 
-const admin = require("firebase-admin");
+const { admin, db } = require('./firebase-admin');
 const { getCollectionName } = require('./firebase-helpers');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 
 /**
  * League context constants

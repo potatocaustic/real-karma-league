@@ -2,15 +2,8 @@
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/firebase-helpers');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Helper function to perform week update logic for a specific league

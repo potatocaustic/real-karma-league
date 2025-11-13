@@ -4,7 +4,7 @@ const { onDocumentUpdated, onDocumentCreated, onDocumentWritten } = require("fir
 const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onMessagePublished } = require("firebase-functions/v2/pubsub");
-const admin = require("firebase-admin");
+const { admin, db } = require("./utils/firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
 const { CloudSchedulerClient } = require("@google-cloud/scheduler");
@@ -37,9 +37,6 @@ const transactionRelease = require('./transactions/transaction-release');
 
 // Import extracted draft modules
 const draftResults = require('./draft/draft-results');
-
-admin.initializeApp();
-const db = admin.firestore();
 
 const USE_DEV_COLLECTIONS = false;
 
