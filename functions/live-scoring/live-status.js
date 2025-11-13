@@ -221,9 +221,8 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
     }
 });
 
+// Export Cloud Functions
+module.exports.updateAllLiveScores = exports.updateAllLiveScores;
+module.exports.setLiveScoringStatus = exports.setLiveScoringStatus;
 // Export helper function for use by other modules
-module.exports = {
-    updateAllLiveScores: exports.updateAllLiveScores,
-    setLiveScoringStatus: exports.setLiveScoringStatus,
-    performFullUpdate
-};
+module.exports.performFullUpdate = performFullUpdate;

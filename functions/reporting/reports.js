@@ -112,6 +112,5 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
     }
 });
 
-module.exports = {
-    getReportData: exports.getReportData
-};
+// Export Cloud Function
+module.exports.getReportData = exports.getReportData;

@@ -234,10 +234,9 @@ exports.getLiveKarma = onCall({ region: "us-central1" }, async (request) => {
     }
 });
 
+// Export Cloud Functions
+module.exports.activateLiveGame = exports.activateLiveGame;
+module.exports.finalizeLiveGame = exports.finalizeLiveGame;
+module.exports.getLiveKarma = exports.getLiveKarma;
 // Export helper function for use by other modules
-module.exports = {
-    activateLiveGame: exports.activateLiveGame,
-    finalizeLiveGame: exports.finalizeLiveGame,
-    getLiveKarma: exports.getLiveKarma,
-    processAndFinalizeGame
-};
+module.exports.processAndFinalizeGame = processAndFinalizeGame;

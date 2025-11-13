@@ -211,6 +211,5 @@ exports.syncSheetsToFirestore = onRequest({ region: "us-central1" }, async (req,
     }
 });
 
-module.exports = {
-    syncSheetsToFirestore: exports.syncSheetsToFirestore
-};
+// Export helper function alongside Cloud Function
+module.exports.syncSheetsToFirestore = exports.syncSheetsToFirestore;

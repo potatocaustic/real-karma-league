@@ -204,9 +204,8 @@ exports.minor_autoFinalizeGames = onSchedule({
     return null;
 });
 
-module.exports = {
-    processPendingLiveGames: exports.processPendingLiveGames,
-    minor_processPendingLiveGames: exports.minor_processPendingLiveGames,
-    autoFinalizeGames: exports.autoFinalizeGames,
-    minor_autoFinalizeGames: exports.minor_autoFinalizeGames
-};
+// Export Cloud Functions
+module.exports.processPendingLiveGames = exports.processPendingLiveGames;
+module.exports.minor_processPendingLiveGames = exports.minor_processPendingLiveGames;
+module.exports.autoFinalizeGames = exports.autoFinalizeGames;
+module.exports.minor_autoFinalizeGames = exports.minor_autoFinalizeGames;
