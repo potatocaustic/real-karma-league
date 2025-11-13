@@ -594,7 +594,9 @@ const getCollectionName = (baseName, league = LEAGUES.MAJOR) => {
     'draft_results',
     'awards',
     'leaderboards',
-    'post_leaderboards'
+    'post_leaderboards',
+    'game_flow_snapshots',
+    'daily_leaderboards'
   ];
 
   // Apply dev suffix if needed
