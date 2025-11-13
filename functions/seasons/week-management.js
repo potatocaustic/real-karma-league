@@ -187,6 +187,5 @@ exports.forceWeekUpdate = onCall({ region: "us-central1" }, async (request) => {
     }
 });
 
-module.exports = {
-    performWeekUpdate
-};
+// Export helper function for use by other modules
+module.exports.performWeekUpdate = performWeekUpdate;

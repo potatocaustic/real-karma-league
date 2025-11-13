@@ -382,11 +382,10 @@ exports.minor_scheduledLiveScoringShutdown = onSchedule({
     return null;
 });
 
-module.exports = {
-    scheduledSampler: exports.scheduledSampler,
-    minor_scheduledSampler: exports.minor_scheduledSampler,
-    scheduledLiveScoringStart: exports.scheduledLiveScoringStart,
-    minor_scheduledLiveScoringStart: exports.minor_scheduledLiveScoringStart,
-    scheduledLiveScoringShutdown: exports.scheduledLiveScoringShutdown,
-    minor_scheduledLiveScoringShutdown: exports.minor_scheduledLiveScoringShutdown
-};
+// Export Cloud Functions
+module.exports.scheduledSampler = exports.scheduledSampler;
+module.exports.minor_scheduledSampler = exports.minor_scheduledSampler;
+module.exports.scheduledLiveScoringStart = exports.scheduledLiveScoringStart;
+module.exports.minor_scheduledLiveScoringStart = exports.minor_scheduledLiveScoringStart;
+module.exports.scheduledLiveScoringShutdown = exports.scheduledLiveScoringShutdown;
+module.exports.minor_scheduledLiveScoringShutdown = exports.minor_scheduledLiveScoringShutdown;

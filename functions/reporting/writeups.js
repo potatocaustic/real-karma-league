@@ -267,8 +267,7 @@ exports.scorekeeperFinalizeAndProcess = onCall({ region: "us-central1" }, async 
     }
 });
 
-module.exports = {
-    generateGameWriteup: exports.generateGameWriteup,
-    getAiWriteup: exports.getAiWriteup,
-    scorekeeperFinalizeAndProcess: exports.scorekeeperFinalizeAndProcess
-};
+// Export Cloud Functions
+module.exports.generateGameWriteup = exports.generateGameWriteup;
+module.exports.getAiWriteup = exports.getAiWriteup;
+module.exports.scorekeeperFinalizeAndProcess = exports.scorekeeperFinalizeAndProcess;
