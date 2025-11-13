@@ -791,16 +791,30 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
         const chartBtn = document.getElementById('game-flow-chart-btn');
         const flowData = await fetchGameFlowData(gameId);
 
+        console.log(`[Game Flow] Game ID: ${gameId}`);
+        console.log(`[Game Flow] Flow data exists:`, !!flowData);
+        console.log(`[Game Flow] Flow data length:`, flowData?.length || 0);
+        console.log(`[Game Flow] Show live features:`, showLiveFeatures);
+        console.log(`[Game Flow] Chart button found:`, !!chartBtn);
+
         if (flowData && flowData.length > 0 && showLiveFeatures) {
             // Show chart button
             if (chartBtn) {
+                console.log(`[Game Flow] ✓ Showing game flow chart button`);
                 chartBtn.style.display = 'flex';
                 chartBtn.onclick = () => toggleGameFlowChart();
+            } else {
+                console.warn(`[Game Flow] ✗ Chart button element not found!`);
             }
 
             // Pre-render the chart (hidden initially)
             renderGameFlowChart(flowData, team1.team_name, team2.team_name);
         } else {
+            console.log(`[Game Flow] Not showing chart button. Reasons:`, {
+                hasData: !!flowData,
+                hasSnapshots: flowData?.length > 0,
+                featuresEnabled: showLiveFeatures
+            });
             if (chartBtn) {
                 chartBtn.style.display = 'none';
             }
@@ -1133,10 +1147,27 @@ async function toggleDailyLeaderboard() {
         if (leaderboardView.innerHTML === '') {
             leaderboardView.innerHTML = '<div class="loading">Loading leaderboard...</div>';
 
-            // Get today's date in YYYY-MM-DD format
-            const today = new Date().toISOString().split('T')[0];
-            const leaderboardData = await fetchDailyLeaderboard(today);
-            renderDailyLeaderboard(leaderboardData);
+            // Get the active game date from live scoring status
+            try {
+                const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+                const statusSnap = await getDoc(statusRef);
+
+                let gameDate;
+                if (statusSnap.exists() && statusSnap.data().active_game_date) {
+                    gameDate = statusSnap.data().active_game_date;
+                    console.log(`Fetching daily leaderboard for game date: ${gameDate}`);
+                } else {
+                    // Fallback to today's date in UTC
+                    gameDate = new Date().toISOString().split('T')[0];
+                    console.warn(`No active_game_date found, using current date: ${gameDate}`);
+                }
+
+                const leaderboardData = await fetchDailyLeaderboard(gameDate);
+                renderDailyLeaderboard(leaderboardData);
+            } catch (error) {
+                console.error('Error loading daily leaderboard:', error);
+                leaderboardView.innerHTML = '<div class="error">Failed to load leaderboard. Please try again.</div>';
+            }
         }
     } else {
         // Switch back to games list

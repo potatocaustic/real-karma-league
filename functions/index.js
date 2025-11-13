@@ -828,12 +828,15 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     // === FEATURE 2: Calculate Daily Leaderboard ===
     try {
+        console.log(`[Daily Leaderboard] Starting calculation for ${gameDate} (${league} league)...`);
         const allPlayers = [];
         const playerGameCount = new Map(); // Track how many games each player is in
 
+        console.log(`[Daily Leaderboard] Processing ${liveGamesSnap.size} live games...`);
         for (const gameDoc of liveGamesSnap.docs) {
             const gameData = gameDoc.data();
             const allStarters = [...gameData.team1_lineup, ...gameData.team2_lineup];
+            console.log(`[Daily Leaderboard] Game ${gameDoc.id}: ${allStarters.length} starters`);
 
             for (const player of allStarters) {
                 const playerId = player.player_id;
@@ -861,6 +864,8 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
             }
         }
 
+        console.log(`[Daily Leaderboard] Collected ${allPlayers.length} unique players`);
+
         // Sort by score descending
         allPlayers.sort((a, b) => b.score - a.score);
 
@@ -876,6 +881,8 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
                 : allPlayers[Math.floor(allPlayers.length / 2)].score)
             : 0;
 
+        console.log(`[Daily Leaderboard] Median score calculated: ${medianScore}`);
+
         // Calculate percent vs median for all players
         allPlayers.forEach(player => {
             player.percent_vs_median = medianScore !== 0
@@ -886,6 +893,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
         const top3 = allPlayers.slice(0, 3);
         const bottom3 = allPlayers.slice(-3).reverse();
 
+        console.log(`[Daily Leaderboard] Writing to collection: ${getCollectionName('daily_leaderboards', league)}, document: ${gameDate}`);
         const leaderboardRef = db.collection(getCollectionName('daily_leaderboards', league)).doc(gameDate);
         await leaderboardRef.set({
             date: gameDate,
@@ -896,9 +904,10 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
             all_players: allPlayers
         });
 
-        console.log(`Daily leaderboard calculated and stored for ${gameDate} with ${allPlayers.length} players.`);
+        console.log(`[Daily Leaderboard] ✓ Successfully calculated and stored leaderboard for ${gameDate} with ${allPlayers.length} players.`);
     } catch (leaderboardError) {
-        console.error('Error calculating daily leaderboard:', leaderboardError);
+        console.error('[Daily Leaderboard] ✗ ERROR calculating daily leaderboard:', leaderboardError);
+        console.error('[Daily Leaderboard] Error stack:', leaderboardError.stack);
         // Don't fail the entire update if leaderboard fails
     }
 
