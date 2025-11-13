@@ -1,5 +1,13 @@
 # Troubleshooting Guide: Game Flow Chart & Daily Leaderboard Issues
 
+## 🔥 MAIN ISSUE IDENTIFIED: Missing Firestore Security Rules
+
+**The primary cause of both issues was missing Firestore security rules!**
+
+The collections `game_flow_snapshots` and `daily_leaderboards` were not defined in `firestore.rules`, causing permission denied errors when the frontend tried to read the data. The backend was successfully creating the data, but users couldn't access it.
+
+**Fix:** Added read permissions for both collections in production and development environments.
+
 ## Issues Fixed in This Update
 
 ### 1. Daily Leaderboard Not Being Created
@@ -29,9 +37,9 @@
 
 ## Deployment Instructions
 
-### Step 1: Deploy Cloud Functions
+### Step 1: Deploy Firestore Security Rules (CRITICAL!)
 
-The fixes to the backend code must be deployed to take effect:
+**This was the main issue!** The new collections were missing from the Firestore security rules, causing permission denied errors.
 
 ```bash
 # Install Firebase CLI if not already installed
@@ -40,13 +48,24 @@ npm install -g firebase-tools
 # Login to Firebase (if not already logged in)
 firebase login
 
+# Deploy Firestore security rules
+firebase deploy --only firestore:rules
+```
+
+**Note:** This is very fast (usually < 30 seconds) and takes effect immediately.
+
+### Step 2: Deploy Cloud Functions
+
+The enhanced logging will help with debugging:
+
+```bash
 # Deploy only the Cloud Functions (faster than full deploy)
 firebase deploy --only functions
 ```
 
 **Note:** Deployment can take 5-10 minutes. Wait for it to complete before testing.
 
-### Step 2: Clear Old Data (Optional but Recommended)
+### Step 3: Clear Old Data (Optional but Recommended)
 
 If you want to start fresh:
 
@@ -54,7 +73,7 @@ If you want to start fresh:
 2. Delete any existing `game_flow_snapshots` documents (they will be recreated with new data)
 3. The `daily_leaderboards` collection should appear after the next update
 
-### Step 3: Test the Features
+### Step 4: Test the Features
 
 1. **Start or Resume Live Scoring:**
    - Go to Admin Portal → Manage Live Scoring
