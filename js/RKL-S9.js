@@ -898,10 +898,11 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
                 backgroundColor: 'rgba(0, 123, 255, 0.1)',
                 borderWidth: 3,
                 tension: 0.1,
-                pointRadius: 4,
+                pointRadius: 0,
                 pointHoverRadius: 6,
-                pointBackgroundColor: '#007bff',
-                pointBorderColor: '#fff'
+                pointHoverBackgroundColor: '#007bff',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
             }, {
                 label: team2Name,
                 data: team2Scores,
@@ -909,15 +910,16 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
                 backgroundColor: 'rgba(220, 53, 69, 0.1)',
                 borderWidth: 3,
                 tension: 0.1,
-                pointRadius: 4,
+                pointRadius: 0,
                 pointHoverRadius: 6,
-                pointBackgroundColor: '#dc3545',
-                pointBorderColor: '#fff'
+                pointHoverBackgroundColor: '#dc3545',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             interaction: {
                 mode: 'index',
                 intersect: false

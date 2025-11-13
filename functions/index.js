@@ -753,15 +753,23 @@ exports.rebrandTeam = onCall({ region: "us-central1" }, async (request) => {
 
 
 async function performFullUpdate(league = LEAGUES.MAJOR) {
-    console.log(`Starting full update for ${league} league...`);
+    console.log(`=== Starting full update for ${league} league ===`);
     const statusSnap = await db.doc(`${getCollectionName('live_scoring_status', league)}/status`).get();
     const gameDate = statusSnap.exists ? statusSnap.data().active_game_date : new Date().toISOString().split('T')[0];
+
+    console.log(`[performFullUpdate] Game date: ${gameDate}`);
+    console.log(`[performFullUpdate] Status doc exists: ${statusSnap.exists}`);
+    if (statusSnap.exists) {
+        console.log(`[performFullUpdate] active_game_date from status: ${statusSnap.data().active_game_date}`);
+    }
 
     const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
     if (liveGamesSnap.empty) {
         console.log(`performFullUpdate: No active games to update for ${league} league.`);
         return { success: true, message: "No active games to update." };
     }
+
+    console.log(`[performFullUpdate] Found ${liveGamesSnap.size} live games to process`);
 
     const batch = db.batch();
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -893,16 +901,30 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
         const top3 = allPlayers.slice(0, 3);
         const bottom3 = allPlayers.slice(-3).reverse();
 
-        console.log(`[Daily Leaderboard] Writing to collection: ${getCollectionName('daily_leaderboards', league)}, document: ${gameDate}`);
-        const leaderboardRef = db.collection(getCollectionName('daily_leaderboards', league)).doc(gameDate);
-        await leaderboardRef.set({
+        const collectionName = getCollectionName('daily_leaderboards', league);
+        console.log(`[Daily Leaderboard] About to write to Firestore:`);
+        console.log(`[Daily Leaderboard]   Collection: ${collectionName}`);
+        console.log(`[Daily Leaderboard]   Document ID: ${gameDate}`);
+        console.log(`[Daily Leaderboard]   Players count: ${allPlayers.length}`);
+        console.log(`[Daily Leaderboard]   Top 3:`, top3.map(p => `${p.handle}: ${p.score}`));
+
+        const leaderboardRef = db.collection(collectionName).doc(gameDate);
+        const leaderboardData = {
             date: gameDate,
             timestamp: timestamp,
             top_3: top3,
             bottom_3: bottom3,
             median_score: medianScore,
             all_players: allPlayers
-        });
+        };
+
+        console.log(`[Daily Leaderboard] Calling leaderboardRef.set()...`);
+        await leaderboardRef.set(leaderboardData);
+        console.log(`[Daily Leaderboard] ✓ set() completed successfully!`);
+
+        // Verify the write
+        const verification = await leaderboardRef.get();
+        console.log(`[Daily Leaderboard] Verification - Document exists after write: ${verification.exists}`);
 
         console.log(`[Daily Leaderboard] ✓ Successfully calculated and stored leaderboard for ${gameDate} with ${allPlayers.length} players.`);
     } catch (leaderboardError) {

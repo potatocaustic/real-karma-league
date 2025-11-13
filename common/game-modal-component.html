@@ -99,8 +99,10 @@
     #game-flow-chart-area {
         padding: 1rem;
         min-height: 400px;
+        height: 500px;
         background-color: #fff;
         transition: background-color 0.3s;
+        position: relative;
     }
 
     .dark-mode #game-flow-chart-area {
@@ -108,7 +110,20 @@
     }
 
     #game-flow-chart {
+        width: 100% !important;
+        height: 450px !important;
         max-height: 500px;
+    }
+
+    @media (max-width: 768px) {
+        #game-flow-chart-area {
+            min-height: 350px;
+            height: 400px;
+        }
+
+        #game-flow-chart {
+            height: 350px !important;
+        }
     }
 
     .game-details-grid {
