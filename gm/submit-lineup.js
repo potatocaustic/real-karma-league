@@ -468,9 +468,14 @@ async function handleLineupFormSubmit(e) {
     starterCards.forEach(card => {
         const playerId = card.id.replace('starter-card-', '');
         const player = allPlayers.get(playerId);
+        const team = allTeams.get(player.current_team_id);
         lineup.push({
             player_id: playerId,
             player_handle: player.player_handle,
+            handle: player.player_handle, // Add for daily leaderboard compatibility
+            player_name: player.player_name || player.player_handle, // Some players may not have separate player_name
+            team_id: player.current_team_id || '',
+            team_name: team?.team_name || '',
             is_captain: playerId === captainId,
             deductions: 0
         });

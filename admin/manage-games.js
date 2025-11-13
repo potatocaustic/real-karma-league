@@ -853,12 +853,17 @@ async function handleStageLiveLineups(e) {
     if (isTeam1LineupValid) {
         team1_lineup = [];
         const captainId = lineupForm.querySelector('input[name="team1-captain"]:checked')?.value;
+        const team1 = allTeams.get(currentGameData.team1_id);
         team1Starters.forEach(card => {
             const playerId = card.id.replace('starter-card-', '');
             const player = allPlayers.get(playerId) || allGms.get(playerId);
             team1_lineup.push({
                 player_id: playerId,
                 player_handle: player.player_handle,
+                handle: player.player_handle, // Add for daily leaderboard compatibility
+                player_name: player.player_name || player.player_handle, // Some players may not have separate player_name
+                team_id: currentGameData.team1_id || '',
+                team_name: team1?.team_name || '',
                 is_captain: playerId === captainId,
                 deductions: parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0,
             });
@@ -868,12 +873,17 @@ async function handleStageLiveLineups(e) {
     if (isTeam2LineupValid) {
         team2_lineup = [];
         const captainId = lineupForm.querySelector('input[name="team2-captain"]:checked')?.value;
+        const team2 = allTeams.get(currentGameData.team2_id);
         team2Starters.forEach(card => {
             const playerId = card.id.replace('starter-card-', '');
             const player = allPlayers.get(playerId) || allGms.get(playerId);
             team2_lineup.push({
                 player_id: playerId,
                 player_handle: player.player_handle,
+                handle: player.player_handle, // Add for daily leaderboard compatibility
+                player_name: player.player_name || player.player_handle, // Some players may not have separate player_name
+                team_id: currentGameData.team2_id || '',
+                team_name: team2?.team_name || '',
                 is_captain: playerId === captainId,
                 deductions: parseFloat(document.getElementById(`reductions-${playerId}`).value) || 0,
             });
