@@ -178,6 +178,14 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isUserAdmin();
     }
+    match /game_flow_snapshots/{doc=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+    }
+    match /daily_leaderboards/{doc=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+    }
     match /{path=**}/seasonal_stats/{recordId} {
         allow get, list: if true;
     }
@@ -334,6 +342,14 @@ service cloud.firestore {
         allow write: if isUserAdmin();
     }
     match /post_leaderboards_dev/{doc=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+    }
+    match /game_flow_snapshots_dev/{doc=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+    }
+    match /daily_leaderboards_dev/{doc=**} {
         allow read: if true;
         allow write: if isUserAdmin();
     }
