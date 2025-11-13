@@ -1,17 +1,10 @@
 // functions/games/game-processing.js
 
-const admin = require("firebase-admin");
+const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
 const { getCollectionName, LEAGUES } = require('../utils/firebase-helpers');
 const { calculateMedian } = require('../utils/calculations');
 const { updatePlayerSeasonalStats, updateAllTeamStats } = require('../utils/stats-helpers');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Processes a completed game and updates all related statistics

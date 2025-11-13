@@ -1,16 +1,9 @@
 // functions/seasons/season-creation.js
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require('../utils/firebase-admin');
 const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-helpers');
 const { createSeasonStructure } = require('./structure');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Creates a new season by advancing from the current active season

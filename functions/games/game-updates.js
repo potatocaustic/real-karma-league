@@ -1,17 +1,10 @@
 // functions/games/game-updates.js
 
 const { onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
-const admin = require("firebase-admin");
+const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
 const { LEAGUES } = require('../utils/firebase-helpers');
 const { processCompletedGame } = require('./game-processing');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Regular season game update trigger for major league

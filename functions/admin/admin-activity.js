@@ -1,16 +1,10 @@
 // functions/admin/admin-activity.js
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
 const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-helpers');
 const { isScorekeeperOrAdmin, getUserRole } = require('../utils/auth-helpers');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 
 /**
  * Logs scorekeeper and admin activities to an audit trail.

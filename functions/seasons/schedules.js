@@ -1,15 +1,8 @@
 // functions/seasons/schedules.js
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-helpers');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Generates the complete postseason schedule for a season

@@ -1,17 +1,11 @@
 // functions/live-scoring/live-status.js
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
+const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
 const fetch = require("node-fetch");
 const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/firebase-helpers');
 const { isScorekeeperOrAdmin } = require('../utils/auth-helpers');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-const db = admin.firestore();
 
 /**
  * Helper function to perform a full update of all live game scores

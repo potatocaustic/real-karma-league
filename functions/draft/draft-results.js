@@ -1,16 +1,9 @@
 // functions/draft/draft-results.js
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const fetch = require("node-fetch");
 const { getCollectionName, LEAGUES } = require('../utils/firebase-helpers');
-
-// Ensure admin is initialized (will use existing instance if already initialized)
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Major League: Processes draft results when a new pick is created

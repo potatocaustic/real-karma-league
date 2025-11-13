@@ -1,16 +1,9 @@
 // functions/playoffs/bracket.js
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const admin = require("firebase-admin");
+const { admin, db } = require("../utils/firebase-admin");
 const { getCollectionName, LEAGUES } = require('../utils/firebase-helpers');
 const { advanceBracket } = require('./bracket-advancement');
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
 
 /**
  * Performs the playoff bracket update logic for a specific league and game date

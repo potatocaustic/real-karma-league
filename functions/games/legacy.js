@@ -1,14 +1,7 @@
 // functions/games/legacy.js
 
 const { onDocumentUpdated, onDocumentCreated } = require("firebase-functions/v2/firestore");
-const admin = require("firebase-admin");
-
-// Ensure admin is initialized
-if (!admin.apps.length) {
-    admin.initializeApp();
-}
-
-const db = admin.firestore();
+const { admin, db } = require('../utils/firebase-admin');
 
 /**
  * Legacy transaction processor for player movements and draft pick trades
