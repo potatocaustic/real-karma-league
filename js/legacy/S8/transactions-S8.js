@@ -202,7 +202,7 @@ function getTeamLogo(teamId) {
     if (!teamId) return '';
     const teamData = allTeams.find(t => t.id === teamId);
     if (!teamData) return '';
-    return `<img src="/icons/${teamId}.webp" alt="${teamData.team_name}" class="team-logo-inline" onerror="this.style.display='none'">`;
+    return `<img src="/icons/${teamId}.webp" alt="${teamData.team_name}" class="team-logo-inline" onerror="this.style.display='none'" loading="lazy">`;
 }
 
 function getTeamNameLink(teamId) {

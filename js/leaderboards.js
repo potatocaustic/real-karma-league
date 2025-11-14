@@ -594,7 +594,7 @@ function displayLeaderboard() {
         
         let rowCells = `<td class="rank-cell">${getRankIndicator(dynamicRank)}</td>
             <td class="player-cell">
-            <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';">
+            <img src="${teamLogoSrc}" alt="${getTeamName(teamId)}" class="team-logo" onerror="this.onerror=null; this.src='../icons/FA.webp';" loading="lazy">
             <div>
                 <div class="player-name">
                 <a href="player.html?id=${encodeURIComponent(playerId || '')}">

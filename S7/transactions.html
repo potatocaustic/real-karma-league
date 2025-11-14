@@ -309,7 +309,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -502,7 +502,7 @@
       function getTeamLogo(teamId) {
         if (!teamId) return '';
         const team = getTeamData(teamId); 
-        return `<img src="icons/${encodeURIComponent(String(team.team_id || ''))}.webp" alt="${team.team_name}" class="team-logo-inline" onerror="this.style.display='none'">`;
+        return `<img src="icons/${encodeURIComponent(String(team.team_id || ''))}.webp" alt="${team.team_name}" class="team-logo-inline" onerror="this.style.display='none'" loading="lazy">`;
       }
 
       function parsePlayerNumber(value) { 

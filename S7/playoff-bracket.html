@@ -423,7 +423,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -603,7 +603,7 @@
             return `
                             <a href="${teamHref}" class="team ${isWinner ? 'winner' : ''} ${isTBD ? 'tbd' : ''} ${nonInteractiveClass}" ${style}>
                                 <span class="team-seed">${seedToShow}</span>
-                                <img src="icons/${isTBD ? 'RKL' : teamData.team_id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='icons/RKL.webp';">
+                                <img src="icons/${isTBD ? 'RKL' : teamData.team_id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='icons/RKL.webp';" loading="lazy">
                                 <div class="team-info">
                                     <span class="team-name">${teamData.team_name}</span>
                                     ${scoreOrRecordHTML}

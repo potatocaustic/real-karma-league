@@ -227,7 +227,7 @@ function handleEmptyState(isAdmin, currentUserTeamId, teamsMap) {
             if (team.team_id && !excludedTeams.includes(team.team_id.toUpperCase())) {
                 adminSetupHtml += `
                     <div class="admin-setup-item">
-                        <span><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${team.team_name}</span>
+                        <span><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'" loading="lazy">${team.team_name}</span>
                         <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
                     </div>`;
             }
@@ -332,7 +332,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             <div class="trade-block-card" data-team-id="${teamId}">
                 <div class="trade-block-header">
                     <a href="/S7/team.html?id=${teamId}">
-                        <h4><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'">${teamData.team_name}</h4>
+                        <h4><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'" loading="lazy">${teamData.team_name}</h4>
                     </a>
                     <button class="edit-btn" data-team-id="${teamId}" data-action="edit" style="display: none;">Edit</button>
                 </div>
@@ -372,7 +372,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
             teamsWithoutBlocks.forEach(([teamId, team]) => {
                 adminSetupHtml += `
                     <div class="admin-setup-item">
-                        <span><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'">${team.team_name}</span>
+                        <span><img src="/icons/${teamId}.webp" class="team-logo" onerror="this.style.display=\'none\'" loading="lazy">${team.team_name}</span>
                         <button class="edit-btn" data-team-id="${teamId}" data-action="setup">Set Up Block</button>
                     </div>`;
             });

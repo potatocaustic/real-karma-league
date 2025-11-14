@@ -380,7 +380,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -803,7 +803,7 @@
               <td class="rank-cell">${rankCellContent}</td>
               <td>
                 <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
-                  <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                  <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                   <span class="team-name">${team.team_name}</span>
                   ${clinchBadgeHtml}
                 </div>
@@ -863,7 +863,7 @@
                     <td class="rank-cell">${getRankDisplay(team.rank)}</td>
                     <td>
                         <div class="team-cell" onclick="handleTeamClick('${team.team_id}')">
-                            <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                            <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                             <span class="team-name">${team.team_name}</span>
                             ${clinchBadgeHtml}
                         </div>
@@ -1030,7 +1030,7 @@
         if (biggestRisers.length > 0) {
             riserHtml = biggestRisers.map(riser => `
                 <div class="summary-item">
-                    <img src="icons/${riser.team_id}.webp" alt="${riser.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
+                    <img src="icons/${riser.team_id}.webp" alt="${riser.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';" loading="lazy">
                     <span>Biggest Riser: 
                         <strong class="pam-positive"><a href="team.html?id=${riser.team_id}" class="summary-team-link">${riser.team_name}</a></strong> (+<strong class="pam-positive">${riser.delta}</strong>) 📈
                     </span>
@@ -1045,7 +1045,7 @@
         if (biggestFallers.length > 0) {
             fallerHtml = biggestFallers.map(faller => `
                 <div class="summary-item">
-                    <img src="icons/${faller.team_id}.webp" alt="${faller.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';">
+                    <img src="icons/${faller.team_id}.webp" alt="${faller.team_name} logo" class="summary-team-logo" onerror="this.style.display='none'; this.nextElementSibling.style.marginLeft='0';" loading="lazy">
                     <span>Biggest Faller: 
                         <strong class="pam-negative"><a href="team.html?id=${faller.team_id}" class="summary-team-link">${faller.team_name}</a></strong> (<strong class="pam-negative">${faller.delta}</strong>) 📉
                     </span>

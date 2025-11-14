@@ -165,7 +165,7 @@ function generateStandingsRows(teams, isFullLeague = false) {
                 <td class="rank-cell">${rankDisplay}</td>
                 <td>
                     <div class="team-cell" onclick="window.location.href='team.html?id=${team.id}'">
-                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                         <span class="team-name">${team.team_name}</span>
                         ${clinchBadge}
                     </div>
@@ -201,7 +201,7 @@ function renderPowerRankings(version) {
                 <td class="rank-cell">${getRankDisplay(team.rank)}</td>
                 <td>
                     <div class="team-cell" onclick="window.location.href='team.html?id=${team.id}'">
-                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                        <img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                         <span class="team-name">${team.team_name}</span>
                         ${clinchBadge}
                     </div>

@@ -878,7 +878,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -1145,7 +1145,7 @@
                           <tr>
                             <td>
                               <a href="team.html?id=${team.team_id}" class="team-link">
-                                <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                                 <span>${team.team_name}</span>
                                 ${clinchBadgeHtml}
                               </a>
@@ -1170,7 +1170,7 @@
                           <tr>
                             <td>
                               <a href="team.html?id=${team.team_id}" class="team-link">
-                                <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'">
+                                <img src="icons/${team.team_id}.webp" alt="${team.team_name}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                                 <span>${team.team_name}</span>
                                 ${clinchBadgeHtml}
                               </a>
@@ -1328,7 +1328,7 @@
             <div class="game-item" onclick="showGameDetails('${game.team1_id}', '${game.team2_id}', '${game.date}', '${game.week}', '${team1Record}', '${team2Record}')">
               <div class="game-matchup">
                 <div class="team ${winner === game.team1_id ? 'winner' : ''}">
-                  <img src="icons/${game.team1_id}.webp" alt="${game.team1_id}" class="team-logo" onerror="this.style.display='none'">
+                  <img src="icons/${game.team1_id}.webp" alt="${game.team1_id}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                   <div class="team-info">
                     <span class="team-name">${team1SeedHtml}${team1Name}</span>
                     <span class="team-record">${team1Record}</span>
@@ -1337,7 +1337,7 @@
                 </div>
                 <span class="vs">vs</span>
                 <div class="team ${winner === game.team2_id ? 'winner' : ''}">
-                  <img src="icons/${game.team2_id}.webp" alt="${game.team2_id}" class="team-logo" onerror="this.style.display='none'">
+                  <img src="icons/${game.team2_id}.webp" alt="${game.team2_id}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                   <div class="team-info">
                     <span class="team-name">${team2SeedHtml}${team2Name}</span>
                     <span class="team-record">${team2Record}</span>
@@ -1497,7 +1497,7 @@
                 const finalsWinnerId = getSeriesWinner('FINALS');
                 if (finalsWinnerId) {
                     const winnerData = allTeams.find(t => t.team_id === finalsWinnerId);
-                    statsHTML += `<div class="champion-display"><span class="champion-label">🏆 League Champion:</span><span class="champion-team"><img src="icons/${winnerData.team_id}.webp" onerror="this.style.display='none'"/> ${winnerData.team_name} <span class="champion-trophy">🏆</span></span></div>`;
+                    statsHTML += `<div class="champion-display"><span class="champion-label">🏆 League Champion:</span><span class="champion-team"><img src="icons/${winnerData.team_id}.webp" onerror="this.style.display='none'"/ loading="lazy"> ${winnerData.team_name} <span class="champion-trophy">🏆</span></span></div>`;
                 } else {
                     const teamsRemaining = calculateTeamsRemaining();
                     statsHTML += `<p><strong>${teamsRemaining}</strong> Postseason Teams Remaining</p>`;
@@ -1601,7 +1601,7 @@
                     return `
                   <div class="team-breakdown ${isWinner ? 'winner' : ''}">
                     <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
-                      <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
+                      <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                       <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">(${record})</div></div>
                     </div>
                     <div class="team-total">Total: ${Math.round(total).toLocaleString()}</div>
@@ -1630,7 +1630,7 @@
                 return `
                 <div class="team-breakdown ${isWinner ? 'winner' : ''}">
                   <div class="modal-team-header ${isWinner ? 'winner' : ''}" onclick="window.location.href='team.html?id=${teamIdForTable}'" style="cursor: pointer;">
-                    <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'">
+                    <img src="icons/${teamIdForTable}.webp" alt="${getTeamName(teamIdForTable, allTeams)}" class="team-logo" onerror="this.style.display='none'" loading="lazy">
                     <div><h4>${getTeamName(teamIdForTable, allTeams)}</h4><div style="font-size: 0.9rem; opacity: 0.9;">(${record})</div></div>
                   </div>
                   <div class="team-total">Total: ${isNaN(total) ? '-' : Math.round(total).toLocaleString()}</div>

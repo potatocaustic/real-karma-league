@@ -1,0 +1,59 @@
+/* Team Logo CSS - Pre-generated for performance */
+.team-logo-css {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: inline-block;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+/* Team Icons */
+.icon-ACE { background-image: url('../icons/ACE.webp'); }
+.icon-AMI { background-image: url('../icons/AMI.webp'); }
+.icon-CRM { background-image: url('../icons/CRM.webp'); }
+.icon-DIA { background-image: url('../icons/DIA.webp'); }
+.icon-DON { background-image: url('../icons/DON.webp'); }
+.icon-EMP { background-image: url('../icons/EMP.webp'); }
+.icon-FLA { background-image: url('../icons/FLA.webp'); }
+.icon-FLG { background-image: url('../icons/FLG.webp'); }
+.icon-FREEAGENT { background-image: url('../icons/FREE_AGENT.webp'); }
+.icon-FZC { background-image: url('../icons/FZC.webp'); }
+.icon-GAM { background-image: url('../icons/GAM.webp'); }
+.icon-GD { background-image: url('../icons/GD.webp'); }
+.icon-HER { background-image: url('../icons/HER.webp'); }
+.icon-HH { background-image: url('../icons/HH.webp'); }
+.icon-HND { background-image: url('../icons/HND.webp'); }
+.icon-HOR { background-image: url('../icons/HOR.webp'); }
+.icon-JAM { background-image: url('../icons/JAM.webp'); }
+.icon-KF { background-image: url('../icons/KF.webp'); }
+.icon-KHLC { background-image: url('../icons/KHLC.webp'); }
+.icon-KK { background-image: url('../icons/KK.webp'); }
+.icon-KOCK { background-image: url('../icons/KOCK.webp'); }
+.icon-KS { background-image: url('../icons/KS.webp'); }
+.icon-LGN { background-image: url('../icons/LGN.webp'); }
+.icon-LT { background-image: url('../icons/LT.webp'); }
+.icon-MLB { background-image: url('../icons/MLB.webp'); }
+.icon-MM { background-image: url('../icons/MM.webp'); }
+.icon-ORP { background-image: url('../icons/ORP.webp'); }
+.icon-OTT { background-image: url('../icons/OTT.webp'); }
+.icon-OUT { background-image: url('../icons/OUT.webp'); }
+.icon-PEN { background-image: url('../icons/PEN.webp'); }
+.icon-PIG { background-image: url('../icons/PIG.webp'); }
+.icon-REA { background-image: url('../icons/REA.webp'); }
+.icon-RETIRED { background-image: url('../icons/RETIRED.webp'); }
+.icon-SD { background-image: url('../icons/SD.webp'); }
+.icon-SHO { background-image: url('../icons/SHO.webp'); }
+.icon-TBD { background-image: url('../icons/TBD.webp'); }
+.icon-TT { background-image: url('../icons/TT.webp'); }
+.icon-UNC { background-image: url('../icons/UNC.webp'); }
+.icon-VIP { background-image: url('../icons/VIP.webp'); }
+
+/* Special Icons */
+.icon-FA { background-image: url('../icons/FA.webp'); }
+.icon-EAST { background-image: url('../icons/EAST.webp'); }
+.icon-WEST { background-image: url('../icons/WEST.webp'); }
+.icon-RSE { background-image: url('../icons/RSE.webp'); }
+.icon-RSW { background-image: url('../icons/RSW.webp'); }
+.icon-EGM { background-image: url('../icons/EGM.webp'); }
+.icon-RKL { background-image: url('../icons/RKL.webp'); }

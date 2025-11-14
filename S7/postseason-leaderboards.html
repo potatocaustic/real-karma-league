@@ -621,7 +621,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -1633,7 +1633,7 @@
                 let rowCells = `
                     <td class="rank-cell">${getRankIndicator(item.leaderboardDisplayRank)}</td>
                     <td class="player-cell">
-                      <img src="${teamLogoSrc}" alt="${getTeamName(teamIdForLogo)}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                      <img src="${teamLogoSrc}" alt="${getTeamName(teamIdForLogo)}" class="team-logo" onerror="this.onerror=null; this.src='icons/FA.webp';" loading="lazy">
                       <div>
                         <div class="player-name">
                           <a href="player.html?player=${encodeURIComponent(playerHandle || '')}">

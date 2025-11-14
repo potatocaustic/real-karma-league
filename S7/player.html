@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title id="page-title">RKL Season 7 Player</title>
     <link rel="stylesheet" href="../css/global-styles.css">
+    <link rel="stylesheet" href="../css/team-logos.css" />
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
         // Apply theme from local storage before page loads to prevent flashing
@@ -19,7 +20,6 @@
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
-    <style id="team-icon-styles"></style>
     <style>
         /* Page-specific styles for player.html */
         main {
@@ -978,7 +978,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -1073,32 +1073,6 @@
         let allScheduleData = [];
         let allTransactionsLogData = [];
         let allPlayersProcessed = [];
-
-        function generateIconStylesheet(teams) {
-            const iconStyles = teams.map(team => {
-                if (!team.team_id) return '';
-                const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`;
-                return `.${className} { background-image: url('icons/${team.team_id}.webp'); }`;
-            }).join('\n');
-
-            const faIconStyle = ".icon-FREE_AGENT { background-image: url('icons/FA.webp'); }";
-
-            const styleElement = document.getElementById('team-icon-styles');
-            if (styleElement) {
-                styleElement.innerHTML = `
-                      .team-logo-css {
-                          background-size: cover;
-                          background-position: center;
-                          background-repeat: no-repeat;
-                          display: inline-block;
-                          vertical-align: middle;
-                          flex-shrink: 0;
-                      }
-                      ${iconStyles}
-                      ${faIconStyle}
-                  `;
-            }
-        }
 
         function parseNumber(value) {
             if (value === null || typeof value === 'undefined' || String(value).trim() === '') return 0;
@@ -1370,7 +1344,6 @@
                 return;
             }
             allTeams = teams;
-            generateIconStylesheet(allTeams);
             allLineups = lineupsRaw;
             allScheduleData = schedule || [];
             allTransactionsLogData = transactions || [];

@@ -106,8 +106,6 @@ async function loadPageData() {
                 allTeamsSeasonalRecords.set(teamIdForRecord, snap.data());
             }
         });
-        
-        generateIconStylesheet(Array.from(allTeamsSeasonalRecords.keys()));
 
         // --- PROCESS CORE TEAM DATA ---
         if (!teamDocSnap.exists() || !teamSeasonalSnap.exists()) {
@@ -358,25 +356,6 @@ function handleRosterSort(column) {
 
 
 // --- HELPER & UTILITY FUNCTIONS ---
-
-function generateIconStylesheet(teamIdList) {
-    const iconStyles = teamIdList.map(id => {
-        if (!id) return '';
-        const className = `icon-${id.replace(/[^a-zA-Z0-9]/g, '')}`;
-        return `.${className} { background-image: url('../icons/${id}.webp'); }`;
-    }).join('');
-
-    const styleElement = document.getElementById('team-icon-styles');
-    if (styleElement) {
-        styleElement.innerHTML = `
-            .team-logo-css {
-                background-size: cover; background-position: center;
-                background-repeat: no-repeat; display: inline-block; vertical-align: middle;
-                flex-shrink: 0; border-radius: 4px;
-            }
-            ${iconStyles}`;
-    }
-}
 
 function getTeamName(id) {
     return allTeamsSeasonalRecords.get(id)?.team_name || id;
