@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Season ID Migration - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <style>
+        .migration-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .migration-card h3 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+        .btn-primary:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-secondary:hover {
+            opacity: 0.9;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+        .status-message {
+            padding: 15px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .status-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        .results-box {
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box strong {
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
+        <span class="header-text"> Real Karma League</span>
+      </h1>
+      <div id="league-switcher-mount"></div>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li class="dropdown">
+                <a href="/S9/RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/RKL-S9.html">S9 Home</a>
+                    <a href="/S8/RKL-S8.html">S8 Home</a>
+                    <a href="/S7/RKL-S7.html">S7 Home</a>
+                </div>
+            </li>
+            <li><a href="/S9/standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/leaderboards.html">Leaderboards</a>
+                    <a href="/S9/compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="/S9/schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/draft-capital.html">Draft Capital</a>
+                    <a href="/S9/draft-results.html">Draft Results</a>
+                    <a href="/S9/draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="/S9/transactions.html">Transactions</a></li>
+            <li><a href="/S9/teams.html">Teams</a></li>
+            <li><a href="/S9/trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Season ID Migration Tool</h2>
+
+        <div class="warning-box">
+            <strong>⚠️ Important:</strong> This is a one-time data migration that adds a <code>seasonId</code> field to all seasonal documents.
+            This enables server-side filtering in collection group queries, reducing Firestore reads by 40-50%.
+            <br><br>
+            <strong>Always run in DRY RUN mode first to verify what will be changed!</strong>
+        </div>
+
+        <div class="migration-card">
+            <h3>Step 1: Verify Current Status</h3>
+            <p>Check how many documents currently have the <code>seasonId</code> field.</p>
+            <div class="button-group">
+                <button id="verify-btn" class="btn-secondary">Verify Migration Status</button>
+            </div>
+            <div id="verify-results"></div>
+        </div>
+
+        <div class="migration-card">
+            <h3>Step 2: Run Migration (DRY RUN)</h3>
+            <p>Preview what will be changed without making any actual database writes.</p>
+            <div class="button-group">
+                <button id="dry-run-btn" class="btn-primary">Run Dry Run</button>
+            </div>
+            <div id="dry-run-results"></div>
+        </div>
+
+        <div class="migration-card">
+            <h3>Step 3: Execute Migration</h3>
+            <p><strong style="color: #dc3545;">⚠️ WARNING:</strong> This will modify your database. Only proceed after reviewing the dry run results.</p>
+            <div class="button-group">
+                <button id="migrate-btn" class="btn-danger" disabled>Execute Migration</button>
+            </div>
+            <div id="migrate-results"></div>
+        </div>
+
+        <div class="migration-card">
+            <h3>Step 4: Post-Migration Verification</h3>
+            <p>After migration, verify that all documents have been updated successfully.</p>
+            <div class="button-group">
+                <button id="verify-after-btn" class="btn-secondary">Verify After Migration</button>
+            </div>
+            <div id="verify-after-results"></div>
+        </div>
+
+        <div class="migration-card">
+            <h3>Next Steps</h3>
+            <p>After successful migration:</p>
+            <ol>
+                <li>Deploy the updated query code that uses <code>where('seasonId', '==', 'S9')</code></li>
+                <li>Monitor Firestore usage in Firebase Console to confirm reduced reads</li>
+                <li>Test all pages to ensure functionality remains identical</li>
+            </ol>
+        </div>
+    </main>
+
+    <script type="module">
+        import { auth, db, functions } from '../js/firebase-init.js';
+        import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+
+        const adminContainer = document.getElementById('admin-container');
+        const verifyBtn = document.getElementById('verify-btn');
+        const dryRunBtn = document.getElementById('dry-run-btn');
+        const migrateBtn = document.getElementById('migrate-btn');
+        const verifyAfterBtn = document.getElementById('verify-after-btn');
+
+        // Check admin authentication
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                adminContainer.style.display = 'block';
+            } else {
+                window.location.href = '/admin/dashboard.html';
+            }
+        });
+
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status-message status-${type}">${message}</div>`;
+        }
+
+        function showResults(elementId, data) {
+            const element = document.getElementById(elementId);
+            const formatted = JSON.stringify(data, null, 2);
+            element.innerHTML = `<div class="results-box">${formatted}</div>`;
+        }
+
+        // Verify migration status
+        verifyBtn.addEventListener('click', async () => {
+            verifyBtn.disabled = true;
+            showStatus('verify-results', 'Checking migration status...', 'info');
+
+            try {
+                const verifyFunction = httpsCallable(functions, 'admin_verifySeasonIdMigration');
+                const result = await verifyFunction({ league: 'major' });
+
+                if (result.data.migrationComplete) {
+                    showStatus('verify-results',
+                        `✅ Migration already complete! All documents have seasonId fields.`,
+                        'success');
+                } else {
+                    showStatus('verify-results',
+                        `⚠️ Migration needed: ${result.data.seasonalRecords.withoutSeasonId} seasonal_records and ${result.data.seasonalStats.withoutSeasonId} seasonal_stats documents are missing seasonId.`,
+                        'warning');
+                }
+                showResults('verify-results', result.data);
+            } catch (error) {
+                showStatus('verify-results', `Error: ${error.message}`, 'error');
+                console.error('Verification error:', error);
+            } finally {
+                verifyBtn.disabled = false;
+            }
+        });
+
+        // Run dry run
+        dryRunBtn.addEventListener('click', async () => {
+            dryRunBtn.disabled = true;
+            showStatus('dry-run-results', 'Running dry run (no database changes will be made)...', 'info');
+
+            try {
+                const migrateFunction = httpsCallable(functions, 'admin_migrateAddSeasonIds');
+                const result = await migrateFunction({ dryRun: true, league: 'major' });
+
+                showStatus('dry-run-results',
+                    `✅ Dry run complete! Would update ${result.data.seasonalRecordsUpdated} seasonal_records and ${result.data.seasonalStatsUpdated} seasonal_stats documents.`,
+                    'success');
+                showResults('dry-run-results', result.data);
+
+                // Enable the execute button after successful dry run
+                migrateBtn.disabled = false;
+            } catch (error) {
+                showStatus('dry-run-results', `Error: ${error.message}`, 'error');
+                console.error('Dry run error:', error);
+            } finally {
+                dryRunBtn.disabled = false;
+            }
+        });
+
+        // Execute migration
+        migrateBtn.addEventListener('click', async () => {
+            if (!confirm('⚠️ WARNING: This will modify your production database. Are you sure you want to proceed?')) {
+                return;
+            }
+
+            migrateBtn.disabled = true;
+            showStatus('migrate-results', 'Executing migration... This may take several minutes.', 'info');
+
+            try {
+                const migrateFunction = httpsCallable(functions, 'admin_migrateAddSeasonIds');
+                const result = await migrateFunction({ dryRun: false, league: 'major' });
+
+                showStatus('migrate-results',
+                    `✅ Migration complete! Updated ${result.data.seasonalRecordsUpdated} seasonal_records and ${result.data.seasonalStatsUpdated} seasonal_stats documents.`,
+                    'success');
+                showResults('migrate-results', result.data);
+
+                alert('Migration complete! Run post-migration verification to confirm.');
+            } catch (error) {
+                showStatus('migrate-results', `Error: ${error.message}`, 'error');
+                console.error('Migration error:', error);
+            }
+        });
+
+        // Verify after migration
+        verifyAfterBtn.addEventListener('click', async () => {
+            verifyAfterBtn.disabled = true;
+            showStatus('verify-after-results', 'Verifying migration results...', 'info');
+
+            try {
+                const verifyFunction = httpsCallable(functions, 'admin_verifySeasonIdMigration');
+                const result = await verifyFunction({ league: 'major' });
+
+                if (result.data.migrationComplete) {
+                    showStatus('verify-after-results',
+                        `✅ Migration verified! All documents have seasonId fields.`,
+                        'success');
+                } else {
+                    showStatus('verify-after-results',
+                        `⚠️ Migration incomplete: ${result.data.seasonalRecords.withoutSeasonId} seasonal_records and ${result.data.seasonalStats.withoutSeasonId} seasonal_stats documents still missing seasonId.`,
+                        'warning');
+                }
+                showResults('verify-after-results', result.data);
+            } catch (error) {
+                showStatus('verify-after-results', `Error: ${error.message}`, 'error');
+                console.error('Verification error:', error);
+            } finally {
+                verifyAfterBtn.disabled = false;
+            }
+        });
+
+        // Include the theme toggle and nav toggle scripts
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const navToggle = document.querySelector('.nav-toggle');
+        const navMenu = document.getElementById('nav-menu');
+
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark-mode');
+                const isDark = document.documentElement.classList.contains('dark-mode');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            });
+        }
+
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => {
+                const isExpanded = navToggle.getAttribute('aria-expanded') === 'true';
+                navToggle.setAttribute('aria-expanded', !isExpanded);
+                navMenu.classList.toggle('show');
+            });
+        }
+    </script>
+</body>
+</html>

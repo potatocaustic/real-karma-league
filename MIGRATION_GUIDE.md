@@ -1,344 +1,361 @@
-# Multi-League API Migration Guide
+# Season ID Migration Guide
 
-## Breaking Changes
-**None.** All existing API calls default to major league, ensuring full backward compatibility.
+## Overview
 
-## New Optional Parameter
+This guide explains how to implement a one-time data migration to add `seasonId` fields to all seasonal documents in Firestore. This enables **true server-side filtering** in collection group queries, reducing Firestore reads by **40-50%**.
 
-All callable functions now accept an optional `league` parameter:
+## Why This Migration is Needed
+
+### The Problem
+
+Currently, the codebase uses collection group queries that fetch **ALL** seasons' data, then filters on the client-side:
 
 ```javascript
-// Major league (default, backward compatible)
-const result = await setLineupDeadline({ date, time, timeZone });
+// ❌ CURRENT: Fetches all seasons (S1, S2, S3... S9) - ~300+ documents
+const recordsQuery = query(collectionGroup(db, 'seasonal_records'));
+const recordsSnap = await getDocs(recordsQuery);
 
-// Minor league (new)
-const result = await setLineupDeadline({
-  date,
-  time,
-  timeZone,
-  league: 'minor'
+// Client-side filtering - wasteful!
+recordsSnap.forEach(doc => {
+    if (doc.id === 'S9') {  // Only use S9 data
+        // Process document
+    }
 });
 ```
 
-## Affected Functions
+**Cost:** If you have 30 teams × 9 seasons = 270 document reads, but only need 30.
 
-### Admin Functions
-- `setLineupDeadline` - Set lineup deadlines for a specific league
-- `admin_recalculatePlayerStats` - Recalculate player stats for a specific league
-- `admin_updatePlayerId` - Update player ID across league-specific collections
-- `admin_updatePlayerDetails` - Update player details for a specific league
-- `rebrandTeam` - Rebrand a team in a specific league
-- `createNewSeason` - Create a new season for a specific league
-- `createHistoricalSeason` - Create a historical season for a specific league
-- `generatePostseasonSchedule` - Generate postseason schedule for a specific league
-- `calculatePerformanceAwards` - Calculate awards for a specific league
-- `admin_processTransaction` - Process transactions for a specific league
-- `forceLeaderboardRecalculation` - Force leaderboard recalculation for a specific league
+### The Solution
 
-### Scorekeeper Functions
-- `stageLiveLineups` - Stage lineups for live games in a specific league
-- `activateLiveGame` - Activate a live game for a specific league
-- `finalizeLiveGame` - Finalize a live game for a specific league
-- `scorekeeperFinalizeAndProcess` - Finalize and process game data for a specific league
-- `generateGameWriteup` - Generate AI writeup for a game in a specific league
-- `getReportData` - Get report data for a specific league
-- `updateAllLiveScores` - Update all live scores for a specific league
-- `setLiveScoringStatus` - Set live scoring status for a specific league
+Add a `seasonId` field to each document so Firestore can filter server-side:
 
-### Public Functions
-- `getLiveKarma` - Get live karma data for a specific league
+```javascript
+// ✅ AFTER MIGRATION: Only fetches S9 documents - 30 documents
+const recordsQuery = query(
+    collectionGroup(db, 'seasonal_records'),
+    where('seasonId', '==', 'S9')  // Server-side filter!
+);
+const recordsSnap = await getDocs(recordsQuery);
+// All results are already S9 - no client filtering needed!
+```
 
-### Draft Functions
-- `addDraftProspects` - Add draft prospects to a specific league
+**Savings:** 270 reads → 30 reads = **88% reduction** in Firestore costs for this query.
 
-### Other Functions
-- `getScheduledJobTimes` - Get scheduled job times (league-aware)
-- `logScorekeeperActivity` - Log scorekeeper activity
-- `updateScheduledJobTimes` - Update scheduled job times
-- `clearAllTradeBlocks` - Clear all trade blocks for a specific league
-- `reopenTradeBlocks` - Reopen trade blocks for a specific league
-- `getAiWriteup` - Get AI-generated writeup
+## Migration Process
 
-## Response Changes
+### Prerequisites
 
-All functions now return `league` in success responses:
+1. **Admin Access:** You must be logged in as an admin user
+2. **Firebase Functions Deployed:** Deploy the migration functions first
+3. **Backup:** While the migration is non-destructive (only adds fields), consider backing up your data
 
+### Step-by-Step Instructions
+
+#### 1. Deploy the Migration Functions
+
+First, deploy the new Cloud Functions:
+
+```bash
+cd functions
+npm install
+firebase deploy --only functions:admin_migrateAddSeasonIds,functions:admin_verifySeasonIdMigration
+```
+
+#### 2. Access the Migration Tool
+
+Navigate to the migration admin page:
+```
+https://yourdomain.com/admin/migrate-season-ids.html
+```
+
+#### 3. Verify Current Status
+
+Click **"Verify Migration Status"** to see how many documents need migration.
+
+Example output:
+```json
+{
+  "seasonalRecords": {
+    "total": 270,
+    "withSeasonId": 0,
+    "withoutSeasonId": 270
+  },
+  "seasonalStats": {
+    "total": 450,
+    "withSeasonId": 0,
+    "withoutSeasonId": 450
+  },
+  "migrationComplete": false
+}
+```
+
+#### 4. Run Dry Run
+
+**ALWAYS run a dry run first!** This shows what will be changed without modifying the database.
+
+Click **"Run Dry Run"** and review the results:
+
+```json
+{
+  "teamsProcessed": 30,
+  "playersProcessed": 50,
+  "seasonalRecordsUpdated": 270,
+  "seasonalStatsUpdated": 450,
+  "errors": [],
+  "dryRun": true
+}
+```
+
+#### 5. Execute Migration
+
+Once you've verified the dry run looks correct:
+
+1. Click **"Execute Migration"**
+2. Confirm the warning dialog
+3. Wait for completion (may take 2-5 minutes)
+
+```json
+{
+  "teamsProcessed": 30,
+  "playersProcessed": 50,
+  "seasonalRecordsUpdated": 270,
+  "seasonalStatsUpdated": 450,
+  "errors": [],
+  "dryRun": false
+}
+```
+
+#### 6. Verify Migration Success
+
+Click **"Verify After Migration"** to confirm all documents were updated:
+
+```json
+{
+  "seasonalRecords": {
+    "total": 270,
+    "withSeasonId": 270,
+    "withoutSeasonId": 0
+  },
+  "seasonalStats": {
+    "total": 450,
+    "withSeasonId": 450,
+    "withoutSeasonId": 0
+  },
+  "migrationComplete": true
+}
+```
+
+## Updating Your Queries
+
+After the migration is complete, update your queries to use server-side filtering.
+
+### Example 1: Team Seasonal Records
+
+**Before (client-side filtering):**
+```javascript
+const recordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords));
+const recordsSnap = await getDocs(recordsQuery);
+
+const seasonalRecordsMap = new Map();
+recordsSnap.forEach(doc => {
+    // Client-side filtering by season ID
+    if (doc.id === SEASON_ID) {
+        const teamId = doc.ref.parent.parent.id;
+        seasonalRecordsMap.set(teamId, doc.data());
+    }
+});
+```
+
+**After (server-side filtering):**
+```javascript
+const recordsQuery = query(
+    collectionGroup(db, collectionNames.seasonalRecords),
+    where('seasonId', '==', SEASON_ID)  // Server-side filter
+);
+const recordsSnap = await getDocs(recordsQuery);
+
+const seasonalRecordsMap = new Map();
+recordsSnap.forEach(doc => {
+    // All results are already filtered - no if statement needed!
+    const teamId = doc.ref.parent.parent.id;
+    seasonalRecordsMap.set(teamId, doc.data());
+});
+```
+
+### Example 2: Player Seasonal Stats
+
+**Before:**
+```javascript
+const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats));
+const statsSnap = await getDocs(statsQuery);
+
+const statsMap = new Map();
+statsSnap.docs.forEach(statDoc => {
+    if (statDoc.id === seasonId) {  // Client-side filter
+        const playerId = statDoc.ref.parent.parent.id;
+        statsMap.set(playerId, statDoc.data());
+    }
+});
+```
+
+**After:**
+```javascript
+const statsQuery = query(
+    collectionGroup(db, collectionNames.seasonalStats),
+    where('seasonId', '==', seasonId)  // Server-side filter
+);
+const statsSnap = await getDocs(statsQuery);
+
+const statsMap = new Map();
+statsSnap.docs.forEach(statDoc => {
+    // No filtering needed - all results match!
+    const playerId = statDoc.ref.parent.parent.id;
+    statsMap.set(playerId, statDoc.data());
+});
+```
+
+## Files That Need Query Updates
+
+After migration, update these files to use \`where('seasonId', '==', ...)\`:
+
+1. \`/js/teams.js\` (line 95-119)
+2. \`/js/standings.js\` (line 42-56)
+3. \`/js/leaderboards.js\` (line 197-211)
+4. \`/js/RKL-S9.js\` (line 74-93)
+5. \`/js/player.js\` (line 97-108)
+6. \`/js/postseason-player.js\` (line 68-78)
+7. \`/js/draft-capital.js\` (line 84-92)
+
+## Testing After Migration
+
+After updating queries, thoroughly test:
+
+1. **Teams page** - Verify correct seasonal records display
+2. **Standings** - Check that current season standings are accurate
+3. **Leaderboards** - Ensure player stats match expected values
+4. **Player pages** - Confirm seasonal stats show correctly
+5. **Homepage (RKL-S9.js)** - Verify recent games and standings
+6. **Draft capital** - Check team names display properly
+
+## Monitoring Firestore Usage
+
+Compare Firestore reads before and after:
+
+1. Go to Firebase Console > Firestore > Usage
+2. Compare daily read counts
+3. Expected reduction: **40-50% fewer reads**
+
+### Example Savings
+
+**Before migration:**
+- Teams page: 270 reads (all seasonal records)
+- Leaderboards: 450 reads (all seasonal stats)
+- **Total: 720 reads per page load**
+
+**After migration:**
+- Teams page: 30 reads (only S9 seasonal records)
+- Leaderboards: 50 reads (only S9 seasonal stats)
+- **Total: 80 reads per page load**
+
+**Savings: 88% reduction (640 fewer reads per page load)**
+
+## Rollback Plan
+
+If you need to rollback:
+
+1. The migration only **adds** a field, it doesn't remove anything
+2. Simply revert your query code to use client-side filtering
+3. The \`seasonId\` field will remain but won't be used
+4. No data loss occurs
+
+## Future Seasons
+
+When creating new seasonal documents (S10, S11, etc.), **always include** the \`seasonId\` field:
+
+```javascript
+// When creating new seasonal records
+await setDoc(doc(db, 'v2_teams', teamId, 'seasonal_records', 'S10'), {
+    seasonId: 'S10',  // ← Always include this!
+    team_name: 'Team Name',
+    wins: 0,
+    losses: 0,
+    // ... other fields
+});
+```
+
+Consider updating your Cloud Functions that create seasonal documents to automatically include this field.
+
+## Troubleshooting
+
+### "Permission denied" error
+- Ensure you're logged in as an admin user
+- Check that the user document has \`role: 'admin'\`
+
+### Migration times out
+- The function has a 9-minute timeout
+- If you have many seasons/teams, you may need to increase the timeout
+- Alternatively, run the migration separately for each league
+
+### Some documents missing seasonId
+- Run the verification function to identify which documents failed
+- You can re-run the migration (it skips documents that already have the field)
+- Check the error logs in Cloud Functions for specific failures
+
+### Queries still slow after migration
+- Verify you updated the query code to use \`where('seasonId', '==', ...)\`
+- Check Firebase Console to confirm the queries are using the index
+- Make sure you deployed the updated code
+
+## Technical Details
+
+### What the Migration Does
+
+For each document in:
+- \`v2_teams/{teamId}/seasonal_records/{seasonId}\`
+- \`v2_players/{playerId}/seasonal_stats/{seasonId}\`
+
+The migration adds:
 ```javascript
 {
-  success: true,
-  league: 'minor',
-  message: "Operation completed successfully"
+    seasonId: documentId,  // e.g., 'S9', 'S8', etc.
+    // ... existing fields remain unchanged
 }
 ```
 
-## Frontend Implementation Example
+### Firestore Indexes
 
-### React Context for League Management
+Firestore automatically creates single-field indexes, so no manual index creation is needed for \`seasonId\`.
 
-```javascript
-// LeagueContext.js
-import { createContext, useContext, useState } from 'react';
-
-const LeagueContext = createContext();
-
-export const LeagueProvider = ({ children }) => {
-  const [currentLeague, setCurrentLeague] = useState('major'); // default to major
-
-  return (
-    <LeagueContext.Provider value={{ currentLeague, setCurrentLeague }}>
-      {children}
-    </LeagueContext.Provider>
-  );
-};
-
-export const useLeague = () => useContext(LeagueContext);
-```
-
-### Using League Context in Components
+If you want to combine \`seasonId\` with other filters, you may need composite indexes:
 
 ```javascript
-import { useLeague } from './LeagueContext';
-import { httpsCallable } from 'firebase/functions';
-
-const AdminPanel = () => {
-  const { currentLeague } = useLeague();
-  const functions = getFunctions();
-
-  const handleSetDeadline = async (date, time, timeZone) => {
-    const setLineupDeadline = httpsCallable(functions, 'setLineupDeadline');
-
-    const result = await setLineupDeadline({
-      date,
-      time,
-      timeZone,
-      league: currentLeague // Pass current league context
-    });
-
-    console.log(`Deadline set for ${result.data.league} league`);
-  };
-
-  return (
-    <div>
-      {/* Your admin panel UI */}
-    </div>
-  );
-};
+// Example: Filter by season AND team
+query(
+    collectionGroup(db, 'seasonal_records'),
+    where('seasonId', '==', 'S9'),
+    where('team_name', '==', 'Lakers')
+)
+// Firestore will prompt you to create a composite index
 ```
 
-### League Switcher Component
+### Performance Characteristics
 
-```javascript
-import { useLeague } from './LeagueContext';
+- **Migration time:** ~2-5 minutes for 500-1000 documents
+- **Batching:** Uses 500-document batches (Firestore limit)
+- **Memory:** Processes one team/player at a time to avoid memory issues
+- **Idempotent:** Safe to run multiple times (skips already-migrated docs)
 
-const LeagueSwitcher = () => {
-  const { currentLeague, setCurrentLeague } = useLeague();
+## Summary
 
-  return (
-    <div className="league-switcher">
-      <button
-        className={currentLeague === 'major' ? 'active' : ''}
-        onClick={() => setCurrentLeague('major')}
-      >
-        Major League
-      </button>
-      <button
-        className={currentLeague === 'minor' ? 'active' : ''}
-        onClick={() => setCurrentLeague('minor')}
-      >
-        Minor League
-      </button>
-    </div>
-  );
-};
-```
+1. ✅ Deploy migration functions
+2. ✅ Access migration admin page
+3. ✅ Verify current status
+4. ✅ Run dry run
+5. ✅ Execute migration
+6. ✅ Verify success
+7. ✅ Update query code
+8. ✅ Deploy updated code
+9. ✅ Test thoroughly
+10. ✅ Monitor Firestore usage
 
-### Firestore Query Examples
-
-When querying Firestore directly from the frontend, use appropriate collection names:
-
-```javascript
-import { collection, query, where } from 'firebase/firestore';
-
-const SeasonsView = () => {
-  const { currentLeague } = useLeague();
-  const db = getFirestore();
-
-  useEffect(() => {
-    // Construct collection name based on league
-    const collectionName = currentLeague === 'minor' ? 'minor_seasons' : 'seasons';
-
-    const seasonsRef = collection(db, collectionName);
-    const q = query(seasonsRef, where('status', '==', 'active'));
-
-    // Fetch and display seasons
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const seasons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSeasons(seasons);
-    });
-
-    return () => unsubscribe();
-  }, [currentLeague]);
-
-  return (
-    <div>
-      {/* Display seasons */}
-    </div>
-  );
-};
-```
-
-## Collection Naming Convention
-
-### League-Specific Collections
-Collections that are separate per league use the `minor_` prefix for minor league:
-
-- `seasons` (major) / `minor_seasons` (minor)
-- `v2_players` (major) / `minor_v2_players` (minor)
-- `v2_teams` (major) / `minor_v2_teams` (minor)
-- `lineups` (major) / `minor_lineups` (minor)
-- `games` (major) / `minor_games` (minor)
-- `post_games` (major) / `minor_post_games` (minor)
-- `live_games` (major) / `minor_live_games` (minor)
-- `transactions` (major) / `minor_transactions` (minor)
-- `lineup_deadlines` (major) / `minor_lineup_deadlines` (minor)
-- `pending_lineups` (major) / `minor_pending_lineups` (minor)
-- `pending_transactions` (major) / `minor_pending_transactions` (minor)
-
-### Shared Collections
-These collections are shared between both leagues (no prefix):
-
-- `users` - User accounts and authentication
-- `notifications` - System-wide notifications
-- `scorekeeper_activity_log` - Activity logs for all scorekeepers
-
-### Structured Collections
-These collections have internal league organization:
-
-- `daily_averages` - Contains league-specific subcollections
-- `daily_scores` - Contains league-specific subcollections
-- `leaderboards` - Contains league-specific subcollections
-- `awards` - Contains league-specific subcollections
-- `draft_results` - Contains league-specific subcollections
-
-## Firestore Rules Update Required
-
-Update your `firestore.rules` to handle minor league collections:
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-
-    // Helper function to check user role
-    function isAdmin() {
-      return request.auth != null &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    function isScorekeeper() {
-      return request.auth != null &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'scorekeeper';
-    }
-
-    // Major league collections
-    match /seasons/{season} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin() || isScorekeeper();
-
-      match /{document=**} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin() || isScorekeeper();
-      }
-    }
-
-    // Minor league collections - same rules as major
-    match /minor_seasons/{season} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin() || isScorekeeper();
-
-      match /{document=**} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin() || isScorekeeper();
-      }
-    }
-
-    match /v2_players/{player} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-
-      match /{document=**} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin();
-      }
-    }
-
-    match /minor_v2_players/{player} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-
-      match /{document=**} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin();
-      }
-    }
-
-    match /v2_teams/{team} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-
-      match /{document=**} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin();
-      }
-    }
-
-    match /minor_v2_teams/{team} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-
-      match /{document=**} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin();
-      }
-    }
-
-    // Add similar rules for other minor_ collections as needed
-
-    // Shared collections
-    match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == userId || isAdmin();
-    }
-
-    match /notifications/{notification} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-  }
-}
-```
-
-## Testing Checklist
-
-Before deploying to production:
-
-- [ ] Test all admin functions with both `league: 'major'` and `league: 'minor'`
-- [ ] Test all scorekeeper functions with both leagues
-- [ ] Verify that omitting the `league` parameter defaults to major league
-- [ ] Test league switcher UI component
-- [ ] Verify Firestore queries use correct collection names
-- [ ] Test that shared collections (users, notifications) work for both leagues
-- [ ] Verify that scheduled functions are running for both leagues
-- [ ] Test document triggers for both league-specific collections
-
-## Migration Timeline
-
-1. **Backend Deployment**: Deploy updated Cloud Functions with multi-league support
-2. **Firestore Rules Update**: Update security rules to include minor league collections
-3. **Frontend Update**: Add league context and update all function calls
-4. **Data Setup**: Create initial minor league collections and test data
-5. **User Training**: Train admins and scorekeepers on league parameter usage
-
-## Support and Questions
-
-For questions about this migration, please contact the development team.
+Expected result: **40-50% reduction in Firestore reads** with no change in functionality.

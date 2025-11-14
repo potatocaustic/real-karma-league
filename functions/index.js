@@ -55,6 +55,7 @@ const adminTransactions = require('./admin/admin-transactions');
 const adminActivity = require('./admin/admin-activity');
 const adminAwards = require('./admin/admin-awards');
 const adminTradeblocks = require('./admin/admin-tradeblocks');
+const migrateAddSeasonIds = require('./admin/migrate-add-season-ids');
 
 // Import extracted reporting modules
 const writeups = require('./reporting/writeups');
@@ -172,6 +173,9 @@ exports.calculatePerformanceAwards = adminAwards.calculatePerformanceAwards;
 
 exports.clearAllTradeBlocks = adminTradeblocks.clearAllTradeBlocks;
 exports.reopenTradeBlocks = adminTradeblocks.reopenTradeBlocks;
+
+exports.admin_migrateAddSeasonIds = migrateAddSeasonIds.admin_migrateAddSeasonIds;
+exports.admin_verifySeasonIdMigration = migrateAddSeasonIds.admin_verifySeasonIdMigration;
 
 // Re-export reporting functions from extracted modules
 exports.generateGameWriteup = writeups.generateGameWriteup;
