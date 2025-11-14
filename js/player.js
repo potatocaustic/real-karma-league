@@ -96,7 +96,7 @@ async function loadPlayerData() {
         
         const seasonalRecordsQuery = query(
             collectionGroup(db, collectionNames.seasonalRecords),
-            where('season', '==', SEASON_ID)
+            where('__name__', '==', SEASON_ID)
         );
         const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
         seasonalRecordsSnap.forEach(recordDoc => {
