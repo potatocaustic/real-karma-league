@@ -92,7 +92,10 @@ async function loadTeams() {
   console.log("Attempting to load teams for season:", SEASON_ID);
   try {
     const teamsRef = collection(db, collectionNames.teams);
-    const recordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords));
+    const recordsQuery = query(
+      collectionGroup(db, collectionNames.seasonalRecords),
+      where('seasonId', '==', SEASON_ID)
+    );
 
     console.log("Starting parallel Firestore queries...");
     const [teamsSnap, recordsSnap] = await Promise.all([
@@ -111,11 +114,9 @@ async function loadTeams() {
 
     const seasonalRecordsMap = new Map();
     recordsSnap.forEach(doc => {
-        // Client-side filtering by season ID
-        if (doc.id === SEASON_ID) {
-            const teamId = doc.ref.parent.parent.id;
-            seasonalRecordsMap.set(teamId, doc.data());
-        }
+        // Server-side filtered by seasonId - all results match SEASON_ID
+        const teamId = doc.ref.parent.parent.id;
+        seasonalRecordsMap.set(teamId, doc.data());
     });
     console.log("Seasonal records map created with size:", seasonalRecordsMap.size);
 
