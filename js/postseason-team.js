@@ -3,6 +3,7 @@
 import {
     db,
     collection,
+    collectionGroup,
     doc,
     getDoc,
     getDocs,
@@ -69,11 +70,11 @@ async function loadPageData() {
         }
         
         // --- DEFINE ALL DATA PROMISES ---
-        const allTeamsSnap = await getDocs(collection(db, collectionNames.teams));
-        const teamRecordPromises = allTeamsSnap.docs.map(teamDoc =>
-            getDoc(doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, ACTIVE_SEASON_ID))
+        // ✅ EFFICIENT - Use collectionGroup to fetch all seasonal records in one query
+        const allTeamsRecordsQuery = query(
+            collectionGroup(db, collectionNames.seasonalRecords),
+            where('__name__', '==', ACTIVE_SEASON_ID)
         );
-        const allTeamsRecordsPromise = Promise.all(teamRecordPromises);
 
         const teamDocPromise = getDoc(doc(db, collectionNames.teams, teamId));
         const teamSeasonalPromise = getDoc(doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID));
@@ -86,13 +87,13 @@ async function loadPageData() {
 
         // --- AWAIT ALL PROMISES ---
         const [
-            allTeamsRecordsSnaps,
+            allTeamsRecordsSnap,
             teamDocSnap,
             teamSeasonalSnap,
             rosterSnap,
             scheduleSnap
         ] = await Promise.all([
-            allTeamsRecordsPromise,
+            getDocs(allTeamsRecordsQuery),
             teamDocPromise,
             teamSeasonalPromise,
             rosterPromise,
@@ -100,7 +101,8 @@ async function loadPageData() {
         ]);
 
         // --- PROCESS HELPERS & GLOBAL DATA (Must be done first) ---
-        allTeamsRecordsSnaps.forEach(snap => {
+        // Build map from collectionGroup results
+        allTeamsRecordsSnap.forEach(snap => {
             if (snap.exists()) {
                 const teamIdForRecord = snap.ref.parent.parent.id;
                 allTeamsSeasonalRecords.set(teamIdForRecord, snap.data());
@@ -118,15 +120,29 @@ async function loadPageData() {
         // --- PROCESS OTHER DATA ---
         allScheduleData = scheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        // --- PROCESS ROSTER & PLAYER SEASONAL STATS (MULTI-STEP) ---
+        // --- PROCESS ROSTER & PLAYER SEASONAL STATS (EFFICIENT) ---
+        // ✅ EFFICIENT - Fetch all player seasonal stats in one query using player IDs
         const playerDocs = rosterSnap.docs;
-        const playerSeasonalStatsPromises = playerDocs.map(pDoc =>
-            getDoc(doc(db, collectionNames.players, pDoc.id, collectionNames.seasonalStats, ACTIVE_SEASON_ID))
-        );
-        const playerSeasonalStatsSnaps = await Promise.all(playerSeasonalStatsPromises);
+        const playerIds = playerDocs.map(pDoc => pDoc.id);
 
-        rosterPlayers = playerDocs.map((pDoc, index) => {
-            const seasonalStats = playerSeasonalStatsSnaps[index].exists() ? playerSeasonalStatsSnaps[index].data() : {};
+        // Fetch all seasonal stats for roster players in one query
+        const playerStatsQuery = query(
+            collectionGroup(db, collectionNames.seasonalStats),
+            where('__name__', '==', ACTIVE_SEASON_ID)
+        );
+        const playerStatsSnap = await getDocs(playerStatsQuery);
+
+        // Build a map of playerId -> seasonal stats
+        const playerStatsMap = new Map();
+        playerStatsSnap.forEach(statDoc => {
+            const playerId = statDoc.ref.parent.parent.id;
+            if (playerIds.includes(playerId)) {
+                playerStatsMap.set(playerId, statDoc.data());
+            }
+        });
+
+        rosterPlayers = playerDocs.map(pDoc => {
+            const seasonalStats = playerStatsMap.get(pDoc.id) || {};
             return {
                 id: pDoc.id,
                 ...pDoc.data(),
