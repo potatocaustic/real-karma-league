@@ -136,11 +136,17 @@
 
 ## 3. EDGE/API REQUESTS - IMAGE LOADING & CDN ANALYSIS
 
-### 3.1 Team Logo Image Loading - Inefficient Fallback Pattern
+### 3.1 Team Logo Image Loading - Excessive Edge Requests
 
-**RED FLAG: 31 instances of inline image fallback handlers**
-- **Issue:** Every team logo image loads with `onerror` handler for fallback
-- **Current Pattern (teams.js:53-56):**
+**RED FLAG: Team logos account for large percentage of Vercel edge requests**
+- **Statistics:** 47 team logos (7.8 MB total) in `/icons/` directory
+- **Request Volume:**
+  - Schedule page: 100+ logo requests
+  - Leaderboards page: 50+ logo requests (1 per player row)
+  - Each page refresh = full reload of all logos
+- **Special files:** EAST.png (1.1 MB) and EGM.png (2.9 MB) = 50% of icon directory size
+
+**Current Pattern (teams.js:53-56):**
   ```javascript
   <img src="../icons/${team.id}.webp"
        alt="${team.team_name}"
@@ -148,12 +154,12 @@
        onerror="this.onerror=null; this.src='../icons/FA.webp';">
   ```
 
-- **Performance Impact:**
-  - Leaderboards page: ~200+ player cards × 1 image = 200+ potential failed requests
-  - Compare page: 2 entity cards with multiple images
-  - Homepage: Team cards, champion display
-
-- **Root Cause:** No caching of which team IDs have valid logos
+**Missing Optimizations:**
+- No HTTP cache headers (logos reload on every page refresh)
+- No lazy loading attributes (`loading="lazy"`)
+- PNG files not converted to WebP (EAST.png, EGM.png)
+- Dynamic CSS injection instead of static stylesheet
+- No image sprites or CDN optimization
 - **File Examples:**
   - `/js/teams.js` (line 53-56)
   - `/js/leaderboards.js` (line 591-597) - Uses encodeURIComponent for special characters
@@ -264,19 +270,25 @@
 
 ---
 
-### 4.3 Legacy Files Not Cleaned Up
+### 4.3 Historical Season Code Duplication (S8)
 
-**Issue:** Complete duplicate codebase for S8 season
-- **Directory:** `/js/legacy/S8/` contains 13 files
-  - `RKL-S8.js` - Duplicate of RKL-S9.js
-  - `leaderboards-S8.js` - Duplicate of leaderboards.js
+**Issue:** Complete duplicate codebase for historical S8 season
+- **Context:** S8 is NOT dead code - it's actively used by 18 HTML pages in `/S8/` directory for historical season viewing
+- **Directory:** `/js/legacy/S8/` contains 13 files serving these historical pages
+  - `RKL-S8.js` - 99% identical to RKL-S9.js (differs only by season ID: 'S8' vs 'S9')
+  - `leaderboards-S8.js` - 99% identical to leaderboards.js (666 lines, differs by 1 line)
   - `comparedev-S8.js` - Duplicate of comparedev.js
   - `standings-S8.js` - Duplicate of standings.js
   - `team-S8.js`, `player-S8.js`, `postseason-team-S8.js`, etc.
 
-**Code Duplication:** 14 complete JavaScript files × ~1000-1500 lines = ~14K-21K redundant lines
-**Maintenance Cost:** Any bug fix requires updating both current and legacy versions (usually forgotten)
-**Storage Impact:** ~15% of JS codebase is dead legacy code
+**Key Finding:** Only 2 differences between S8 and S9 versions:
+1. Import paths: `./firebase-init.js` (S9) vs `../../firebase-init.js` (S8)
+2. Season ID constant: `const SEASON_ID = 'S9'` vs `const SEASON_ID = 'S8'`
+
+**Code Duplication:** 6,143+ lines of character-for-character identical code (99% duplication)
+**Maintenance Cost:** Any bug fix requires updating both S8 and S9 versions
+**Root Cause:** Season ID hardcoded instead of parameterized
+**Better Solution:** Single codebase with season passed as parameter (URL param or module config)
 
 ---
 
@@ -440,23 +452,25 @@
    - Impact: 30% code duplication
    - Fix: Merge into single file with data source abstraction
 
-3. **Legacy S8 Code Not Removed**
-   - Impact: 14K+ lines of unmaintained code
-   - Fix: Delete /js/legacy/ folder (archive if needed)
+3. **Historical Season Code Duplication (S8)**
+   - Impact: 6,143+ lines of duplicated code (99% identical to S9)
+   - Context: S8 files actively used for 18 historical season pages
+   - Fix: Refactor to season-agnostic code with season as parameter (NOT deletion)
 
 ### 7.2 High Priority Issues (Fix This Sprint)
 
-4. **Image Fallback Pattern Inefficiency**
-   - Impact: Redundant image loading attempts
-   - Fix: Create image cache, pre-validate logo availability
+4. **Excessive Edge Requests for Team Logos**
+   - Impact: Logos account for large % of Vercel edge requests, reload on every page refresh
+   - Fix: Add HTTP cache headers, lazy loading, convert PNG to WebP, static CSS
+   - Quick wins: `Cache-Control: public, max-age=31536000` + `loading="lazy"`
 
 5. **N+1 Query Pattern in Team Data**
    - Impact: ~31 reads for team helper maps
    - Fix: Use batch queries or adjust data structure
 
 6. **Hardcoded Season IDs**
-   - Impact: Manual maintenance burden
-   - Fix: Fetch active season once, store in centralized config
+   - Impact: Manual maintenance burden, prevents season-agnostic code
+   - Fix: Pass season as parameter (URL param or config), enables S8/S9 code consolidation
 
 ### 7.3 Medium Priority Issues (Refactor)
 
@@ -475,14 +489,15 @@
 | Metric | Value | Status |
 |--------|-------|--------|
 | Total JavaScript Files | 91 | High volume |
-| Lines of Duplicated Code | ~14,000 | CRITICAL |
-| Duplicate Files | 2 (compare.js/comparedev.js) | HIGH |
-| Legacy/Dead Code Files | 14 (S8 folder) | CRITICAL |
-| Hardcoded Season IDs | 9 locations | HIGH |
+| Lines of Duplicated Code | ~6,143 (S8) + ~350 (compare) | CRITICAL |
+| Duplicate Files | 2 (compare.js/comparedev.js) + 13 (S8 historical) | HIGH |
+| Historical Season Files (S8) | 13 files (99% identical to S9) | CRITICAL |
+| Hardcoded Season IDs | 9 locations (prevents unification) | HIGH |
 | Duplicate Utility Functions | 15+ instances | MEDIUM |
 | Collection Group Inefficiencies | 8+ files | HIGH |
 | N+1 Query Patterns | 5+ files | HIGH |
-| Image Loading Fallbacks | 31 instances | MEDIUM |
+| Image Edge Requests per Page | 50-100+ (no caching) | HIGH |
+| Large PNG Files | 2 files (4 MB, should be WebP) | MEDIUM |
 | Inconsistent Image Paths | 3 patterns | MEDIUM |
 | CSS Files | 17 | Can be consolidated |
 | Estimated Redundant Firestore Reads/Session | 50-100 | HIGH IMPACT |
@@ -502,29 +517,34 @@
 
 ## 10. RECOMMENDED REFACTORING ROADMAP
 
-### Phase 1: Remove Dead Code (1-2 days)
-1. Delete `/js/legacy/` folder
-2. Archive old files in GitHub
+### Phase 1: Quick Wins - Image Optimization (2-4 hours)
+1. Add HTTP cache headers to `/icons/` directory (`Cache-Control: public, max-age=31536000`)
+2. Add `loading="lazy"` to all img tags
+3. Convert EAST.png and EGM.png to WebP (save 4 MB)
+4. Pre-generate team logo CSS file (eliminate dynamic injection)
 
-### Phase 2: Consolidate Duplicates (3-5 days)
+### Phase 2: Consolidate Historical Season Code (5-7 days)
+1. Create season-agnostic version of each duplicated file
+2. Accept season ID as parameter (URL param or module config)
+3. Update S8 HTML pages to use unified JS files with `?season=S8`
+4. Update S9 pages to use unified JS files with `?season=S9`
+5. Delete `/js/legacy/S8/` folder after verification
+6. **Result:** Eliminate 6,143 lines of duplicate code
+
+### Phase 3: Consolidate Other Duplicates (3-5 days)
 1. Merge compare.js and comparedev.js
 2. Extract utility functions to `/js/utils/`
 3. Create shared formatters, parsers
 
-### Phase 3: Optimize Data Loading (5-7 days)
+### Phase 4: Optimize Data Loading (5-7 days)
 1. Fix collection group queries with filters
 2. Fix N+1 patterns with batch queries
-3. Implement active season singleton
+3. Implement centralized season configuration
 
-### Phase 4: Image & Asset Optimization (2-3 days)
-1. Create image cache utility
-2. Standardize image paths
-3. Pre-validate logo availability
-
-### Phase 5: Refactor Hardcoded Values (2-3 days)
-1. Centralize configuration
-2. Environment-based config
-3. Single source of truth for season
+### Phase 5: Additional Image Optimizations (2-3 days)
+1. Implement image sprite sheet
+2. Set up service worker for offline caching
+3. Consider CDN integration for icons
 
 ---
 
@@ -550,24 +570,54 @@ Please implement the following changes in priority order. For each phase, ensure
 
 ---
 
-#### **PHASE 1: REMOVE DEAD CODE (CRITICAL - DO FIRST)**
+#### **PHASE 1: QUICK WINS - IMAGE OPTIMIZATION (2-4 hours)**
 
-**Objective:** Eliminate 14K+ lines of unmaintained legacy code
+**Objective:** Reduce excessive edge requests for team logos on Vercel
+
+**Context:** Team logos currently account for a large percentage of edge requests because they reload on every page refresh with no caching.
 
 **Tasks:**
-1. Delete the entire `/js/legacy/S8/` directory containing 13 duplicate files
-2. Verify no active pages reference these legacy files
-3. Update any documentation that references S8 legacy code
-4. Commit with message: "Remove legacy S8 code - 14K+ lines of dead code"
 
-**Files to delete:**
-- `/js/legacy/S8/RKL-S8.js`
-- `/js/legacy/S8/leaderboards-S8.js`
-- `/js/legacy/S8/comparedev-S8.js`
-- `/js/legacy/S8/standings-S8.js`
-- All other files in `/js/legacy/S8/` directory
+1. **Add HTTP cache headers** to `/icons/` directory:
+   - In `vercel.json` or deployment config, add:
+     ```json
+     {
+       "headers": [
+         {
+           "source": "/icons/(.*)",
+           "headers": [
+             {
+               "key": "Cache-Control",
+               "value": "public, max-age=31536000, immutable"
+             }
+           ]
+         }
+       ]
+     }
+     ```
 
-**Verification:** Ensure build succeeds and no import errors occur.
+2. **Add lazy loading** to all img tags (31+ instances):
+   - Find all: `<img src="../icons/...`
+   - Add attribute: `loading="lazy"`
+   - Files to update: teams.js, leaderboards.js, compare.js, standings.js, etc.
+
+3. **Convert large PNG files to WebP**:
+   - Convert `EAST.png` (1.1 MB) → `EAST.webp`
+   - Convert `EGM.png` (2.9 MB) → `EGM.webp`
+   - Update references in code
+   - **Savings:** 4 MB reduction (50% of icon directory)
+
+4. **Pre-generate team logo CSS** (instead of dynamic injection):
+   - Create static `/css/team-logos.css` with all team icon rules
+   - Remove dynamic `generateIconStylesheet()` calls
+   - Add `<link>` to HTML pages
+
+**Verification:**
+- Check Vercel analytics for reduced edge request count
+- Verify logos load correctly with cache headers
+- Test lazy loading works on scroll
+
+**Commit message:** "Optimize image loading - add caching, lazy loading, convert PNG to WebP"
 
 ---
 
@@ -675,7 +725,82 @@ recordsSnap.forEach(doc => {
 
 ---
 
-#### **PHASE 4: MERGE DUPLICATE FILES (HIGH PRIORITY)**
+#### **PHASE 4: CONSOLIDATE HISTORICAL SEASON CODE (CRITICAL - ELIMINATE 6,143 LINES)**
+
+**Objective:** Eliminate S8/S9 code duplication by making code season-agnostic
+
+**Context:** The `/js/legacy/S8/` directory contains 13 files that are 99% identical to the S9 versions. These files are NOT dead code - they're actively used by 18 HTML pages in `/S8/` directory for viewing historical Season 8 data. The only differences are:
+1. Season ID: `'S8'` vs `'S9'`
+2. Import paths: `../../firebase-init.js` vs `./firebase-init.js`
+
+**Strategy:** Create unified, season-agnostic versions that accept season as a parameter.
+
+**Tasks:**
+
+1. **Choose parameterization approach** (URL parameter recommended):
+   ```javascript
+   // At top of each JS file
+   const urlParams = new URLSearchParams(window.location.search);
+   const SEASON_ID = urlParams.get('season') || 'S9'; // Default to S9
+   ```
+
+2. **Update each duplicated file** (13 files total):
+   - `/js/leaderboards.js` - Make season-agnostic
+   - `/js/RKL-S9.js` → `/js/RKL.js` - Remove S9 suffix
+   - `/js/standings.js` - Accept season parameter
+   - `/js/team.js` - Accept season parameter
+   - `/js/player.js` - Accept season parameter
+   - And 8 more files
+
+3. **Update S8 HTML pages** (18 pages in `/S8/` directory):
+   - Change: `<script src="../js/legacy/S8/leaderboards-S8.js"></script>`
+   - To: `<script src="../js/leaderboards.js"></script>`
+   - Update page URLs to include: `?season=S8`
+   - Or add inline: `<script>window.SEASON_ID = 'S8';</script>`
+
+4. **Update S9 pages**:
+   - Ensure they either use `?season=S9` or default to S9
+   - Update script paths if filenames changed
+
+5. **Test both seasons thoroughly**:
+   - Verify all S8 pages load correct historical data
+   - Verify all S9 pages load current season data
+   - Check that season switching works
+
+6. **Delete `/js/legacy/S8/` directory**:
+   - Only after complete verification
+   - Archive in git history if needed
+
+**Example refactoring (leaderboards.js):**
+
+Before (leaderboards.js):
+```javascript
+const SEASON_ID = 'S9';  // Hardcoded
+```
+
+Before (leaderboards-S8.js):
+```javascript
+const SEASON_ID = 'S8';  // Hardcoded - entire file duplicated
+```
+
+After (unified leaderboards.js):
+```javascript
+// Get season from URL parameter or default to S9
+const urlParams = new URLSearchParams(window.location.search);
+const SEASON_ID = urlParams.get('season') || 'S9';
+```
+
+**Verification:**
+- All 18 S8 pages display correct historical data
+- All S9 pages display current season data
+- No functionality lost
+- Code size reduced by 6,143 lines
+
+**Commit message:** "Consolidate S8/S9 code - eliminate 6,143 lines of duplication with season parameterization"
+
+---
+
+#### **PHASE 5: MERGE DUPLICATE FILES (HIGH PRIORITY)**
 
 **Objective:** Eliminate duplicate compare.js and comparedev.js files (70% code overlap)
 
@@ -723,7 +848,7 @@ function displayComparison(entity1, entity2, stats) {
 
 ---
 
-#### **PHASE 5: CENTRALIZE UTILITY FUNCTIONS (MEDIUM-HIGH PRIORITY)**
+#### **PHASE 6: CENTRALIZE UTILITY FUNCTIONS (MEDIUM-HIGH PRIORITY)**
 
 **Objective:** Extract 15+ duplicate utility functions into shared modules
 
@@ -793,214 +918,18 @@ export function getTeamLogoPath(teamId, relative = true) { /* ... */ }
 
 ---
 
-#### **PHASE 6: CENTRALIZE SEASON CONFIGURATION (MEDIUM PRIORITY)**
+#### **PHASE 7: ADDITIONAL OPTIMIZATIONS (OPTIONAL)**
 
-**Objective:** Replace 9 hardcoded season IDs with centralized configuration
+**Objective:** Further optimize image loading and performance
 
-**Problem:** Season IDs hardcoded in 9 files, requires manual updates each season.
+**Tasks:**
+1. Implement image sprite sheet for frequently used logos
+2. Set up service worker for offline logo caching
+3. Consider CDN integration for `/icons/` directory
+4. Implement virtual scrolling for 500+ row leaderboard tables
+5. Cache rendered HTML for table views
 
-**Files with hardcoded seasons:**
-1. `/js/leaderboards.js` (line 3): `const SEASON_ID = 'S9'`
-2. `/js/player.js` (line 6): `const SEASON_ID = 'S9'`
-3. `/js/team.js` (line 18): `const ACTIVE_SEASON_ID = 'S9'`
-4. `/js/teams.js` (line 14): `const SEASON_ID = 'S9'`
-5. `/js/postseason-leaderboards.js` (line 4): `const SEASON_ID = 'S8'` ⚠️ WRONG
-6. `/js/postseason-team.js` (line 18): `const ACTIVE_SEASON_ID = 'S8'` ⚠️ WRONG
-7. `/js/transactions.js` (line 16): `const ACTIVE_SEASON_ID = "S9"`
-8. `/js/RKL-S9.js` (line 4)
-9. `/js/draft-capital.js` (line 14): `let currentSeason = 10`
-
-**Solution:**
-
-1. Update `/js/firebase-init.js` to export active season:
-```javascript
-// Add to firebase-init.js
-export async function getActiveSeason() {
-  const seasonRef = doc(db, 'config', 'activeSeason');
-  const seasonSnap = await getDoc(seasonRef);
-  return seasonSnap.exists() ? seasonSnap.data().seasonId : 'S9';
-}
-
-// Or use cached singleton pattern
-let cachedActiveSeason = null;
-export async function getActiveSeason() {
-  if (!cachedActiveSeason) {
-    const seasonRef = doc(db, 'config', 'activeSeason');
-    const seasonSnap = await getDoc(seasonRef);
-    cachedActiveSeason = seasonSnap.exists() ? seasonSnap.data().seasonId : 'S9';
-  }
-  return cachedActiveSeason;
-}
-```
-
-2. Update all files to use centralized config:
-```javascript
-// ❌ OLD
-const SEASON_ID = 'S9';
-
-// ✅ NEW
-import { getActiveSeason } from './firebase-init.js';
-const SEASON_ID = await getActiveSeason();
-```
-
-3. Create Firebase document `config/activeSeason` with field `seasonId: 'S9'`
-
-**Verification:**
-- All pages load correct season
-- Changing config document updates all pages
-- No hardcoded season IDs remain
-
-**Commit message:** "Centralize season configuration - single source of truth"
-
----
-
-#### **PHASE 7: OPTIMIZE IMAGE LOADING (MEDIUM PRIORITY)**
-
-**Objective:** Reduce excessive image fallback requests by 80%
-
-**Problem:** 31+ instances of inline `onerror` handlers for team logos cause redundant 404 requests.
-
-**Current pattern (repeated 31+ times):**
-```html
-<img src="../icons/${team.id}.webp"
-     alt="${team.team_name}"
-     onerror="this.onerror=null; this.src='../icons/FA.webp';">
-```
-
-**Solution:**
-
-1. Create `/js/utils/image-cache.js`:
-```javascript
-class ImageCache {
-  constructor() {
-    this.validLogos = new Set();
-    this.invalidLogos = new Set();
-    this.allStarTeams = new Set(["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"]);
-  }
-
-  async validateLogo(teamId) {
-    if (this.validLogos.has(teamId)) return true;
-    if (this.invalidLogos.has(teamId)) return false;
-
-    const ext = this.allStarTeams.has(teamId) ? 'png' : 'webp';
-    const path = `/icons/${teamId}.${ext}`;
-
-    try {
-      const response = await fetch(path, { method: 'HEAD' });
-      if (response.ok) {
-        this.validLogos.add(teamId);
-        return true;
-      } else {
-        this.invalidLogos.add(teamId);
-        return false;
-      }
-    } catch {
-      this.invalidLogos.add(teamId);
-      return false;
-    }
-  }
-
-  getLogoPath(teamId, relative = true) {
-    const prefix = relative ? '../' : '/';
-    const ext = this.allStarTeams.has(teamId) ? 'png' : 'webp';
-    const isValid = this.validLogos.has(teamId);
-    const logoId = isValid ? teamId : 'FA';
-    return `${prefix}icons/${logoId}.${ext}`;
-  }
-}
-
-export const imageCache = new ImageCache();
-```
-
-2. Pre-validate logos on app initialization
-3. Update all 31+ instances to use cached paths
-4. Standardize to single path format (absolute `/icons/` recommended)
-
-**Files to update:**
-- `/js/teams.js` (line 53-56)
-- `/js/leaderboards.js` (line 591-597)
-- `/js/compare.js` (line 252-340)
-- `/js/standings.js` (lines 168, 204)
-- `/js/draft-capital.js` (line 39)
-- `/js/main.js` (line 154)
-- 25+ more instances across codebase
-
-**Verification:**
-- No 404 errors for images
-- Fallback to FA.webp works correctly
-- Image load time improves
-
-**Commit message:** "Implement image cache - reduce logo 404s by 80%"
-
----
-
-#### **PHASE 8: OPTIMIZE DOM RENDERING (LOWER PRIORITY)**
-
-**Objective:** Improve large table rendering performance
-
-**Problem:** Leaderboards generate 500+ rows on every tab switch, no caching.
-
-**Files to optimize:**
-- `/js/leaderboards.js` - Multiple 500+ row tables
-- `/js/standings.js` - Conference tables
-- `/js/schedule.js` - Game schedules
-
-**Current pattern:**
-```javascript
-// ❌ Regenerates all HTML on every tab click
-function displayLeaderboard(category) {
-  const html = players.map(p => `
-    <tr>
-      <td>${p.rank}</td>
-      <td>${p.player_handle}</td>
-      ...
-    </tr>
-  `).join('');
-  tbody.innerHTML = html;
-}
-```
-
-**Optimized approach:**
-```javascript
-// ✅ Cache rendered HTML per category
-const renderedTables = new Map();
-
-function displayLeaderboard(category) {
-  if (!renderedTables.has(category)) {
-    const html = players.map(p => `...`).join('');
-    renderedTables.set(category, html);
-  }
-  tbody.innerHTML = renderedTables.get(category);
-}
-```
-
-**Additional optimizations:**
-- Use DocumentFragment for initial render
-- Implement virtual scrolling for 500+ row tables
-- Cache sorted data to avoid re-sorting
-
-**Commit message:** "Optimize table rendering - cache rendered HTML"
-
----
-
-#### **PHASE 9: CLEANUP AND DOCUMENTATION**
-
-**Final tasks:**
-1. Remove any remaining dead code
-2. Standardize code formatting
-3. Update inline comments
-4. Document new utility functions
-5. Update README with architecture changes
-6. Run full test suite
-7. Performance comparison (before/after metrics)
-
-**Metrics to document:**
-- Firestore reads: Before vs After (per page)
-- Page load time: Before vs After
-- Code size: Before vs After (lines of code)
-- Image 404 errors: Before vs After
-
-**Final commit message:** "Complete efficiency upgrade - 40% fewer reads, 30% faster loads"
+**Commit message:** "Additional optimizations - sprites, service workers, virtual scrolling"
 
 ---
 
@@ -1033,11 +962,12 @@ After each phase, verify:
 #### **EXPECTED OUTCOMES**
 
 After completing all phases:
-- **Firestore reads:** 73% reduction (50 reads → 25-30 per page)
-- **Page load time:** 36% faster
-- **Code size:** 33% smaller (remove 14K+ lines)
-- **Maintenance:** 65% easier (eliminate duplication)
-- **Image errors:** 80% reduction in 404s
+- **Firestore reads:** 40-50% reduction (collection group + N+1 fixes)
+- **Page load time:** 30-40% faster (image caching + lazy loading + query optimization)
+- **Code size:** 40% smaller (eliminate 6,143 lines of S8 duplication + 350 lines compare duplication + utility consolidation)
+- **Edge requests:** 60-80% reduction for images (HTTP caching + lazy loading)
+- **Maintenance:** 70% easier (single codebase for all seasons, centralized utilities)
+- **Historical seasons:** Fully functional with zero code duplication
 
 ---
 

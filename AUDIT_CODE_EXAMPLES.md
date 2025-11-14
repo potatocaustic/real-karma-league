@@ -256,7 +256,114 @@ When updating comparison display logic, you must update BOTH files. Example: if 
 
 ---
 
-## Issue 4: Hardcoded Season IDs Across Multiple Files
+## Issue 4: S8/S9 Historical Season Code Duplication (6,143 Lines)
+
+### Context: NOT Dead Code
+
+**IMPORTANT:** The `/js/legacy/S8/` directory is NOT dead code. It's actively used by 18 HTML pages in `/S8/` directory for viewing historical Season 8 data. These files CANNOT be simply deleted.
+
+### The Duplication Problem
+
+13 files in `/js/legacy/S8/` are **99% identical** to their S9 counterparts. Only 2 differences:
+
+1. Season ID: `'S8'` vs `'S9'`
+2. Import paths: `../../firebase-init.js` vs `./firebase-init.js`
+
+### Example: leaderboards-S8.js vs leaderboards.js
+
+#### `/js/legacy/S8/leaderboards-S8.js` (666 lines)
+```javascript
+// Line 1
+import { db, collectionNames } from '../../firebase-init.js';  // Different path
+
+// Line 3
+const SEASON_ID = 'S8';  // Different season
+
+// Lines 4-666: IDENTICAL to leaderboards.js
+```
+
+#### `/js/leaderboards.js` (666 lines)
+```javascript
+// Line 1
+import { db, collectionNames } from './firebase-init.js';  // Different path
+
+// Line 3
+const SEASON_ID = 'S9';  // Different season
+
+// Lines 4-666: IDENTICAL to leaderboards-S8.js
+```
+
+**Result:** 666 lines × 2 files = 1,332 lines for what should be 666 lines of unified code.
+
+### Files Affected (All 99% Identical)
+
+| S9 File | S8 File | Lines | Duplication |
+|---------|---------|-------|-------------|
+| `/js/leaderboards.js` | `/js/legacy/S8/leaderboards-S8.js` | 666 | 99% |
+| `/js/RKL-S9.js` | `/js/legacy/S8/RKL-S8.js` | 580 | 99% |
+| `/js/standings.js` | `/js/legacy/S8/standings-S8.js` | 450 | 99% |
+| `/js/team.js` | `/js/legacy/S8/team-S8.js` | 425 | 99% |
+| `/js/player.js` | `/js/legacy/S8/player-S8.js` | 380 | 99% |
+| And 8 more... | And 8 more... | ~3,000 | 99% |
+
+**Total:** 6,143 lines of duplicated code
+
+### The Solution: Season Parameterization
+
+Instead of duplicating files, make code season-agnostic:
+
+#### Before (Requires Duplicate Files)
+```javascript
+// /js/leaderboards.js - For S9
+const SEASON_ID = 'S9';  // Hardcoded
+
+// /js/legacy/S8/leaderboards-S8.js - For S8
+const SEASON_ID = 'S8';  // Hardcoded - entire file duplicated
+```
+
+#### After (Single Unified File)
+```javascript
+// /js/leaderboards.js - Works for ALL seasons
+const urlParams = new URLSearchParams(window.location.search);
+const SEASON_ID = urlParams.get('season') || 'S9';  // Default to current season
+
+// Now S8 pages use: leaderboards.html?season=S8
+// And S9 pages use: leaderboards.html?season=S9 (or default)
+```
+
+### Implementation Steps
+
+1. **Refactor each duplicated file** to accept season parameter:
+   ```javascript
+   // Add at top of each JS file
+   const urlParams = new URLSearchParams(window.location.search);
+   const SEASON_ID = urlParams.get('season') || 'S9';
+   ```
+
+2. **Update S8 HTML pages** (18 pages in `/S8/` directory):
+   ```html
+   <!-- Before -->
+   <script src="../js/legacy/S8/leaderboards-S8.js"></script>
+
+   <!-- After -->
+   <script src="../js/leaderboards.js"></script>
+   <!-- And add to page URL: leaderboards.html?season=S8 -->
+   ```
+
+3. **Test thoroughly** - Verify S8 historical data still displays correctly
+
+4. **Delete `/js/legacy/S8/`** - Only after complete verification
+
+### Benefits
+
+- **Code reduction:** Eliminate 6,143 duplicate lines
+- **Maintenance:** Fix bugs once, not twice
+- **Future seasons:** S10, S11, etc. work automatically with same codebase
+- **Consistency:** All seasons use same logic, same features
+
+---
+
+## Issue 5: Hardcoded Season IDs Across Multiple Files
 
 ### Different Season Values in Different Files
 
@@ -322,7 +429,7 @@ const activeSeasonId = await getActiveSeason();
 
 ---
 
-## Issue 5: Duplicate Utility Functions
+## Issue 6: Duplicate Utility Functions
 
 ### escapeHTML() - 4 Different Implementations
 
@@ -424,78 +531,111 @@ import { escapeHTML, formatKarma, formatRank, parseNumber, formatDate } from './
 
 ---
 
-## Issue 6: Image Path Inconsistency
-
-### Three Different Path Patterns Used
-
-#### Pattern 1: Relative with `../`
-**Files:** Most common
-```javascript
-// /js/teams.js (line 53)
-<img src="../icons/${team.id}.webp"
-
-// /js/leaderboards.js (line 591)
-const teamLogoSrc = (teamId && teamId !== 'FA' && teamId !== 'N/A') ? 
-  `../icons/${encodeURIComponent(teamId)}.webp` : '../icons/FA.webp';
-
-// /js/standings.js (line 168)
-<img src="../icons/${team.id}.webp"
-
-// /js/draft-capital.js (line 39)
-<img src="../icons/${encodeURIComponent(teamId)}.webp"
-```
-
-#### Pattern 2: Relative without `../`
-**Files:** Less common
-```javascript
-// /js/compare.js (line 252-253)
-const icon1_src = `icons/${icon1_id || 'FA'}.webp`;
-const icon2_src = `icons/${icon2_id || 'FA'}.webp`;
-
-// /js/comparedev.js (line 178-179)
-const icon1_src = `../icons/${icon1_id || 'FA'}.webp`;  // Different!
-const icon2_src = `../icons/${icon2_id || 'FA'}.webp`;
-```
-
-#### Pattern 3: Absolute with `/`
-**Files:** Root pages
-```javascript
-// /js/homepage.js (line 122)
-<img src="/icons/${champData.team_id}.webp"
-
-// /js/transactions.js (line 205)
-<img src="/icons/${teamId}.webp"
-
-// /main.js (line 154)
-<img src="../icons/${team.id}.webp"  // Different from homepage!
-```
+## Issue 7: Image Loading - Excessive Edge Requests on Vercel
 
 ### The Problem
-These need to work from:
-- Root pages (index.html, login.html) → use `/icons/`
-- Season pages (S9/RKL-S9.html) → use `../icons/` or `/icons/`
-- Subsection pages (S9/leaderboards.html) → use `../icons/`
 
-**But inconsistent usage leads to:**
-1. Some images 404 in certain pages
-2. Developers confused about which pattern to use
-3. Images with `../icons/` fail from root pages
+Team logos account for a **large percentage of Vercel edge requests** because:
+1. No HTTP cache headers → logos reload on every page refresh
+2. No lazy loading → all logos load immediately
+3. Large PNG files not converted to WebP
+4. Dynamic CSS injection instead of static files
 
-### Solution: Standardize to absolute paths
+### Statistics
+
+- **47 team logos** in `/icons/` directory (7.8 MB total)
+- **Schedule page:** 100+ logo requests
+- **Leaderboards page:** 50+ logo requests (1 per player row)
+- **Each page refresh:** Full reload of all logos (no caching)
+- **EAST.png:** 1.1 MB (should be WebP)
+- **EGM.png:** 2.9 MB (should be WebP)
+
+### Missing Optimizations
+
+#### 1. No HTTP Cache Headers
 ```javascript
-// Use /icons/ everywhere (works from any page depth)
+// Current: No cache headers configured
+// Logos reload on every page refresh, causing excessive edge requests
 
-// /js/teams.js
-<img src="/icons/${team.id}.webp"
-
-// /js/leaderboards.js
-const teamLogoSrc = (teamId && teamId !== 'FA' && teamId !== 'N/A') ? 
-  `/icons/${encodeURIComponent(teamId)}.webp` : '/icons/FA.webp';
+// ✅ Solution: Add to vercel.json
+{
+  "headers": [
+    {
+      "source": "/icons/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    }
+  ]
+}
 ```
+
+#### 2. No Lazy Loading
+```javascript
+// ❌ Current (all 31+ instances)
+<img src="../icons/${team.id}.webp" alt="${team.team_name}" class="team-logo">
+
+// ✅ With lazy loading
+<img src="../icons/${team.id}.webp"
+     alt="${team.team_name}"
+     class="team-logo"
+     loading="lazy">  // Only loads when scrolled into view
+```
+
+#### 3. Large PNG Files Not Optimized
+```bash
+# Current sizes:
+/icons/EAST.png - 1.1 MB
+/icons/EGM.png - 2.9 MB
+Total: 4 MB (50% of icon directory)
+
+# After converting to WebP:
+/icons/EAST.webp - ~200 KB (80% reduction)
+/icons/EGM.webp - ~500 KB (83% reduction)
+Total: ~700 KB (82% reduction in 4 MB)
+```
+
+#### 4. Dynamic CSS Injection
+```javascript
+// ❌ Current - /js/player.js (lines 18-40)
+function generateIconStylesheet(teams) {
+  let styleContent = '<style>';
+  teams.forEach(team => {
+    styleContent += `.team-icon-${team.id} {
+      background-image: url(../icons/${team.id}.webp);
+    }`;
+  });
+  styleContent += '</style>';
+  document.head.insertAdjacentHTML('beforeend', styleContent);
+}
+// This runs on every player page load, creating CSS dynamically
+
+// ✅ Solution: Pre-generate /css/team-logos.css
+/* Static file generated once */
+.team-icon-FA { background-image: url(/icons/FA.webp); }
+.team-icon-ATL { background-image: url(/icons/ATL.webp); }
+/* ... all teams ... */
+```
+
+### Implementation Priority
+
+**Quick Wins (2-4 hours):**
+1. Add cache headers to `vercel.json`
+2. Add `loading="lazy"` to all 31+ img tags
+3. Convert EAST.png and EGM.png to WebP
+4. Create static `/css/team-logos.css`
+
+**Expected Impact:**
+- **Edge requests:** 60-80% reduction (caching prevents reloads)
+- **Page load:** 15-20% faster (lazy loading + WebP)
+- **Bandwidth:** 4 MB saved per full site visit
 
 ---
 
-## Issue 7: All-Star Icon Format Check Duplicated
+## Issue 8: All-Star Icon Format Check Duplicated
 
 ### Problem Location - `/js/main.js` (lines 147-148)
 
@@ -549,7 +689,7 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
 
 ---
 
-## Issue 8: Large Tables Regenerated on Tab Switch
+## Issue 9: Large Tables Regenerated on Tab Switch
 
 ### Problem Location - `/js/leaderboards.js` (~600 lines)
 
