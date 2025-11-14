@@ -1037,8 +1037,12 @@ async function fetchDailyLeaderboard(gameDate) {
         const leaderboardSnap = await getDoc(leaderboardRef);
 
         if (leaderboardSnap.exists()) {
-            return leaderboardSnap.data();
+            const data = leaderboardSnap.data();
+            console.log('Daily leaderboard document data:', data);
+            console.log('Document keys:', Object.keys(data));
+            return data;
         }
+        console.warn(`No daily leaderboard document found for date: ${gameDate}`);
         return null;
     } catch (error) {
         console.error('Error fetching daily leaderboard:', error);
