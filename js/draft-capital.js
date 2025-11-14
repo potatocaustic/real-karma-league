@@ -78,24 +78,20 @@ async function loadData() {
       const draftPicksSnap = await getDocs(draftPicksCol);
       allDraftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
-      const teamRecordsColGroup = collectionGroup(db, collectionNames.seasonalRecords);
-      const teamRecordsSnap = await getDocs(teamRecordsColGroup);
-      allTeams = teamRecordsSnap.docs
-          .filter(doc => doc.id.startsWith('S'))
-          .map(doc => ({
-              team_id: doc.ref.parent.parent.id, 
-              team_name: doc.data().team_name,
-              season: doc.id
-          }))
-          .reduce((acc, current) => {
-              const existingTeam = acc.find(team => team.team_id === current.team_id);
-              if (!existingTeam || parseInt(current.season.slice(1)) > parseInt(existingTeam.season.slice(1))) {
-                  return [...acc.filter(team => team.team_id !== current.team_id), current];
-              }
-              return acc;
-          }, []);
-      
+      // Fetch only current season (S9) team records for team names
       const activeLeagueSeason = "S9";
+      const teamRecordsColGroup = collectionGroup(db, collectionNames.seasonalRecords);
+      const teamRecordsQuery = query(
+        teamRecordsColGroup,
+        where('__name__', '==', activeLeagueSeason)
+      );
+      const teamRecordsSnap = await getDocs(teamRecordsQuery);
+      allTeams = teamRecordsSnap.docs.map(doc => ({
+          team_id: doc.ref.parent.parent.id,
+          team_name: doc.data().team_name,
+          season: doc.id
+      }));
+
       const transCol = collection(db, collectionNames.transactions, 'seasons', activeLeagueSeason);
       const transSnap = await getDocs(transCol);
       allTransactionsLogData = transSnap.docs.map(doc => ({

@@ -194,7 +194,10 @@ async function fetchTeamsData(seasonId) {
 
 async function fetchAllPlayerStats(seasonId) {
     const playersQuery = query(collection(db, collectionNames.players));
-    const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats));
+    const statsQuery = query(
+      collectionGroup(db, collectionNames.seasonalStats),
+      where('__name__', '==', seasonId)
+    );
 
     const [playersSnap, statsSnap] = await Promise.all([
         getDocs(playersQuery),
@@ -203,10 +206,9 @@ async function fetchAllPlayerStats(seasonId) {
 
     const statsMap = new Map();
     statsSnap.docs.forEach(statDoc => {
-        if (statDoc.id === seasonId) {
-            const playerId = statDoc.ref.parent.parent.id;
-            statsMap.set(playerId, statDoc.data());
-        }
+        // All results are already filtered to current season
+        const playerId = statDoc.ref.parent.parent.id;
+        statsMap.set(playerId, statDoc.data());
     });
 
     const mergedData = playersSnap.docs.map(playerDoc => {

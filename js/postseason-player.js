@@ -64,8 +64,11 @@ async function loadPlayerData() {
         currentPlayer = { id: finalPlayerId, ...seasonalStats, ...playerData };
 
         teamsSnap.docs.forEach(teamDoc => allTeamsData.set(teamDoc.id, { id: teamDoc.id, ...teamDoc.data() }));
-        
-        const seasonalRecordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', SEASON_ID));
+
+        const seasonalRecordsQuery = query(
+          collectionGroup(db, collectionNames.seasonalRecords),
+          where('__name__', '==', SEASON_ID)
+        );
         const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
         seasonalRecordsSnap.forEach(recordDoc => {
             const teamId = recordDoc.ref.parent.parent.id;
