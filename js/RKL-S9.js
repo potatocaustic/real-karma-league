@@ -3,7 +3,7 @@ import { generateLineupTable } from './main.js';
 
 // Get season from URL parameter or default to querying for active season
 const urlParams = new URLSearchParams(window.location.search);
-const urlSeasonId = urlParams.get('season');
+const urlSeasonId = window.SEASON_ID || urlParams.get('season');
 
 const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;

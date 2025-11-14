@@ -5,7 +5,7 @@ import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, ge
 
 // Get season from URL parameter or default to S9
 const urlParams = new URLSearchParams(window.location.search);
-const urlSeasonId = urlParams.get('season') || 'S9';
+const urlSeasonId = window.SEASON_ID || urlParams.get('season') || 'S9';
 
 // --- DATA AND CONFIGURATION ---
 const PREVIOUS_SEASON_ID = urlSeasonId;

@@ -5,7 +5,7 @@ import { generateLineupTable } from './main.js';
 // --- Configuration ---
 // Get season from URL parameter or default to S9
 const urlParams = new URLSearchParams(window.location.search);
-const SEASON_ID = urlParams.get('season') || 'S9';
+const SEASON_ID = window.SEASON_ID || urlParams.get('season') || 'S9';
 
 // --- Global State ---
 let allTeamsData = new Map();

@@ -18,7 +18,7 @@ import { generateLineupTable } from './main.js';
 // --- CONFIGURATION ---
 // Get season from URL parameter or default to S8
 const urlParams = new URLSearchParams(window.location.search);
-const ACTIVE_SEASON_ID = urlParams.get('season') || 'S8';
+const ACTIVE_SEASON_ID = window.SEASON_ID || urlParams.get('season') || 'S8';
 
 
 // --- STATE MANAGEMENT ---
