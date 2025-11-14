@@ -65,29 +65,22 @@ async function processCompletedGame(event, league = LEAGUES.MAJOR) {
         }
     }
 
-    // --- BUG FIX LOGIC START ---
-    // 1. Fetch ALL games scheduled for the same date as the completed game.
     const regGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('games', league)).where('date', '==', gameDate).get();
     const postGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_games', league)).where('date', '==', gameDate).get();
 
     const [regGamesSnap, postGamesSnap] = await Promise.all([regGamesQuery, postGamesQuery]);
     const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
 
-    // 2. Check if any other games from that date are still incomplete.
     const incompleteGames = allGamesForDate.filter(doc => {
-        // This check is critical. It includes the currently triggering game, ensuring it's seen as complete.
         const gameData = doc.id === gameId ? after : doc.data();
         return gameData.completed !== 'TRUE';
     });
 
-    // 3. If any games are still pending, exit. This function will run again when the next game is completed.
-    // This prevents the race condition by ensuring calculations only happen once, on the final completion of the day.
     if (incompleteGames.length > 0) {
         console.log(`Not all games for ${gameDate} are complete. Deferring calculations. Incomplete count: ${incompleteGames.length}`);
-        await batch.commit(); // Commit any series win updates and exit
+        await batch.commit();
         return null;
     }
-    // --- BUG FIX LOGIC END ---
 
     console.log(`All games for ${gameDate} are complete. Proceeding with daily calculations.`);
 

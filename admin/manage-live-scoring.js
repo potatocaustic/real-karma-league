@@ -64,15 +64,6 @@ window.addEventListener('load', () => {
         try {
             const result = await getScheduledJobTimes({ league: getCurrentLeague() });
 
-            // --- START DEBUGGING ---
-            console.log("--- Debugging Schedule Times ---");
-            console.log("Full response from getScheduledJobTimes:", result.data);
-            if (result.data) {
-                console.log("Value for autoFinalizeTime:", result.data.autoFinalizeTime);
-                console.log("Value for statUpdateTime:", result.data.statUpdateTime);
-            }
-            // --- END DEBUGGING ---
-
             if (result.data && result.data.success) {
                 // Only update the input's value if the fetched time is a valid, non-empty string.
                 if (result.data.autoFinalizeTime && typeof result.data.autoFinalizeTime === 'string') {

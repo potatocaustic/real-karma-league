@@ -209,15 +209,14 @@ async function fetchAndDisplaySchedule() {
                         const s = Math.floor((diff % (1000 * 60)) / 1000);
                         timerEl.textContent = `Due in: ${d}d ${h}h ${m}m ${s}s`;
                     }
-                    
-                    // MODIFICATION: Changed color logic to <24h is red, 24h+ is orange
+
                     const twentyFourHoursInMs = 24 * 60 * 60 * 1000;
                     if (diff < twentyFourHoursInMs) {
-                        timerEl.style.color = '#dc3545'; // Red
+                        timerEl.style.color = '#dc3545';
                     } else {
-                        timerEl.style.color = '#fd7e14'; // Orange
+                        timerEl.style.color = '#fd7e14';
                     }
-                    
+
                     if (now > gracePeriodEnd) {
                         clearInterval(intervalId);
                         const gameEntryEl = document.getElementById(`game-entry-${game.id}`);

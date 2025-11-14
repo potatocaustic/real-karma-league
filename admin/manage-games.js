@@ -104,7 +104,6 @@ async function initializePage() {
             }
         });
     }
-    // --- TEMPORARY FIX: Add button to trigger bracket update ---
     const bracketFixButton = document.getElementById('manual-bracket-fix-btn');
     if (bracketFixButton) {
         bracketFixButton.addEventListener('click', async () => {
@@ -126,11 +125,8 @@ async function initializePage() {
             }
         });
     }
-    // --- END TEMPORARY FIX ---
-    // ======================= MODIFICATION START =======================
     deadlineForm.addEventListener('submit', handleSetDeadline);
     deadlineDateInput.addEventListener('change', () => displayDeadlineForDate(deadlineDateInput.value));
-    // ======================= MODIFICATION END =======================
 }
 
 async function updateAwardsCache(seasonId) {
@@ -410,8 +406,6 @@ async function handleSetDeadline(e) {
         button.textContent = 'Set';
     }
 }
-// ======================= MODIFICATION END =======================
-
 
 async function handleOpenModalClick(e) {
     if (!e.target.matches('.btn-admin-edit')) return;

@@ -557,9 +557,6 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 playerSeasonalStats.set(uniquePlayerIds[index], docSnap.data());
             }
         });
-        // ===================================================================
-        // END OF BUG FIX
-        // ===================================================================
 
         if (isLive) {
             const liveGameData = liveGamesCache.get(gameId);
