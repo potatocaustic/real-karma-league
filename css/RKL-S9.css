@@ -919,14 +919,52 @@ main {
 }
 
 @media (max-width: 768px) {
+    #daily-leaderboard-view {
+        padding: 1rem;
+    }
+
+    .leaderboard-stat {
+        padding: 0.75rem;
+        flex-wrap: nowrap;
+    }
+
     .leaderboard-player-info {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
     }
 
     .leaderboard-rank {
-        min-width: 20px;
+        min-width: 25px;
+        font-size: 1rem;
+    }
+
+    .leaderboard-player-info img.team-logo {
+        width: 20px;
+        height: 20px;
+        margin: 0 4px;
+        flex-shrink: 0;
+    }
+
+    .leaderboard-player-info > div {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .leaderboard-player-name {
+        font-size: 0.9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .leaderboard-team-name {
+        font-size: 0.75rem;
+    }
+
+    .leaderboard-score {
+        font-size: 1rem;
+        white-space: nowrap;
     }
 
     .leaderboard-section h4 {
