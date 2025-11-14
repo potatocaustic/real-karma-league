@@ -75,7 +75,7 @@ async function loadPageData() {
         // ✅ EFFICIENT - Use collectionGroup to fetch all seasonal records in one query
         const allTeamsRecordsQuery = query(
             collectionGroup(db, collectionNames.seasonalRecords),
-            where('__name__', '==', ACTIVE_SEASON_ID)
+            where('seasonId', '==', ACTIVE_SEASON_ID)
         );
 
         const teamDocPromise = getDoc(doc(db, collectionNames.teams, teamId));
@@ -147,7 +147,7 @@ async function loadPageData() {
         // Fetch all seasonal stats for roster players in one query
         const playerStatsQuery = query(
             collectionGroup(db, collectionNames.seasonalStats),
-            where('__name__', '==', ACTIVE_SEASON_ID)
+            where('seasonId', '==', ACTIVE_SEASON_ID)
         );
         const playerStatsSnap = await getDocs(playerStatsQuery);
 
