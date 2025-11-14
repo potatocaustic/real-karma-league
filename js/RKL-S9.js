@@ -1107,47 +1107,79 @@ function renderDailyLeaderboard(leaderboardData) {
     }
 
     // Build Top 3 section
-    const top3HTML = top_3.map(player => `
+    const top3HTML = top_3.map(player => {
+        // Determine team logo extension
+        const team = allTeams.find(t => t.id === player.team_id);
+        const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+        const logoExt = team?.logo_ext || (specialTeamIds.includes(player.team_id) ? 'png' : 'webp');
+
+        return `
         <div class="leaderboard-stat">
             <div class="leaderboard-player-info">
                 <span class="leaderboard-rank">#${player.rank}</span>
+                <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 24px; height: 24px; margin: 0 8px;">
                 <div>
                     <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
                     <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
                 </div>
             </div>
-            <span class="leaderboard-score">${formatInThousands(player.score)}</span>
+            <div style="text-align: right;">
+                <span class="leaderboard-score">${Math.round(player.score).toLocaleString()}</span>
+                <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Global: #${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
+            </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     // Build Bottom 3 section
-    const bottom3HTML = bottom_3.map(player => `
+    const bottom3HTML = bottom_3.map(player => {
+        // Determine team logo extension
+        const team = allTeams.find(t => t.id === player.team_id);
+        const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+        const logoExt = team?.logo_ext || (specialTeamIds.includes(player.team_id) ? 'png' : 'webp');
+
+        return `
         <div class="leaderboard-stat">
             <div class="leaderboard-player-info">
                 <span class="leaderboard-rank">#${player.rank}</span>
+                <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 24px; height: 24px; margin: 0 8px;">
                 <div>
                     <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
                     <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
                 </div>
             </div>
-            <span class="leaderboard-score">${formatInThousands(player.score)}</span>
+            <div style="text-align: right;">
+                <span class="leaderboard-score">${Math.round(player.score).toLocaleString()}</span>
+                <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Global: #${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
+            </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     // Build Percent vs Median section
     const percentListHTML = all_players.map(player => {
         const percentClass = player.percent_vs_median >= 0 ? 'positive' : 'negative';
         const percentSign = player.percent_vs_median >= 0 ? '+' : '';
+
+        // Determine team logo extension
+        const team = allTeams.find(t => t.id === player.team_id);
+        const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+        const logoExt = team?.logo_ext || (specialTeamIds.includes(player.team_id) ? 'png' : 'webp');
+
         return `
             <div class="leaderboard-stat">
                 <div class="leaderboard-player-info">
                     <span class="leaderboard-rank">#${player.rank}</span>
+                    <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 24px; height: 24px; margin: 0 8px;">
                     <div>
                         <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
                         <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
                     </div>
                 </div>
-                <span class="leaderboard-score ${percentClass}">${percentSign}${player.percent_vs_median.toFixed(1)}%</span>
+                <div style="text-align: right;">
+                    <span class="leaderboard-score ${percentClass}">${percentSign}${player.percent_vs_median.toFixed(1)}%</span>
+                    <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Score: ${Math.round(player.score).toLocaleString()} | Global: #${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
+                </div>
             </div>
         `;
     }).join('');
@@ -1160,7 +1192,7 @@ function renderDailyLeaderboard(leaderboardData) {
 
         <div class="leaderboard-section">
             <h4>📊 Median Daily Score</h4>
-            <div class="leaderboard-median">${formatInThousands(median_score)}</div>
+            <div class="leaderboard-median">${Math.round(median_score).toLocaleString()}</div>
         </div>
 
         <div class="leaderboard-section">
