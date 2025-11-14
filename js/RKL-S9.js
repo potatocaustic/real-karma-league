@@ -1040,6 +1040,40 @@ async function fetchDailyLeaderboard(gameDate) {
             const data = leaderboardSnap.data();
             console.log('Daily leaderboard document data:', data);
             console.log('Document keys:', Object.keys(data));
+
+            // Handle both old format (players) and new format (all_players, top_3, bottom_3)
+            if (data.players && !data.all_players) {
+                console.log('Converting old leaderboard format to new format...');
+                // Old format: just has 'players' array
+                // Need to transform it to new format with top_3, bottom_3, all_players, median_score
+                const players = data.players.map((p, index) => ({
+                    ...p,
+                    rank: index + 1 // Assuming already sorted
+                }));
+
+                // Calculate median
+                const medianScore = players.length > 0 ?
+                    (players.length % 2 === 0
+                        ? (players[Math.floor(players.length / 2) - 1].score + players[Math.floor(players.length / 2)].score) / 2
+                        : players[Math.floor(players.length / 2)].score)
+                    : 0;
+
+                // Add percent_vs_median to all players
+                players.forEach(player => {
+                    player.percent_vs_median = medianScore !== 0
+                        ? ((player.score - medianScore) / Math.abs(medianScore)) * 100
+                        : 0;
+                });
+
+                return {
+                    top_3: players.slice(0, 3),
+                    bottom_3: players.slice(-3).reverse(),
+                    median_score: medianScore,
+                    all_players: players,
+                    date: data.date
+                };
+            }
+
             return data;
         }
         console.warn(`No daily leaderboard document found for date: ${gameDate}`);
