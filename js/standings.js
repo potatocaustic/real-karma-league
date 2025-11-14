@@ -1,7 +1,11 @@
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
+// Get season from URL parameter or default to querying for active season
+const urlParams = new URLSearchParams(window.location.search);
+const urlSeasonId = urlParams.get('season');
+
 // --- GLOBAL STATE ---
-let activeSeasonId = '';
+let activeSeasonId = urlSeasonId || '';
 let allTeamsData = [];
 let allPowerRankingsData = {}; // Key: "v1", Value: [team, team, ...]
 let latestPRVersion = null;
@@ -29,6 +33,15 @@ const prVersionSelect = document.getElementById('pr-version-select');
 // --- DATA FETCHING ---
 
 async function getActiveSeason() {
+    // If season is specified via URL parameter, skip querying for active season
+    if (urlSeasonId) {
+        const seasonDocRef = doc(db, collectionNames.seasons, urlSeasonId);
+        const seasonDocSnap = await getDoc(seasonDocRef);
+        if (!seasonDocSnap.exists()) throw new Error(`Season ${urlSeasonId} not found.`);
+        return seasonDocSnap.data();
+    }
+
+    // Otherwise query for the active season
     const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
     const seasonsSnapshot = await getDocs(seasonsQuery);
     if (seasonsSnapshot.empty) throw new Error("No active season found.");

@@ -3,9 +3,15 @@
 import './main.js'; // Import main.js to run it first
 import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
+// Get season from URL parameter or default to S9
+const urlParams = new URLSearchParams(window.location.search);
+const urlSeasonId = urlParams.get('season') || 'S9';
+
 // --- DATA AND CONFIGURATION ---
-const PREVIOUS_SEASON_ID = 'S9';
-const DRAFT_SEASON_ID = 'S10';
+const PREVIOUS_SEASON_ID = urlSeasonId;
+// Calculate the next season for draft (e.g., 'S9' -> 'S10')
+const seasonNumber = parseInt(PREVIOUS_SEASON_ID.substring(1));
+const DRAFT_SEASON_ID = `S${seasonNumber + 1}`;
 
 const lotteryOdds = [
     { seed: 1, chances: 140, pct1st: 14.0, pctTop4: 52.14 }, { seed: 2, chances: 140, pct1st: 14.0, pctTop4: 52.14 },
@@ -171,8 +177,8 @@ function renderSimulatedButtons() {
 }
 
 function resetView() {
-    document.getElementById('table-title').textContent = `S9 Lottery Odds`;
-    document.getElementById('table-description').textContent = `S9 lottery odds for the 14 non-playoff teams.`;
+    document.getElementById('table-title').textContent = `${PREVIOUS_SEASON_ID} Lottery Odds`;
+    document.getElementById('table-description').textContent = `${PREVIOUS_SEASON_ID} lottery odds for the 14 non-playoff teams.`;
     renderLotteryOddsTable();
     renderInitialButtons();
 }
@@ -203,9 +209,9 @@ async function initializeApp() {
     renderInitialButtons();
     document.getElementById('simulateBtn').disabled = true;
 
-    // Update titles for S9
-    document.getElementById('table-title').textContent = `S9 Lottery Odds`;
-    document.getElementById('table-description').textContent = `S9 lottery odds for the 14 non-playoff teams.`;
+    // Update titles
+    document.getElementById('table-title').textContent = `${PREVIOUS_SEASON_ID} Lottery Odds`;
+    document.getElementById('table-description').textContent = `${PREVIOUS_SEASON_ID} lottery odds for the 14 non-playoff teams.`;
 
     try {
         // 1. Fetch official lottery results first
@@ -301,8 +307,8 @@ async function initializeApp() {
 
         // 7. Render final view
         if (finalLotteryResults) {
-            document.getElementById('table-title').textContent = `Official S9 Lottery Results`;
-            document.getElementById('table-description').textContent = `The official results of the Season 9 Draft Lottery.`;
+            document.getElementById('table-title').textContent = `Official ${PREVIOUS_SEASON_ID} Lottery Results`;
+            document.getElementById('table-description').textContent = `The official results of the Season ${seasonNumber} Draft Lottery.`;
             const finalOrder = finalLotteryResults.map(teamId => initialLotteryTeams.find(t => t.team_id === teamId));
             renderSimulatedResults(finalOrder);
             buttonContainer.innerHTML = ''; // No buttons for official results

@@ -3,7 +3,9 @@ import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, co
 import { generateLineupTable } from './main.js';
 
 // --- Configuration ---
-const SEASON_ID = 'S9';
+// Get season from URL parameter or default to S9
+const urlParams = new URLSearchParams(window.location.search);
+const SEASON_ID = urlParams.get('season') || 'S9';
 
 // --- Global State ---
 let allTeamsData = new Map();

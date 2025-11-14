@@ -1,6 +1,8 @@
 import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-const SEASON_ID = 'S9';
+// Get season from URL parameter or default to S9
+const urlParams = new URLSearchParams(window.location.search);
+const SEASON_ID = urlParams.get('season') || 'S9';
 
 function formatKarma(value) {
     return Math.round(parseFloat(value || 0)).toLocaleString();

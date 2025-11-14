@@ -1,11 +1,15 @@
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId } from '../js/firebase-init.js';
 import { generateLineupTable } from './main.js';
 
+// Get season from URL parameter or default to querying for active season
+const urlParams = new URLSearchParams(window.location.search);
+const urlSeasonId = urlParams.get('season');
+
 const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 let currentScoringStatus = null; // Tracks the current scoring status to prevent redundant re-renders.
 
-let activeSeasonId = '';
+let activeSeasonId = urlSeasonId || '';
 let allTeams = [];
 let allGamesCache = []; // Caches all games for the season
 let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
@@ -52,6 +56,15 @@ function escapeHTML(str) {
 // --- DATA FETCHING FUNCTIONS ---
 
 async function getActiveSeason() {
+    // If season is specified via URL parameter, fetch that season's data
+    if (urlSeasonId) {
+        const seasonDocRef = doc(db, getCollectionName('seasons'), urlSeasonId);
+        const seasonDocSnap = await getDoc(seasonDocRef);
+        if (!seasonDocSnap.exists()) throw new Error(`Season ${urlSeasonId} not found.`);
+        return seasonDocSnap.data();
+    }
+
+    // Otherwise query for the active season
     const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
     const seasonsSnapshot = await getDocs(seasonsQuery);
     if (seasonsSnapshot.empty) {
