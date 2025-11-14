@@ -114,11 +114,11 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
                         player_id: playerId,
                         player_handle: player.player_handle,
                         team_id: player.team_id,
-                        final_score: player.final_score || 0,
+                        score: player.points_adjusted || 0, // FIXED: Use points_adjusted instead of final_score
                         global_rank: player.global_rank || -1
                     });
                     playerGameCount.set(playerId, 1);
-                    console.log(`[Daily Leaderboard] Added player ${player.player_handle} with score ${player.final_score}`);
+                    console.log(`[Daily Leaderboard] Added player ${player.player_handle} with score ${player.points_adjusted}`);
                 }
             }
         }
@@ -126,23 +126,65 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
         console.log(`[Daily Leaderboard] Total unique players: ${allPlayers.length}`);
 
         if (allPlayers.length > 0) {
-            // Sort by final score descending
-            allPlayers.sort((a, b) => b.final_score - a.final_score);
+            // Sort by score descending
+            allPlayers.sort((a, b) => b.score - a.score);
 
             // Assign ranks
             for (let i = 0; i < allPlayers.length; i++) {
                 allPlayers[i].rank = i + 1;
             }
 
-            // Store in Firestore
+            // Calculate median score
+            const medianScore = allPlayers.length > 0
+                ? (allPlayers.length % 2 === 0
+                    ? (allPlayers[Math.floor(allPlayers.length / 2) - 1].score + allPlayers[Math.floor(allPlayers.length / 2)].score) / 2
+                    : allPlayers[Math.floor(allPlayers.length / 2)].score)
+                : 0;
+
+            // Fetch team names for all unique team IDs
+            const uniqueTeamIds = [...new Set(allPlayers.map(p => p.team_id))];
+            const teamNames = new Map();
+
+            console.log(`[Daily Leaderboard] Fetching team names for ${uniqueTeamIds.length} teams...`);
+            for (const teamId of uniqueTeamIds) {
+                try {
+                    const teamDoc = await db.collection(getCollectionName('v2_teams', league)).doc(teamId).get();
+                    if (teamDoc.exists) {
+                        teamNames.set(teamId, teamDoc.data().team_name || 'Unknown');
+                    } else {
+                        teamNames.set(teamId, 'Unknown');
+                    }
+                } catch (err) {
+                    console.error(`[Daily Leaderboard] Error fetching team ${teamId}:`, err);
+                    teamNames.set(teamId, 'Unknown');
+                }
+            }
+
+            // Enrich players with team names and calculate percent_vs_median
+            allPlayers.forEach(player => {
+                player.team_name = teamNames.get(player.team_id) || 'Unknown';
+                player.handle = player.player_handle; // Add handle field for frontend compatibility
+                player.percent_vs_median = medianScore !== 0
+                    ? ((player.score - medianScore) / Math.abs(medianScore)) * 100
+                    : 0;
+            });
+
+            // Prepare top 3 and bottom 3
+            const top_3 = allPlayers.slice(0, 3);
+            const bottom_3 = allPlayers.slice(-3).reverse();
+
+            // Store in Firestore with new format
             const leaderboardRef = db.collection(getCollectionName('daily_leaderboards', league)).doc(gameDate);
             await leaderboardRef.set({
                 date: gameDate,
-                players: allPlayers,
+                all_players: allPlayers,
+                top_3: top_3,
+                bottom_3: bottom_3,
+                median_score: medianScore,
                 last_updated: FieldValue.serverTimestamp()
             });
 
-            console.log(`[Daily Leaderboard] Successfully stored ${allPlayers.length} players for ${gameDate}`);
+            console.log(`[Daily Leaderboard] Successfully stored ${allPlayers.length} players for ${gameDate} (median: ${medianScore})`);
         } else {
             console.log(`[Daily Leaderboard] No players to store for ${gameDate}`);
         }
