@@ -1037,8 +1037,12 @@ async function fetchDailyLeaderboard(gameDate) {
         const leaderboardSnap = await getDoc(leaderboardRef);
 
         if (leaderboardSnap.exists()) {
-            return leaderboardSnap.data();
+            const data = leaderboardSnap.data();
+            console.log('Daily leaderboard document data:', data);
+            console.log('Document keys:', Object.keys(data));
+            return data;
         }
+        console.warn(`No daily leaderboard document found for date: ${gameDate}`);
         return null;
     } catch (error) {
         console.error('Error fetching daily leaderboard:', error);
@@ -1060,6 +1064,13 @@ function renderDailyLeaderboard(leaderboardData) {
     }
 
     const { top_3, bottom_3, median_score, all_players } = leaderboardData;
+
+    // Validate that all required fields exist
+    if (!top_3 || !bottom_3 || !all_players || !Array.isArray(top_3) || !Array.isArray(bottom_3) || !Array.isArray(all_players)) {
+        leaderboardView.innerHTML = '<div class="loading" style="padding: 2rem; text-align: center;">Leaderboard data is incomplete. Please try again later.</div>';
+        console.error('Incomplete leaderboard data:', { top_3, bottom_3, all_players });
+        return;
+    }
 
     // Build Top 3 section
     const top3HTML = top_3.map(player => `
