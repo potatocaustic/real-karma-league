@@ -1,7 +1,9 @@
 // /js/postseason-leaderboards.js
 import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-const SEASON_ID = 'S8';
+// Get season from URL parameter or default to S8
+const urlParams = new URLSearchParams(window.location.search);
+const SEASON_ID = urlParams.get('season') || 'S8';
 
 // Helper formatting functions
 function formatKarma(value) { return Math.round(parseFloat(value || 0)).toLocaleString(); }

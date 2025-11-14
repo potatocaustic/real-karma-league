@@ -3,7 +3,11 @@
 import { generateLineupTable } from '../js/main.js';
 import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot, collectionNames, getLeagueCollectionName } from '../js/firebase-init.js';
 
-let activeSeasonId = '';
+// Get season from URL parameter or default to querying for active season
+const urlParams = new URLSearchParams(window.location.search);
+const urlSeasonId = urlParams.get('season');
+
+let activeSeasonId = urlSeasonId || '';
 let allTeams = [];
 let allGamesCache = [];
 // Caches for lineups and scores are removed from global scope to enforce on-demand loading.
@@ -82,6 +86,12 @@ function getPostseasonGameLabel(seriesName) {
 
 // --- DATA FETCHING ---
 async function getActiveSeason() {
+    // If season is specified via URL parameter, skip querying for active season
+    if (urlSeasonId) {
+        return; // activeSeasonId is already set from URL parameter
+    }
+
+    // Otherwise query for the active season
     const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
     const seasonsSnapshot = await getDocs(seasonsQuery);
     if (seasonsSnapshot.empty) throw new Error("No active season found.");

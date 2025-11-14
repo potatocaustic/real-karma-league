@@ -10,6 +10,10 @@ import {
     collectionGroup
 } from '../js/firebase-init.js';
 
+// Get season from URL parameter or default to querying for active season
+const urlParams = new URLSearchParams(window.location.search);
+const urlSeasonId = urlParams.get('season');
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Global State ---
     let allPlayersData = [];
@@ -279,14 +283,22 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function initializeApp() {
         selectorsContainer.innerHTML = `<div class="loading">Loading data from Firestore...</div>`;
-        
+
         try {
-            const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
-            const seasonsSnap = await getDocs(seasonsQuery);
-            if (seasonsSnap.empty) {
-                throw new Error("An active season could not be found.");
+            let activeSeasonId;
+
+            // If season is specified via URL parameter, use it
+            if (urlSeasonId) {
+                activeSeasonId = urlSeasonId;
+            } else {
+                // Otherwise query for the active season
+                const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
+                const seasonsSnap = await getDocs(seasonsQuery);
+                if (seasonsSnap.empty) {
+                    throw new Error("An active season could not be found.");
+                }
+                activeSeasonId = seasonsSnap.docs[0].id;
             }
-            const activeSeasonId = seasonsSnap.docs[0].id;
 
             const [
                 playersSnap,

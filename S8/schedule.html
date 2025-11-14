@@ -368,7 +368,16 @@
 
 
     <script src="/js/firebase-init.js" type="module"></script>
+    <script>
+        // Ensure season parameter is set for S8 pages
+        if (!window.location.search.includes('season=')) {
+            const currentSearch = window.location.search;
+            const separator = currentSearch ? '&' : '?';
+            const newUrl = window.location.pathname + (currentSearch || '?') + 'season=S8' + window.location.hash;
+            window.history.replaceState(null, ''', newUrl);
+        }
+    </script>
     <script src="/js/main.js" type="module"></script>
-    <script src="/js/legacy/S8/schedule-S8.js" type="module"></script>
+    <script src="/js/schedule.js" type="module"></script>
 </body>
 </html>
