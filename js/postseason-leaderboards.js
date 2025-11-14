@@ -3,7 +3,7 @@ import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, co
 
 // Get season from URL parameter or default to S8
 const urlParams = new URLSearchParams(window.location.search);
-const SEASON_ID = urlParams.get('season') || 'S8';
+const SEASON_ID = window.SEASON_ID || urlParams.get('season') || 'S8';
 
 // Helper formatting functions
 function formatKarma(value) { return Math.round(parseFloat(value || 0)).toLocaleString(); }

@@ -2,7 +2,7 @@ import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, col
 
 // Get season from URL parameter or default to querying for active season
 const urlParams = new URLSearchParams(window.location.search);
-const urlSeasonId = urlParams.get('season');
+const urlSeasonId = window.SEASON_ID || urlParams.get('season');
 
 // --- GLOBAL STATE ---
 let activeSeasonId = urlSeasonId || '';

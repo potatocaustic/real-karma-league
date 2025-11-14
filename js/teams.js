@@ -13,7 +13,7 @@ import {
 
 // Get season from URL parameter or default to S9
 const urlParams = new URLSearchParams(window.location.search);
-const SEASON_ID = urlParams.get('season') || 'S9';
+const SEASON_ID = window.SEASON_ID || urlParams.get('season') || 'S9';
 
 function getPlayoffIndicator(rankInConference) {
   if (rankInConference <= 6) {
