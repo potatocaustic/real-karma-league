@@ -6,6 +6,8 @@ import {
     collection,
     getDocs,
     collectionGroup,
+    query,
+    where,
     collectionNames,
     getLeagueCollectionName
 } from './firebase-init.js';
