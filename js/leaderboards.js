@@ -229,7 +229,7 @@ async function fetchAllPlayerStats(seasonId) {
 
 async function loadData() {
     const leaderboardBody = document.getElementById('leaderboard-body');
-    leaderboardBody.innerHTML = '<tr><td colspan="4" class="loading">Loading S8 data from Firestore...</td></tr>';
+    leaderboardBody.innerHTML = '<tr><td colspan="4" class="loading">Loading data from Firestore...</td></tr>';
     
     try {
         const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
