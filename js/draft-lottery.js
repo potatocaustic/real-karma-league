@@ -3,9 +3,11 @@
 import './main.js'; // Import main.js to run it first
 import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-// Get season from URL parameter or default to S9
+// Get season from path (/S8/ or /S9/), URL parameter, or default to S9
 const urlParams = new URLSearchParams(window.location.search);
-const urlSeasonId = window.SEASON_ID || urlParams.get('season') || 'S9';
+const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
+const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
+const urlSeasonId = seasonFromPath || urlParams.get('season');
 
 // --- DATA AND CONFIGURATION ---
 const PREVIOUS_SEASON_ID = urlSeasonId;

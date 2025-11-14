@@ -13,9 +13,11 @@ import {
   getLeagueCollectionName
 } from "../js/firebase-init.js";
 
-// Get season from URL parameter or default to S9
+// Get season from path (/S8/ or /S9/), URL parameter, or default to S9
 const urlParams = new URLSearchParams(window.location.search);
-const ACTIVE_SEASON_ID = window.SEASON_ID || urlParams.get('season') || "S9";
+const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
+const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
+const ACTIVE_SEASON_ID = seasonFromPath || urlParams.get('season') || 'S9';
 
 // --- DOM Elements ---
 const transactionsListEl = document.getElementById('transactions-list');
