@@ -36,7 +36,7 @@ function getTeamLogoHTML(teamId) {
   if (!teamId || teamId === 'N/A') return '';
   const teamName = getTeamName(teamId); 
   const altText = escapeHTML(teamName);   
-  return `<img src="../icons/${encodeURIComponent(teamId)}.webp" alt="${altText}" class="team-logo" onerror="this.style.display='none'">`;
+  return `<img src="../icons/${encodeURIComponent(teamId)}.webp" alt="${altText}" class="team-logo" onerror="this.style.display='none'" loading="lazy">`;
 }
 
 /**

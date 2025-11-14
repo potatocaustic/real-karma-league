@@ -271,7 +271,7 @@ function displayLeaderboard() {
             if (col.header === 'Rank') return `<td class="rank-cell">${getRankIndicator(index + 1)}</td>`;
             if (col.header === 'Player') {
                 return `<td class="player-cell">
-                    <img src="../icons/${teamId || 'FA'}.webp" class="team-logo" onerror="this.src='../icons/FA.webp';">
+                    <img src="../icons/${teamId || 'FA'}.webp" class="team-logo" onerror="this.src='../icons/FA.webp';" loading="lazy">
                     <div>
                         <div class="player-name"><a href="${playerLink}">${item.player_handle}</a></div>
                         <div class="team-name">${getTeamName(teamId)}</div>

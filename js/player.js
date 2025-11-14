@@ -11,34 +11,6 @@ let allGamesData = new Map();
 let playerLineups = [];
 let currentPlayer = null;
 
-
-/**
- * Generates and injects CSS rules for team logos.
- */
-function generateIconStylesheet(teams) {
-    let iconStyles = '';
-    teams.forEach(team => {
-        const className = `icon-${team.id.replace(/[^a-zA-Z0-9]/g, '')}`;
-        iconStyles += `.${className} { background-image: url('../icons/${team.id}.webp'); }\n`;
-    });
-    const faIconStyle = ".icon-FREE_AGENT { background-image: url('../icons/FA.webp'); }";
-    const styleElement = document.getElementById('team-icon-styles');
-    if (styleElement) {
-        styleElement.innerHTML = `
-            .team-logo-css {
-                background-size: cover;
-                background-position: center;
-                background-repeat: no-repeat;
-                display: inline-block;
-                vertical-align: middle;
-                flex-shrink: 0;
-            }
-            ${iconStyles}
-            ${faIconStyle}
-        `;
-    }
-}
-
 /**
  * Fetches all necessary REGULAR SEASON data from Firestore to build the player page.
  */
@@ -134,8 +106,6 @@ async function loadPlayerData() {
                 Object.assign(teamData, recordDoc.data());
             }
         });
-
-        generateIconStylesheet(allTeamsData);
 
         const lineupsQuery = query(
             collection(db, collectionNames.seasons, SEASON_ID, getLeagueCollectionName('lineups')),

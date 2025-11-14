@@ -53,7 +53,7 @@ function generateTeamCard(team, rankInConference) {
         <img src="../icons/${team.id}.webp"
              alt="${team.team_name}"
              class="team-logo"
-             onerror="this.onerror=null; this.src='../icons/FA.webp';">
+             onerror="this.onerror=null; this.src='../icons/FA.webp';" loading="lazy">
         <div class="team-info">
           <div class="team-name">${team.team_name}</div>
           <div class="team-id">${team.id}</div>

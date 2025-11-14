@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title id="page-title">RKL S7 Postseason Profile</title> 
     <link rel="stylesheet" href="../css/global-styles.css" />
+    <link rel="stylesheet" href="../css/team-logos.css" />
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
       // Apply theme from local storage before page loads to prevent flashing
@@ -19,7 +20,6 @@
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
-    <style id="team-icon-styles"></style>
 
     <style>
       /* Page-specific styles are largely inherited from team.html but can be tweaked here */
@@ -370,7 +370,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -487,37 +487,8 @@
         let allPostseasonScheduleData = [];
         let allPlayersData = [];
         let rosterSortState = { column: 'rel', direction: 'desc' };
-        
-        // --- All helper functions (like generateIconStylesheet, normalizeDate, etc.) remain unchanged ---
-        function generateIconStylesheet(allTeams) {
-            const iconStyles = allTeams.map(team => {
-                if (!team.team_id) return '';
-                const className = `icon-${team.team_id.replace(/[^a-zA-Z0-9]/g, '')}`; 
-                return `
-                    .${className} {
-                        background-image: url('icons/${team.team_id}.webp');
-                    }
-                `;
-            }).join('');
 
-            const styleElement = document.getElementById('team-icon-styles');
-            if (styleElement) {
-                styleElement.innerHTML = `
-                    .team-logo-css {
-                        width: 24px;
-                        height: 24px;
-                        background-size: cover;
-                        background-position: center;
-                        background-repeat: no-repeat;
-                        display: inline-block;
-                        vertical-align: middle;
-                        flex-shrink: 0;
-                        border-radius: 4px;
-                    }
-                    ${iconStyles}
-                `;
-            }
-        }
+        // --- All helper functions (like normalizeDate, etc.) remain unchanged ---
 
         function normalizeDate(dateInput) {
             if (!dateInput) return '';
@@ -931,7 +902,6 @@
               ]);
               
               allTeams = teamsResult;
-              generateIconStylesheet(allTeams);
 
               allPostseasonScheduleData = postScheduleResult;
               allPlayersData = playersResult;

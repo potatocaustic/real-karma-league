@@ -605,7 +605,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -820,7 +820,7 @@
                             <div>
                               <h3>${title}</h3>
                               <div class="award-winner">
-                                <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                                <img src="${logoUrl}" alt="${name}" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';" loading="lazy">
                                 <div class="winner-info">
                                   <div class="winner-name">${winnerNameHTML}</div>
                                   <div class="winner-detail">${winnerDetailHTML}</div>
@@ -861,7 +861,7 @@
                               <div class="all-star-team">
                                 <div class="all-star-header">
                                   <h3>
-                                    <img src="icons/EAST.png" alt="East All-Stars" class="header-icon">
+                                    <img src="icons/EAST.webp" alt="East All-Stars" class="header-icon">
                                     Eastern Conference All-Stars
                                   </h3>
                                 </div>
@@ -876,7 +876,7 @@
                               <div class="all-star-team">
                                 <div class="all-star-header">
                                   <h3>
-                                    <img src="icons/WEST.png" alt="West All-Stars" class="header-icon">
+                                    <img src="icons/WEST.webp" alt="West All-Stars" class="header-icon">
                                     Western Conference All-Stars
                                   </h3>
                                 </div>
@@ -893,7 +893,7 @@
                               <div class="all-star-team">
                                 <div class="all-star-header">
                                   <h3>
-                                    <img src="icons/RSE.png" alt="East Rising Stars" class="header-icon">
+                                    <img src="icons/RSE.webp" alt="East Rising Stars" class="header-icon">
                                     Eastern Conference Rising Stars
                                   </h3>
                                 </div>
@@ -908,7 +908,7 @@
                               <div class="all-star-team">
                                 <div class="all-star-header">
                                   <h3>
-                                    <img src="icons/RSW.png" alt="West Rising Stars" class="header-icon">
+                                    <img src="icons/RSW.webp" alt="West Rising Stars" class="header-icon">
                                     Western Conference Rising Stars
                                   </h3>
                                 </div>
@@ -1112,7 +1112,7 @@
 
             return `
                                 <li class="all-star-item">
-                                    <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';">
+                                    <img src="icons/${team?.team_id}.webp" class="winner-logo" onerror="this.onerror=null; this.src='icons/FA.webp';" loading="lazy">
                                     <div class="all-star-player-info">
                                         <a href="player.html?player=${encodeURIComponent(playerStats.player_handle)}">
                                             ${playerStats.player_handle}
@@ -1184,7 +1184,7 @@
 
                 return `<div class="team-breakdown ${isWinner ? 'winner' : ''}">
                                     <div class="modal-team-header ${isWinner ? 'winner' : ''}">
-                                      <img src="icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'"/>
+                                      <img src="icons/${teamId}.webp" class="team-logo" onerror="this.style.display='none'"/ loading="lazy">
                                       <h4>${teamData.team_name}</h4>
                                     </div>
                                     <div class="team-total">Total: ${total.toLocaleString()}</div>

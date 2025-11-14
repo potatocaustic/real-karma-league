@@ -392,7 +392,7 @@
         </button>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
                 <span class="header-text">Real Karma League</span>
             </a>
         </h1>
@@ -600,7 +600,7 @@
         if (!teamId || teamId === 'N/A') return '';
         const teamName = getTeamName(teamId); 
         const altText = escapeHTML(teamName);   
-        return `<img src="icons/${encodeURIComponent(teamId)}.webp" alt="${altText}" class="team-logo" onerror="this.style.display='none'">`;
+        return `<img src="icons/${encodeURIComponent(teamId)}.webp" alt="${altText}" class="team-logo" onerror="this.style.display='none'" loading="lazy">`;
       }
       
       async function loadData() {

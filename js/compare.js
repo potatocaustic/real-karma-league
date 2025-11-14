@@ -323,7 +323,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="entity-header entity1">
                    <a href="${link1}">
                         <div class="icon-name-wrapper">
-                            <img src="${icon1_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
+                            <img src="${icon1_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'" loading="lazy">
                             <div>
                                 <span class="entity-name-text">${nameText1}</span>${badges1}
                             </div>
@@ -337,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div>
                                 <span class="entity-name-text">${nameText2}</span>${badges2}
                             </div>
-                            <img src="${icon2_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'">
+                            <img src="${icon2_src}" class="entity-icon" onerror="this.onerror=null; this.src='icons/FA.webp'" loading="lazy">
                         </div>
                    </a>
                 </div>

@@ -119,7 +119,7 @@ async function updateLeagueHistory(activeSeasonId) {
                     championHTML = `
                         <div class="season-stat">
                             <div class="season-stat-value champion-info">
-                                <img src="/icons/${champData.team_id}.webp" alt="${champData.team_name}" class="champion-logo" onerror="this.style.display='none'"/>
+                                <img src="/icons/${champData.team_id}.webp" alt="${champData.team_name}" class="champion-logo" onerror="this.style.display='none'"/ loading="lazy">
                                 <span>${champData.team_name}</span>
                             </div>
                             <div class="season-stat-label">Champion</div>
