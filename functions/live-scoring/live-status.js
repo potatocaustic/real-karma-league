@@ -114,7 +114,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
                         player_id: playerId,
                         player_handle: player.player_handle,
                         team_id: player.team_id,
-                        score: player.points_adjusted || 0, // FIXED: Use points_adjusted instead of final_score
+                        score: player.points_adjusted || 0,
                         global_rank: player.global_rank || -1
                     });
                     playerGameCount.set(playerId, 1);

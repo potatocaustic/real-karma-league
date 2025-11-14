@@ -27,8 +27,6 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
 
         let nextGameWeek = null;
 
-        // --- BUG FIX START ---
-        // Helper function to find the earliest game from a snapshot
         const findEarliestGame = (snapshot) => {
             if (snapshot.empty) {
                 return null;
@@ -67,7 +65,6 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
                 nextGameWeek = earliestPostseasonGame.week;
             }
         }
-        // --- BUG FIX END ---
 
         if (nextGameWeek !== null) {
             console.log(`The next game is in week/round: '${nextGameWeek}' for ${league} league. Updating season document.`);

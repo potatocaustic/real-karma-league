@@ -47,14 +47,10 @@ async function advanceBracket(gamesToProcess, postGamesRef, league = LEAGUES.MAJ
 
         if (!rule) continue;
 
-        // ======================= FIX START =======================
-        // For any series that is NOT a Play-In game, we must check if a series_winner
-        // exists. If it doesn't, the series isn't over, and we should not advance anyone.
         if (game.week !== 'Play-In' && !game.series_winner) {
             console.log(`Series ${game.series_id} is not yet complete. Deferring advancement.`);
-            continue; // Skips to the next game document without processing advancement
+            continue;
         }
-        // ======================= FIX END =======================
 
         const batch = db.batch();
         let shouldCommit = false;
