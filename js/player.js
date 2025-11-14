@@ -94,16 +94,17 @@ async function loadPlayerData() {
             allTeamsData.set(teamDoc.id, { id: teamDoc.id, ...teamDoc.data() });
         }
         
-        const seasonalRecordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords));
+        const seasonalRecordsQuery = query(
+            collectionGroup(db, collectionNames.seasonalRecords),
+            where('seasonId', '==', SEASON_ID)
+        );
         const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
         seasonalRecordsSnap.forEach(recordDoc => {
-            // Client-side filtering by season ID
-            if (recordDoc.id === SEASON_ID) {
-                const teamId = recordDoc.ref.parent.parent.id;
-                const teamData = allTeamsData.get(teamId);
-                if (teamData) {
-                    Object.assign(teamData, recordDoc.data());
-                }
+            // Server-side filtered by seasonId - all results match SEASON_ID
+            const teamId = recordDoc.ref.parent.parent.id;
+            const teamData = allTeamsData.get(teamId);
+            if (teamData) {
+                Object.assign(teamData, recordDoc.data());
             }
         });
 

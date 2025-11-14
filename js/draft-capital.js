@@ -80,16 +80,16 @@ async function loadData() {
 
       // Fetch only current season (S9) team records for team names
       const activeLeagueSeason = "S9";
-      const teamRecordsColGroup = collectionGroup(db, collectionNames.seasonalRecords);
-      const teamRecordsQuery = query(teamRecordsColGroup);
+      const teamRecordsQuery = query(
+          collectionGroup(db, collectionNames.seasonalRecords),
+          where('seasonId', '==', activeLeagueSeason)
+      );
       const teamRecordsSnap = await getDocs(teamRecordsQuery);
-      allTeams = teamRecordsSnap.docs
-          .filter(doc => doc.id === activeLeagueSeason) // Client-side filtering by season ID
-          .map(doc => ({
-              team_id: doc.ref.parent.parent.id,
-              team_name: doc.data().team_name,
-              season: doc.id
-          }));
+      allTeams = teamRecordsSnap.docs.map(doc => ({
+          team_id: doc.ref.parent.parent.id,
+          team_name: doc.data().team_name,
+          season: doc.id
+      }));
 
       const transCol = collection(db, collectionNames.transactions, 'seasons', activeLeagueSeason);
       const transSnap = await getDocs(transCol);
