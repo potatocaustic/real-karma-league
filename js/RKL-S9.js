@@ -1,9 +1,11 @@
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId } from '../js/firebase-init.js';
 import { generateLineupTable } from './main.js';
 
-// Get season from URL parameter or default to querying for active season
+// Get season from path (/S8/ or /S9/), URL parameter, or query for active season
 const urlParams = new URLSearchParams(window.location.search);
-const urlSeasonId = window.SEASON_ID || urlParams.get('season');
+const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
+const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
+const urlSeasonId = seasonFromPath || urlParams.get('season');
 
 const USE_DEV_COLLECTIONS = false; // Set to false for production
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;

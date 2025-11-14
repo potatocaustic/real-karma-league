@@ -1,8 +1,10 @@
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-// Get season from URL parameter or default to querying for active season
+// Get season from path (/S8/ or /S9/), URL parameter, or query for active season
 const urlParams = new URLSearchParams(window.location.search);
-const urlSeasonId = window.SEASON_ID || urlParams.get('season');
+const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
+const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
+const urlSeasonId = seasonFromPath || urlParams.get('season');
 
 // --- GLOBAL STATE ---
 let activeSeasonId = urlSeasonId || '';

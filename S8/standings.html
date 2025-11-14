@@ -6,12 +6,10 @@
     <title>RKL Season 8 Standings</title>
     <link rel="stylesheet" href="/css/global-styles.css" />
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
-    <script>
         window.firebasePageConfig = {
             useProdCollections: true 
         };
     </script>
-    <script>
       // Apply theme from local storage before page loads to prevent flashing
       (function() {
         const theme = localStorage.getItem('theme');
@@ -20,7 +18,6 @@
         }
       })();
     </script>
-    <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
@@ -599,11 +596,6 @@
     </footer>
 
     <script src="/js/firebase-init.js" type="module"></script>
-    <script>
-    <script>
-        // Set season for S8 historical pages - must run before modules load
-        window.SEASON_ID = 'S8';
-    </script>
     <script src="/js/main.js" type="module"></script>
     <script src="/js/standings.js" type="module"></script>
   </body>

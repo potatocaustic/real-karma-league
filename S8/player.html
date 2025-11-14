@@ -8,12 +8,10 @@
     <link rel="stylesheet" href="/css/player.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <style id="team-icon-styles"></style>
-    <script>
         window.firebasePageConfig = {
             useProdCollections: true 
         };
     </script>
-    <script>
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -21,7 +19,6 @@
             }
         })();
     </script>
-    <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
@@ -112,13 +109,7 @@
     
     <div id="game-modal-container"></div>
 
-    <script>
-    <script>
-        // Set season for S8 historical pages - must run before modules load
-        window.SEASON_ID = 'S8';
-    </script>
     <script src="/js/main.js" type="module"></script>
-    <script>
       fetch('/common/game-modal-component.html')
         .then(response => response.text())
         .then(data => {

@@ -1,8 +1,10 @@
 import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 
-// Get season from global variable (set by S8 pages), URL parameter, or default to S9
+// Get season from path (/S8/ or /S9/), URL parameter, or default to S9
 const urlParams = new URLSearchParams(window.location.search);
-const SEASON_ID = window.SEASON_ID || urlParams.get('season') || 'S9';
+const pathMatch = window.location.pathname.match(/\/S(\d+)\//);
+const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
+const SEASON_ID = seasonFromPath || urlParams.get('season') || 'S9';
 
 function formatKarma(value) {
     return Math.round(parseFloat(value || 0)).toLocaleString();
