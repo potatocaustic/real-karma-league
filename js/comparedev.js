@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Initializes the entire page, fetches data from Firestore, and sets up event listeners.
      */
     async function initializeApp() {
-        selectorsContainer.innerHTML = `<div class="loading">Loading Season 8 data from Firestore...</div>`;
+        selectorsContainer.innerHTML = `<div class="loading">Loading data from Firestore...</div>`;
         
         try {
             const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
