@@ -145,18 +145,36 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
             const uniqueTeamIds = [...new Set(allPlayers.map(p => p.team_id))];
             const teamNames = new Map();
 
-            console.log(`[Daily Leaderboard] Fetching team names for ${uniqueTeamIds.length} teams...`);
-            for (const teamId of uniqueTeamIds) {
-                try {
-                    const teamDoc = await db.collection(getCollectionName('v2_teams', league)).doc(teamId).get();
-                    if (teamDoc.exists) {
-                        teamNames.set(teamId, teamDoc.data().team_name || 'Unknown');
-                    } else {
+            // Get the season ID from the first live game
+            const seasonId = liveGamesSnap.docs[0]?.data().seasonId;
+
+            if (!seasonId) {
+                console.warn(`[Daily Leaderboard] No seasonId found in live games, cannot fetch team names`);
+                // Set all team names to 'Unknown' as fallback
+                uniqueTeamIds.forEach(teamId => teamNames.set(teamId, 'Unknown'));
+            } else {
+                console.log(`[Daily Leaderboard] Fetching team names for ${uniqueTeamIds.length} teams from season ${seasonId}...`);
+                for (const teamId of uniqueTeamIds) {
+                    try {
+                        // Fetch from the seasonal_records subcollection
+                        const seasonalRecordDoc = await db.collection(getCollectionName('v2_teams', league))
+                            .doc(teamId)
+                            .collection(getCollectionName('seasonal_records', league))
+                            .doc(seasonId)
+                            .get();
+
+                        if (seasonalRecordDoc.exists) {
+                            const teamName = seasonalRecordDoc.data().team_name;
+                            teamNames.set(teamId, teamName || 'Unknown');
+                            console.log(`[Daily Leaderboard] Fetched team name for ${teamId}: ${teamName}`);
+                        } else {
+                            console.warn(`[Daily Leaderboard] No seasonal record found for team ${teamId} in season ${seasonId}`);
+                            teamNames.set(teamId, 'Unknown');
+                        }
+                    } catch (err) {
+                        console.error(`[Daily Leaderboard] Error fetching team ${teamId}:`, err);
                         teamNames.set(teamId, 'Unknown');
                     }
-                } catch (err) {
-                    console.error(`[Daily Leaderboard] Error fetching team ${teamId}:`, err);
-                    teamNames.set(teamId, 'Unknown');
                 }
             }
 
