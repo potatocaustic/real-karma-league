@@ -474,15 +474,26 @@ function setPostseasonButtonVisibility(activeSeasonSnap) {
     const postseasonBtn = document.getElementById('postseason-profile-btn');
     if (!postseasonBtn) return;
 
-    if (!activeSeasonSnap.empty) {
-        const currentWeek = activeSeasonSnap.docs[0].data().current_week;
-        const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
+    const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
+    let currentWeek = null;
+    let activeSeasonId = null;
 
-        if (postseasonWeeks.includes(currentWeek)) {
-            postseasonBtn.style.display = 'inline-block';
-            // Set the link to the postseason team page using the current teamId
-            postseasonBtn.href = `postseason-team.html?id=${teamId}`;
-        }
+    if (!activeSeasonSnap.empty) {
+        const activeSeasonData = activeSeasonSnap.docs[0].data();
+        currentWeek = activeSeasonData.current_week;
+        activeSeasonId = activeSeasonSnap.docs[0].id;
+    }
+
+    // Show playoff button if:
+    // 1. This is a historical season (not the active season), OR
+    // 2. This is the active season AND we're in the postseason
+    const isHistoricalSeason = activeSeasonId && ACTIVE_SEASON_ID !== activeSeasonId;
+    const isActiveSeasonInPostseason = ACTIVE_SEASON_ID === activeSeasonId && postseasonWeeks.includes(currentWeek);
+
+    if (isHistoricalSeason || isActiveSeasonInPostseason) {
+        postseasonBtn.style.display = 'inline-block';
+        // Set the link to the postseason team page using the current teamId
+        postseasonBtn.href = `postseason-team.html?id=${teamId}`;
     }
 }
 
