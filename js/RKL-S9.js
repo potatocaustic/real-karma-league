@@ -283,7 +283,10 @@ function loadLiveGames() {
 
     gamesList.innerHTML = '<div class="loading">Connecting to live games...</div>';
 
-    const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
+    const liveGamesQuery = query(
+        collection(db, getCollectionName('live_games')),
+        where('seasonId', '==', activeSeasonId)
+    );
 
     liveGamesUnsubscribe = onSnapshot(liveGamesQuery, (snapshot) => {
         const loadingDiv = gamesList.querySelector('.loading');
