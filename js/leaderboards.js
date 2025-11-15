@@ -248,14 +248,24 @@ async function loadData() {
         ]);
         
         let currentWeek = null;
+        let activeSeasonId = null;
         if (!activeSeasonSnap.empty) {
-            currentWeek = activeSeasonSnap.docs[0].data().current_week;
+            const activeSeasonData = activeSeasonSnap.docs[0].data();
+            currentWeek = activeSeasonData.current_week;
+            activeSeasonId = activeSeasonSnap.docs[0].id;
         }
 
         const postseasonContainer = document.getElementById('postseason-btn-container');
         if (postseasonContainer) {
             const postseasonWeeks = ['Play-In', 'Round 1', 'Round 2', 'Conf Finals', 'Finals', 'Season Complete'];
-            if (postseasonWeeks.includes(currentWeek)) {
+
+            // Show playoff button if:
+            // 1. This is a historical season (not the active season), OR
+            // 2. This is the active season AND we're in the postseason
+            const isHistoricalSeason = activeSeasonId && SEASON_ID !== activeSeasonId;
+            const isActiveSeasonInPostseason = SEASON_ID === activeSeasonId && postseasonWeeks.includes(currentWeek);
+
+            if (isHistoricalSeason || isActiveSeasonInPostseason) {
                 postseasonContainer.style.display = 'block';
             }
         }
