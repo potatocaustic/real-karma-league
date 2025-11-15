@@ -24,11 +24,15 @@ async function hasLeagueAccess(auth, db, league) {
   // Admins have access to all leagues
   if (role === 'admin') return true;
 
-  // Check league-specific access (future: userData.leagues array)
-  // For now, scorekeepers have access to their assigned league
+  // Check league-specific access for scorekeepers
   if (role === 'scorekeeper') {
-    // TODO: Implement league-specific permissions
-    return true;
+    // If userData.leagues array exists, check if the requested league is in it
+    if (userData.leagues && Array.isArray(userData.leagues)) {
+      return userData.leagues.includes(league);
+    }
+    // Fallback: if no leagues array is defined, deny access for security
+    // Admins should configure the leagues array for each scorekeeper
+    return false;
   }
 
   return false;

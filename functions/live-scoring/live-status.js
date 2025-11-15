@@ -212,7 +212,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     // === FEATURE 3: Update API Request Counter ===
     const usageRef = db.doc(`${getCollectionName('usage_stats', league)}/${gameDate}`);
-    await usageRef.set({ api_requests_full: FieldValue.increment(apiRequests) }, { merge: true });
+    await usageRef.set({ api_requests_full_update: FieldValue.increment(apiRequests) }, { merge: true });
 
     console.log(`Full update completed. ${apiRequests} API requests made.`);
     return { success: true, message: `Updated all live games. ${apiRequests} API requests made.` };
