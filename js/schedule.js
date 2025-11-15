@@ -590,7 +590,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             modalTitle.textContent = `${titleTeam1Name} vs ${titleTeam2Name} - Live`;
 
         } else {
-            const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation';
+            const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation' || gameData.week === 'Preseason';
             let lineupsCollectionName;
             if (isExhibition) {
                 lineupsCollectionName = getLeagueCollectionName('exhibition_lineups');
