@@ -351,7 +351,6 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
 
         modalContentEl.innerHTML = `
             <div class="game-details-grid">
-                // FIX #2: Removed the incorrect final 'true' argument, which was triggering the 'live' indicator.
                 ${generateLineupTable(team1Lineups, team1Info, winnerId === team1_id)}
                 ${generateLineupTable(team2Lineups, team2Info, winnerId === team2_id)}
             </div>`;
