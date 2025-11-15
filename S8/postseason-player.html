@@ -9,6 +9,11 @@
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <style id="team-icon-styles"></style>
     <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -106,8 +111,6 @@
     </footer>
 
     <div id="game-modal-container"></div>
-      window.firebasePageConfig = { useProdCollections: true };
-    </script>
     <script src="/js/main.js" type="module"></script>
      <script>
       fetch('/common/game-modal-component.html')
