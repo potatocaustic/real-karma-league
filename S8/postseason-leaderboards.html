@@ -8,6 +8,11 @@
     <link rel="stylesheet" href="/css/postseason-leaderboards.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
@@ -144,8 +149,6 @@
         <p>@caustic on Real</p>
         <a href="/common/trade-block.html">GM Portal</a>
     </footer>
-      window.firebasePageConfig = { useProdCollections: true };
-    </script>
     <script src="/js/main.js" type="module" defer></script>
     <script src="/js/postseason-leaderboards.js" type="module"></script>
 </body>
