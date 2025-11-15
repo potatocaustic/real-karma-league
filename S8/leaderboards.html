@@ -8,17 +8,17 @@
     <link rel="stylesheet" href="/css/leaderboards.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
-        window.firebasePageConfig = {
-            useProdCollections: true 
-        };
-    </script>
-    <script>
         (function () {
             const theme = localStorage.getItem('theme');
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark-mode');
             }
         })();
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
     </script>
     <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
