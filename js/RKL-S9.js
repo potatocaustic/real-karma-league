@@ -1215,8 +1215,7 @@ function renderDailyLeaderboard(leaderboardData) {
         </div>
 
         <div class="leaderboard-section">
-            <h4>📊 Median Daily Score</h4>
-            <div class="leaderboard-median">${Math.round(median_score).toLocaleString()}</div>
+            <h4>📊 Median Daily Score: ${Math.round(median_score).toLocaleString()}</h4>
         </div>
 
         <div class="leaderboard-section">
