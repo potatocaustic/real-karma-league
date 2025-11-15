@@ -54,6 +54,13 @@ function escapeHTML(str) {
         .replace(/'/g, '&#039;');
 }
 
+function getOrdinal(n) {
+    if (n === undefined || n === null || n < 0) return 'N/A';
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+
 
 // --- DATA FETCHING FUNCTIONS ---
 
@@ -1134,10 +1141,10 @@ function renderDailyLeaderboard(leaderboardData) {
         <div class="leaderboard-stat">
             <div class="leaderboard-player-info">
                 <span class="leaderboard-rank">#${player.rank}</span>
-                <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 24px; height: 24px; margin: 0 8px;">
+                <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 36px; height: 36px; margin: 0 8px;">
                 <div>
-                    <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
-                    <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
+                    <div class="leaderboard-player-name"><a href="player.html?id=${player.player_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.handle || player.player_name)}</a></div>
+                    <div class="leaderboard-team-name"><a href="team.html?id=${player.team_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.team_name)}</a></div>
                 </div>
             </div>
             <div style="text-align: right;">
@@ -1159,10 +1166,10 @@ function renderDailyLeaderboard(leaderboardData) {
         <div class="leaderboard-stat">
             <div class="leaderboard-player-info">
                 <span class="leaderboard-rank">#${player.rank}</span>
-                <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 24px; height: 24px; margin: 0 8px;">
+                <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 36px; height: 36px; margin: 0 8px;">
                 <div>
-                    <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
-                    <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
+                    <div class="leaderboard-player-name"><a href="player.html?id=${player.player_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.handle || player.player_name)}</a></div>
+                    <div class="leaderboard-team-name"><a href="team.html?id=${player.team_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.team_name)}</a></div>
                 </div>
             </div>
             <div style="text-align: right;">
@@ -1187,15 +1194,15 @@ function renderDailyLeaderboard(leaderboardData) {
             <div class="leaderboard-stat">
                 <div class="leaderboard-player-info">
                     <span class="leaderboard-rank">#${player.rank}</span>
-                    <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 24px; height: 24px; margin: 0 8px;">
+                    <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 36px; height: 36px; margin: 0 8px;">
                     <div>
-                        <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
-                        <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
+                        <div class="leaderboard-player-name"><a href="player.html?id=${player.player_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.handle || player.player_name)}</a></div>
+                        <div class="leaderboard-team-name"><a href="team.html?id=${player.team_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.team_name)}</a></div>
                     </div>
                 </div>
                 <div style="text-align: right;">
                     <span class="leaderboard-score ${percentClass}">${percentSign}${player.percent_vs_median.toFixed(1)}%</span>
-                    <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Score: ${Math.round(player.score).toLocaleString()} | Rank: ${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
+                    <div style="font-size: 0.75em; color: #888; margin-top: 2px;">${Math.round(player.score).toLocaleString()} | ${getOrdinal(player.global_rank)}</div>
                 </div>
             </div>
         `;
