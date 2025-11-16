@@ -292,6 +292,7 @@ async function openLineupModal(game, deadlineString) {
 
     const myRoster = Array.from(allPlayers.values()).filter(p => p.current_team_id === myTeamId);
     let myLineupData = null;
+    let myLineupOrdered = [];
 
     const pendingGameSnap = await getDoc(doc(db, collectionNames.pendingLineups, game.id));
     if (pendingGameSnap.exists()) {
@@ -304,9 +305,10 @@ async function openLineupModal(game, deadlineString) {
             myLineupData = game.team1_id === myTeamId ? liveData.team1_lineup : liveData.team2_lineup;
         }
     }
-    
+
     const myStartersMap = new Map();
     if (myLineupData) {
+        myLineupOrdered = myLineupData; // Preserve the ordered array
         myLineupData.forEach(p => myStartersMap.set(p.player_id, p));
     }
     
@@ -333,12 +335,12 @@ async function openLineupModal(game, deadlineString) {
         }
     }
 
-    renderMyTeamUI('my-team', allTeams.get(myTeamId), myRoster, myStartersMap, isCaptainDisabled, existingCaptainId);
-    
+    renderMyTeamUI('my-team', allTeams.get(myTeamId), myRoster, myStartersMap, myLineupOrdered, isCaptainDisabled, existingCaptainId);
+
     lineupModal.classList.add('is-visible');
 }
 
-function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, isCaptainDisabled = false, existingCaptainId = null) {
+function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, startersOrdered = [], isCaptainDisabled = false, existingCaptainId = null) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
     rosterContainer.innerHTML = '';
@@ -354,10 +356,23 @@ function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, isCaptainDisa
 
     rosterContainer.querySelectorAll('.starter-checkbox').forEach(cb => {
         cb.addEventListener('change', handleStarterChange);
-        if (cb.checked) {
-            addStarterCard(cb, startersMap.get(cb.dataset.playerId), isCaptainDisabled, existingCaptainId);
-        }
     });
+
+    // If we have an ordered lineup, add starter cards in that order (preserves admin's ordering)
+    if (startersOrdered.length > 0) {
+        startersOrdered.forEach(starter => {
+            const checkbox = rosterContainer.querySelector(`.starter-checkbox[data-player-id="${starter.player_id}"]`);
+            if (checkbox) {
+                const lineupData = startersMap.get(starter.player_id);
+                addStarterCard(checkbox, lineupData, isCaptainDisabled, existingCaptainId);
+            }
+        });
+    } else {
+        // Otherwise add cards for checked checkboxes (new lineup)
+        rosterContainer.querySelectorAll('.starter-checkbox:checked').forEach(cb => {
+            addStarterCard(cb, startersMap.get(cb.dataset.playerId), isCaptainDisabled, existingCaptainId);
+        });
+    }
 }
 
 function handleStarterChange(event) {
@@ -479,6 +494,15 @@ async function handleLineupFormSubmit(e) {
             deductions: 0
         });
     });
+
+    // Apply the same ordering logic as admin: captain at the top, rest in selection order
+    if (captainId) {
+        const captainIndex = lineup.findIndex(p => p.player_id === captainId);
+        if (captainIndex > 0) {
+            const captain = lineup.splice(captainIndex, 1)[0];
+            lineup.unshift(captain);
+        }
+    }
 
     const isMyTeam1 = currentGameData.team1_id === myTeamId;
     const submissionData = {
