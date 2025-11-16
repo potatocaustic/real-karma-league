@@ -214,6 +214,10 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
     const usageRef = db.doc(`${getCollectionName('usage_stats', league)}/${gameDate}`);
     await usageRef.set({ api_requests_full_update: FieldValue.increment(apiRequests) }, { merge: true });
 
+    // === Update last_full_update_completed timestamp ===
+    const statusRef = db.doc(`${getCollectionName('live_scoring_status', league)}/status`);
+    await statusRef.set({ last_full_update_completed: FieldValue.serverTimestamp() }, { merge: true });
+
     console.log(`Full update completed. ${apiRequests} API requests made.`);
     return { success: true, message: `Updated all live games. ${apiRequests} API requests made.` };
 }
