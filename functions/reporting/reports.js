@@ -76,9 +76,9 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
                 const originalGameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(liveGame.collectionName, league)}/${doc.id}`);
                 const originalGameSnap = await originalGameRef.get();
 
-                let team1_id, team2_id;
+                let team1_id, team2_id, originalGameData;
                 if (originalGameSnap.exists) {
-                    const originalGameData = originalGameSnap.data();
+                    originalGameData = originalGameSnap.data();
                     team1_id = originalGameData.team1_id;
                     team2_id = originalGameData.team2_id;
                 } else {
@@ -91,12 +91,19 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
 
                 return {
                     gameId: doc.id,
+                    collectionName: getCollectionName(liveGame.collectionName, league),
                     team1_name: team1.name,
                     team2_name: team2.name,
                     team1_record: team1.record,
                     team2_record: team2.record,
                     team1_lineup: liveGame.team1_lineup,
-                    team2_lineup: liveGame.team2_lineup
+                    team2_lineup: liveGame.team2_lineup,
+                    // Include postseason-specific fields if available
+                    series_name: originalGameData.series_name || null,
+                    team1_seed: originalGameData.team1_seed || null,
+                    team2_seed: originalGameData.team2_seed || null,
+                    team1_wins: originalGameData.team1_wins || null,
+                    team2_wins: originalGameData.team2_wins || null
                 };
             });
 
