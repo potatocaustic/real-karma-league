@@ -254,7 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
         titleEl.style.marginBottom = '10px';
         reportContainer.appendChild(titleEl);
 
-        const captainEmojis = { 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Legion': ' 🥷', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮' };
+        const captainEmojis = { 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Legion': ' 🥷', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮', 'Flames': ' 🔥' };
         const usa_diabetics = ['PJPB7G3y', 'QvDP2zgv', 'k3LgQL4v', 'rnejGZ2J', 'V3yAQ6Y3'];
         const can_diabetics = ['BJ0r9gL3', 'AnzRoOpn', 'kJwL5b8v'];
 
