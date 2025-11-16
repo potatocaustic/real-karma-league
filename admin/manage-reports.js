@@ -162,7 +162,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await callGetReportData('lineups_prepare');
         if (data && data.games && data.games.length > 0) {
             // 2a: Check if there are any regular season games. If not, skip GOTD selection.
-            const hasRegularSeasonGames = data.games.some(game => game.collectionName === getCollectionName('games'));
+            const regularSeasonGames = data.games.filter(game => game.collectionName === getCollectionName('games'));
+            const hasRegularSeasonGames = regularSeasonGames.length > 0;
 
             if (!hasRegularSeasonGames) {
                 generateLineupsReport(data.games, true); // Pass true to indicate no GOTD
@@ -174,7 +175,8 @@ document.addEventListener('DOMContentLoaded', () => {
             list.innerHTML = '';
             list.style.display = 'block';
 
-            data.games.forEach(game => {
+            // Only show regular season games in GOTD selector
+            regularSeasonGames.forEach(game => {
                 const gameOption = document.createElement('div');
                 gameOption.className = 'gotd-game-option';
                 gameOption.textContent = `${game.team1_name} vs ${game.team2_name}`;
@@ -284,8 +286,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const team1Name = game.team1_name === 'Freaks' ? '𝓕𝓻𝓮𝓪𝓴𝓼' : game.team1_name;
             const team2Name = game.team2_name === 'Freaks' ? '𝓕𝓻𝓮𝓪𝓴𝓼' : game.team2_name;
 
-            const team1Lineup = game.team1_lineup.map(p => formatPlayerLine(p, game.team1_name)).join('\n ');
-            const team2Lineup = game.team2_lineup.map(p => formatPlayerLine(p, game.team2_name)).join('\n ');
+            // Sort lineups to put captain first
+            const sortedTeam1Lineup = [...game.team1_lineup].sort((a, b) => {
+                if (a.is_captain && !b.is_captain) return -1;
+                if (!a.is_captain && b.is_captain) return 1;
+                return 0;
+            });
+            const sortedTeam2Lineup = [...game.team2_lineup].sort((a, b) => {
+                if (a.is_captain && !b.is_captain) return -1;
+                if (!a.is_captain && b.is_captain) return 1;
+                return 0;
+            });
+
+            const team1Lineup = sortedTeam1Lineup.map(p => formatPlayerLine(p, game.team1_name)).join('\n ');
+            const team2Lineup = sortedTeam2Lineup.map(p => formatPlayerLine(p, game.team2_name)).join('\n ');
             
             // 2b: Check for postseason game and format accordingly
             if (game.collectionName === getCollectionName('post_games')) {
