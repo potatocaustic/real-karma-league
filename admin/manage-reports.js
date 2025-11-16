@@ -282,6 +282,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         gamesData.forEach(game => {
             let gameBlockText = '';
+            const isGotd = game.gameId === gotdId;
+
             // 2c: Freaks special font rule
             const team1Name = game.team1_name === 'Freaks' ? '𝓕𝓻𝓮𝓪𝓴𝓼' : game.team1_name;
             const team2Name = game.team2_name === 'Freaks' ? '𝓕𝓻𝓮𝓪𝓴𝓼' : game.team2_name;
@@ -300,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const team1Lineup = sortedTeam1Lineup.map(p => formatPlayerLine(p, game.team1_name)).join('\n ');
             const team2Lineup = sortedTeam2Lineup.map(p => formatPlayerLine(p, game.team2_name)).join('\n ');
-            
+
             // 2b: Check for postseason game and format accordingly
             if (game.collectionName === getCollectionName('post_games')) {
                 const seriesLabel = getPostseasonGameLabel(game.series_name);
@@ -312,9 +314,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 gameBlockText = `${team1Name} (${game.team1_record})\n ${team1Lineup}\nvs\n${team2Name} (${game.team2_record})\n ${team2Lineup}`;
             }
 
+            // If this is the GOTD, prepend the GOTD header
+            if (isGotd) {
+                gameBlockText = `GOTD (${formattedDate})\n~~~~~~~~~~~~~~\n${gameBlockText}`;
+            }
+
             const gameContainer = document.createElement('div');
             gameContainer.className = 'report-item';
-            
+
             const textPre = document.createElement('pre');
             textPre.className = 'report-item-text';
             textPre.textContent = gameBlockText;
@@ -329,29 +336,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     setTimeout(() => { copyIcon.textContent = '📋'; }, 1500);
                 }).catch(err => console.error('Failed to copy text: ', err));
             };
-            
+
             gameContainer.appendChild(textPre);
             gameContainer.appendChild(copyIcon);
 
-            if (game.gameId === gotdId) {
+            if (isGotd) {
                 gotdGameBlock = gameContainer;
             } else {
                 reportContainer.appendChild(gameContainer);
             }
         });
-        
+
         if (gotdGameBlock) {
-            const gotdTitle = document.createElement('div');
-            gotdTitle.textContent = `GOTD (${formattedDate})`;
-            gotdTitle.style.fontWeight = 'bold';
-            gotdTitle.style.marginTop = '20px';
-            
-            const separator = document.createElement('div');
-            separator.textContent = '~~~~~~~~~~~~~~';
-            separator.style.margin = '5px 0 10px 0';
-            
-            reportContainer.appendChild(gotdTitle);
-            reportContainer.appendChild(separator);
             reportContainer.appendChild(gotdGameBlock);
         }
 
