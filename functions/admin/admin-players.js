@@ -274,6 +274,215 @@ exports.admin_updatePlayerId = onCall({ region: "us-central1" }, async (request)
 });
 
 /**
+ * Updates player handle from the GM portal.
+ * Propagates handle changes throughout all historical records and adds old handle to aliases.
+ * GM-only function - GMs can only update players on their own team.
+ */
+exports.gm_updatePlayerHandle = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
+
+    // 1. Security Check & Validation
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'Authentication required.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || (userDoc.data().role !== 'gm' && userDoc.data().role !== 'admin')) {
+        throw new HttpsError('permission-denied', 'Must be a GM or admin to run this function.');
+    }
+
+    const { playerId, newPlayerHandle } = request.data;
+    if (!playerId || !newPlayerHandle) {
+        throw new HttpsError('invalid-argument', 'Missing required player data for update.');
+    }
+
+    const gmTeamId = userDoc.data().team_id;
+    if (!gmTeamId && userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'GM team not assigned.');
+    }
+
+    console.log(`GM ACTION: User ${request.auth.uid} updating handle for player ${playerId} to: ${newPlayerHandle}`);
+
+    try {
+        const playerRef = db.collection(getCollectionName('v2_players', league)).doc(playerId);
+
+        // Fetch the existing player data to get the old handle and verify team ownership
+        const playerDoc = await playerRef.get();
+        if (!playerDoc.exists) {
+            throw new HttpsError('not-found', `Player with ID ${playerId} could not be found.`);
+        }
+
+        const playerData = playerDoc.data();
+        const oldPlayerHandle = playerData.player_handle;
+
+        // Verify GM manages this player (unless they're an admin)
+        if (userDoc.data().role !== 'admin' && playerData.current_team_id !== gmTeamId) {
+            throw new HttpsError('permission-denied', 'You can only update players on your own team.');
+        }
+
+        // If handle hasn't changed, no need to do anything
+        if (oldPlayerHandle === newPlayerHandle) {
+            return { success: true, league, message: `Player handle is already ${newPlayerHandle}.` };
+        }
+
+        const mainBatch = db.batch();
+
+        // 2. Prepare the main player document update
+        const playerUpdateData = {
+            player_handle: newPlayerHandle
+        };
+
+        // Add the old handle to the aliases array
+        if (oldPlayerHandle && oldPlayerHandle !== newPlayerHandle) {
+            console.log(`Adding alias '${oldPlayerHandle}' for player ${playerId}.`);
+            playerUpdateData.aliases = FieldValue.arrayUnion(oldPlayerHandle);
+        }
+
+        mainBatch.update(playerRef, playerUpdateData);
+        await mainBatch.commit();
+        console.log(`Updated player handle for ${playerId} from '${oldPlayerHandle}' to '${newPlayerHandle}'.`);
+
+        // 3. Propagate handle change to all historical lineups
+        console.log(`Propagating handle change to lineup documents...`);
+        const seasonsSnap = await db.collection(getCollectionName('seasons', league)).get();
+        for (const seasonDoc of seasonsSnap.docs) {
+            const lineupTypes = ['lineups', 'post_lineups', 'exhibition_lineups'];
+            for (const type of lineupTypes) {
+                const lineupsRef = seasonDoc.ref.collection(getCollectionName(type, league));
+                const lineupsQuery = lineupsRef.where('player_id', '==', playerId);
+                const lineupsSnap = await lineupsQuery.get();
+
+                if (!lineupsSnap.empty) {
+                    const batch = db.batch();
+                    lineupsSnap.forEach(doc => {
+                        batch.update(doc.ref, { player_handle: newPlayerHandle });
+                    });
+                    await batch.commit();
+                }
+            }
+        }
+
+        // 4. Propagate handle change to collections with handles in arrays
+        console.log(`Propagating handle change to live games, pending lineups, and transactions...`);
+        const arrayCollectionsToUpdate = ['live_games', 'pending_lineups'];
+        for (const collName of arrayCollectionsToUpdate) {
+            const collectionRef = db.collection(getCollectionName(collName, league));
+            const snap = await collectionRef.get();
+            if (snap.empty) continue;
+
+            const batch = db.batch();
+            snap.forEach(doc => {
+                const data = doc.data();
+                let wasModified = false;
+
+                ['team1_lineup', 'team2_lineup'].forEach(lineupKey => {
+                    if (data[lineupKey] && Array.isArray(data[lineupKey])) {
+                        data[lineupKey].forEach(player => {
+                            if (player.player_id === playerId && player.player_handle !== newPlayerHandle) {
+                                player.player_handle = newPlayerHandle;
+                                wasModified = true;
+                            }
+                        });
+                    }
+                });
+
+                if (wasModified) {
+                    batch.update(doc.ref, data);
+                }
+            });
+            await batch.commit();
+        }
+
+        const transactionSeasonsRef = db.collection(getCollectionName('transactions', league)).doc('seasons');
+        const transactionSeasonsSnap = await transactionSeasonsRef.listCollections();
+        for (const collectionRef of transactionSeasonsSnap) {
+            const snap = await collectionRef.get();
+            if(snap.empty) continue;
+
+            const batch = db.batch();
+            snap.forEach(doc => {
+                const data = doc.data();
+                let wasModified = false;
+                if (data.involved_players && Array.isArray(data.involved_players)) {
+                    data.involved_players.forEach(player => {
+                        if (player.id === playerId && player.player_handle !== newPlayerHandle) {
+                            player.player_handle = newPlayerHandle;
+                            wasModified = true;
+                        }
+                    });
+                }
+                if(wasModified) {
+                    batch.update(doc.ref, { involved_players: data.involved_players });
+                }
+            });
+            await batch.commit();
+        }
+
+        // 5. Propagate handle change to draft results
+        console.log(`Propagating handle change to draft results...`);
+        const draftResultsParentSnap = await db.collection(getCollectionName('draft_results', league)).get();
+        for (const doc of draftResultsParentSnap.docs) {
+            const collections = await doc.ref.listCollections();
+            for (const collectionRef of collections) {
+                const draftPicksQuery = collectionRef.where('player_id', '==', playerId);
+                const draftPicksSnap = await draftPicksQuery.get();
+                if (!draftPicksSnap.empty) {
+                    const batch = db.batch();
+                    draftPicksSnap.forEach(pickDoc => {
+                        batch.update(pickDoc.ref, { player_handle: newPlayerHandle });
+                    });
+                    await batch.commit();
+                }
+            }
+        }
+
+        // 6. Propagate handle change to award documents
+        console.log(`Propagating handle change to award documents...`);
+        const awardsParentSnap = await db.collection(getCollectionName('awards', league)).get();
+        for (const doc of awardsParentSnap.docs) {
+            const collections = await doc.ref.listCollections();
+            for (const collectionRef of collections) {
+                const awardsSnap = await collectionRef.get();
+                if (awardsSnap.empty) continue;
+
+                const batch = db.batch();
+                awardsSnap.forEach(awardDoc => {
+                    const data = awardDoc.data();
+                    let wasModified = false;
+
+                    // Case 1: Award has a top-level player_id
+                    if (data.player_id === playerId && data.player_handle !== newPlayerHandle) {
+                        data.player_handle = newPlayerHandle;
+                        wasModified = true;
+                    }
+
+                    // Case 2: Award has a 'players' array
+                    if (data.players && Array.isArray(data.players)) {
+                        data.players.forEach(player => {
+                            if (player.player_id === playerId && player.player_handle !== newPlayerHandle) {
+                                player.player_handle = newPlayerHandle;
+                                wasModified = true;
+                            }
+                        });
+                    }
+
+                    if (wasModified) {
+                        batch.update(awardDoc.ref, data);
+                    }
+                });
+                await batch.commit();
+            }
+        }
+
+        return { success: true, league, message: `Successfully updated player handle from '${oldPlayerHandle}' to '${newPlayerHandle}' and all associated records.` };
+
+    } catch (error) {
+        console.error(`CRITICAL ERROR during GM player handle update for ${playerId}:`, error);
+        if (error instanceof HttpsError) throw error;
+        throw new HttpsError('internal', `Player update failed: ${error.message}`);
+    }
+});
+
+/**
  * Updates player details including handle, team, status, and accolades.
  * Propagates handle changes throughout all historical records.
  * Admin-only function.
