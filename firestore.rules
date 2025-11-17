@@ -19,8 +19,29 @@ service cloud.firestore {
 
       let isProdPermitted = exists(userPath) && (get(userPath).data.role == 'admin' || get(userPath).data.role == 'scorekeeper');
       let isDevPermitted = exists(userDevPath) && (get(userDevPath).data.role == 'admin' || get(userDevPath).data.role == 'scorekeeper');
-      
+
       return isProdPermitted || isDevPermitted;
+    }
+
+    // Function to check if user is a GM
+    function isUserGM() {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let userDevPath = /databases/$(database)/documents/users_dev/$(request.auth.uid);
+      let isProdGM = exists(userPath) && get(userPath).data.role == 'gm';
+      let isDevGM = exists(userDevPath) && get(userDevPath).data.role == 'gm';
+      return isProdGM || isDevGM;
+    }
+
+    // Function to check if GM manages this player's team
+    function gmManagesPlayer(playerId) {
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let userDevPath = /databases/$(database)/documents/users_dev/$(request.auth.uid);
+      let playerPath = /databases/$(database)/documents/v2_players/$(playerId);
+
+      let gmTeamId = exists(userPath) ? get(userPath).data.team_id : (exists(userDevPath) ? get(userDevPath).data.team_id : '');
+      let playerTeamId = exists(playerPath) ? get(playerPath).data.current_team_id : '';
+
+      return gmTeamId != '' && gmTeamId == playerTeamId;
     }
 
     // =======================================================
@@ -103,9 +124,16 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isUserAdmin();
     }
-    match /v2_players/{document=**} {
+    match /v2_players/{playerId} {
       allow read: if true;
       allow write: if isUserAdmin();
+      // Allow GMs to update only player_handle for their team's players
+      allow update: if isUserGM() && gmManagesPlayer(playerId)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['player_handle']);
+      match /{document=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+      }
     }
     match /v2_teams/{document=**} {
       allow read: if true;
@@ -272,9 +300,16 @@ service cloud.firestore {
       }
     }
 
-    match /v2_players_dev/{document=**} {
+    match /v2_players_dev/{playerId} {
       allow read: if true;
       allow write: if isUserAdmin();
+      // Allow GMs to update only player_handle for their team's players
+      allow update: if isUserGM() && gmManagesPlayer(playerId)
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['player_handle']);
+      match /{document=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+      }
     }
     match /v2_teams_dev/{document=**} {
       allow read: if true;

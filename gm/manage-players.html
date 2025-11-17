@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Players - GM Portal</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
+        <span class="header-text"> Real Karma League</span>
+      </h1>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li class="dropdown">
+                <a href="/S9/RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/RKL-S9.html">S9 Home</a>
+                    <a href="/S8/RKL-S8.html">S8 Home</a>
+                    <a href="/S7/RKL-S7.html">S7 Home</a>
+                </div>
+            </li>
+            <li><a href="/S9/standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/leaderboards.html">Leaderboards</a>
+                    <a href="/S9/compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="/S9/schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/draft-capital.html">Draft Capital</a>
+                    <a href="/S9/draft-results.html">Draft Results</a>
+                    <a href="/S9/draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="/S9/transactions.html">Transactions</a></li>
+            <li><a href="/S9/teams.html">Teams</a></li>
+            <li><a href="/S9/trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="gm-container" style="display: none;">
+        <a href="/gm/dashboard.html" class="back-link">← Back to GM Portal</a>
+        <h2>Manage Team Players</h2>
+        <p class="info-text">You can edit player handles for members of your team in the current season only.</p>
+
+        <div class="search-container">
+            <input type="text" id="player-search-input" placeholder="Search by player handle...">
+        </div>
+
+        <div id="players-list-container">
+            <div class="loading">Loading players...</div>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <div id="player-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="modal-title-player">Edit Player</h3>
+            <form id="player-form">
+
+                <div class="form-group-admin">
+                    <label for="player-handle-input">Player Handle</label>
+                    <input type="text" id="player-handle-input" required>
+                </div>
+
+                <button type="submit" class="btn-admin-save">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/gm/manage-players.js"></script>
+</body>
+</html>

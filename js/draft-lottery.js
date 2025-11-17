@@ -179,8 +179,8 @@ function renderSimulatedButtons() {
 }
 
 function resetView() {
-    document.getElementById('table-title').textContent = `${PREVIOUS_SEASON_ID} Lottery Odds`;
-    document.getElementById('table-description').textContent = `${PREVIOUS_SEASON_ID} lottery odds for the 14 non-playoff teams.`;
+    document.getElementById('table-title').textContent = `${DRAFT_SEASON_ID} Lottery Odds`;
+    document.getElementById('table-description').textContent = `${DRAFT_SEASON_ID} lottery odds for the 14 non-playoff teams.`;
     renderLotteryOddsTable();
     renderInitialButtons();
 }
@@ -212,8 +212,8 @@ async function initializeApp() {
     document.getElementById('simulateBtn').disabled = true;
 
     // Update titles
-    document.getElementById('table-title').textContent = `${PREVIOUS_SEASON_ID} Lottery Odds`;
-    document.getElementById('table-description').textContent = `${PREVIOUS_SEASON_ID} lottery odds for the 14 non-playoff teams.`;
+    document.getElementById('table-title').textContent = `${DRAFT_SEASON_ID} Lottery Odds`;
+    document.getElementById('table-description').textContent = `${DRAFT_SEASON_ID} lottery odds for the 14 non-playoff teams.`;
 
     try {
         // 1. Fetch official lottery results first
@@ -309,8 +309,8 @@ async function initializeApp() {
 
         // 7. Render final view
         if (finalLotteryResults) {
-            document.getElementById('table-title').textContent = `Official ${PREVIOUS_SEASON_ID} Lottery Results`;
-            document.getElementById('table-description').textContent = `The official results of the Season ${seasonNumber} Draft Lottery.`;
+            document.getElementById('table-title').textContent = `Official ${DRAFT_SEASON_ID} Lottery Results`;
+            document.getElementById('table-description').textContent = `The official results of the Season ${seasonNumber + 1} Draft Lottery.`;
             const finalOrder = finalLotteryResults.map(teamId => initialLotteryTeams.find(t => t.team_id === teamId));
             renderSimulatedResults(finalOrder);
             buttonContainer.innerHTML = ''; // No buttons for official results

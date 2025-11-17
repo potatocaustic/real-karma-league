@@ -349,7 +349,7 @@ async function seedDatabase() {
                 const losses = stats.losses || 0;
                 stats.wpct = (wins + losses) > 0 ? wins / (wins + losses) : 0;
                 stats.apPAM = stats.apPAM_count > 0 ? stats.apPAM_total / stats.apPAM_count : 0;
-                stats.sortscore = stats.wpct + ((stats.pam || 0) * 0.00000001);
+                stats.sortscore = stats.wpct - (losses * 0.001) + ((stats.pam || 0) * 0.00000001);
                 stats.MaxPotWins = 15 - losses;
             }
         }

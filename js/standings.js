@@ -133,9 +133,20 @@ function renderStandings() {
 
         switch (column) {
             case 'record':
-                valA = (a.wins || 0) / ((a.wins || 0) + (a.losses || 0) || 1);
-                valB = (b.wins || 0) / ((b.wins || 0) + (b.losses || 0) || 1);
-                if (valA === valB) return (b.pam || 0) - (a.pam || 0);
+                const aGames = (a.wins || 0) + (a.losses || 0);
+                const bGames = (b.wins || 0) + (b.losses || 0);
+                valA = (a.wins || 0) / (aGames || 1);
+                valB = (b.wins || 0) / (bGames || 1);
+
+                // If win percentages are equal
+                if (valA === valB) {
+                    // Teams with fewer games played rank higher (0-0 > 0-1)
+                    if (aGames !== bGames) {
+                        return aGames - bGames; // ascending (fewer games = higher rank)
+                    }
+                    // Same record, use PAM
+                    return (b.pam || 0) - (a.pam || 0);
+                }
                 break;
             case 'pam':
                 valA = a.pam || 0;

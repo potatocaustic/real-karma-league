@@ -326,7 +326,7 @@ async function simulateSeason() {
         delete stats.ranks;
         stats.wpct = (stats.wins + stats.losses) > 0 ? stats.wins / (stats.wins + stats.losses) : 0;
         stats.apPAM = stats.apPAM_count > 0 ? stats.apPAM_total / stats.apPAM_count : 0;
-        stats.sortscore = stats.wpct + (stats.pam * 0.00000001);
+        stats.sortscore = stats.wpct - (stats.losses * 0.001) + (stats.pam * 0.00000001);
         stats.MaxPotWins = 15 - stats.losses;
     }
     console.log(" Done.");
