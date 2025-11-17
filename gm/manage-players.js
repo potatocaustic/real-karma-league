@@ -1,6 +1,6 @@
 // /gm/manage-players.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, where, collectionNames } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, where, httpsCallable, getCurrentLeague, collectionNames } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -173,15 +173,21 @@ playerForm.addEventListener('submit', async (e) => {
     submitButton.textContent = 'Saving...';
 
     try {
-        // Update player handle in the main player document
-        const playerRef = doc(db, collectionNames.players, playerId);
-        await updateDoc(playerRef, {
-            player_handle: newHandle
+        // Call the cloud function to update player handle and propagate changes
+        const gm_updatePlayerHandle = httpsCallable(functions, 'gm_updatePlayerHandle');
+        const result = await gm_updatePlayerHandle({
+            playerId: playerId,
+            newPlayerHandle: newHandle,
+            league: getCurrentLeague()
         });
 
-        alert('Player handle updated successfully!');
-        await loadAndDisplayPlayers(); // Refresh the list
-        playerModal.style.display = 'none';
+        if (result.data.success) {
+            alert('Player handle updated successfully! All related records have been updated.');
+            await loadAndDisplayPlayers(); // Refresh the list
+            playerModal.style.display = 'none';
+        } else {
+            alert(`Update completed with warnings: ${result.data.message}`);
+        }
 
     } catch (error) {
         console.error("Error saving player:", error);
