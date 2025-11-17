@@ -18,6 +18,8 @@ let liveGamesCache = new Map();
 let currentWeek = '1'; // This will be updated on page load
 let selectedTeamId = 'all';
 let liveScoringStatus = 'stopped'; // Tracks the live_scoring_status
+let gameFlowChartInstance = null; // Tracks the Chart.js instance
+let showLiveFeatures = true; // Controls visibility of live features
 
 // --- UTILITY FUNCTIONS ---
 const formatInThousands = (value) => {
@@ -190,7 +192,10 @@ function listenForLiveGames() {
 function listenForScoringStatus() {
     const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
     onSnapshot(statusRef, (docSnap) => {
-        const newStatus = docSnap.exists() ? docSnap.data().status : 'stopped';
+        const statusData = docSnap.exists() ? docSnap.data() : {};
+        const newStatus = statusData.status || 'stopped';
+        showLiveFeatures = statusData.show_live_features !== false; // Default to true if not set
+
         if (newStatus !== liveScoringStatus) {
             liveScoringStatus = newStatus;
             // A change in scoring status requires a re-render to show/hide live indicators
@@ -524,6 +529,181 @@ async function calculateAndDisplayStandouts(week) {
     if (worstPlayerEl) worstPlayerEl.innerHTML = worstPlayer.handle ? `<a href="player.html?handle=${encodeURIComponent(worstPlayer.handle)}" class="player-link">${escapeHTML(worstPlayer.handle)}</a>: <span class="detail-negative">Rank ${worstPlayer.rank.toLocaleString()}</span>` : 'No ranked player data.';
 }
 
+// --- GAME FLOW CHART FUNCTIONS ---
+async function fetchGameFlowData(gameId) {
+    try {
+        const flowRef = doc(db, getLeagueCollectionName('game_flow_snapshots'), gameId);
+        const flowSnap = await getDoc(flowRef);
+
+        if (flowSnap.exists()) {
+            return flowSnap.data().snapshots || [];
+        }
+        return [];
+    } catch (error) {
+        console.error('Error fetching game flow data:', error);
+        return [];
+    }
+}
+
+function renderGameFlowChart(snapshots, team1Name, team2Name) {
+    const chartArea = document.getElementById('game-flow-chart-area');
+    const canvas = document.getElementById('game-flow-chart');
+
+    if (!canvas || !chartArea) {
+        console.error('Chart elements not found');
+        return;
+    }
+
+    // Destroy existing chart if any
+    if (gameFlowChartInstance) {
+        gameFlowChartInstance.destroy();
+        gameFlowChartInstance = null;
+    }
+
+    if (snapshots.length === 0) {
+        chartArea.innerHTML = '<div class="loading" style="padding: 2rem; text-align: center;">No game flow data available for this matchup.</div>';
+        return;
+    }
+
+    // Detect dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const tooltipBg = isDarkMode ? '#383838' : '#fff';
+    const tooltipBorder = isDarkMode ? '#555' : '#ccc';
+
+    // Sort snapshots by timestamp
+    const sortedSnapshots = [...snapshots].sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+
+    // Prepare data for Chart.js
+    const labels = sortedSnapshots.map(s => {
+        const date = s.timestamp.toDate();
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    });
+
+    const team1Scores = sortedSnapshots.map(s => s.team1_score);
+    const team2Scores = sortedSnapshots.map(s => s.team2_score);
+
+    const ctx = canvas.getContext('2d');
+
+    gameFlowChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: team1Name,
+                data: team1Scores,
+                borderColor: '#007bff',
+                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#007bff',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
+            }, {
+                label: team2Name,
+                data: team2Scores,
+                borderColor: '#dc3545',
+                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                borderWidth: 3,
+                tension: 0.1,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: '#dc3545',
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Game Flow Chart',
+                    font: { size: 18 },
+                    color: textColor
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: textColor,
+                        font: { size: 14 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: tooltipBg,
+                    titleColor: textColor,
+                    bodyColor: textColor,
+                    borderColor: tooltipBorder,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ' + Math.round(context.parsed.y).toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Score',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+function toggleGameFlowChart() {
+    const contentArea = document.getElementById('game-details-content-area');
+    const chartArea = document.getElementById('game-flow-chart-area');
+    const chartBtn = document.getElementById('game-flow-chart-btn');
+
+    if (!contentArea || !chartArea || !chartBtn) return;
+
+    if (contentArea.style.display === 'none') {
+        // Switch back to traditional view
+        contentArea.style.display = 'block';
+        chartArea.style.display = 'none';
+        chartBtn.classList.remove('active');
+    } else {
+        // Switch to chart view
+        contentArea.style.display = 'none';
+        chartArea.style.display = 'block';
+        chartBtn.classList.add('active');
+    }
+}
+
 async function showGameDetails(gameId, isLive, gameDate = null) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
@@ -637,12 +817,45 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
         const winnerId = isLive ? null : gameData.winner;
         contentArea.innerHTML = `<div class="game-details-grid">${generateLineupTable(team1Lineups, modalTeam1, !isLive && winnerId === team1.id, isLive)}${generateLineupTable(team2Lineups, modalTeam2, !isLive && winnerId === team2.id, isLive)}</div>`;
-        
+
         if (isLive) {
             const teamTotalElements = contentArea.querySelectorAll('.team-total');
             teamTotalElements.forEach(el => {
                 el.innerHTML = `<span class="live-indicator-text"></span> ${el.innerHTML}`;
             });
+        }
+
+        // Fetch and prepare game flow chart (if admin allows and data exists)
+        const chartBtn = document.getElementById('game-flow-chart-btn');
+        const flowData = await fetchGameFlowData(gameId);
+
+        console.log(`[Game Flow] Game ID: ${gameId}`);
+        console.log(`[Game Flow] Flow data exists:`, !!flowData);
+        console.log(`[Game Flow] Flow data length:`, flowData?.length || 0);
+        console.log(`[Game Flow] Show live features:`, showLiveFeatures);
+        console.log(`[Game Flow] Chart button found:`, !!chartBtn);
+
+        if (flowData && flowData.length > 0 && showLiveFeatures) {
+            // Show chart button
+            if (chartBtn) {
+                console.log(`[Game Flow] ✓ Showing game flow chart button`);
+                chartBtn.style.display = 'flex';
+                chartBtn.onclick = () => toggleGameFlowChart();
+            } else {
+                console.warn(`[Game Flow] ✗ Chart button element not found!`);
+            }
+
+            // Pre-render the chart (hidden initially)
+            renderGameFlowChart(flowData, titleTeam1Name, titleTeam2Name);
+        } else {
+            console.log(`[Game Flow] Not showing chart button. Reasons:`, {
+                hasData: !!flowData,
+                hasSnapshots: flowData?.length > 0,
+                featuresEnabled: showLiveFeatures
+            });
+            if (chartBtn) {
+                chartBtn.style.display = 'none';
+            }
         }
 
     } catch (error) {
@@ -652,7 +865,28 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 }
 
 function closeModal() {
-    document.getElementById('game-modal').style.display = 'none';
+    const modal = document.getElementById('game-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+
+    // Clean up chart
+    if (gameFlowChartInstance) {
+        gameFlowChartInstance.destroy();
+        gameFlowChartInstance = null;
+    }
+
+    // Reset views
+    const contentArea = document.getElementById('game-details-content-area');
+    const chartArea = document.getElementById('game-flow-chart-area');
+    const chartBtn = document.getElementById('game-flow-chart-btn');
+
+    if (contentArea) contentArea.style.display = 'block';
+    if (chartArea) chartArea.style.display = 'none';
+    if (chartBtn) {
+        chartBtn.classList.remove('active');
+        chartBtn.style.display = 'none';
+    }
 }
 
 async function initializePage() {
