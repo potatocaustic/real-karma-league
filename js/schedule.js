@@ -891,23 +891,47 @@ function closeModal() {
 
 async function initializePage() {
     try {
+        // Load modal component first
+        const placeholder = document.getElementById('modal-placeholder');
+        if (!placeholder) {
+            throw new Error("Fatal: Modal placeholder div not found in schedule.html.");
+        }
+
+        const response = await fetch('../common/game-modal-component.html');
+        if (!response.ok) {
+            throw new Error(`Failed to fetch modal component: ${response.status} ${response.statusText}`);
+        }
+
+        placeholder.innerHTML = await response.text();
+
+        // Set up modal event listeners
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const gameModal = document.getElementById('game-modal');
+
+        if (closeModalBtn && gameModal) {
+            closeModalBtn.addEventListener('click', closeModal);
+            gameModal.addEventListener('click', (event) => {
+                if (event.target === gameModal) {
+                    closeModal();
+                }
+            });
+        } else {
+            console.warn("Game modal component was loaded, but its internal elements were not found.");
+        }
+
         await getActiveSeason();
         await fetchInitialPageData(activeSeasonId);
-        calculateHistoricalRecords(); 
-        determineInitialWeek();     
-        
+        calculateHistoricalRecords();
+        determineInitialWeek();
+
         setTimeout(async () => {
             setupWeekSelector();
             setupTeamFilter();
             await displayWeek(currentWeek);
-            document.getElementById('close-modal-btn').addEventListener('click', closeModal);
-            window.addEventListener('click', (event) => {
-                if (event.target.id === 'game-modal') closeModal();
-            });
         }, 0);
 
         listenForLiveGames();
-        listenForScoringStatus(); // Add this line
+        listenForScoringStatus();
     } catch (error) {
         console.error("Failed to initialize page:", error);
         document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${error.message}</div>`;
