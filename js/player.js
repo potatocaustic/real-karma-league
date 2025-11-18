@@ -17,8 +17,8 @@ let currentPlayer = null;
 let gameFlowChartInstance = null; // Tracks the Chart.js instance
 let currentGameFlowData = null;
 let currentChartType = 'cumulative'; // 'cumulative' or 'differential'
-let currentTeam1Name = '';
-let currentTeam2Name = '';
+let currentTeam1 = null;
+let currentTeam2 = null;
 let showLiveFeatures = true; // Controls visibility of live features
 
 /**
@@ -341,7 +341,7 @@ async function fetchGameFlowData(gameId) {
     }
 }
 
-function renderGameFlowChart(snapshots, team1Name, team2Name) {
+async function renderGameFlowChart(snapshots, team1, team2) {
     const chartArea = document.getElementById('game-flow-chart-area');
     const canvas = document.getElementById('game-flow-chart');
 
@@ -352,8 +352,8 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
 
     // Store current data for toggling between chart types
     currentGameFlowData = snapshots;
-    currentTeam1Name = team1Name;
-    currentTeam2Name = team2Name;
+    currentTeam1 = team1;
+    currentTeam2 = team2;
 
     // Destroy existing chart if any
     if (gameFlowChartInstance) {
@@ -366,9 +366,12 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
         return;
     }
 
+    // Get team colors from logos
+    const colors = await getTeamColors(team1, team2);
+
     // Render based on current chart type
     if (currentChartType === 'differential') {
-        renderDifferentialChart(snapshots, team1Name, team2Name);
+        renderDifferentialChart(snapshots, team1, team2, colors);
         return;
     }
 
@@ -398,27 +401,27 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
         data: {
             labels: labels,
             datasets: [{
-                label: team1Name,
+                label: team1.team_name,
                 data: team1Scores,
-                borderColor: '#007bff',
-                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                borderColor: colors.team1,
+                backgroundColor: colors.team1 + '1A',
                 borderWidth: 3,
                 tension: 0.1,
                 pointRadius: 0,
                 pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#007bff',
+                pointHoverBackgroundColor: colors.team1,
                 pointHoverBorderColor: '#fff',
                 pointHoverBorderWidth: 2
             }, {
-                label: team2Name,
+                label: team2.team_name,
                 data: team2Scores,
-                borderColor: '#dc3545',
-                backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                borderColor: colors.team2,
+                backgroundColor: colors.team2 + '1A',
                 borderWidth: 3,
                 tension: 0.1,
                 pointRadius: 0,
                 pointHoverRadius: 6,
-                pointHoverBackgroundColor: '#dc3545',
+                pointHoverBackgroundColor: colors.team2,
                 pointHoverBorderColor: '#fff',
                 pointHoverBorderWidth: 2
             }]
@@ -432,10 +435,7 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
             },
             plugins: {
                 title: {
-                    display: true,
-                    text: 'Game Flow Chart',
-                    font: { size: 18 },
-                    color: textColor
+                    display: false
                 },
                 legend: {
                     display: true,
@@ -474,9 +474,7 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
                 },
                 y: {
                     title: {
-                        display: true,
-                        text: 'Score',
-                        color: textColor
+                        display: false
                     },
                     ticks: {
                         color: textColor
@@ -491,7 +489,7 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
     });
 
     // Add stats display and toggle button
-    addChartControls(sortedSnapshots, team1Name, team2Name);
+    addChartControls(sortedSnapshots, team1, team2, colors);
 }
 
 function toggleGameFlowChart() {
@@ -514,9 +512,10 @@ function toggleGameFlowChart() {
     }
 }
 
-function renderDifferentialChart(snapshots, team1Name, team2Name) {
+function renderDifferentialChart(snapshots, team1, team2, colors) {
     const canvas = document.getElementById('game-flow-chart');
-    if (!canvas) return;
+    const chartArea = document.getElementById('game-flow-chart-area');
+    if (!canvas || !chartArea) return;
 
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark-mode');
@@ -531,7 +530,7 @@ function renderDifferentialChart(snapshots, team1Name, team2Name) {
     // Prepare data for Chart.js
     const labels = sortedSnapshots.map(s => {
         const date = s.timestamp.toDate();
-        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     });
 
     // Calculate differentials if not already present
@@ -540,16 +539,23 @@ function renderDifferentialChart(snapshots, team1Name, team2Name) {
     );
 
     // Create colors based on which team is leading
+    const hexToRgba = (hex, alpha) => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+
     const backgroundColors = differentials.map(diff => {
-        if (diff > 0) return 'rgba(0, 123, 255, 0.3)'; // Team 1 blue
-        if (diff < 0) return 'rgba(220, 53, 69, 0.3)'; // Team 2 red
-        return 'rgba(128, 128, 128, 0.2)'; // Tied
+        if (diff > 0) return hexToRgba(colors.team1, 0.3);
+        if (diff < 0) return hexToRgba(colors.team2, 0.3);
+        return 'rgba(128, 128, 128, 0.2)';
     });
 
     const borderColors = differentials.map(diff => {
-        if (diff > 0) return '#007bff'; // Team 1 blue
-        if (diff < 0) return '#dc3545'; // Team 2 red
-        return '#888'; // Tied
+        if (diff > 0) return colors.team1;
+        if (diff < 0) return colors.team2;
+        return '#888';
     });
 
     const ctx = canvas.getContext('2d');
@@ -561,7 +567,7 @@ function renderDifferentialChart(snapshots, team1Name, team2Name) {
             datasets: [{
                 label: 'Lead Margin',
                 data: differentials,
-                borderColor: '#007bff',
+                borderColor: colors.team1,
                 backgroundColor: function(context) {
                     const index = context.dataIndex;
                     return backgroundColors[index];
@@ -594,10 +600,7 @@ function renderDifferentialChart(snapshots, team1Name, team2Name) {
             },
             plugins: {
                 title: {
-                    display: true,
-                    text: 'Game Flow - Lead Margin',
-                    font: { size: 18 },
-                    color: textColor
+                    display: false
                 },
                 legend: {
                     display: false
@@ -612,9 +615,9 @@ function renderDifferentialChart(snapshots, team1Name, team2Name) {
                         label: function(context) {
                             const diff = context.parsed.y;
                             if (diff > 0) {
-                                return `${team1Name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                                return `${team1.team_name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
                             } else if (diff < 0) {
-                                return `${team2Name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                                return `${team2.team_name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
                             } else {
                                 return 'Game tied';
                             }
@@ -639,9 +642,7 @@ function renderDifferentialChart(snapshots, team1Name, team2Name) {
                 },
                 y: {
                     title: {
-                        display: true,
-                        text: 'Lead Margin',
-                        color: textColor
+                        display: false
                     },
                     ticks: {
                         color: textColor,
@@ -660,11 +661,14 @@ function renderDifferentialChart(snapshots, team1Name, team2Name) {
         }
     });
 
+    // Add team icons to chart
+    addTeamIconsToChart(chartArea, team1, team2, colors);
+
     // Add stats display and toggle button
-    addChartControls(sortedSnapshots, team1Name, team2Name);
+    addChartControls(sortedSnapshots, team1, team2, colors);
 }
 
-function addChartControls(snapshots, team1Name, team2Name) {
+function addChartControls(snapshots, team1, team2, colors) {
     // Remove existing controls if any
     const existingControls = document.getElementById('chart-controls');
     if (existingControls) {
@@ -674,85 +678,75 @@ function addChartControls(snapshots, team1Name, team2Name) {
     const chartArea = document.getElementById('game-flow-chart-area');
     if (!chartArea) return;
 
-    // Get final snapshot for stats
-    const finalSnapshot = snapshots[snapshots.length - 1];
-    const leadChanges = finalSnapshot.lead_changes !== undefined ? finalSnapshot.lead_changes :
-        calculateLeadChanges(snapshots);
-    const team1BiggestLead = finalSnapshot.team1_biggest_lead !== undefined ? finalSnapshot.team1_biggest_lead :
-        calculateBiggestLead(snapshots, 1);
-    const team2BiggestLead = finalSnapshot.team2_biggest_lead !== undefined ? finalSnapshot.team2_biggest_lead :
-        calculateBiggestLead(snapshots, 2);
+    // Get stats with timestamps
+    const stats = calculateGameStats(snapshots);
 
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark-mode');
+
+    // Add title with toggle icon
+    addChartTitle(chartArea, isDarkMode);
 
     // Create controls container
     const controlsDiv = document.createElement('div');
     controlsDiv.id = 'chart-controls';
     controlsDiv.style.cssText = `
         margin-top: 1rem;
-        padding: 1rem;
+        padding: 0.75rem 1rem;
         background-color: ${isDarkMode ? '#2c2c2c' : '#f8f9fa'};
         border-radius: 8px;
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
+        flex-direction: column;
+        gap: 0.4rem;
     `;
 
     // Stats display
     const statsDiv = document.createElement('div');
     statsDiv.style.cssText = `
         display: flex;
-        gap: 2rem;
+        gap: 1.5rem;
         flex-wrap: wrap;
         color: ${isDarkMode ? '#e0e0e0' : '#333'};
         font-size: 0.9rem;
+        line-height: 1.4;
     `;
+
+    const formatTime = (timestamp) => {
+        if (!timestamp) return '';
+        const date = timestamp.toDate();
+        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    };
 
     statsDiv.innerHTML = `
-        <div><strong>Lead Changes:</strong> ${leadChanges}</div>
-        <div><strong>${team1Name} Biggest Lead:</strong> ${Math.round(team1BiggestLead).toLocaleString()}</div>
-        <div><strong>${team2Name} Biggest Lead:</strong> ${Math.round(team2BiggestLead).toLocaleString()}</div>
+        <div><strong>Lead Changes:</strong> ${stats.leadChanges}</div>
+        <div><strong>${team1.team_name} Biggest Lead:</strong> ${Math.round(stats.team1BiggestLead).toLocaleString()} ${stats.team1BiggestLeadTime ? `(${formatTime(stats.team1BiggestLeadTime)})` : ''}</div>
+        <div><strong>${team2.team_name} Biggest Lead:</strong> ${Math.round(stats.team2BiggestLead).toLocaleString()} ${stats.team2BiggestLeadTime ? `(${formatTime(stats.team2BiggestLeadTime)})` : ''}</div>
     `;
-
-    // Toggle button
-    const toggleBtn = document.createElement('button');
-    toggleBtn.textContent = currentChartType === 'cumulative' ? 'Show Differential View' : 'Show Cumulative View';
-    toggleBtn.style.cssText = `
-        padding: 0.5rem 1rem;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 0.9rem;
-        transition: background-color 0.3s;
-    `;
-    toggleBtn.onmouseover = () => toggleBtn.style.backgroundColor = '#0056b3';
-    toggleBtn.onmouseout = () => toggleBtn.style.backgroundColor = '#007bff';
-    toggleBtn.onclick = () => toggleChartType();
 
     controlsDiv.appendChild(statsDiv);
-    controlsDiv.appendChild(toggleBtn);
     chartArea.appendChild(controlsDiv);
 }
 
 function toggleChartType() {
     currentChartType = currentChartType === 'cumulative' ? 'differential' : 'cumulative';
-    if (currentGameFlowData && currentTeam1Name && currentTeam2Name) {
-        renderGameFlowChart(currentGameFlowData, currentTeam1Name, currentTeam2Name);
+    if (currentGameFlowData && currentTeam1 && currentTeam2) {
+        renderGameFlowChart(currentGameFlowData, currentTeam1, currentTeam2);
     }
 }
 
-function calculateLeadChanges(snapshots) {
+function calculateGameStats(snapshots) {
     let leadChanges = 0;
+    let team1BiggestLead = 0;
+    let team2BiggestLead = 0;
+    let team1BiggestLeadTime = null;
+    let team2BiggestLeadTime = null;
     let prevDifferential = null;
 
     for (const snapshot of snapshots) {
-        const differential = snapshot.team1_score - snapshot.team2_score;
+        const differential = snapshot.differential !== undefined ?
+            snapshot.differential : (snapshot.team1_score - snapshot.team2_score);
 
+        // Count lead changes
         if (prevDifferential !== null) {
             if ((prevDifferential > 0 && differential < 0) ||
                 (prevDifferential < 0 && differential > 0) ||
@@ -761,26 +755,199 @@ function calculateLeadChanges(snapshots) {
             }
         }
 
+        // Track biggest leads with timestamps
+        if (differential > team1BiggestLead) {
+            team1BiggestLead = differential;
+            team1BiggestLeadTime = snapshot.timestamp;
+        }
+        if (differential < 0 && Math.abs(differential) > team2BiggestLead) {
+            team2BiggestLead = Math.abs(differential);
+            team2BiggestLeadTime = snapshot.timestamp;
+        }
+
         prevDifferential = differential;
     }
 
-    return leadChanges;
+    return {
+        leadChanges,
+        team1BiggestLead,
+        team2BiggestLead,
+        team1BiggestLeadTime,
+        team2BiggestLeadTime
+    };
 }
 
-function calculateBiggestLead(snapshots, teamNumber) {
-    let biggestLead = 0;
+async function getTeamColors(team1, team2) {
+    // Try to extract colors from team logos, fallback to defaults
+    const team1Color = await extractDominantColor(team1.id, team1.logo_ext) || '#007bff';
+    const team2Color = await extractDominantColor(team2.id, team2.logo_ext) || '#dc3545';
 
-    for (const snapshot of snapshots) {
-        const differential = snapshot.team1_score - snapshot.team2_score;
+    return {
+        team1: team1Color,
+        team2: team2Color
+    };
+}
 
-        if (teamNumber === 1 && differential > biggestLead) {
-            biggestLead = differential;
-        } else if (teamNumber === 2 && differential < 0 && Math.abs(differential) > biggestLead) {
-            biggestLead = Math.abs(differential);
-        }
+async function extractDominantColor(teamId, logoExt = 'webp') {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.src = `../icons/${teamId}.${logoExt}`;
+
+        img.onload = function() {
+            try {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+
+                let r = 0, g = 0, b = 0, count = 0;
+
+                // Sample every 4th pixel for efficiency
+                for (let i = 0; i < data.length; i += 16) {
+                    const alpha = data[i + 3];
+                    if (alpha > 128) { // Only count non-transparent pixels
+                        r += data[i];
+                        g += data[i + 1];
+                        b += data[i + 2];
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    r = Math.floor(r / count);
+                    g = Math.floor(g / count);
+                    b = Math.floor(b / count);
+                    const hex = '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+                    resolve(hex);
+                } else {
+                    resolve(null);
+                }
+            } catch (e) {
+                console.warn('Error extracting color from logo:', e);
+                resolve(null);
+            }
+        };
+
+        img.onerror = function() {
+            resolve(null);
+        };
+    });
+}
+
+function addChartTitle(chartArea, isDarkMode) {
+    // Remove existing title if any
+    const existingTitle = document.getElementById('chart-title-bar');
+    if (existingTitle) {
+        existingTitle.remove();
     }
 
-    return biggestLead;
+    const titleBar = document.createElement('div');
+    titleBar.id = 'chart-title-bar';
+    titleBar.style.cssText = `
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 0.5rem;
+        color: ${isDarkMode ? '#e0e0e0' : '#333'};
+    `;
+
+    const titleText = document.createElement('span');
+    titleText.style.cssText = `
+        font-size: 1.1rem;
+        font-weight: 600;
+    `;
+    titleText.textContent = currentChartType === 'cumulative' ? 'Game Flow - Cumulative' : 'Game Flow - Lead Margin';
+
+    const toggleIcon = document.createElement('button');
+    toggleIcon.innerHTML = '&#8644;'; // Swap icon
+    toggleIcon.title = 'Toggle chart view';
+    toggleIcon.style.cssText = `
+        background: none;
+        border: 1px solid ${isDarkMode ? '#555' : '#ccc'};
+        color: ${isDarkMode ? '#e0e0e0' : '#333'};
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 1.2rem;
+        transition: all 0.3s;
+    `;
+    toggleIcon.onmouseover = () => {
+        toggleIcon.style.backgroundColor = isDarkMode ? '#444' : '#e9ecef';
+    };
+    toggleIcon.onmouseout = () => {
+        toggleIcon.style.backgroundColor = 'transparent';
+    };
+    toggleIcon.onclick = () => toggleChartType();
+
+    titleBar.appendChild(titleText);
+    titleBar.appendChild(toggleIcon);
+
+    // Insert before the canvas
+    const canvas = document.getElementById('game-flow-chart');
+    if (canvas) {
+        chartArea.insertBefore(titleBar, canvas);
+    } else {
+        chartArea.insertBefore(titleBar, chartArea.firstChild);
+    }
+}
+
+function addTeamIconsToChart(chartArea, team1, team2, colors) {
+    // Remove existing icons if any
+    const existingIcons = document.getElementById('chart-team-icons');
+    if (existingIcons) {
+        existingIcons.remove();
+    }
+
+    const iconsContainer = document.createElement('div');
+    iconsContainer.id = 'chart-team-icons';
+    iconsContainer.style.cssText = `
+        position: absolute;
+        top: 80px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        z-index: 10;
+    `;
+
+    const createTeamIcon = (team, position) => {
+        const iconDiv = document.createElement('div');
+        iconDiv.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        `;
+
+        const img = document.createElement('img');
+        const logoExt = team.logo_ext || 'webp';
+        img.src = `../icons/${team.id}.${logoExt}`;
+        img.alt = team.team_name;
+        img.style.cssText = `
+            width: 24px;
+            height: 24px;
+            border-radius: 2px;
+        `;
+        img.onerror = function() { this.style.display = 'none'; };
+
+        iconDiv.appendChild(img);
+        return iconDiv;
+    };
+
+    iconsContainer.appendChild(createTeamIcon(team1, 'top'));
+    iconsContainer.appendChild(createTeamIcon(team2, 'bottom'));
+
+    chartArea.style.position = 'relative';
+    chartArea.appendChild(iconsContainer);
 }
 
 /**
@@ -857,7 +1024,7 @@ async function showGameDetails(gameId) {
             }
 
             // Pre-render the chart (hidden initially)
-            renderGameFlowChart(flowData, team1.team_name, team2.team_name);
+            renderGameFlowChart(flowData, team1, team2);
         } else {
             if (chartBtn) {
                 chartBtn.style.display = 'none';
