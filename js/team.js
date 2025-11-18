@@ -649,7 +649,8 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
 
         // Detect leader change
         if (currentLeader !== null && leader !== currentLeader) {
-            segments.push({ start: segmentStart, end: i, leader: currentLeader });
+            // Include the crossing point in previous segment (end at i+1)
+            segments.push({ start: segmentStart, end: i + 1, leader: currentLeader });
             segmentStart = i;
         }
         currentLeader = leader;
