@@ -977,9 +977,10 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
     const createTeamIcon = (team, position) => {
         const iconDiv = document.createElement('div');
         iconDiv.className = 'chart-team-icon';
+        const topPosition = currentChartType === 'differential' ? '40px' : '80px';
         iconDiv.style.cssText = `
             position: absolute;
-            ${position === 'top' ? 'top: 80px;' : 'bottom: 60px;'}
+            ${position === 'top' ? `top: ${topPosition};` : 'bottom: 60px;'}
             left: 60px;
             display: flex;
             align-items: center;
