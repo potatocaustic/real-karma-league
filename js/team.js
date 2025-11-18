@@ -791,7 +791,7 @@ function addChartControls(snapshots, team1, team2, colors) {
     const isDarkMode = document.documentElement.classList.contains('dark-mode');
 
     // Add title with toggle icon
-    addChartTitle(chartArea, isDarkMode, team1);
+    addChartTitle(chartArea, isDarkMode);
 
     // Create controls container
     const controlsDiv = document.createElement('div');
@@ -846,33 +846,32 @@ function calculateGameStats(snapshots) {
     let team2BiggestLead = 0;
     let team1BiggestLeadTime = null;
     let team2BiggestLeadTime = null;
-    let prevLeader = null; // Track who's leading: 1 (team1), -1 (team2), or 0 (tied)
+    let prevDifferential = null;
 
     for (const snapshot of snapshots) {
         const differential = snapshot.differential !== undefined ?
             snapshot.differential : (snapshot.team1_score - snapshot.team2_score);
 
-        // Determine current leader (treat epsilon values as tied)
-        const currentLeader = Math.abs(differential) < 0.001 ? 0 : (differential > 0 ? 1 : -1);
-
-        // Count lead changes (only when actual leader changes and not tied)
-        if (prevLeader !== null && prevLeader !== currentLeader && currentLeader !== 0) {
-            leadChanges++;
-        }
-
-        // Track biggest leads with timestamps (ignore epsilon values)
-        if (Math.abs(differential) >= 0.001) {
-            if (differential > team1BiggestLead) {
-                team1BiggestLead = differential;
-                team1BiggestLeadTime = snapshot.timestamp;
-            }
-            if (differential < 0 && Math.abs(differential) > team2BiggestLead) {
-                team2BiggestLead = Math.abs(differential);
-                team2BiggestLeadTime = snapshot.timestamp;
+        // Count lead changes
+        if (prevDifferential !== null) {
+            if ((prevDifferential > 0 && differential < 0) ||
+                (prevDifferential < 0 && differential > 0) ||
+                (prevDifferential === 0 && differential !== 0)) {
+                leadChanges++;
             }
         }
 
-        prevLeader = currentLeader;
+        // Track biggest leads with timestamps
+        if (differential > team1BiggestLead) {
+            team1BiggestLead = differential;
+            team1BiggestLeadTime = snapshot.timestamp;
+        }
+        if (differential < 0 && Math.abs(differential) > team2BiggestLead) {
+            team2BiggestLead = Math.abs(differential);
+            team2BiggestLeadTime = snapshot.timestamp;
+        }
+
+        prevDifferential = differential;
     }
 
     return {
@@ -956,7 +955,7 @@ async function extractDominantColor(teamId, logoExt = 'webp') {
     });
 }
 
-function addChartTitle(chartArea, isDarkMode, team1 = null) {
+function addChartTitle(chartArea, isDarkMode) {
     // Remove existing title if any
     const existingTitle = document.getElementById('chart-title-bar');
     if (existingTitle) {
@@ -972,25 +971,7 @@ function addChartTitle(chartArea, isDarkMode, team1 = null) {
         gap: 0.75rem;
         margin-bottom: 0.5rem;
         color: ${isDarkMode ? '#e0e0e0' : '#333'};
-        position: relative;
     `;
-
-    // Add team icon on the left if differential view
-    if (currentChartType === 'differential' && team1) {
-        const teamIcon = document.createElement('img');
-        const logoExt = team1.logo_ext || 'webp';
-        teamIcon.src = `../icons/${team1.id}.${logoExt}`;
-        teamIcon.alt = team1.team_name;
-        teamIcon.style.cssText = `
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            position: absolute;
-            left: 0;
-        `;
-        teamIcon.onerror = function() { this.style.display = 'none'; };
-        titleBar.appendChild(teamIcon);
-    }
 
     const titleText = document.createElement('span');
     titleText.style.cssText = `
@@ -1037,18 +1018,13 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
     const existingIcons = document.querySelectorAll('.chart-team-icon');
     existingIcons.forEach(icon => icon.remove());
 
-    // Only show bottom icon for differential view
-    if (currentChartType !== 'differential') {
-        return;
-    }
-
-    const createTeamIcon = (team) => {
+    const createTeamIcon = (team, position) => {
         const iconDiv = document.createElement('div');
         iconDiv.className = 'chart-team-icon';
         iconDiv.style.cssText = `
             position: absolute;
-            bottom: 28px;
-            left: 0;
+            ${position === 'top' ? 'top: 80px;' : 'bottom: 60px;'}
+            left: 60px;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -1062,8 +1038,8 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
         img.src = `../icons/${team.id}.${logoExt}`;
         img.alt = team.team_name;
         img.style.cssText = `
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             object-fit: cover;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -1075,7 +1051,8 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
     };
 
     chartArea.style.position = 'relative';
-    chartArea.appendChild(createTeamIcon(team2));
+    chartArea.appendChild(createTeamIcon(team1, 'top'));
+    chartArea.appendChild(createTeamIcon(team2, 'bottom'));
 }
 
 async function showGameDetails(team1_id, team2_id, gameDate) {
