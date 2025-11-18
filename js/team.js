@@ -34,6 +34,10 @@ let allTransactions = [];
 let allTeamsSeasonalRecords = new Map(); // Map of teamId -> seasonal_record for getTeamName()
 let rosterSortState = { column: 'rel_median', direction: 'desc' };
 let gameFlowChartInstance = null; // Tracks the Chart.js instance
+let currentGameFlowData = null;
+let currentChartType = 'cumulative'; // 'cumulative' or 'differential'
+let currentTeam1Name = '';
+let currentTeam2Name = '';
 let showLiveFeatures = true; // Controls visibility of live features
 
 /**
@@ -391,6 +395,11 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
         return;
     }
 
+    // Store current data for toggling between chart types
+    currentGameFlowData = snapshots;
+    currentTeam1Name = team1Name;
+    currentTeam2Name = team2Name;
+
     // Destroy existing chart if any
     if (gameFlowChartInstance) {
         gameFlowChartInstance.destroy();
@@ -399,6 +408,12 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
 
     if (snapshots.length === 0) {
         chartArea.innerHTML = '<div class="loading" style="padding: 2rem; text-align: center;">No game flow data available for this matchup.</div>';
+        return;
+    }
+
+    // Render based on current chart type
+    if (currentChartType === 'differential') {
+        renderDifferentialChart(snapshots, team1Name, team2Name);
         return;
     }
 
@@ -519,6 +534,9 @@ function renderGameFlowChart(snapshots, team1Name, team2Name) {
             }
         }
     });
+
+    // Add stats display and toggle button
+    addChartControls(sortedSnapshots, team1Name, team2Name);
 }
 
 function toggleGameFlowChart() {
@@ -539,6 +557,275 @@ function toggleGameFlowChart() {
         chartArea.style.display = 'block';
         chartBtn.classList.add('active');
     }
+}
+
+function renderDifferentialChart(snapshots, team1Name, team2Name) {
+    const canvas = document.getElementById('game-flow-chart');
+    if (!canvas) return;
+
+    // Detect dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    const textColor = isDarkMode ? '#e0e0e0' : '#333';
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    const tooltipBg = isDarkMode ? '#383838' : '#fff';
+    const tooltipBorder = isDarkMode ? '#555' : '#ccc';
+
+    // Sort snapshots by timestamp
+    const sortedSnapshots = [...snapshots].sort((a, b) => a.timestamp.toMillis() - b.timestamp.toMillis());
+
+    // Prepare data for Chart.js
+    const labels = sortedSnapshots.map(s => {
+        const date = s.timestamp.toDate();
+        return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    });
+
+    // Calculate differentials if not already present
+    const differentials = sortedSnapshots.map(s =>
+        s.differential !== undefined ? s.differential : (s.team1_score - s.team2_score)
+    );
+
+    // Create colors based on which team is leading
+    const backgroundColors = differentials.map(diff => {
+        if (diff > 0) return 'rgba(0, 123, 255, 0.3)'; // Team 1 blue
+        if (diff < 0) return 'rgba(220, 53, 69, 0.3)'; // Team 2 red
+        return 'rgba(128, 128, 128, 0.2)'; // Tied
+    });
+
+    const borderColors = differentials.map(diff => {
+        if (diff > 0) return '#007bff'; // Team 1 blue
+        if (diff < 0) return '#dc3545'; // Team 2 red
+        return '#888'; // Tied
+    });
+
+    const ctx = canvas.getContext('2d');
+
+    gameFlowChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Lead Margin',
+                data: differentials,
+                borderColor: '#007bff',
+                backgroundColor: function(context) {
+                    const index = context.dataIndex;
+                    return backgroundColors[index];
+                },
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: function(context) {
+                    const index = context.dataIndex;
+                    return borderColors[index];
+                },
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2,
+                segment: {
+                    borderColor: function(context) {
+                        const index = context.p0DataIndex;
+                        return borderColors[index];
+                    }
+                }
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Game Flow - Lead Margin',
+                    font: { size: 18 },
+                    color: textColor
+                },
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: tooltipBg,
+                    titleColor: textColor,
+                    bodyColor: textColor,
+                    borderColor: tooltipBorder,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const diff = context.parsed.y;
+                            if (diff > 0) {
+                                return `${team1Name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                            } else if (diff < 0) {
+                                return `${team2Name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                            } else {
+                                return 'Game tied';
+                            }
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Time',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor
+                    },
+                    grid: {
+                        color: gridColor,
+                        display: false
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Lead Margin',
+                        color: textColor
+                    },
+                    ticks: {
+                        color: textColor,
+                        callback: function(value) {
+                            return value.toLocaleString();
+                        }
+                    },
+                    grid: {
+                        color: gridColor,
+                        lineWidth: function(context) {
+                            return context.tick.value === 0 ? 2 : 1;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Add stats display and toggle button
+    addChartControls(sortedSnapshots, team1Name, team2Name);
+}
+
+function addChartControls(snapshots, team1Name, team2Name) {
+    // Remove existing controls if any
+    const existingControls = document.getElementById('chart-controls');
+    if (existingControls) {
+        existingControls.remove();
+    }
+
+    const chartArea = document.getElementById('game-flow-chart-area');
+    if (!chartArea) return;
+
+    // Get final snapshot for stats
+    const finalSnapshot = snapshots[snapshots.length - 1];
+    const leadChanges = finalSnapshot.lead_changes !== undefined ? finalSnapshot.lead_changes :
+        calculateLeadChanges(snapshots);
+    const team1BiggestLead = finalSnapshot.team1_biggest_lead !== undefined ? finalSnapshot.team1_biggest_lead :
+        calculateBiggestLead(snapshots, 1);
+    const team2BiggestLead = finalSnapshot.team2_biggest_lead !== undefined ? finalSnapshot.team2_biggest_lead :
+        calculateBiggestLead(snapshots, 2);
+
+    // Detect dark mode
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+
+    // Create controls container
+    const controlsDiv = document.createElement('div');
+    controlsDiv.id = 'chart-controls';
+    controlsDiv.style.cssText = `
+        margin-top: 1rem;
+        padding: 1rem;
+        background-color: ${isDarkMode ? '#2c2c2c' : '#f8f9fa'};
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    `;
+
+    // Stats display
+    const statsDiv = document.createElement('div');
+    statsDiv.style.cssText = `
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        color: ${isDarkMode ? '#e0e0e0' : '#333'};
+        font-size: 0.9rem;
+    `;
+
+    statsDiv.innerHTML = `
+        <div><strong>Lead Changes:</strong> ${leadChanges}</div>
+        <div><strong>${team1Name} Biggest Lead:</strong> ${Math.round(team1BiggestLead).toLocaleString()}</div>
+        <div><strong>${team2Name} Biggest Lead:</strong> ${Math.round(team2BiggestLead).toLocaleString()}</div>
+    `;
+
+    // Toggle button
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = currentChartType === 'cumulative' ? 'Show Differential View' : 'Show Cumulative View';
+    toggleBtn.style.cssText = `
+        padding: 0.5rem 1rem;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background-color 0.3s;
+    `;
+    toggleBtn.onmouseover = () => toggleBtn.style.backgroundColor = '#0056b3';
+    toggleBtn.onmouseout = () => toggleBtn.style.backgroundColor = '#007bff';
+    toggleBtn.onclick = () => toggleChartType();
+
+    controlsDiv.appendChild(statsDiv);
+    controlsDiv.appendChild(toggleBtn);
+    chartArea.appendChild(controlsDiv);
+}
+
+function toggleChartType() {
+    currentChartType = currentChartType === 'cumulative' ? 'differential' : 'cumulative';
+    if (currentGameFlowData && currentTeam1Name && currentTeam2Name) {
+        renderGameFlowChart(currentGameFlowData, currentTeam1Name, currentTeam2Name);
+    }
+}
+
+function calculateLeadChanges(snapshots) {
+    let leadChanges = 0;
+    let prevDifferential = null;
+
+    for (const snapshot of snapshots) {
+        const differential = snapshot.team1_score - snapshot.team2_score;
+
+        if (prevDifferential !== null) {
+            if ((prevDifferential > 0 && differential < 0) ||
+                (prevDifferential < 0 && differential > 0) ||
+                (prevDifferential === 0 && differential !== 0)) {
+                leadChanges++;
+            }
+        }
+
+        prevDifferential = differential;
+    }
+
+    return leadChanges;
+}
+
+function calculateBiggestLead(snapshots, teamNumber) {
+    let biggestLead = 0;
+
+    for (const snapshot of snapshots) {
+        const differential = snapshot.team1_score - snapshot.team2_score;
+
+        if (teamNumber === 1 && differential > biggestLead) {
+            biggestLead = differential;
+        } else if (teamNumber === 2 && differential < 0 && Math.abs(differential) > biggestLead) {
+            biggestLead = Math.abs(differential);
+        }
+    }
+
+    return biggestLead;
 }
 
 async function showGameDetails(team1_id, team2_id, gameDate) {

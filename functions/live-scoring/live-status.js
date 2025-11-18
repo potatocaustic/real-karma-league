@@ -81,11 +81,54 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
         const team2_total = gameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
 
         const snapshotRef = db.collection(getCollectionName('game_flow_snapshots', league)).doc(gameDoc.id);
+
+        // Fetch existing snapshots to calculate lead changes and biggest leads
+        const existingDoc = await snapshotRef.get();
+        const existingSnapshots = existingDoc.exists ? (existingDoc.data().snapshots || []) : [];
+
+        // Calculate differential
+        const differential = team1_total - team2_total;
+
+        // Initialize or get current stats
+        let leadChanges = 0;
+        let team1BiggestLead = 0;
+        let team2BiggestLead = 0;
+
+        if (existingSnapshots.length > 0) {
+            // Get the previous snapshot
+            const prevSnapshot = existingSnapshots[existingSnapshots.length - 1];
+            const prevDifferential = prevSnapshot.differential || (prevSnapshot.team1_score - prevSnapshot.team2_score);
+
+            // Start with existing lead change count
+            leadChanges = prevSnapshot.lead_changes || 0;
+            team1BiggestLead = prevSnapshot.team1_biggest_lead || 0;
+            team2BiggestLead = prevSnapshot.team2_biggest_lead || 0;
+
+            // Check if lead changed (sign change in differential, including transitions through 0)
+            if ((prevDifferential > 0 && differential < 0) ||
+                (prevDifferential < 0 && differential > 0) ||
+                (prevDifferential === 0 && differential !== 0)) {
+                leadChanges++;
+            }
+        }
+
+        // Update biggest leads
+        if (differential > team1BiggestLead) {
+            team1BiggestLead = differential;
+        }
+        if (differential < 0 && Math.abs(differential) > team2BiggestLead) {
+            team2BiggestLead = Math.abs(differential);
+        }
+
         snapshotBatch.set(snapshotRef, {
             snapshots: FieldValue.arrayUnion({
                 timestamp: timestamp,
                 team1_score: team1_total,
-                team2_score: team2_total
+                team2_score: team2_total,
+                differential: differential,
+                lead_changes: leadChanges,
+                team1_biggest_lead: team1BiggestLead,
+                team2_biggest_lead: team2BiggestLead
             })
         }, { merge: true });
     }
