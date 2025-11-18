@@ -61,17 +61,59 @@ async function fetchAvailableDates() {
         const leaderboardsRef = collection(db, getCollectionName('daily_leaderboards'));
         const leaderboardsSnap = await getDocs(leaderboardsRef);
 
-        availableDates = leaderboardsSnap.docs
+        const allDates = leaderboardsSnap.docs
             .map(doc => doc.id)
-            .filter(id => /^\d{4}-\d{2}-\d{2}$/.test(id)) // Only valid date format
+            .filter(id => /^\d{4}-\d{2}-\d{2}$/.test(id)); // Only valid date format
+
+        // Filter out preseason dates by checking if games on that date are preseason
+        const nonPreseasonDates = await filterOutPreseasonDates(allDates);
+
+        availableDates = nonPreseasonDates
             .sort()
             .reverse(); // Most recent first
 
-        console.log('Available dates:', availableDates);
+        console.log('Available dates (excluding preseason):', availableDates);
         return availableDates;
     } catch (error) {
         console.error('Error fetching available dates:', error);
         return [];
+    }
+}
+
+async function filterOutPreseasonDates(dates) {
+    try {
+        // Fetch all games to determine which dates are preseason
+        const seasonId = activeSeasonId || 'S9';
+        const gamesRef = collection(db, 'seasons', seasonId, 'games');
+        const postGamesRef = collection(db, 'seasons', seasonId, 'post_games');
+        const exhibitionGamesRef = collection(db, 'seasons', seasonId, 'exhibition_games');
+
+        const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
+            getDocs(gamesRef),
+            getDocs(postGamesRef),
+            getDocs(exhibitionGamesRef)
+        ]);
+
+        const allGames = [
+            ...gamesSnap.docs.map(d => d.data()),
+            ...postGamesSnap.docs.map(d => d.data()),
+            ...exhibitionGamesSnap.docs.map(d => d.data())
+        ];
+
+        // Build a set of dates that have non-preseason games
+        const validDates = new Set();
+        allGames.forEach(game => {
+            if (game.game_date && game.week !== 'Preseason') {
+                validDates.add(game.game_date);
+            }
+        });
+
+        // Filter dates to only include those with non-preseason games
+        return dates.filter(date => validDates.has(date));
+    } catch (error) {
+        console.error('Error filtering preseason dates:', error);
+        // If error, return all dates as fallback
+        return dates;
     }
 }
 
@@ -100,9 +142,13 @@ async function fetchPlayerHistory(playerId, playerName) {
 
         const playerHistory = [];
 
+        // Only include dates that are in availableDates (excludes preseason)
+        const validDatesSet = new Set(availableDates);
+
         leaderboardsSnap.docs.forEach(doc => {
             const dateId = doc.id;
             if (!/^\d{4}-\d{2}-\d{2}$/.test(dateId)) return; // Skip non-date documents
+            if (!validDatesSet.has(dateId)) return; // Skip preseason dates
 
             const data = doc.data();
             const processedData = processLeaderboardData(data);
@@ -125,7 +171,7 @@ async function fetchPlayerHistory(playerId, playerName) {
         // Sort by date
         playerHistory.sort((a, b) => a.date.localeCompare(b.date));
 
-        console.log(`Player history for ${playerName}:`, playerHistory);
+        console.log(`Player history for ${playerName} (excluding preseason):`, playerHistory);
         return playerHistory;
     } catch (error) {
         console.error('Error fetching player history:', error);
@@ -368,8 +414,8 @@ function renderPlayerHistoryChart(history, playerName) {
             labels: labels,
             datasets: [
                 {
-                    label: 'Daily Score',
-                    data: history.map(h => h.score),
+                    label: '% vs Median',
+                    data: history.map(h => h.percent_vs_median),
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     yAxisID: 'y',
@@ -431,11 +477,14 @@ function renderPlayerHistoryChart(history, playerName) {
                     position: 'left',
                     title: {
                         display: true,
-                        text: 'Score',
+                        text: '% vs Median',
                         color: textColor
                     },
                     ticks: {
-                        color: textColor
+                        color: textColor,
+                        callback: function(value) {
+                            return value.toFixed(1) + '%';
+                        }
                     },
                     grid: {
                         color: gridColor
@@ -466,14 +515,20 @@ function renderPlayerHistoryChart(history, playerName) {
 function renderPlayerHistoryStats(history, container) {
     const totalGames = history.length;
     const avgScore = history.reduce((sum, h) => sum + h.score, 0) / totalGames;
-    const avgRank = history.reduce((sum, h) => sum + h.rank, 0) / totalGames;
+
+    // Calculate median rank
+    const sortedRanks = history.map(h => h.rank).sort((a, b) => a - b);
+    const medianRank = totalGames % 2 === 0
+        ? (sortedRanks[Math.floor(totalGames / 2) - 1] + sortedRanks[Math.floor(totalGames / 2)]) / 2
+        : sortedRanks[Math.floor(totalGames / 2)];
+
     const avgPercentVsMedian = history.reduce((sum, h) => sum + h.percent_vs_median, 0) / totalGames;
 
     const bestGame = history.reduce((best, h) => h.score > best.score ? h : best, history[0]);
     const worstGame = history.reduce((worst, h) => h.score < worst.score ? h : worst, history[0]);
     const bestRank = history.reduce((best, h) => h.rank < best.rank ? h : best, history[0]);
 
-    const top3Finishes = history.filter(h => h.rank <= 3).length;
+    const top100Finishes = history.filter(h => h.rank <= 100).length;
     const aboveMedian = history.filter(h => h.percent_vs_median >= 0).length;
 
     container.innerHTML = `
@@ -487,16 +542,16 @@ function renderPlayerHistoryStats(history, container) {
                 <div class="stat-value">${Math.round(avgScore).toLocaleString()}</div>
             </div>
             <div class="stat-item">
-                <div class="stat-label">Avg Rank</div>
-                <div class="stat-value">${avgRank.toFixed(1)}</div>
+                <div class="stat-label">Median Rank</div>
+                <div class="stat-value">${medianRank.toFixed(1)}</div>
             </div>
             <div class="stat-item">
                 <div class="stat-label">Avg vs Median</div>
                 <div class="stat-value ${avgPercentVsMedian >= 0 ? 'positive' : 'negative'}">${avgPercentVsMedian >= 0 ? '+' : ''}${avgPercentVsMedian.toFixed(1)}%</div>
             </div>
             <div class="stat-item">
-                <div class="stat-label">Top 3 Finishes</div>
-                <div class="stat-value">${top3Finishes}</div>
+                <div class="stat-label">Top 100 Finishes</div>
+                <div class="stat-value">${top100Finishes}</div>
             </div>
             <div class="stat-item">
                 <div class="stat-label">Above Median</div>
