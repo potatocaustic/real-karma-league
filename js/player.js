@@ -569,8 +569,26 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                 data: differentials,
                 borderColor: colors.team1,
                 backgroundColor: function(context) {
-                    const index = context.dataIndex;
-                    return backgroundColors[index];
+                    if (!context.chart.chartArea) return 'rgba(128, 128, 128, 0.2)';
+
+                    const chart = context.chart;
+                    const {ctx, chartArea} = chart;
+                    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+
+                    // Create gradient based on data values
+                    const yScale = chart.scales.y;
+                    const zeroPoint = yScale.getPixelForValue(0);
+                    const topPoint = chartArea.top;
+                    const bottomPoint = chartArea.bottom;
+
+                    const zeroPosition = (zeroPoint - topPoint) / (bottomPoint - topPoint);
+
+                    // Team 1 color above zero line, Team 2 color below
+                    gradient.addColorStop(0, hexToRgba(colors.team1, 0.3));
+                    gradient.addColorStop(Math.max(0, Math.min(1, zeroPosition)), 'rgba(128, 128, 128, 0.1)');
+                    gradient.addColorStop(1, hexToRgba(colors.team2, 0.3));
+
+                    return gradient;
                 },
                 borderWidth: 2,
                 tension: 0.3,
@@ -615,9 +633,11 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                         label: function(context) {
                             const diff = context.parsed.y;
                             if (diff > 0) {
-                                return `${team1.team_name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                                const verb = team1.team_name.endsWith('s') ? 'lead' : 'leads';
+                                return `${team1.team_name} ${verb} by ${Math.round(Math.abs(diff)).toLocaleString()}`;
                             } else if (diff < 0) {
-                                return `${team2.team_name} leads by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                                const verb = team2.team_name.endsWith('s') ? 'lead' : 'leads';
+                                return `${team2.team_name} ${verb} by ${Math.round(Math.abs(diff)).toLocaleString()}`;
                             } else {
                                 return 'Game tied';
                             }
@@ -810,11 +830,21 @@ async function extractDominantColor(teamId, logoExt = 'webp') {
                 // Sample every 4th pixel for efficiency
                 for (let i = 0; i < data.length; i += 16) {
                     const alpha = data[i + 3];
-                    if (alpha > 128) { // Only count non-transparent pixels
-                        r += data[i];
-                        g += data[i + 1];
-                        b += data[i + 2];
-                        count++;
+                    const red = data[i];
+                    const green = data[i + 1];
+                    const blue = data[i + 2];
+
+                    // Only count non-transparent pixels and skip very dark colors (likely background)
+                    if (alpha > 128) {
+                        const brightness = (red + green + blue) / 3;
+                        // Skip if too dark (likely black background) unless it's a vibrant dark color
+                        const isVibrant = Math.max(red, green, blue) - Math.min(red, green, blue) > 50;
+                        if (brightness > 40 || isVibrant) {
+                            r += red;
+                            g += green;
+                            b += blue;
+                            count++;
+                        }
                     }
                 }
 
@@ -899,26 +929,16 @@ function addChartTitle(chartArea, isDarkMode) {
 
 function addTeamIconsToChart(chartArea, team1, team2, colors) {
     // Remove existing icons if any
-    const existingIcons = document.getElementById('chart-team-icons');
-    if (existingIcons) {
-        existingIcons.remove();
-    }
-
-    const iconsContainer = document.createElement('div');
-    iconsContainer.id = 'chart-team-icons';
-    iconsContainer.style.cssText = `
-        position: absolute;
-        top: 80px;
-        right: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        z-index: 10;
-    `;
+    const existingIcons = document.querySelectorAll('.chart-team-icon');
+    existingIcons.forEach(icon => icon.remove());
 
     const createTeamIcon = (team, position) => {
         const iconDiv = document.createElement('div');
+        iconDiv.className = 'chart-team-icon';
         iconDiv.style.cssText = `
+            position: absolute;
+            ${position === 'top' ? 'top: 80px;' : 'bottom: 60px;'}
+            right: 20px;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -926,6 +946,7 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
             background: rgba(255, 255, 255, 0.9);
             border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 10;
         `;
 
         const img = document.createElement('img');
@@ -943,11 +964,9 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
         return iconDiv;
     };
 
-    iconsContainer.appendChild(createTeamIcon(team1, 'top'));
-    iconsContainer.appendChild(createTeamIcon(team2, 'bottom'));
-
     chartArea.style.position = 'relative';
-    chartArea.appendChild(iconsContainer);
+    chartArea.appendChild(createTeamIcon(team1, 'top'));
+    chartArea.appendChild(createTeamIcon(team2, 'bottom'));
 }
 
 /**
