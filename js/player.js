@@ -753,7 +753,8 @@ function addChartControls(snapshots, team1, team2, colors) {
     const controlsDiv = document.createElement('div');
     controlsDiv.id = 'chart-controls';
     controlsDiv.style.cssText = `
-        margin-top: 1rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
         padding: 0.75rem 1rem;
         background-color: ${isDarkMode ? '#2c2c2c' : '#f8f9fa'};
         border-radius: 8px;
@@ -786,7 +787,14 @@ function addChartControls(snapshots, team1, team2, colors) {
     `;
 
     controlsDiv.appendChild(statsDiv);
-    chartArea.appendChild(controlsDiv);
+
+    // Insert controls after title but before canvas
+    const canvas = document.getElementById('game-flow-chart');
+    if (canvas) {
+        chartArea.insertBefore(controlsDiv, canvas);
+    } else {
+        chartArea.appendChild(controlsDiv);
+    }
 }
 
 function toggleChartType() {
