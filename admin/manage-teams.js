@@ -171,6 +171,7 @@ function openTeamModal(team) {
     document.getElementById('team-gm-uid-input').value = team.gm_uid || '';
     // *** MODIFIED LOGIC ***
     document.getElementById('team-gm-player-id-input').value = team.gm_player_id || '';
+    document.getElementById('team-color-override-input').value = team.color_override || '#000000';
     teamModal.style.display = 'block';
 }
 
@@ -186,12 +187,16 @@ async function handleTeamFormSubmit(e) {
     e.preventDefault();
     const teamId = document.getElementById('team-id-input').value;
 
+    // Get color override value
+    const colorOverride = document.getElementById('team-color-override-input').value;
+
     // *** MODIFIED LOGIC ***
     const rootData = {
         conference: document.getElementById('team-conference-select').value,
         current_gm_handle: document.getElementById('team-gm-handle-input').value,
         gm_uid: document.getElementById('team-gm-uid-input').value,
-        gm_player_id: document.getElementById('team-gm-player-id-input').value
+        gm_player_id: document.getElementById('team-gm-player-id-input').value,
+        color_override: colorOverride !== '#000000' ? colorOverride : null
     };
     const seasonalData = {
         team_name: document.getElementById('team-name-input').value
