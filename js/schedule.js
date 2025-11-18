@@ -921,6 +921,7 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                     },
                     grid: {
                         color: gridColor,
+                        display: false,
                         lineWidth: function(context) {
                             return context.tick.value === 0 ? 2 : 1;
                         }
