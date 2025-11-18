@@ -263,7 +263,7 @@ main {
 .game-history-main-content { display: flex; flex-direction: column; flex-grow: 1; min-width: 0; }
 .game-history-matchup-teams { display: flex; flex-direction: row; align-items: center; gap: 0.5rem; }
 .game-history-team-entry { display: flex; align-items: center; gap: 0.4rem; flex: 1; min-width: 0; }
-.game-history-team-logo { width: 20px; height: 20px; border-radius: 3px; flex-shrink: 0; }
+.game-history-team-logo { width: 30px; height: 30px; border-radius: 3px; flex-shrink: 0; }
 .game-history-team-name { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .game-result-indicator { font-weight: bold; font-size: 0.9rem; margin-left: 0.25rem; }
 .game-result-w { color: #28a745; } /* MODIFIED: Matched legacy class */
