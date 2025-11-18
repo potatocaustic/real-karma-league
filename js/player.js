@@ -600,7 +600,8 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
 
     for (let i = 0; i < differentials.length; i++) {
         const value = differentials[i];
-        const leader = value > 0 ? 1 : (value < 0 ? -1 : 0);
+        // Treat 0 as part of team1's segment to avoid creating tiny intermediate segments
+        const leader = value >= 0 ? 1 : -1;
 
         // Detect leader change
         if (currentLeader !== null && leader !== currentLeader) {
