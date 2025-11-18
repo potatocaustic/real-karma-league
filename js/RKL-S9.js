@@ -15,6 +15,7 @@ let activeSeasonId = urlSeasonId || '';
 let allTeams = [];
 let allGamesCache = []; // Caches all games for the season
 let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
+let dailyLeaderboardUnsubscribe = null; // To store the daily leaderboard listener unsubscribe function
 let showLiveFeatures = true; // Controls visibility of new live features
 
 // --- UTILITY FUNCTIONS ---
@@ -452,7 +453,7 @@ async function loadRecentGames() {
         infoIconContainer.style.display = 'none';
     }
 
-    // Hide daily leaderboard icon when not in live mode
+    // Hide daily leaderboard icon when not in live mode and clean up listener
     const leaderboardIcon = document.getElementById('daily-leaderboard-icon');
     const leaderboardView = document.getElementById('daily-leaderboard-view');
     if (leaderboardIcon) {
@@ -462,6 +463,12 @@ async function loadRecentGames() {
     if (leaderboardView) {
         leaderboardView.style.display = 'none';
         leaderboardView.innerHTML = '';
+    }
+    // Clean up the leaderboard listener
+    if (dailyLeaderboardUnsubscribe) {
+        console.log('Cleaning up daily leaderboard listener (switched to recent games)');
+        dailyLeaderboardUnsubscribe();
+        dailyLeaderboardUnsubscribe = null;
     }
 
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
@@ -1058,55 +1065,74 @@ function closeModal() {
 }
 
 // --- DAILY LEADERBOARD FUNCTIONS ---
-async function fetchDailyLeaderboard(gameDate) {
+function processLeaderboardData(data) {
+    // Handle both old format (players) and new format (all_players, top_3, bottom_3)
+    if (data.players && !data.all_players) {
+        console.log('Converting old leaderboard format to new format...');
+        // Old format: just has 'players' array
+        // Need to transform it to new format with top_3, bottom_3, all_players, median_score
+        const players = data.players.map((p, index) => ({
+            ...p,
+            rank: index + 1 // Assuming already sorted
+        }));
+
+        // Calculate median
+        const medianScore = players.length > 0 ?
+            (players.length % 2 === 0
+                ? (players[Math.floor(players.length / 2) - 1].score + players[Math.floor(players.length / 2)].score) / 2
+                : players[Math.floor(players.length / 2)].score)
+            : 0;
+
+        // Add percent_vs_median to all players
+        players.forEach(player => {
+            player.percent_vs_median = medianScore !== 0
+                ? ((player.score - medianScore) / Math.abs(medianScore)) * 100
+                : 0;
+        });
+
+        return {
+            top_3: players.slice(0, 3),
+            bottom_3: players.slice(-3).reverse(),
+            median_score: medianScore,
+            all_players: players,
+            date: data.date
+        };
+    }
+
+    return data;
+}
+
+function setupDailyLeaderboardListener(gameDate, onDataCallback, onErrorCallback) {
     try {
         const leaderboardRef = doc(db, getCollectionName('daily_leaderboards'), gameDate);
-        const leaderboardSnap = await getDoc(leaderboardRef);
 
-        if (leaderboardSnap.exists()) {
-            const data = leaderboardSnap.data();
-            console.log('Daily leaderboard document data:', data);
-            console.log('Document keys:', Object.keys(data));
+        console.log(`Setting up real-time listener for daily leaderboard: ${gameDate}`);
 
-            // Handle both old format (players) and new format (all_players, top_3, bottom_3)
-            if (data.players && !data.all_players) {
-                console.log('Converting old leaderboard format to new format...');
-                // Old format: just has 'players' array
-                // Need to transform it to new format with top_3, bottom_3, all_players, median_score
-                const players = data.players.map((p, index) => ({
-                    ...p,
-                    rank: index + 1 // Assuming already sorted
-                }));
+        const unsubscribe = onSnapshot(leaderboardRef, (leaderboardSnap) => {
+            if (leaderboardSnap.exists()) {
+                const data = leaderboardSnap.data();
+                console.log('Daily leaderboard updated:', data);
+                console.log('Document keys:', Object.keys(data));
 
-                // Calculate median
-                const medianScore = players.length > 0 ?
-                    (players.length % 2 === 0
-                        ? (players[Math.floor(players.length / 2) - 1].score + players[Math.floor(players.length / 2)].score) / 2
-                        : players[Math.floor(players.length / 2)].score)
-                    : 0;
-
-                // Add percent_vs_median to all players
-                players.forEach(player => {
-                    player.percent_vs_median = medianScore !== 0
-                        ? ((player.score - medianScore) / Math.abs(medianScore)) * 100
-                        : 0;
-                });
-
-                return {
-                    top_3: players.slice(0, 3),
-                    bottom_3: players.slice(-3).reverse(),
-                    median_score: medianScore,
-                    all_players: players,
-                    date: data.date
-                };
+                const processedData = processLeaderboardData(data);
+                onDataCallback(processedData);
+            } else {
+                console.warn(`No daily leaderboard document found for date: ${gameDate}`);
+                onDataCallback(null);
             }
+        }, (error) => {
+            console.error('Error in daily leaderboard listener:', error);
+            if (onErrorCallback) {
+                onErrorCallback(error);
+            }
+        });
 
-            return data;
-        }
-        console.warn(`No daily leaderboard document found for date: ${gameDate}`);
-        return null;
+        return unsubscribe;
     } catch (error) {
-        console.error('Error fetching daily leaderboard:', error);
+        console.error('Error setting up daily leaderboard listener:', error);
+        if (onErrorCallback) {
+            onErrorCallback(error);
+        }
         return null;
     }
 }
@@ -1248,37 +1274,61 @@ async function toggleDailyLeaderboard() {
         leaderboardView.style.display = 'block';
         leaderboardIcon.classList.add('active');
 
-        // Fetch and render leaderboard if not already rendered
-        if (leaderboardView.innerHTML === '') {
-            leaderboardView.innerHTML = '<div class="loading">Loading leaderboard...</div>';
+        // Set up real-time listener for leaderboard
+        leaderboardView.innerHTML = '<div class="loading">Loading leaderboard...</div>';
 
-            // Get the active game date from live scoring status
-            try {
-                const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
-                const statusSnap = await getDoc(statusRef);
+        // Get the active game date from live scoring status
+        try {
+            const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+            const statusSnap = await getDoc(statusRef);
 
-                let gameDate;
-                if (statusSnap.exists() && statusSnap.data().active_game_date) {
-                    gameDate = statusSnap.data().active_game_date;
-                    console.log(`Fetching daily leaderboard for game date: ${gameDate}`);
-                } else {
-                    // Fallback to today's date in UTC
-                    gameDate = new Date().toISOString().split('T')[0];
-                    console.warn(`No active_game_date found, using current date: ${gameDate}`);
-                }
-
-                const leaderboardData = await fetchDailyLeaderboard(gameDate);
-                renderDailyLeaderboard(leaderboardData);
-            } catch (error) {
-                console.error('Error loading daily leaderboard:', error);
-                leaderboardView.innerHTML = '<div class="error">Failed to load leaderboard. Please try again.</div>';
+            let gameDate;
+            if (statusSnap.exists() && statusSnap.data().active_game_date) {
+                gameDate = statusSnap.data().active_game_date;
+                console.log(`Setting up daily leaderboard listener for game date: ${gameDate}`);
+            } else {
+                // Fallback to today's date in UTC
+                gameDate = new Date().toISOString().split('T')[0];
+                console.warn(`No active_game_date found, using current date: ${gameDate}`);
             }
+
+            // Clean up existing listener if any
+            if (dailyLeaderboardUnsubscribe) {
+                dailyLeaderboardUnsubscribe();
+                dailyLeaderboardUnsubscribe = null;
+            }
+
+            // Set up new real-time listener
+            dailyLeaderboardUnsubscribe = setupDailyLeaderboardListener(
+                gameDate,
+                (leaderboardData) => {
+                    // This callback is called whenever the leaderboard data changes
+                    renderDailyLeaderboard(leaderboardData);
+                },
+                (error) => {
+                    console.error('Error in daily leaderboard listener:', error);
+                    leaderboardView.innerHTML = '<div class="error">Failed to load leaderboard. Please try again.</div>';
+                }
+            );
+        } catch (error) {
+            console.error('Error setting up daily leaderboard:', error);
+            leaderboardView.innerHTML = '<div class="error">Failed to load leaderboard. Please try again.</div>';
         }
     } else {
         // Switch back to games list
         gamesList.style.display = 'block';
         leaderboardView.style.display = 'none';
         leaderboardIcon.classList.remove('active');
+
+        // Clean up the leaderboard listener
+        if (dailyLeaderboardUnsubscribe) {
+            console.log('Cleaning up daily leaderboard listener');
+            dailyLeaderboardUnsubscribe();
+            dailyLeaderboardUnsubscribe = null;
+        }
+
+        // Clear the leaderboard view
+        leaderboardView.innerHTML = '';
     }
 }
 
