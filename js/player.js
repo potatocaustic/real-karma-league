@@ -375,6 +375,10 @@ async function renderGameFlowChart(snapshots, team1, team2) {
         return;
     }
 
+    // Remove team icons when rendering cumulative view
+    const existingIcons = document.querySelectorAll('.chart-team-icon');
+    existingIcons.forEach(icon => icon.remove());
+
     // Detect dark mode
     const isDarkMode = document.documentElement.classList.contains('dark-mode');
     const textColor = isDarkMode ? '#e0e0e0' : '#333';
@@ -587,48 +591,71 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
         return '#888';
     });
 
+    // Create multiple datasets, one for each segment with consistent lead
+    const datasets = [];
+    let currentSegment = [];
+    let currentSegmentLabels = [];
+    let currentLeader = null; // 1 for team1, -1 for team2, 0 for tied
+
+    for (let i = 0; i < differentials.length; i++) {
+        const value = differentials[i];
+        const leader = value > 0 ? 1 : (value < 0 ? -1 : 0);
+
+        // Start new segment if leader changed
+        if (currentLeader !== null && leader !== currentLeader && currentSegment.length > 0) {
+            // Finish current segment
+            const segmentColor = currentLeader === 1 ? colors.team1 : (currentLeader === -1 ? colors.team2 : '#888');
+            datasets.push({
+                label: 'Lead Margin',
+                data: currentSegment,
+                borderColor: segmentColor,
+                backgroundColor: hexToRgba(segmentColor, 0.3),
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true,
+                pointRadius: 0,
+                pointHoverRadius: 6,
+                pointHoverBackgroundColor: segmentColor,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2
+            });
+
+            // Start new segment with overlap point
+            currentSegment = [currentSegment[currentSegment.length - 1]];
+            currentSegmentLabels = [currentSegmentLabels[currentSegmentLabels.length - 1]];
+        }
+
+        currentLeader = leader;
+        currentSegment.push(value);
+        currentSegmentLabels.push(finalLabels[i]);
+    }
+
+    // Add final segment
+    if (currentSegment.length > 0) {
+        const segmentColor = currentLeader === 1 ? colors.team1 : (currentLeader === -1 ? colors.team2 : '#888');
+        datasets.push({
+            label: 'Lead Margin',
+            data: currentSegment,
+            borderColor: segmentColor,
+            backgroundColor: hexToRgba(segmentColor, 0.3),
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: segmentColor,
+            pointHoverBorderColor: '#fff',
+            pointHoverBorderWidth: 2
+        });
+    }
+
     const ctx = canvas.getContext('2d');
 
     gameFlowChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: finalLabels,
-            datasets: [{
-                label: 'Lead Margin',
-                data: differentials,
-                borderColor: colors.team1,
-                backgroundColor: function(context) {
-                    // Use solid team color based on whether lead is positive or negative
-                    const dataIndex = context.dataIndex;
-                    if (dataIndex === undefined) return hexToRgba(colors.team1, 0.3);
-
-                    const value = context.parsed?.y ?? differentials[dataIndex];
-                    if (value > 0) {
-                        return hexToRgba(colors.team1, 0.3);
-                    } else if (value < 0) {
-                        return hexToRgba(colors.team2, 0.3);
-                    } else {
-                        return 'rgba(128, 128, 128, 0.1)';
-                    }
-                },
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: function(context) {
-                    const index = context.dataIndex;
-                    return borderColors[index];
-                },
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2,
-                segment: {
-                    borderColor: function(context) {
-                        const index = context.p0DataIndex;
-                        return borderColors[index];
-                    }
-                }
-            }]
+            datasets: datasets
         },
         options: {
             responsive: true,
@@ -959,7 +986,7 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
         iconDiv.style.cssText = `
             position: absolute;
             ${position === 'top' ? 'top: 80px;' : 'bottom: 60px;'}
-            left: 20px;
+            left: 60px;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -976,8 +1003,7 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            background: white;
-            padding: 2px;
+            object-fit: cover;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         `;
         img.onerror = function() { this.style.display = 'none'; };
