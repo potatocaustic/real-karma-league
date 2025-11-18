@@ -1152,50 +1152,40 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
     });
 
     // Create multiple datasets, one for each segment with consistent lead
+    // Each dataset spans all labels but has null for points outside its segment
     const datasets = [];
-    let currentSegment = [];
-    let currentSegmentLabels = [];
-    let currentLeader = null; // 1 for team1, -1 for team2, 0 for tied
+    const segments = []; // Track segment ranges: {start, end, leader}
+    let currentLeader = null;
+    let segmentStart = 0;
 
     for (let i = 0; i < differentials.length; i++) {
         const value = differentials[i];
         const leader = value > 0 ? 1 : (value < 0 ? -1 : 0);
 
-        // Start new segment if leader changed
-        if (currentLeader !== null && leader !== currentLeader && currentSegment.length > 0) {
-            // Finish current segment
-            const segmentColor = currentLeader === 1 ? colors.team1 : (currentLeader === -1 ? colors.team2 : '#888');
-            datasets.push({
-                label: 'Lead Margin',
-                data: currentSegment,
-                borderColor: segmentColor,
-                backgroundColor: hexToRgba(segmentColor, 0.3),
-                borderWidth: 2,
-                tension: 0.3,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 6,
-                pointHoverBackgroundColor: segmentColor,
-                pointHoverBorderColor: '#fff',
-                pointHoverBorderWidth: 2
-            });
+        // Detect leader change
+        if (currentLeader !== null && leader !== currentLeader) {
+            segments.push({ start: segmentStart, end: i, leader: currentLeader });
+            segmentStart = i;
+        }
+        currentLeader = leader;
+    }
+    // Add final segment
+    segments.push({ start: segmentStart, end: differentials.length, leader: currentLeader });
 
-            // Start new segment with overlap point
-            currentSegment = [currentSegment[currentSegment.length - 1]];
-            currentSegmentLabels = [currentSegmentLabels[currentSegmentLabels.length - 1]];
+    // Create a dataset for each segment
+    segments.forEach(segment => {
+        const segmentData = new Array(differentials.length).fill(null);
+
+        // Fill in data for this segment's range
+        for (let i = segment.start; i < segment.end; i++) {
+            segmentData[i] = differentials[i];
         }
 
-        currentLeader = leader;
-        currentSegment.push(value);
-        currentSegmentLabels.push(finalLabels[i]);
-    }
+        const segmentColor = segment.leader === 1 ? colors.team1 : (segment.leader === -1 ? colors.team2 : '#888');
 
-    // Add final segment
-    if (currentSegment.length > 0) {
-        const segmentColor = currentLeader === 1 ? colors.team1 : (currentLeader === -1 ? colors.team2 : '#888');
         datasets.push({
             label: 'Lead Margin',
-            data: currentSegment,
+            data: segmentData,
             borderColor: segmentColor,
             backgroundColor: hexToRgba(segmentColor, 0.3),
             borderWidth: 2,
@@ -1205,9 +1195,10 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
             pointHoverRadius: 6,
             pointHoverBackgroundColor: segmentColor,
             pointHoverBorderColor: '#fff',
-            pointHoverBorderWidth: 2
+            pointHoverBorderWidth: 2,
+            spanGaps: false
         });
-    }
+    });
 
     const ctx = canvas.getContext('2d');
 
