@@ -742,9 +742,38 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
     });
 
     // Calculate differentials if not already present
-    const differentials = sortedSnapshots.map(s =>
+    let rawDifferentials = sortedSnapshots.map(s =>
         s.differential !== undefined ? s.differential : (s.team1_score - s.team2_score)
     );
+
+    // Interpolate zero-crossing points for smoother color transitions
+    const interpolatedLabels = [];
+    const interpolatedDifferentials = [];
+
+    for (let i = 0; i < labels.length; i++) {
+        interpolatedLabels.push(labels[i]);
+        interpolatedDifferentials.push(rawDifferentials[i]);
+
+        // Check if there's a zero crossing between this point and the next
+        if (i < labels.length - 1) {
+            const curr = rawDifferentials[i];
+            const next = rawDifferentials[i + 1];
+
+            // If signs differ (crossing zero), insert an interpolated zero point
+            if ((curr > 0 && next < 0) || (curr < 0 && next > 0)) {
+                // Calculate the position of the zero crossing
+                const ratio = Math.abs(curr) / (Math.abs(curr) + Math.abs(next));
+
+                // Create interpolated label (empty string for cleaner display)
+                interpolatedLabels.push('');
+                interpolatedDifferentials.push(0);
+            }
+        }
+    }
+
+    // Use interpolated data
+    const differentials = interpolatedDifferentials;
+    const finalLabels = interpolatedLabels;
 
     // Create colors based on which team is leading
     const hexToRgba = (hex, alpha) => {
@@ -771,45 +800,24 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
     gameFlowChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: labels,
+            labels: finalLabels,
             datasets: [{
                 label: 'Lead Margin',
                 data: differentials,
                 borderColor: colors.team1,
                 backgroundColor: function(context) {
-                    if (!context.chart.chartArea) return 'rgba(128, 128, 128, 0.2)';
+                    // Use solid team color based on whether lead is positive or negative
+                    const dataIndex = context.dataIndex;
+                    if (dataIndex === undefined) return hexToRgba(colors.team1, 0.3);
 
-                    const chart = context.chart;
-                    const {ctx, chartArea} = chart;
-
-                    if (!chartArea || !chart.scales || !chart.scales.y) {
-                        return 'rgba(128, 128, 128, 0.2)';
+                    const value = context.parsed?.y ?? differentials[dataIndex];
+                    if (value > 0) {
+                        return hexToRgba(colors.team1, 0.3);
+                    } else if (value < 0) {
+                        return hexToRgba(colors.team2, 0.3);
+                    } else {
+                        return 'rgba(128, 128, 128, 0.1)';
                     }
-
-                    const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-
-                    // Create gradient based on data values
-                    const yScale = chart.scales.y;
-                    const zeroPoint = yScale.getPixelForValue(0);
-                    const topPoint = chartArea.top;
-                    const bottomPoint = chartArea.bottom;
-
-                    let zeroPosition = (zeroPoint - topPoint) / (bottomPoint - topPoint);
-
-                    // Validate zeroPosition to avoid NaN or Infinity
-                    if (!isFinite(zeroPosition) || isNaN(zeroPosition)) {
-                        zeroPosition = 0.5; // Default to middle if calculation fails
-                    }
-
-                    // Clamp between 0 and 1
-                    zeroPosition = Math.max(0, Math.min(1, zeroPosition));
-
-                    // Team 1 color above zero line, Team 2 color below
-                    gradient.addColorStop(0, hexToRgba(colors.team1, 0.3));
-                    gradient.addColorStop(zeroPosition, 'rgba(128, 128, 128, 0.1)');
-                    gradient.addColorStop(1, hexToRgba(colors.team2, 0.3));
-
-                    return gradient;
                 },
                 borderWidth: 2,
                 tension: 0.3,
@@ -1019,9 +1027,9 @@ function calculateGameStats(snapshots) {
 }
 
 async function getTeamColors(team1, team2) {
-    // Try to extract colors from team logos, fallback to defaults
-    const team1Color = await extractDominantColor(team1.id, team1.logo_ext) || '#007bff';
-    const team2Color = await extractDominantColor(team2.id, team2.logo_ext) || '#dc3545';
+    // Check for color override first, then extract from logo, then fallback to defaults
+    const team1Color = team1.color_override || await extractDominantColor(team1.id, team1.logo_ext) || '#007bff';
+    const team2Color = team2.color_override || await extractDominantColor(team2.id, team2.logo_ext) || '#dc3545';
 
     return {
         team1: team1Color,
@@ -1159,14 +1167,12 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
         iconDiv.style.cssText = `
             position: absolute;
             ${position === 'top' ? 'top: 80px;' : 'bottom: 60px;'}
-            right: 20px;
+            left: 20px;
             display: flex;
             align-items: center;
             gap: 0.5rem;
             padding: 0.25rem;
-            background: rgba(255, 255, 255, 0.9);
-            border-radius: 4px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: transparent;
             z-index: 10;
         `;
 
@@ -1175,9 +1181,12 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
         img.src = `../icons/${team.id}.${logoExt}`;
         img.alt = team.team_name;
         img.style.cssText = `
-            width: 24px;
-            height: 24px;
-            border-radius: 2px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            padding: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         `;
         img.onerror = function() { this.style.display = 'none'; };
 
