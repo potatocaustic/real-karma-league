@@ -618,6 +618,11 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
 
                     const chart = context.chart;
                     const {ctx, chartArea} = chart;
+
+                    if (!chartArea || !chart.scales || !chart.scales.y) {
+                        return 'rgba(128, 128, 128, 0.2)';
+                    }
+
                     const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
 
                     // Create gradient based on data values
@@ -626,11 +631,19 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                     const topPoint = chartArea.top;
                     const bottomPoint = chartArea.bottom;
 
-                    const zeroPosition = (zeroPoint - topPoint) / (bottomPoint - topPoint);
+                    let zeroPosition = (zeroPoint - topPoint) / (bottomPoint - topPoint);
+
+                    // Validate zeroPosition to avoid NaN or Infinity
+                    if (!isFinite(zeroPosition) || isNaN(zeroPosition)) {
+                        zeroPosition = 0.5; // Default to middle if calculation fails
+                    }
+
+                    // Clamp between 0 and 1
+                    zeroPosition = Math.max(0, Math.min(1, zeroPosition));
 
                     // Team 1 color above zero line, Team 2 color below
                     gradient.addColorStop(0, hexToRgba(colors.team1, 0.3));
-                    gradient.addColorStop(Math.max(0, Math.min(1, zeroPosition)), 'rgba(128, 128, 128, 0.1)');
+                    gradient.addColorStop(zeroPosition, 'rgba(128, 128, 128, 0.1)');
                     gradient.addColorStop(1, hexToRgba(colors.team2, 0.3));
 
                     return gradient;
@@ -1018,6 +1031,24 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalContentEl = document.getElementById('game-details-content-area');
+
+    // Clean up existing chart and reset state
+    if (gameFlowChartInstance) {
+        gameFlowChartInstance.destroy();
+        gameFlowChartInstance = null;
+    }
+    currentChartType = 'cumulative'; // Reset to default view
+    currentGameFlowData = null;
+    currentTeam1 = null;
+    currentTeam2 = null;
+
+    // Clean up chart UI elements
+    const existingTitle = document.getElementById('chart-title-bar');
+    if (existingTitle) existingTitle.remove();
+    const existingControls = document.getElementById('chart-controls');
+    if (existingControls) existingControls.remove();
+    const existingIcons = document.querySelectorAll('.chart-team-icon');
+    existingIcons.forEach(icon => icon.remove());
 
     const normalizedDate = normalizeDate(gameDate);
     modal.style.display = 'block';
