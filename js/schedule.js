@@ -808,8 +808,21 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
 
     for (let i = 0; i < differentials.length; i++) {
         const value = differentials[i];
-        // Treat 0 as part of team1's segment to avoid creating tiny intermediate segments
-        const leader = value >= 0 ? 1 : -1;
+        let leader;
+
+        if (value > 0) {
+            leader = 1;
+        } else if (value < 0) {
+            leader = -1;
+        } else {  // value === 0
+            // For interpolated zero crossings (empty labels), determine leader from next point
+            if (i < differentials.length - 1 && finalLabels[i] === '') {
+                leader = differentials[i + 1] >= 0 ? 1 : -1;
+            } else {
+                // For actual zeros (not interpolated), keep previous leader or default to team1
+                leader = currentLeader || 1;
+            }
+        }
 
         // Detect leader change
         if (currentLeader !== null && leader !== currentLeader) {
