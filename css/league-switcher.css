@@ -101,6 +101,7 @@ header nav {
     /* Add padding to header to prevent overlap */
     header {
         padding: 1rem 3.5rem !important;
+        position: relative !important;
     }
 
     /* Override: Move theme toggle to far left on mobile */
@@ -110,12 +111,18 @@ header nav {
         top: 1rem !important;
     }
 
-    /* Position hamburger menu on far right */
+    /* Position hamburger menu on far right - needs to escape nav's flex context */
     header .nav-toggle {
         position: absolute !important;
         right: 0.5rem !important;
         top: 1rem !important;
-        z-index: 10 !important;
+        z-index: 102 !important;
+        display: block !important;
+    }
+
+    /* Prevent nav from creating its own row for the toggle button */
+    header nav {
+        position: static !important;
     }
 
     /* Center the league switcher and logo together */
