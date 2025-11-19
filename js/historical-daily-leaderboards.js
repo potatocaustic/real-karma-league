@@ -65,7 +65,9 @@ async function fetchAvailableDates() {
             .map(doc => doc.id)
             .filter(id => /^\d{4}-\d{2}-\d{2}$/.test(id)); // Only valid date format
 
-        // Filter out exhibition/preseason dates by checking games
+        console.log('All dates from daily_leaderboards:', allDates.length);
+
+        // Filter out exhibition/preseason dates
         const nonExhibitionDates = await filterOutExhibitionDates(allDates);
 
         availableDates = nonExhibitionDates
@@ -84,36 +86,24 @@ async function filterOutExhibitionDates(dates) {
     try {
         const seasonId = activeSeasonId || 'S9';
 
-        // Fetch regular season and postseason games only (exclude exhibition_games collection)
-        const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
-        const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
+        // Fetch exhibition games to get dates to EXCLUDE
+        const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
+        const exhibitionGamesSnap = await getDocs(exhibitionGamesRef);
 
-        const [gamesSnap, postGamesSnap] = await Promise.all([
-            getDocs(gamesRef),
-            getDocs(postGamesRef)
-        ]);
+        // Build a set of exhibition game dates to exclude
+        const exhibitionDates = new Set();
 
-        // Build a set of valid dates from regular season and postseason games
-        const validDates = new Set();
-
-        gamesSnap.docs.forEach(doc => {
+        exhibitionGamesSnap.docs.forEach(doc => {
             const game = doc.data();
             if (game.game_date) {
-                validDates.add(game.game_date);
+                exhibitionDates.add(game.game_date);
             }
         });
 
-        postGamesSnap.docs.forEach(doc => {
-            const game = doc.data();
-            if (game.game_date) {
-                validDates.add(game.game_date);
-            }
-        });
+        console.log('Exhibition dates to exclude:', exhibitionDates.size, Array.from(exhibitionDates));
 
-        console.log('Valid non-exhibition dates found:', validDates.size);
-
-        // Filter dates to only include those with regular/postseason games
-        const filtered = dates.filter(date => validDates.has(date));
+        // Filter OUT dates that are in exhibition games
+        const filtered = dates.filter(date => !exhibitionDates.has(date));
         console.log(`Filtered ${dates.length} dates down to ${filtered.length} non-exhibition dates`);
 
         return filtered;
