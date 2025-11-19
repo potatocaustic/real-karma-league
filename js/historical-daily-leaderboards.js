@@ -488,8 +488,8 @@ function renderPlayerHistoryChart(history, playerName) {
                     tension: 0.1
                 },
                 {
-                    label: 'Rank',
-                    data: history.map(h => h.rank),
+                    label: 'Global Rank',
+                    data: history.map(h => h.global_rank),
                     borderColor: 'rgb(255, 99, 132)',
                     backgroundColor: 'rgba(255, 99, 132, 0.2)',
                     yAxisID: 'y1',
@@ -562,7 +562,7 @@ function renderPlayerHistoryChart(history, playerName) {
                     position: 'right',
                     title: {
                         display: true,
-                        text: 'Rank',
+                        text: 'Global Rank',
                         color: textColor
                     },
                     reverse: true,
