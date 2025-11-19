@@ -1207,7 +1207,10 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
             tension: 0.3,
             fill: true,
             pointRadius: 0,
-            pointHoverRadius: 6,
+            pointHoverRadius: function(context) {
+                // Don't show hover dot for interpolated zeros (empty labels)
+                return finalLabels[context.dataIndex] === '' && differentials[context.dataIndex] === 0 ? 0 : 6;
+            },
             pointHoverBackgroundColor: segmentColor,
             pointHoverBorderColor: '#fff',
             pointHoverBorderWidth: 2,
@@ -1226,6 +1229,11 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    bottom: 10
+                }
+            },
             interaction: {
                 mode: 'index',
                 intersect: false
