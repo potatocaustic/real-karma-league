@@ -86,14 +86,19 @@ async function filterOutExhibitionDates(dates) {
     try {
         const seasonId = activeSeasonId || 'S9';
 
-        // Fetch exhibition games to get dates to EXCLUDE
+        // Try to fetch exhibition games to get dates to EXCLUDE
+        console.log('Attempting to fetch exhibition games from seasons/', seasonId, '/exhibition_games');
+
         const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
         const exhibitionGamesSnap = await getDocs(exhibitionGamesRef);
+
+        console.log('Exhibition games documents found:', exhibitionGamesSnap.size);
 
         // Build a set of exhibition game dates to exclude
         const exhibitionDates = new Set();
 
         exhibitionGamesSnap.docs.forEach(doc => {
+            console.log('Exhibition game doc:', doc.id, doc.data());
             const game = doc.data();
             if (game.game_date) {
                 exhibitionDates.add(game.game_date);
@@ -102,6 +107,25 @@ async function filterOutExhibitionDates(dates) {
 
         console.log('Exhibition dates to exclude:', exhibitionDates.size, Array.from(exhibitionDates));
 
+        // If no exhibition dates found, try alternate collection path (subcollections might not use _dev suffix)
+        if (exhibitionDates.size === 0) {
+            console.log('Trying alternate path without dev suffix on subcollection...');
+            const altExhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, 'exhibition_games');
+            const altExhibitionGamesSnap = await getDocs(altExhibitionGamesRef);
+
+            console.log('Alternate path - Exhibition games documents found:', altExhibitionGamesSnap.size);
+
+            altExhibitionGamesSnap.docs.forEach(doc => {
+                console.log('Alt path - Exhibition game doc:', doc.id, doc.data());
+                const game = doc.data();
+                if (game.game_date) {
+                    exhibitionDates.add(game.game_date);
+                }
+            });
+
+            console.log('Exhibition dates to exclude (after alt path):', exhibitionDates.size, Array.from(exhibitionDates));
+        }
+
         // Filter OUT dates that are in exhibition games
         const filtered = dates.filter(date => !exhibitionDates.has(date));
         console.log(`Filtered ${dates.length} dates down to ${filtered.length} non-exhibition dates`);
@@ -109,6 +133,7 @@ async function filterOutExhibitionDates(dates) {
         return filtered;
     } catch (error) {
         console.error('Error filtering exhibition dates:', error);
+        console.error('Error details:', error.message, error.stack);
         // If error, return all dates as fallback to prevent breaking the page
         return dates;
     }
