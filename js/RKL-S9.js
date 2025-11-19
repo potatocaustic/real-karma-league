@@ -1166,12 +1166,12 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
             leader = 1;
         } else if (value < 0) {
             leader = -1;
-        } else {  // value === 0
-            // For interpolated zero crossings (empty labels), determine leader from next point
-            if (i < differentials.length - 1 && finalLabels[i] === '') {
+        } else {  // value === 0 (tied game - interpolated or actual)
+            // Look ahead to determine which team will be leading after the tie
+            if (i < differentials.length - 1) {
                 leader = differentials[i + 1] >= 0 ? 1 : -1;
             } else {
-                // For actual zeros (not interpolated), keep previous leader or default to team1
+                // Last point is a tie - keep previous leader or default to team1
                 leader = currentLeader || 1;
             }
         }
