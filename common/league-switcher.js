@@ -5,14 +5,14 @@ export function createLeagueSwitcher() {
     const container = document.createElement('div');
     container.className = 'league-switcher';
     container.innerHTML = `
-        <div class="league-switcher-container">
-            <button id="major-league-btn" class="league-btn active">
-                Major League
-            </button>
-            <button id="minor-league-btn" class="league-btn">
-                Minor League
-            </button>
-        </div>
+        <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="17 1 21 5 17 9"></polyline>
+                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                <polyline points="7 23 3 19 7 15"></polyline>
+                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+            </svg>
+        </button>
     `;
 
     // Function to update header text based on league
@@ -27,31 +27,33 @@ export function createLeagueSwitcher() {
         }
     }
 
-    // Add event listeners
-    container.querySelector('#major-league-btn').addEventListener('click', () => {
-        setCurrentLeague('major');
-        updateActiveButton('major');
-        updateHeaderText('major');
-    });
-
-    container.querySelector('#minor-league-btn').addEventListener('click', () => {
-        setCurrentLeague('minor');
-        updateActiveButton('minor');
-        updateHeaderText('minor');
-    });
-
-    // Update active button styling
-    function updateActiveButton(league) {
-        container.querySelectorAll('.league-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        container.querySelector(`#${league}-league-btn`).classList.add('active');
+    // Function to update header logo based on league
+    function updateHeaderLogo(league) {
+        const headerLogoElement = document.querySelector('.header-logo');
+        if (headerLogoElement) {
+            if (league === 'major') {
+                headerLogoElement.src = '../icons/RKL.webp';
+                headerLogoElement.alt = 'RKL Logo';
+            } else if (league === 'minor') {
+                headerLogoElement.src = '../icons/RKML.webp';
+                headerLogoElement.alt = 'RKML Logo';
+            }
+        }
     }
+
+    // Toggle league on button click
+    container.querySelector('#league-toggle-btn').addEventListener('click', () => {
+        const currentLeague = getCurrentLeague();
+        const newLeague = currentLeague === 'major' ? 'minor' : 'major';
+        setCurrentLeague(newLeague);
+        updateHeaderText(newLeague);
+        updateHeaderLogo(newLeague);
+    });
 
     // Initialize with current league
     const currentLeague = getCurrentLeague();
-    updateActiveButton(currentLeague);
     updateHeaderText(currentLeague);
+    updateHeaderLogo(currentLeague);
 
     return container;
 }
