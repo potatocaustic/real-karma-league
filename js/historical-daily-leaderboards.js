@@ -272,7 +272,7 @@ async function renderDailyLeaderboard(leaderboardData, dateString) {
 
     try {
         const playerPromises = uniquePlayerIds.map(playerId =>
-            getDoc(doc(db, getCollectionName('v2_players'), playerId))
+            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
         );
         const playerDocs = await Promise.all(playerPromises);
 
