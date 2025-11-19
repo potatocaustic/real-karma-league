@@ -98,15 +98,25 @@ header nav {
 
 /* Mobile optimization */
 @media (max-width: 600px) {
+    /* Add padding to header to prevent overlap */
+    header {
+        padding: 1rem 3.5rem !important;
+    }
+
+    /* Override: Move theme toggle to far left on mobile */
+    header #theme-toggle-btn {
+        left: 0.5rem !important;
+        right: auto !important;
+        top: 1rem !important;
+    }
+
     /* Position hamburger menu on far right */
     header .nav-toggle {
         position: absolute !important;
-        right: 1rem !important;
+        right: 0.5rem !important;
         top: 1rem !important;
         z-index: 10 !important;
     }
-
-    /* Keep theme toggle on far left - already positioned above */
 
     /* Center the league switcher and logo together */
     #league-switcher-mount {
@@ -117,9 +127,9 @@ header nav {
     header h1 {
         position: relative !important;
         margin: 0 !important;
-        /* Hide title text on mobile, keep only logo */
     }
 
+    /* Hide title text on mobile, keep only logo */
     header h1 .header-text {
         display: none !important;
     }
