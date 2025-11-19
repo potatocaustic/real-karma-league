@@ -65,14 +65,14 @@ async function fetchAvailableDates() {
             .map(doc => doc.id)
             .filter(id => /^\d{4}-\d{2}-\d{2}$/.test(id)); // Only valid date format
 
-        // Filter out preseason dates by checking if games on that date are preseason
-        const nonPreseasonDates = await filterOutPreseasonDates(allDates);
+        // Filter out exhibition/preseason dates by checking games
+        const nonExhibitionDates = await filterOutExhibitionDates(allDates);
 
-        availableDates = nonPreseasonDates
+        availableDates = nonExhibitionDates
             .sort()
             .reverse(); // Most recent first
 
-        console.log('Available dates (excluding preseason):', availableDates);
+        console.log('Available dates (excluding exhibition/preseason):', availableDates);
         return availableDates;
     } catch (error) {
         console.error('Error fetching available dates:', error);
@@ -80,39 +80,46 @@ async function fetchAvailableDates() {
     }
 }
 
-async function filterOutPreseasonDates(dates) {
+async function filterOutExhibitionDates(dates) {
     try {
-        // Fetch all games to determine which dates are preseason
         const seasonId = activeSeasonId || 'S9';
-        const gamesRef = collection(db, 'seasons', seasonId, 'games');
-        const postGamesRef = collection(db, 'seasons', seasonId, 'post_games');
-        const exhibitionGamesRef = collection(db, 'seasons', seasonId, 'exhibition_games');
 
-        const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
+        // Fetch regular season and postseason games only (exclude exhibition_games collection)
+        const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
+        const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
+
+        const [gamesSnap, postGamesSnap] = await Promise.all([
             getDocs(gamesRef),
-            getDocs(postGamesRef),
-            getDocs(exhibitionGamesRef)
+            getDocs(postGamesRef)
         ]);
 
-        const allGames = [
-            ...gamesSnap.docs.map(d => d.data()),
-            ...postGamesSnap.docs.map(d => d.data()),
-            ...exhibitionGamesSnap.docs.map(d => d.data())
-        ];
-
-        // Build a set of dates that have non-preseason games
+        // Build a set of valid dates from regular season and postseason games
         const validDates = new Set();
-        allGames.forEach(game => {
-            if (game.game_date && game.week !== 'Preseason') {
+
+        gamesSnap.docs.forEach(doc => {
+            const game = doc.data();
+            if (game.game_date) {
                 validDates.add(game.game_date);
             }
         });
 
-        // Filter dates to only include those with non-preseason games
-        return dates.filter(date => validDates.has(date));
+        postGamesSnap.docs.forEach(doc => {
+            const game = doc.data();
+            if (game.game_date) {
+                validDates.add(game.game_date);
+            }
+        });
+
+        console.log('Valid non-exhibition dates found:', validDates.size);
+
+        // Filter dates to only include those with regular/postseason games
+        const filtered = dates.filter(date => validDates.has(date));
+        console.log(`Filtered ${dates.length} dates down to ${filtered.length} non-exhibition dates`);
+
+        return filtered;
     } catch (error) {
-        console.error('Error filtering preseason dates:', error);
-        // If error, return all dates as fallback
+        console.error('Error filtering exhibition dates:', error);
+        // If error, return all dates as fallback to prevent breaking the page
         return dates;
     }
 }
