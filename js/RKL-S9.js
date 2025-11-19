@@ -1207,7 +1207,10 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
             tension: 0.3,
             fill: true,
             pointRadius: 0,
-            pointHoverRadius: 6,
+            pointHoverRadius: function(context) {
+                // Don't show hover dot for interpolated zeros (empty labels)
+                return finalLabels[context.dataIndex] === '' && differentials[context.dataIndex] === 0 ? 0 : 6;
+            },
             pointHoverBackgroundColor: segmentColor,
             pointHoverBorderColor: '#fff',
             pointHoverBorderWidth: 2,
@@ -1226,6 +1229,11 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    bottom: 10
+                }
+            },
             interaction: {
                 mode: 'index',
                 intersect: false
@@ -1557,7 +1565,7 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
         const topPosition = currentChartType === 'differential' ? '40px' : '80px';
         iconDiv.style.cssText = `
             position: absolute;
-            ${position === 'top' ? `top: ${topPosition};` : 'bottom: 60px;'}
+            ${position === 'top' ? `top: ${topPosition};` : 'bottom: 20px;'}
             left: 60px;
             display: flex;
             align-items: center;
