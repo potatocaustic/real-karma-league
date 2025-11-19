@@ -588,8 +588,8 @@ function renderPlayerHistoryStats(history, container) {
     const totalGames = history.length;
     const avgScore = history.reduce((sum, h) => sum + h.score, 0) / totalGames;
 
-    // Calculate median rank
-    const sortedRanks = history.map(h => h.rank).sort((a, b) => a - b);
+    // Calculate median rank (using global_rank)
+    const sortedRanks = history.map(h => h.global_rank).sort((a, b) => a - b);
     const medianRank = totalGames % 2 === 0
         ? (sortedRanks[Math.floor(totalGames / 2) - 1] + sortedRanks[Math.floor(totalGames / 2)]) / 2
         : sortedRanks[Math.floor(totalGames / 2)];
@@ -598,7 +598,7 @@ function renderPlayerHistoryStats(history, container) {
 
     const bestGame = history.reduce((best, h) => h.score > best.score ? h : best, history[0]);
     const worstGame = history.reduce((worst, h) => h.score < worst.score ? h : worst, history[0]);
-    const bestRank = history.reduce((best, h) => h.rank < best.rank ? h : best, history[0]);
+    const bestRank = history.reduce((best, h) => h.global_rank < best.global_rank ? h : best, history[0]);
 
     const top100Finishes = history.filter(h => h.rank <= 100).length;
     const aboveMedian = history.filter(h => h.percent_vs_median >= 0).length;
@@ -636,7 +636,7 @@ function renderPlayerHistoryStats(history, container) {
             </div>
             <div class="stat-item">
                 <div class="stat-label">Best Rank</div>
-                <div class="stat-value">#${bestRank.rank}</div>
+                <div class="stat-value">${getOrdinal(bestRank.global_rank)}</div>
                 <div class="stat-detail">${formatDate(bestRank.date)}</div>
             </div>
         </div>
