@@ -1,69 +1,83 @@
 /* League Switcher Component Styles */
 
-.league-switcher-container {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    padding: 12px;
-    background: #333;
-    border-radius: 0;
-    margin: 0;
-    width: 100%;
+.league-switcher {
+    display: inline-block;
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
-.league-btn {
-    padding: 8px 16px;
+.league-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
     border: 2px solid #555;
     background: #444;
-    color: #fff;
-    border-radius: 6px;
+    color: #4CAF50;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s;
+    transition: all 0.3s ease;
 }
 
-.league-btn:hover {
+.league-toggle-btn:hover {
     border-color: #4CAF50;
     background: #555;
+    transform: scale(1.05);
 }
 
-.league-btn.active {
-    background: #4CAF50;
-    color: white;
-    border-color: #4CAF50;
+.league-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.league-toggle-btn svg {
+    width: 24px;
+    height: 24px;
+    color: inherit;
+}
+
+/* Position the h1 to accommodate the switch icon */
+header h1 {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-left: 60px; /* Make room for the switch icon */
 }
 
 /* Dark mode support */
-.dark-mode .league-switcher-container {
-    background: #333;
-}
-
-.dark-mode .league-btn {
+.dark-mode .league-toggle-btn {
     background: #444;
     border-color: #555;
-    color: #fff;
+    color: #4CAF50;
 }
 
-.dark-mode .league-btn:hover {
+.dark-mode .league-toggle-btn:hover {
     background: #555;
-    border-color: #4CAF50;
-}
-
-.dark-mode .league-btn.active {
-    background: #4CAF50;
-    color: white;
     border-color: #4CAF50;
 }
 
 /* Mobile optimization */
 @media (max-width: 600px) {
-    .league-switcher-container {
-        padding: 10px 8px;
-        gap: 8px;
+    .league-switcher {
+        left: 5px;
     }
 
-    .league-btn {
-        padding: 6px 12px;
-        font-size: 0.9rem;
+    .league-toggle-btn {
+        width: 36px;
+        height: 36px;
+        padding: 6px;
+    }
+
+    .league-toggle-btn svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    header h1 {
+        padding-left: 50px;
     }
 }
