@@ -1,3 +1,7 @@
+✅ COMPLETED - Script created at `scripts/seed-minor-teams.js`
+
+## Original Requirements
+
 I need your help writing a script to seed my minor_v2_teams collection in firestore. Here is the source data, a google sheet publichsed in csv format: https://docs.google.com/spreadsheets/d/e/2PACX-1vRzKZ3Bhr1kC5176yPZ6hLvIl2t_Y1-LbGxVliiGNxPa0jFqheH6kMp_HoVexd78mWUnx1k857lC3oj/pub?output=csv
 1. The sheet columns, from left to right, are: team_name, team_id, conference, current_gm_handle, gm_player_id, gm_uid. Row 1 is column headers. The gm_uid column is blank for every team; a field with a blank or null value should be created for each team.
 2. minor_v2_teams should be structured exactly like v2_teams, the major league teams collection. Each team's doc ID should be its team_id.
@@ -5,3 +9,28 @@ I need your help writing a script to seed my minor_v2_teams collection in firest
 4. Within each team's doc, there should be a seasonal_records subcollection. The first document's ID should be S9.
 5. At minor_v2_teams/{team_id}/seasonal_records/S9/ there should be created every field that is found in a major league team doc at v2_teams/{team_id}/seasonal_records/S9/.
 6. The script should be fully reversable - i.e., if something goes wrong I can quickly and cleanly revert all the changes made by the script.
+
+## Solution
+
+The script has been created with the following features:
+- ✅ Fetches CSV data from Google Sheets
+- ✅ Creates 30 minor league teams (15 Northern, 15 Southern)
+- ✅ Structures data exactly like v2_teams collection
+- ✅ Creates seasonal_records/S9 with all required fields
+- ✅ Fully reversible with cleanup command
+- ✅ Batched writes for efficiency
+- ✅ Progress logging
+
+### Usage
+
+**To seed the teams:**
+```bash
+node scripts/seed-minor-teams.js seed
+```
+
+**To cleanup/revert:**
+```bash
+node scripts/seed-minor-teams.js cleanup
+```
+
+See `scripts/README-MINOR-TEAMS.md` for full documentation.
