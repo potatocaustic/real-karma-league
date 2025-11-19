@@ -891,6 +891,10 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                     bodyColor: textColor,
                     borderColor: tooltipBorder,
                     borderWidth: 1,
+                    filter: function(tooltipItem) {
+                        // Hide tooltip for interpolated zero points (empty labels)
+                        return !(tooltipItem.parsed.y === 0 && finalLabels[tooltipItem.dataIndex] === '');
+                    },
                     callbacks: {
                         label: function(context) {
                             const diff = context.parsed.y;
@@ -915,7 +919,7 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                         color: textColor
                     },
                     ticks: {
-                        color: textColor
+                        display: false
                     },
                     grid: {
                         color: gridColor,
