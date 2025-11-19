@@ -316,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const team2Record = `(${game.team2_wins || 0}-${game.team1_wins || 0})`;
                 gameBlockText = `${seriesLabel}\n${separator}\n(${game.team1_seed}) ${team1Name} ${team1Record}\n ${team1Lineup}\n---------- \nvs.\n---------- \n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
             } else {
-                gameBlockText = `${team1Name} ${team1Record}\n ${team1Lineup}\n---------- \nvs.\n---------- \n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
+                gameBlockText = `${team1Name} (${game.team1_record})\n ${team1Lineup}\n---------- \nvs.\n----------\n${team2Name} (${game.team2_record})\n ${team2Lineup}`;
             }
 
             // If this is the GOTD, prepend the GOTD header
