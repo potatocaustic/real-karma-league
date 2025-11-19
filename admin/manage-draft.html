@@ -88,9 +88,26 @@
         <span class="moon-icon">🌙</span>
       </button>
       <h1>
-        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
+        <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="eager">
         <span class="header-text"> Real Karma League</span>
       </h1>
+      <script>
+        // Apply league immediately to prevent flash
+        (function() {
+            const league = localStorage.getItem('currentLeague') || 'major';
+            const logo = document.querySelector('.header-logo');
+            const text = document.querySelector('.header-text');
+            if (league === 'minor') {
+                if (logo) {
+                    logo.src = '../icons/RKML.webp';
+                    logo.alt = 'RKML Logo';
+                }
+                if (text) {
+                    text.textContent = ' Real Karma Minor League';
+                }
+            }
+        })();
+      </script>
       <div id="league-switcher-mount">
         <div class="league-switcher">
             <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
