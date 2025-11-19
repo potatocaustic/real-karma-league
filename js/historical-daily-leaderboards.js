@@ -241,7 +241,7 @@ function processLeaderboardData(data) {
 }
 
 // --- RENDERING FUNCTIONS ---
-function renderDailyLeaderboard(leaderboardData, dateString) {
+async function renderDailyLeaderboard(leaderboardData, dateString) {
     const leaderboardContainer = document.getElementById('leaderboard-container');
     const dateTitle = document.getElementById('date-title');
 
@@ -266,11 +266,39 @@ function renderDailyLeaderboard(leaderboardData, dateString) {
         return;
     }
 
+    // Fetch player data to get rookie and all-star status
+    const uniquePlayerIds = [...new Set(all_players.map(p => p.player_id))];
+    const playerDataMap = new Map();
+
+    try {
+        const playerPromises = uniquePlayerIds.map(playerId =>
+            getDoc(doc(db, getCollectionName('v2_players'), playerId))
+        );
+        const playerDocs = await Promise.all(playerPromises);
+
+        playerDocs.forEach((playerDoc, index) => {
+            if (playerDoc.exists()) {
+                const data = playerDoc.data();
+                playerDataMap.set(uniquePlayerIds[index], {
+                    rookie: data.rookie === '1',
+                    all_star: data.all_star === '1'
+                });
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching player badge data:', error);
+    }
+
     // Build Top 3 section
     const top3HTML = top_3.map(player => {
         const team = allTeams.find(t => t.id === player.team_id);
         const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
         const logoExt = team?.logo_ext || (specialTeamIds.includes(player.team_id) ? 'png' : 'webp');
+
+        // Get badges
+        const playerBadges = playerDataMap.get(player.player_id) || { rookie: false, all_star: false };
+        const rookieBadge = playerBadges.rookie ? '<span class="rookie-badge">R</span>' : '';
+        const allStarBadge = playerBadges.all_star ? '<span class="all-star-badge">★</span>' : '';
 
         return `
         <div class="leaderboard-stat">
@@ -278,7 +306,7 @@ function renderDailyLeaderboard(leaderboardData, dateString) {
                 <span class="leaderboard-rank">#${player.rank}</span>
                 <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 36px; height: 36px; margin: 0 8px;">
                 <div>
-                    <div class="leaderboard-player-name"><a href="player.html?id=${player.player_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.handle || player.player_name)}</a></div>
+                    <div class="leaderboard-player-name"><a href="player.html?id=${player.player_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.handle || player.player_name)}</a>${rookieBadge}${allStarBadge}</div>
                     <div class="leaderboard-team-name"><a href="team.html?id=${player.team_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.team_name)}</a></div>
                 </div>
             </div>
@@ -296,13 +324,18 @@ function renderDailyLeaderboard(leaderboardData, dateString) {
         const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
         const logoExt = team?.logo_ext || (specialTeamIds.includes(player.team_id) ? 'png' : 'webp');
 
+        // Get badges
+        const playerBadges = playerDataMap.get(player.player_id) || { rookie: false, all_star: false };
+        const rookieBadge = playerBadges.rookie ? '<span class="rookie-badge">R</span>' : '';
+        const allStarBadge = playerBadges.all_star ? '<span class="all-star-badge">★</span>' : '';
+
         return `
         <div class="leaderboard-stat">
             <div class="leaderboard-player-info">
                 <span class="leaderboard-rank">#${player.rank}</span>
                 <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 36px; height: 36px; margin: 0 8px;">
                 <div>
-                    <div class="leaderboard-player-name"><a href="player.html?id=${player.player_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.handle || player.player_name)}</a></div>
+                    <div class="leaderboard-player-name"><a href="player.html?id=${player.player_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.handle || player.player_name)}</a>${rookieBadge}${allStarBadge}</div>
                     <div class="leaderboard-team-name"><a href="team.html?id=${player.team_id}" style="color: inherit; text-decoration: none;">${escapeHTML(player.team_name)}</a></div>
                 </div>
             </div>
@@ -323,13 +356,18 @@ function renderDailyLeaderboard(leaderboardData, dateString) {
         const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
         const logoExt = team?.logo_ext || (specialTeamIds.includes(player.team_id) ? 'png' : 'webp');
 
+        // Get badges
+        const playerBadges = playerDataMap.get(player.player_id) || { rookie: false, all_star: false };
+        const rookieBadge = playerBadges.rookie ? '<span class="rookie-badge">R</span>' : '';
+        const allStarBadge = playerBadges.all_star ? '<span class="all-star-badge">★</span>' : '';
+
         return `
             <div class="leaderboard-stat player-history-clickable" data-player-id="${player.player_id}" data-player-name="${escapeHTML(player.handle || player.player_name)}">
                 <div class="leaderboard-player-info">
                     <span class="leaderboard-rank">#${player.rank}</span>
                     <img src="../icons/${player.team_id}.${logoExt}" alt="${escapeHTML(player.team_name)}" class="team-logo" onerror="this.style.display='none'" style="width: 36px; height: 36px; margin: 0 8px;">
                     <div>
-                        <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}</div>
+                        <div class="leaderboard-player-name">${escapeHTML(player.handle || player.player_name)}${rookieBadge}${allStarBadge}</div>
                         <div class="leaderboard-team-name">${escapeHTML(player.team_name)}</div>
                     </div>
                 </div>
