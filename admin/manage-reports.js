@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         titleEl.style.marginBottom = '10px';
         reportContainer.appendChild(titleEl);
 
-        const captainEmojis = { 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Legion': ' 🥷', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮', 'Flames': ' 🔥' };
+        const captainEmojis = { 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮', 'Flames': ' 🔥' };
         const usa_diabetics = ['PJPB7G3y', 'QvDP2zgv', 'k3LgQL4v', 'rnejGZ2J', 'V3yAQ6Y3'];
         const can_diabetics = ['BJ0r9gL3', 'AnzRoOpn', 'kJwL5b8v'];
 
@@ -314,9 +314,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const separator = '~'.repeat(14);
                 const team1Record = `(${game.team1_wins || 0}-${game.team2_wins || 0})`;
                 const team2Record = `(${game.team2_wins || 0}-${game.team1_wins || 0})`;
-                gameBlockText = `${seriesLabel}\n${separator}\n(${game.team1_seed}) ${team1Name} ${team1Record}\n ${team1Lineup}\nvs.\n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
+                gameBlockText = `${seriesLabel}\n${separator}\n(${game.team1_seed}) ${team1Name} ${team1Record}\n ${team1Lineup}\n---------- \nvs.\n---------- \n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
             } else {
-                gameBlockText = `${team1Name} (${game.team1_record})\n ${team1Lineup}\nvs\n${team2Name} (${game.team2_record})\n ${team2Lineup}`;
+                gameBlockText = `${team1Name} ${team1Record}\n ${team1Lineup}\n---------- \nvs.\n---------- \n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
             }
 
             // If this is the GOTD, prepend the GOTD header
