@@ -1,6 +1,6 @@
 // /admin/manage-awards.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where, getCurrentLeague } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where, getCurrentLeague, getConferenceNames, getShortConferenceNames } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = false;
@@ -81,10 +81,23 @@ async function initializePage() {
         awardsForm.addEventListener('submit', handleFormSubmit);
         calculateBtn.addEventListener('click', handleCalculationTrigger);
 
+        // Update conference UI when league changes
+        window.addEventListener('leagueChanged', () => {
+            updateConferenceLabels();
+        });
+
     } catch (error) {
         console.error("Error initializing awards page:", error);
         adminContainer.innerHTML = `<div class="error">Could not load required league data.</div>`;
     }
+}
+
+function updateConferenceLabels() {
+    const conferences = getConferenceNames();
+    document.getElementById('all-stars-primary-header').textContent = `${conferences.primary} Conference`;
+    document.getElementById('all-stars-secondary-header').textContent = `${conferences.secondary} Conference`;
+    document.getElementById('rising-stars-primary-header').textContent = `${conferences.primary} Conference`;
+    document.getElementById('rising-stars-secondary-header').textContent = `${conferences.secondary} Conference`;
 }
 
 async function updateTeamCache(seasonId) {
@@ -130,6 +143,9 @@ async function populateSeasons() {
 }
 
 function populateDatalistAndSelects() {
+    const conferences = getConferenceNames();
+    const shortConferences = getShortConferenceNames();
+
     playerDatalist.innerHTML = Array.from(allPlayers.keys()).map(handle => `<option value="${handle}"></option>`).join('');
 
     allGms.clear();
@@ -144,16 +160,19 @@ function populateDatalistAndSelects() {
     const teamOptions = `<option value="">-- Select Team --</option>` + allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
     document.querySelectorAll('.team-select').forEach(select => select.innerHTML = teamOptions);
 
+    // Update conference headers
+    updateConferenceLabels();
+
     document.getElementById('all-stars-eastern').innerHTML = '';
     document.getElementById('all-stars-western').innerHTML = '';
     document.getElementById('rising-stars-eastern').innerHTML = '';
     document.getElementById('rising-stars-western').innerHTML = '';
 
     for (let i = 1; i <= 8; i++) {
-        document.getElementById('all-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="East All-Star #${i}" autocomplete="off">`;
-        document.getElementById('all-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="West All-Star #${i}" autocomplete="off">`;
-        document.getElementById('rising-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="East Rising Star #${i}" autocomplete="off">`;
-        document.getElementById('rising-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="West Rising Star #${i}" autocomplete="off">`;
+        document.getElementById('all-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.primary} All-Star #${i}" autocomplete="off">`;
+        document.getElementById('all-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.secondary} All-Star #${i}" autocomplete="off">`;
+        document.getElementById('rising-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.primary} Rising Star #${i}" autocomplete="off">`;
+        document.getElementById('rising-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.secondary} Rising Star #${i}" autocomplete="off">`;
     }
 }
 

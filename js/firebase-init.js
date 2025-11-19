@@ -100,6 +100,22 @@ export function getLeagueCollectionName(baseName, league = null) {
     const devSuffix = IS_DEVELOPMENT ? '_dev' : '';
     return `${leaguePrefix}${baseName}${devSuffix}`;
 }
+
+// Get conference names based on league type
+export function getConferenceNames(league = null) {
+    const targetLeague = league || currentLeague;
+    return targetLeague === 'minor'
+        ? { primary: 'Northern', secondary: 'Southern' }
+        : { primary: 'Eastern', secondary: 'Western' };
+}
+
+// Get short conference names based on league type
+export function getShortConferenceNames(league = null) {
+    const targetLeague = league || currentLeague;
+    return targetLeague === 'minor'
+        ? { primary: 'North', secondary: 'South' }
+        : { primary: 'East', secondary: 'West' };
+}
 // ===================================================================
 
 const firebaseConfig = {

@@ -1,6 +1,6 @@
 // /admin/manage-reports.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs, getCurrentLeague } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable, collection, query, where, getDocs, getCurrentLeague, getShortConferenceNames } from '/js/firebase-init.js';
 
 const USE_DEV_COLLECTIONS = false;
 const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
@@ -220,17 +220,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const gameNumberString = gameNumberMatch ? gameNumberMatch[0] : '';
         const baseSeriesId = seriesName.replace(/ Game \d+$/, '').trim();
 
+        // Get conference names dynamically based on league type
+        const shortConferences = getShortConferenceNames();
+        const primaryConf = shortConferences.primary; // North for minor, East for major
+        const secondaryConf = shortConferences.secondary; // South for minor, West for major
+
         const seriesTypeMap = {
-            'W7vW8': 'West Play-In Stage 1', 'E7vE8': 'East Play-In Stage 1',
-            'W9vW10': 'West Play-In Stage 1', 'E9vE10': 'East Play-In Stage 1',
-            'W8thSeedGame': 'West Play-In Stage 2', 'E8thSeedGame': 'East Play-In Stage 2',
-            'W1vW8': `West Round 1 - ${gameNumberString}`, 'W4vW5': `West Round 1 - ${gameNumberString}`,
-            'W3vW6': `West Round 1 - ${gameNumberString}`, 'W2vW7': `West Round 1 - ${gameNumberString}`,
-            'E1vE8': `East Round 1 - ${gameNumberString}`, 'E4vE5': `East Round 1 - ${gameNumberString}`,
-            'E3vE6': `East Round 1 - ${gameNumberString}`, 'E2vE7': `East Round 1 - ${gameNumberString}`,
-            'W-R2-T': `West Round 2 - ${gameNumberString}`, 'W-R2-B': `West Round 2 - ${gameNumberString}`,
-            'E-R2-T': `East Round 2 - ${gameNumberString}`, 'E-R2-B': `East Round 2 - ${gameNumberString}`,
-            'WCF': `WCF ${gameNumberString}`, 'ECF': `ECF ${gameNumberString}`,
+            'W7vW8': `${secondaryConf} Play-In Stage 1`, 'E7vE8': `${primaryConf} Play-In Stage 1`,
+            'W9vW10': `${secondaryConf} Play-In Stage 1`, 'E9vE10': `${primaryConf} Play-In Stage 1`,
+            'W8thSeedGame': `${secondaryConf} Play-In Stage 2`, 'E8thSeedGame': `${primaryConf} Play-In Stage 2`,
+            'W1vW8': `${secondaryConf} Round 1 - ${gameNumberString}`, 'W4vW5': `${secondaryConf} Round 1 - ${gameNumberString}`,
+            'W3vW6': `${secondaryConf} Round 1 - ${gameNumberString}`, 'W2vW7': `${secondaryConf} Round 1 - ${gameNumberString}`,
+            'E1vE8': `${primaryConf} Round 1 - ${gameNumberString}`, 'E4vE5': `${primaryConf} Round 1 - ${gameNumberString}`,
+            'E3vE6': `${primaryConf} Round 1 - ${gameNumberString}`, 'E2vE7': `${primaryConf} Round 1 - ${gameNumberString}`,
+            'W-R2-T': `${secondaryConf} Round 2 - ${gameNumberString}`, 'W-R2-B': `${secondaryConf} Round 2 - ${gameNumberString}`,
+            'E-R2-T': `${primaryConf} Round 2 - ${gameNumberString}`, 'E-R2-B': `${primaryConf} Round 2 - ${gameNumberString}`,
+            'WCF': `${secondaryConf}CF ${gameNumberString}`, 'ECF': `${primaryConf}CF ${gameNumberString}`,
             'Finals': `RKL Finals ${gameNumberString}`,
         };
         const label = seriesTypeMap[baseSeriesId];
