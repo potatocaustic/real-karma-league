@@ -20,6 +20,7 @@ const SEASONAL_RECORDS_COLLECTION = "minor_seasonal_records";
 // Template for seasonal record fields based on v2_teams structure
 const SEASONAL_RECORD_TEMPLATE = {
     season: SEASON_ID,
+    seasonId: SEASON_ID,
     apPAM: 0,
     apPAM_count: 0,
     apPAM_total: 0,
