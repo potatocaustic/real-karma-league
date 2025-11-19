@@ -1,11 +1,10 @@
 /* League Switcher Component Styles */
 
 .league-switcher {
-    display: inline-block;
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    margin-right: 8px;
 }
 
 .league-toggle-btn {
@@ -39,13 +38,50 @@
     color: inherit;
 }
 
-/* Position the h1 to accommodate the switch icon */
-header h1 {
-    position: relative;
+/* Make header a flex container to control element ordering */
+header {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0 !important;
+}
+
+/* Position auth-status and theme-toggle on edges */
+header #auth-status,
+header #theme-toggle-btn {
+    position: absolute !important;
+}
+
+header #auth-status {
+    left: 1rem !important;
+}
+
+header #theme-toggle-btn {
+    right: 1rem !important;
+}
+
+/* Position league switcher to appear before h1 content */
+#league-switcher-mount {
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding-left: 60px; /* Make room for the switch icon */
+    order: 2; /* Place before h1 */
+    margin: 0;
+}
+
+/* Ensure h1 stays centered with switcher as a visual group */
+header h1 {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    order: 3; /* Place after league-switcher-mount */
+}
+
+/* Nav should appear below on its own row */
+header nav {
+    order: 4;
+    width: 100%;
 }
 
 /* Dark mode support */
@@ -63,7 +99,7 @@ header h1 {
 /* Mobile optimization */
 @media (max-width: 600px) {
     .league-switcher {
-        left: 5px;
+        margin-right: 6px;
     }
 
     .league-toggle-btn {
@@ -75,9 +111,5 @@ header h1 {
     .league-toggle-btn svg {
         width: 20px;
         height: 20px;
-    }
-
-    header h1 {
-        padding-left: 50px;
     }
 }
