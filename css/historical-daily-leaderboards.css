@@ -235,11 +235,11 @@
 
 #player-history-chart-container {
     margin-bottom: 0;
-    min-height: 300px;
+    height: 350px;
 }
 
 #player-history-chart-container canvas {
-    max-height: 400px;
+    height: 100% !important;
 }
 
 /* Player History Stats Grid */
@@ -393,8 +393,8 @@
         font-size: 1.2rem;
     }
 
-    #player-history-chart-container canvas {
-        max-height: 300px;
+    #player-history-chart-container {
+        height: 250px;
     }
 }
 
