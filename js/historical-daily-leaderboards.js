@@ -396,7 +396,7 @@ async function showPlayerHistory(playerId, playerName) {
 
     // Show modal with loading state
     modal.style.display = 'block';
-    title.textContent = `${playerName} - Daily Performance History`;
+    title.textContent = `${playerName} - Daily History`;
     chartContainer.innerHTML = '<div class="loading">Loading player history...</div>';
     statsContainer.innerHTML = '';
 
@@ -469,7 +469,7 @@ function renderPlayerHistoryChart(history, playerName) {
             plugins: {
                 title: {
                     display: true,
-                    text: `${playerName} - Daily Performance Trend`,
+                    text: `${playerName} - Daily Trend`,
                     color: textColor
                 },
                 legend: {
