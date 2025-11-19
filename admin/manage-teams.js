@@ -1,6 +1,6 @@
 // /admin/manage-teams.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, setDoc, httpsCallable, functions, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, query, setDoc, httpsCallable, functions, getCurrentLeague, collectionNames, getLeagueCollectionName, getConferenceNames } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initializePage() {
+    populateConferenceDropdown();
     await populateSeasons();
 
     seasonSelect.addEventListener('change', () => {
@@ -69,6 +70,20 @@ async function initializePage() {
 
     teamForm.addEventListener('submit', handleTeamFormSubmit);
     rebrandForm.addEventListener('submit', handleRebrandFormSubmit);
+
+    // Repopulate conference dropdown when league changes
+    window.addEventListener('leagueChanged', () => {
+        populateConferenceDropdown();
+    });
+}
+
+function populateConferenceDropdown() {
+    const conferences = getConferenceNames();
+    const conferenceSelect = document.getElementById('team-conference-select');
+    conferenceSelect.innerHTML = `
+        <option value="${conferences.primary}">${conferences.primary}</option>
+        <option value="${conferences.secondary}">${conferences.secondary}</option>
+    `;
 }
 
 async function populateSeasons() {
@@ -163,10 +178,11 @@ function displayTeams(teams) {
 }
 
 function openTeamModal(team) {
+    const conferences = getConferenceNames();
     document.getElementById('team-id-input').value = team.id;
     document.getElementById('team-id-display').textContent = team.id;
     document.getElementById('team-name-input').value = team.season_record.team_name || '';
-    document.getElementById('team-conference-select').value = team.conference || 'Eastern';
+    document.getElementById('team-conference-select').value = team.conference || conferences.primary;
     document.getElementById('team-gm-handle-input').value = team.current_gm_handle || '';
     document.getElementById('team-gm-uid-input').value = team.gm_uid || '';
     // *** MODIFIED LOGIC ***

@@ -1,6 +1,6 @@
 // /admin/manage-games.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, deleteDoc, httpsCallable, query, where, documentId, limit, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, deleteDoc, httpsCallable, query, where, documentId, limit, getCurrentLeague, collectionNames, getLeagueCollectionName, getConferenceNames } from '/js/firebase-init.js';
 import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 // --- Page Elements ---
@@ -425,11 +425,13 @@ async function handleOpenModalClick(e) {
 
 function getRosterForTeam(teamId, week) {
     if (week === 'All-Star') {
+        const conferences = getConferenceNames();
+
         if (teamId === 'EGM') {
-            return Array.from(allGms.values()).filter(gm => gm.conference === 'Eastern');
+            return Array.from(allGms.values()).filter(gm => gm.conference === conferences.primary);
         }
         if (teamId === 'WGM') {
-            return Array.from(allGms.values()).filter(gm => gm.conference === 'Western');
+            return Array.from(allGms.values()).filter(gm => gm.conference === conferences.secondary);
         }
 
         if (teamId === 'RSE') {
@@ -445,7 +447,7 @@ function getRosterForTeam(teamId, week) {
         const westPlayers = awardSelections.get('all-stars-western')?.players || [];
         if (teamId === 'EAST') return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
         if (teamId === 'WEST') return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-    } 
+    }
     else if (week === 'GM Game') {
         return Array.from(allGms.values());
     }
