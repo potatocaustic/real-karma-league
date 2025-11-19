@@ -136,6 +136,7 @@ header nav {
     header h1 {
         position: relative !important;
         margin: 0 !important;
+        transform: translateX(-21px) !important;
     }
 
     /* Hide title text on mobile, keep only logo */
