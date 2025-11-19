@@ -71,11 +71,15 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     await batch.commit();
 
+    // Re-fetch live games to get updated data for snapshots and leaderboards
+    const updatedLiveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
+    console.log(`[performFullUpdate] Re-fetched ${updatedLiveGamesSnap.size} games with updated scores`);
+
     // === FEATURE 1: Record Game Flow Snapshots ===
     const timestamp = admin.firestore.Timestamp.now();
     const snapshotBatch = db.batch();
 
-    for (const gameDoc of liveGamesSnap.docs) {
+    for (const gameDoc of updatedLiveGamesSnap.docs) {
         const gameData = gameDoc.data();
         const team1_total = gameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
         const team2_total = gameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
@@ -134,7 +138,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
     }
 
     await snapshotBatch.commit();
-    console.log(`Game flow snapshots recorded for ${liveGamesSnap.size} games.`);
+    console.log(`Game flow snapshots recorded for ${updatedLiveGamesSnap.size} games.`);
 
     // === FEATURE 2: Calculate Daily Leaderboard ===
     try {
@@ -142,8 +146,8 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
         const allPlayers = [];
         const playerGameCount = new Map(); // Track how many games each player is in
 
-        console.log(`[Daily Leaderboard] Processing ${liveGamesSnap.size} live games...`);
-        for (const gameDoc of liveGamesSnap.docs) {
+        console.log(`[Daily Leaderboard] Processing ${updatedLiveGamesSnap.size} live games...`);
+        for (const gameDoc of updatedLiveGamesSnap.docs) {
             const gameData = gameDoc.data();
             const allStarters = [...gameData.team1_lineup, ...gameData.team2_lineup];
             console.log(`[Daily Leaderboard] Game ${gameDoc.id}: ${allStarters.length} starters`);
@@ -189,7 +193,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
             const teamNames = new Map();
 
             // Get the season ID from the first live game
-            const seasonId = liveGamesSnap.docs[0]?.data().seasonId;
+            const seasonId = updatedLiveGamesSnap.docs[0]?.data().seasonId;
 
             if (!seasonId) {
                 console.warn(`[Daily Leaderboard] No seasonId found in live games, cannot fetch team names`);
