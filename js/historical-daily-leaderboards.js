@@ -98,33 +98,17 @@ async function filterOutExhibitionDates(dates) {
         const exhibitionDates = new Set();
 
         exhibitionGamesSnap.docs.forEach(doc => {
-            console.log('Exhibition game doc:', doc.id, doc.data());
-            const game = doc.data();
-            if (game.game_date) {
-                exhibitionDates.add(game.game_date);
+            // Extract date from document ID (format: YYYY-MM-DD-TEAM1-TEAM2)
+            const docId = doc.id;
+            if (docId !== 'placeholder' && docId.match(/^\d{4}-\d{2}-\d{2}/)) {
+                const gameDate = docId.substring(0, 10); // Extract YYYY-MM-DD
+                exhibitionDates.add(gameDate);
+                console.log('Exhibition game found on date:', gameDate, 'from doc:', docId);
             }
         });
 
         console.log('Exhibition dates to exclude:', exhibitionDates.size, Array.from(exhibitionDates));
 
-        // If no exhibition dates found, try alternate collection path (subcollections might not use _dev suffix)
-        if (exhibitionDates.size === 0) {
-            console.log('Trying alternate path without dev suffix on subcollection...');
-            const altExhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, 'exhibition_games');
-            const altExhibitionGamesSnap = await getDocs(altExhibitionGamesRef);
-
-            console.log('Alternate path - Exhibition games documents found:', altExhibitionGamesSnap.size);
-
-            altExhibitionGamesSnap.docs.forEach(doc => {
-                console.log('Alt path - Exhibition game doc:', doc.id, doc.data());
-                const game = doc.data();
-                if (game.game_date) {
-                    exhibitionDates.add(game.game_date);
-                }
-            });
-
-            console.log('Exhibition dates to exclude (after alt path):', exhibitionDates.size, Array.from(exhibitionDates));
-        }
 
         // Filter OUT dates that are in exhibition games
         const filtered = dates.filter(date => !exhibitionDates.has(date));
