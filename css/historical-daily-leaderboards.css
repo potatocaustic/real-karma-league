@@ -354,6 +354,14 @@
         font-size: 1.2rem;
     }
 
+    #player-history-chart-container {
+        margin-bottom: 0.5rem;
+    }
+
+    .player-history-stats {
+        margin-top: 0.5rem;
+    }
+
     #player-history-chart-container canvas {
         max-height: 300px;
     }
