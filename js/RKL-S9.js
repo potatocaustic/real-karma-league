@@ -1191,9 +1191,9 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
     segments.forEach(segment => {
         const segmentData = new Array(differentials.length).fill(null);
 
-        // Fill in data for this segment's range (using absolute values)
+        // Fill in data for this segment's range
         for (let i = segment.start; i < segment.end; i++) {
-            segmentData[i] = Math.abs(differentials[i]);
+            segmentData[i] = differentials[i];
         }
 
         const segmentColor = segment.leader === 1 ? colors.team1 : (segment.leader === -1 ? colors.team2 : '#888');
@@ -1211,9 +1211,7 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
             pointHoverBackgroundColor: segmentColor,
             pointHoverBorderColor: '#fff',
             pointHoverBorderWidth: 2,
-            spanGaps: false,
-            // Store which team this segment represents for tooltip
-            teamLeader: segment.leader
+            spanGaps: false
         });
     });
 
@@ -1247,17 +1245,16 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                     borderWidth: 1,
                     callbacks: {
                         label: function(context) {
-                            const margin = context.parsed.y;
-                            if (margin === 0) {
+                            const diff = context.parsed.y;
+                            if (diff > 0) {
+                                const verb = team1.team_name.endsWith('s') ? 'lead' : 'leads';
+                                return `${team1.team_name} ${verb} by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                            } else if (diff < 0) {
+                                const verb = team2.team_name.endsWith('s') ? 'lead' : 'leads';
+                                return `${team2.team_name} ${verb} by ${Math.round(Math.abs(diff)).toLocaleString()}`;
+                            } else {
                                 return 'Game tied';
                             }
-
-                            // Determine which team is leading based on dataset's teamLeader
-                            const teamLeader = context.dataset.teamLeader;
-                            const leadingTeam = teamLeader === 1 ? team1 : team2;
-                            const verb = leadingTeam.team_name.endsWith('s') ? 'lead' : 'leads';
-
-                            return `${leadingTeam.team_name} ${verb} by ${Math.round(margin).toLocaleString()}`;
                         }
                     }
                 }
@@ -1284,7 +1281,7 @@ function renderDifferentialChart(snapshots, team1, team2, colors) {
                     ticks: {
                         color: textColor,
                         callback: function(value) {
-                            return value.toLocaleString();
+                            return Math.abs(value).toLocaleString();
                         }
                     },
                     grid: {
