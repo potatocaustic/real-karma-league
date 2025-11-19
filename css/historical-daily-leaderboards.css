@@ -1,5 +1,14 @@
 /* Historical Daily Leaderboards Page Styles */
 
+/* Page Header */
+.page-header p {
+    color: #666;
+}
+
+.dark-mode .page-header p {
+    color: #aaa;
+}
+
 /* Date Selector Container */
 .date-selector-container {
     max-width: 1200px;
@@ -213,7 +222,7 @@
 }
 
 #player-history-chart-container {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     min-height: 300px;
 }
 
@@ -223,7 +232,7 @@
 
 /* Player History Stats Grid */
 .player-history-stats {
-    margin-top: 2rem;
+    margin-top: 0.5rem;
 }
 
 .stats-grid {
@@ -238,6 +247,16 @@
     border-radius: 8px;
     text-align: center;
     border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.secondary-text {
+    font-size: 0.75em;
+    color: #888;
+    margin-top: 2px;
+}
+
+.dark-mode .secondary-text {
+    color: #999;
 }
 
 .stat-label {
@@ -352,14 +371,6 @@
 
     .stat-value {
         font-size: 1.2rem;
-    }
-
-    #player-history-chart-container {
-        margin-bottom: 0.5rem;
-    }
-
-    .player-history-stats {
-        margin-top: 0.5rem;
     }
 
     #player-history-chart-container canvas {

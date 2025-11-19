@@ -284,7 +284,7 @@ function renderDailyLeaderboard(leaderboardData, dateString) {
             </div>
             <div style="text-align: right;">
                 <span class="leaderboard-score">${Math.round(player.score).toLocaleString()}</span>
-                <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Rank: ${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
+                <div class="secondary-text">Rank: ${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
             </div>
         </div>
         `;
@@ -308,7 +308,7 @@ function renderDailyLeaderboard(leaderboardData, dateString) {
             </div>
             <div style="text-align: right;">
                 <span class="leaderboard-score">${Math.round(player.score).toLocaleString()}</span>
-                <div style="font-size: 0.75em; color: #888; margin-top: 2px;">Rank: ${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
+                <div class="secondary-text">Rank: ${player.global_rank >= 0 ? player.global_rank : 'N/A'}</div>
             </div>
         </div>
         `;
@@ -335,7 +335,7 @@ function renderDailyLeaderboard(leaderboardData, dateString) {
                 </div>
                 <div style="text-align: right;">
                     <span class="leaderboard-score ${percentClass}">${percentSign}${player.percent_vs_median.toFixed(1)}%</span>
-                    <div style="font-size: 0.75em; color: #888; margin-top: 2px;">${Math.round(player.score).toLocaleString()} | ${getOrdinal(player.global_rank)}</div>
+                    <div class="secondary-text">${Math.round(player.score).toLocaleString()} | ${getOrdinal(player.global_rank)}</div>
                 </div>
             </div>
         `;
