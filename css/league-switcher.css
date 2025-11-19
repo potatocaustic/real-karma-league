@@ -67,6 +67,9 @@ header #theme-toggle-btn {
     align-items: center;
     order: 2; /* Place before h1 */
     margin: 0;
+    /* Reserve space for the switcher to prevent layout shift during loading */
+    min-width: 48px; /* 40px button + 8px margin-right */
+    width: 48px;
 }
 
 /* Ensure h1 stays centered with switcher as a visual group */
@@ -131,6 +134,9 @@ header nav {
         position: relative !important;
         margin: 0 !important;
         transform: translateX(-21px) !important;
+        /* Reserve space for the smaller mobile switcher to prevent layout shift */
+        min-width: 42px; /* 36px button + 6px margin-right */
+        width: 42px;
     }
 
     header h1 {
