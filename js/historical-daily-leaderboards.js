@@ -56,6 +56,25 @@ async function loadTeams() {
     }
 }
 
+function isDateCompleted(dateString) {
+    // A date is considered completed after 7am ET the next day
+    // Convert the date string to a Date object
+    const gameDate = new Date(dateString + 'T00:00:00');
+
+    // Get current time in ET (UTC-5 in standard time, UTC-4 in daylight time)
+    const now = new Date();
+    const etOffset = -5 * 60; // ET is UTC-5 (we'll use standard time)
+    const nowET = new Date(now.getTime() + (etOffset + now.getTimezoneOffset()) * 60000);
+
+    // Calculate when this date becomes "completed" (7am ET the next day)
+    const completionTime = new Date(gameDate);
+    completionTime.setDate(completionTime.getDate() + 1); // Next day
+    completionTime.setHours(7, 0, 0, 0); // 7am
+
+    // Check if current ET time is past the completion time
+    return nowET >= completionTime;
+}
+
 async function fetchAvailableDates() {
     try {
         const leaderboardsRef = collection(db, getCollectionName('daily_leaderboards'));
@@ -70,11 +89,14 @@ async function fetchAvailableDates() {
         // Filter out exhibition/preseason dates
         const nonExhibitionDates = await filterOutExhibitionDates(allDates);
 
-        availableDates = nonExhibitionDates
+        // Filter out incomplete dates (current day before 7am ET the next day)
+        const completedDates = nonExhibitionDates.filter(dateString => isDateCompleted(dateString));
+
+        availableDates = completedDates
             .sort()
             .reverse(); // Most recent first
 
-        console.log('Available dates (excluding exhibition/preseason):', availableDates);
+        console.log('Available dates (excluding exhibition/preseason and incomplete days):', availableDates);
         return availableDates;
     } catch (error) {
         console.error('Error fetching available dates:', error);
@@ -507,7 +529,13 @@ function renderPlayerHistoryChart(history, playerName) {
                     },
                     reverse: true,
                     ticks: {
-                        color: textColor
+                        color: textColor,
+                        stepSize: 1,
+                        callback: function(value) {
+                            if (Number.isInteger(value)) {
+                                return value;
+                            }
+                        }
                     },
                     grid: {
                         drawOnChartArea: false,
