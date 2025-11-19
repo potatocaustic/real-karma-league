@@ -126,9 +126,11 @@ header nav {
     }
 
     /* Center the league switcher and logo together */
+    /* Shift left to center the logo icon itself, not the group */
     #league-switcher-mount {
         position: relative !important;
         margin: 0 !important;
+        transform: translateX(-21px) !important;
     }
 
     header h1 {
