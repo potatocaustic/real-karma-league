@@ -1005,7 +1005,7 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
         const topPosition = currentChartType === 'differential' ? '40px' : '80px';
         iconDiv.style.cssText = `
             position: absolute;
-            ${position === 'top' ? `top: ${topPosition};` : 'bottom: 60px;'}
+            ${position === 'top' ? `top: ${topPosition};` : 'bottom: 20px;'}
             left: 60px;
             display: flex;
             align-items: center;
