@@ -45,8 +45,15 @@ console.log(`Firebase is running in ${IS_DEVELOPMENT ? 'DEVELOPMENT' : 'PRODUCTI
 // ===================================================================
 // LEAGUE CONTEXT MANAGEMENT
 // ===================================================================
-// League context - default to major league
-let currentLeague = 'major';
+// League context - initialize from localStorage or default to major league
+const LEAGUE_STORAGE_KEY = 'rkl_current_league';
+let currentLeague = localStorage.getItem(LEAGUE_STORAGE_KEY) || 'major';
+
+// Validate stored league value
+if (currentLeague !== 'major' && currentLeague !== 'minor') {
+    currentLeague = 'major';
+    localStorage.setItem(LEAGUE_STORAGE_KEY, currentLeague);
+}
 
 // Get current league
 export function getCurrentLeague() {
@@ -60,6 +67,10 @@ export function setCurrentLeague(league) {
         return;
     }
     currentLeague = league;
+
+    // Persist to localStorage
+    localStorage.setItem(LEAGUE_STORAGE_KEY, league);
+
     console.log('League context switched to:', league);
 
     // Dispatch custom event for components to react to league change
