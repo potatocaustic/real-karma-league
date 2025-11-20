@@ -211,7 +211,7 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores,
         const apPAM = scores_count > 0 ? total_pct_above_median / scores_count : 0;
         const med_starter_rank = calculateMedian(ranks);
         const MaxPotWins = 15 - losses;
-        const sortscore = wpct - (losses * 0.001) + (pam * 0.00000001);
+        const sortscore = wpct + (wins * 0.001) - (losses * 0.001) + (pam * 0.00000001);
 
         return { teamId: team.id, conference, wins, losses, wpct, pam, apPAM, med_starter_rank, MaxPotWins, sortscore };
     });
