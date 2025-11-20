@@ -184,7 +184,12 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores,
         }
     });
 
-    const historicalScores = scoresSnap.docs.map(doc => doc.data());
+    // Filter out scores from the current game date to prevent double-counting when re-completing games
+    const currentGameDate = newDailyScores.length > 0 ? newDailyScores[0].date : null;
+    const historicalScores = scoresSnap.docs
+        .map(doc => doc.data())
+        .filter(score => score.date !== currentGameDate);
+
     const allScores = [...historicalScores, ...newDailyScores];
 
     allScores.forEach(score => {
