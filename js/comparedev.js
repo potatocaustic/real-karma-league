@@ -302,13 +302,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeSeasonId = seasonsSnap.docs[0].id;
             }
 
+            // ✅ OPTIMIZED: Filter for ACTIVE players at database level instead of client-side
             const [
                 playersSnap,
                 teamsSnap,
                 seasonalStatsSnap,
                 seasonalRecordsSnap
             ] = await Promise.all([
-                getDocs(collection(db, "v2_players")),
+                getDocs(query(collection(db, "v2_players"), where("player_status", "==", "ACTIVE"))),
                 getDocs(query(collection(db, "v2_teams"), where("conference", "in", ["Eastern", "Western"]))),
                 getDocs(collectionGroup(db, 'seasonal_stats')),
                 getDocs(collectionGroup(db, 'seasonal_records'))
@@ -325,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             allPlayersData = playersSnap.docs
                 .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(player => player.player_status === 'ACTIVE' && seasonalStatsMap.has(player.id))
+                .filter(player => seasonalStatsMap.has(player.id)) // Already filtered for ACTIVE at DB level
                 .map(player => ({...player, ...seasonalStatsMap.get(player.id)}));
 
             const seasonalRecordsMap = new Map();
