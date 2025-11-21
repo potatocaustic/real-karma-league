@@ -172,10 +172,13 @@ export function generateLineupTable(lineups, team, isWinner, isLive = false) {
                         const rookieBadge = isRookie ? '<span class="rookie-badge">R</span>' : '';
                         const allStarBadge = isAllStar ? '<span class="all-star-badge">★</span>' : '';
 
+                        const deductions = p.deductions || 0;
+                        const deductionIndicator = deductions !== 0 ? `<span class="deduction-indicator"><span class="tooltip">Manual Adjustment: -${deductions}</span></span>` : '';
+
                         return `
                             <tr class="${isCaptain ? 'captain-row' : ''}">
                                 <td class="player-name-cell"><a href="player.html?id=${encodeURIComponent(p.player_id)}" class="player-link">${p.player_handle}</a>${captainBadge}${rookieBadge}${allStarBadge}</td>
-                                <td class="points-cell">${Math.round(baseScore).toLocaleString()}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
+                                <td class="points-cell">${Math.round(baseScore).toLocaleString()}${deductionIndicator}${isCaptain ? `<div class="captain-bonus">+${Math.round(captainBonus)}</div>` : ''}</td>
                                 <td class="rank-cell">${p.global_rank || '-'}</td>
                             </tr>
                         `
