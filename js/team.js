@@ -102,7 +102,7 @@ async function loadPageData() {
         const transactionsQuery = query(
             collection(db, collectionNames.transactions, "seasons", ACTIVE_SEASON_ID),
             where("involved_teams", "array-contains", teamId),
-            where("transaction_date", "!=", null)
+            orderBy("date", "desc")
         );
         const transactionsPromise = getDocs(transactionsQuery);
 

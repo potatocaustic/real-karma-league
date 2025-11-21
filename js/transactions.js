@@ -54,7 +54,7 @@ async function loadData() {
         // ✅ OPTIMIZED: Use pagination to load 100 transactions at a time instead of all 615+
         const transactionsQuery = query(
             collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
-            orderBy('transaction_date', 'desc'),
+            orderBy('date', 'desc'),
             limit(TRANSACTIONS_PER_PAGE)
         );
 
@@ -129,7 +129,7 @@ async function loadMoreTransactions() {
     try {
         const nextQuery = query(
             collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
-            orderBy('transaction_date', 'desc'),
+            orderBy('date', 'desc'),
             startAfter(lastTransactionDoc),
             limit(TRANSACTIONS_PER_PAGE)
         );
