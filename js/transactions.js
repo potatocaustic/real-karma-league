@@ -9,6 +9,8 @@ import {
   orderBy,
   doc,
   getDoc,
+  limit,
+  startAfter,
   collectionNames,
   getLeagueCollectionName
 } from "../js/firebase-init.js";
@@ -32,6 +34,12 @@ let allTeams = [];
 let allDraftPicks = {};
 let allPlayerStats = {};
 
+// --- Pagination State ---
+const TRANSACTIONS_PER_PAGE = 100; // Load 100 transactions at a time
+let lastTransactionDoc = null;
+let hasMoreTransactions = true;
+let isLoadingMore = false;
+
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
@@ -43,13 +51,28 @@ async function loadData() {
     transactionsListEl.innerHTML = '<div class="loading">Loading transactions...</div>';
 
     try {
+        // ✅ OPTIMIZED: Use pagination to load 100 transactions at a time instead of all 615+
+        const transactionsQuery = query(
+            collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
+            orderBy('transaction_date', 'desc'),
+            limit(TRANSACTIONS_PER_PAGE)
+        );
+
         const [transactionsSnap, allTeamsSnap, draftPicksSnap] = await Promise.all([
-            getDocs(collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID)),
+            getDocs(transactionsQuery),
             getDocs(collection(db, collectionNames.teams)),
             getDocs(collection(db, collectionNames.draftPicks)),
         ]);
 
         allTransactions = transactionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Track pagination state
+        if (transactionsSnap.docs.length < TRANSACTIONS_PER_PAGE) {
+            hasMoreTransactions = false;
+        } else {
+            lastTransactionDoc = transactionsSnap.docs[transactionsSnap.docs.length - 1];
+            hasMoreTransactions = true;
+        }
         
         const teamPromises = allTeamsSnap.docs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
@@ -69,14 +92,8 @@ async function loadData() {
 
         await fetchAllPlayerStats();
 
-        const sortedTransactions = allTransactions.sort((a, b) => {
-            const dateA = a.date?.toDate() || 0;
-            const dateB = b.date?.toDate() || 0;
-            return dateB - dateA;
-        });
-        
-        allTransactions = sortedTransactions;
-        
+        // No need to sort - already ordered by transaction_date DESC in query
+
         populateFilters();
         // **MODIFIED**: This function will now check the URL and filter automatically
         displayTransactions();
@@ -97,10 +114,67 @@ async function loadData() {
     }
 }
 
-async function fetchAllPlayerStats() {
+async function loadMoreTransactions() {
+    if (!hasMoreTransactions || isLoadingMore || !lastTransactionDoc) {
+        return;
+    }
+
+    isLoadingMore = true;
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    if (loadMoreBtn) {
+        loadMoreBtn.textContent = 'Loading...';
+        loadMoreBtn.disabled = true;
+    }
+
+    try {
+        const nextQuery = query(
+            collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
+            orderBy('transaction_date', 'desc'),
+            startAfter(lastTransactionDoc),
+            limit(TRANSACTIONS_PER_PAGE)
+        );
+
+        const nextSnap = await getDocs(nextQuery);
+        const newTransactions = nextSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Append new transactions
+        allTransactions = [...allTransactions, ...newTransactions];
+
+        // Update pagination state
+        if (nextSnap.docs.length < TRANSACTIONS_PER_PAGE) {
+            hasMoreTransactions = false;
+        } else {
+            lastTransactionDoc = nextSnap.docs[nextSnap.docs.length - 1];
+        }
+
+        // Fetch stats for new players
+        await fetchPlayerStatsForTransactions(newTransactions);
+
+        // Re-display with new transactions
+        displayTransactions();
+
+    } catch (error) {
+        console.error('Error loading more transactions:', error);
+        if (loadMoreBtn) {
+            loadMoreBtn.textContent = 'Error loading more';
+        }
+    } finally {
+        isLoadingMore = false;
+        if (loadMoreBtn) {
+            loadMoreBtn.textContent = 'Load More Transactions';
+            loadMoreBtn.disabled = false;
+        }
+    }
+}
+
+async function fetchPlayerStatsForTransactions(transactions) {
     const uniquePlayerIds = new Set();
-    allTransactions.forEach(t => {
-        t.involved_players?.forEach(p => uniquePlayerIds.add(p.id));
+    transactions.forEach(t => {
+        t.involved_players?.forEach(p => {
+            if (!allPlayerStats[p.id]) {
+                uniquePlayerIds.add(p.id);
+            }
+        });
     });
 
     const playerStatsPromises = Array.from(uniquePlayerIds).map(async (playerId) => {
@@ -112,6 +186,10 @@ async function fetchAllPlayerStats() {
     });
 
     await Promise.all(playerStatsPromises);
+}
+
+async function fetchAllPlayerStats() {
+    await fetchPlayerStatsForTransactions(allTransactions);
 }
 
 // --- Filter and Display Logic ---
@@ -175,14 +253,49 @@ function displayTransactions() {
         transactionsTitleEl.textContent = 'No Transactions Found';
         return;
     }
-    
+
     const urlParams = new URLSearchParams(window.location.search);
     if (!urlParams.has('id')) {
-        transactionsTitleEl.textContent = `${filteredTransactions.length} Transaction${filteredTransactions.length === 1 ? '' : 's'}`;
+        const loadedCount = allTransactions.length;
+        const displayCount = filteredTransactions.length;
+        transactionsTitleEl.textContent = `Showing ${displayCount} Transaction${displayCount === 1 ? '' : 's'}${hasMoreTransactions ? ` (${loadedCount} loaded)` : ''}`;
     }
-    
+
     const transactionsHTML = filteredTransactions.map(renderTransaction).join('');
-    transactionsListEl.innerHTML = transactionsHTML;
+
+    // Add "Load More" button if there are more transactions available
+    let loadMoreHTML = '';
+    if (hasMoreTransactions) {
+        loadMoreHTML = `
+            <div style="text-align: center; margin: 2rem 0; padding: 1rem;">
+                <button id="load-more-btn" class="load-more-btn" style="
+                    padding: 0.75rem 2rem;
+                    font-size: 1rem;
+                    background: #0d6efd;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: background 0.3s;
+                " onmouseover="this.style.background='#0b5ed7'" onmouseout="this.style.background='#0d6efd'">
+                    Load More Transactions
+                </button>
+                <div style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                    ${allTransactions.length} of 615+ transactions loaded
+                </div>
+            </div>
+        `;
+    }
+
+    transactionsListEl.innerHTML = transactionsHTML + loadMoreHTML;
+
+    // Attach event listener to Load More button
+    if (hasMoreTransactions) {
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        if (loadMoreBtn) {
+            loadMoreBtn.addEventListener('click', loadMoreTransactions);
+        }
+    }
 }
 
 // --- HTML Rendering Functions ---

@@ -97,7 +97,14 @@ async function loadPageData() {
         const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("games")));
 
         const draftPicksPromise = getDocs(collection(db, collectionNames.draftPicks));
-        const transactionsPromise = getDocs(collection(db, collectionNames.transactions, "seasons", ACTIVE_SEASON_ID));
+
+        // ✅ OPTIMIZED: Filter transactions by team at database level (reduces from 615 to ~30-50 docs)
+        const transactionsQuery = query(
+            collection(db, collectionNames.transactions, "seasons", ACTIVE_SEASON_ID),
+            where("involved_teams", "array-contains", teamId),
+            where("transaction_date", "!=", null)
+        );
+        const transactionsPromise = getDocs(transactionsQuery);
 
         // NEW: Fetch the active season document for postseason button logic
         const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));

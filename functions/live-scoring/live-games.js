@@ -20,8 +20,18 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false, leag
     console.log(`Processing and finalizing game ${gameId} for ${league} league...`);
 
     const allPlayersInGame = [...team1_lineup, ...team2_lineup];
-    const playerDocs = await db.collection(getCollectionName('v2_players', league)).get();
-    const allPlayersMap = new Map(playerDocs.docs.map(doc => [doc.id, doc.data()]));
+
+    // ✅ OPTIMIZED: Only fetch players in this game (10-20 reads instead of 500+)
+    const playerIds = allPlayersInGame.map(p => p.player_id);
+    const playerPromises = playerIds.map(id =>
+        db.collection(getCollectionName('v2_players', league)).doc(id).get()
+    );
+    const playerDocs = await Promise.all(playerPromises);
+    const allPlayersMap = new Map(
+        playerDocs
+            .filter(doc => doc.exists)
+            .map(doc => [doc.id, doc.data()])
+    );
 
     const batch = db.batch();
     const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));

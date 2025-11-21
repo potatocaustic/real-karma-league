@@ -62,11 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage() {
     try {
-        const playersSnap = await getDocs(collection(db, getCollectionName("v2_players")));
+        // ✅ OPTIMIZED: Filter for ACTIVE players at database level instead of client-side
+        const playersQuery = query(
+            collection(db, getCollectionName("v2_players")),
+            where("player_status", "==", "ACTIVE")
+        );
+        const playersSnap = await getDocs(playersQuery);
         playersSnap.docs.forEach(doc => {
-            if (doc.data().player_status === 'ACTIVE') {
-                allPlayers.set(doc.data().player_handle, { id: doc.id, ...doc.data() });
-            }
+            allPlayers.set(doc.data().player_handle, { id: doc.id, ...doc.data() });
         });
 
         await populateSeasons();
