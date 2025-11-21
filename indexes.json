@@ -1,0 +1,498 @@
+[
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "conference",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "postseed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/v2_teams_dev/indexes/CICAgJjFvYoJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "conference",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "postseed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/v2_teams/indexes/CICAgNiav4AK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "player_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_lineups/indexes/CICAgJim14AK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "player_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/lineups_dev/indexes/CICAgOjXh4EK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/games/indexes/CICAgNiroIEK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/games/indexes/CICAgJj7z4EK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/seasons_dev/indexes/CICAgLiT6IEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/games_dev/indexes/CICAgNjpgYIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_lineups_dev/indexes/CICAgLjRyYIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/games/indexes/CICAgJjF9oIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/games_dev/indexes/CICAgLiIkYMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "player_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_lineups_dev/indexes/CICAgJiUpoMK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_games/indexes/CICAgNi47oMK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/games/indexes/CICAgLjyuogK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_games/indexes/CICAgJiHgokK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_games_dev/indexes/CICAgOi39IkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_games_dev/indexes/CICAgJjFvYoK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "player_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/lineups/indexes/CICAgOi3kJAK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/power_rankings_dev/indexes/CICAgJiH2JAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/seasons/indexes/CICAgJjmiJEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_games_dev/indexes/CICAgLjyrJEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_games/indexes/CICAgNjaxJEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/games_dev/indexes/CICAgJjFqZMK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "module",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/notifications/indexes/CICAgNjp5ZMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/real-karma-league/databases/(default)/collectionGroups/post_lineups/indexes/CICAgJiljLcL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  }
+]
