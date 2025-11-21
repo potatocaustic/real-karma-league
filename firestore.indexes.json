@@ -103,7 +103,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "involved_teams", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "transaction_date", "order": "DESCENDING" }
+        { "fieldPath": "date", "order": "DESCENDING" }
       ]
     },
     {
@@ -111,7 +111,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "involved_teams", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "transaction_date", "order": "DESCENDING" }
+        { "fieldPath": "date", "order": "DESCENDING" }
       ]
     },
     {
@@ -119,7 +119,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "involved_teams", "arrayConfig": "CONTAINS" },
-        { "fieldPath": "transaction_date", "order": "DESCENDING" }
+        { "fieldPath": "date", "order": "DESCENDING" }
       ]
     }
   ],
