@@ -25,6 +25,10 @@ let currentChartType = 'cumulative'; // 'cumulative' or 'differential'
 let currentTeam1 = null;
 let currentTeam2 = null;
 
+// Listener unsubscribe functions for cleanup
+let liveGamesUnsubscribe = null;
+let statusUnsubscribe = null;
+
 // --- UTILITY FUNCTIONS ---
 const formatInThousands = (value) => {
     const num = parseFloat(value);
@@ -177,8 +181,13 @@ function determineInitialWeek() {
 }
 
 function listenForLiveGames() {
+    // Clean up existing listener if any
+    if (liveGamesUnsubscribe) {
+        liveGamesUnsubscribe();
+    }
+
     const liveQuery = query(collection(db, collectionNames.liveGames));
-    onSnapshot(liveQuery, (snapshot) => {
+    liveGamesUnsubscribe = onSnapshot(liveQuery, (snapshot) => {
         const liveGamesChanged = snapshot.docChanges().length > 0;
         liveGamesCache.clear();
         snapshot.forEach(doc => liveGamesCache.set(doc.id, doc.data()));
@@ -194,8 +203,13 @@ function listenForLiveGames() {
 }
 
 function listenForScoringStatus() {
+    // Clean up existing listener if any
+    if (statusUnsubscribe) {
+        statusUnsubscribe();
+    }
+
     const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
-    onSnapshot(statusRef, (docSnap) => {
+    statusUnsubscribe = onSnapshot(statusRef, (docSnap) => {
         const statusData = docSnap.exists() ? docSnap.data() : {};
         const newStatus = statusData.status || 'stopped';
         showLiveFeatures = statusData.show_live_features !== false; // Default to true if not set
@@ -1499,6 +1513,22 @@ async function initializePage() {
 }
 
 document.addEventListener('DOMContentLoaded', initializePage);
+
+// Clean up listeners when page is unloaded to prevent memory leaks and excessive reads
+function cleanupListeners() {
+    console.log('Cleaning up Firestore listeners...');
+    if (statusUnsubscribe) {
+        statusUnsubscribe();
+        statusUnsubscribe = null;
+    }
+    if (liveGamesUnsubscribe) {
+        liveGamesUnsubscribe();
+        liveGamesUnsubscribe = null;
+    }
+}
+
+window.addEventListener('beforeunload', cleanupListeners);
+window.addEventListener('pagehide', cleanupListeners);
 
 // Reload schedule when league changes
 window.addEventListener('leagueChanged', (event) => {

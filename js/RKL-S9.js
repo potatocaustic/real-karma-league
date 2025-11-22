@@ -16,6 +16,8 @@ let allTeams = [];
 let allGamesCache = []; // Caches all games for the season
 let liveGamesUnsubscribe = null; // To store the listener unsubscribe function
 let dailyLeaderboardUnsubscribe = null; // To store the daily leaderboard listener unsubscribe function
+let statusUnsubscribe = null; // To store the status listener unsubscribe function
+let usageStatsUnsubscribe = null; // To store the usage stats listener unsubscribe function
 let showLiveFeatures = true; // Controls visibility of new live features
 
 // --- UTILITY FUNCTIONS ---
@@ -222,7 +224,8 @@ function initializeGamesSection(seasonData) {
     const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
     const gamesList = document.getElementById('recent-games');
 
-    onSnapshot(statusRef, (statusSnap) => {
+    // Store the unsubscribe function for cleanup
+    statusUnsubscribe = onSnapshot(statusRef, (statusSnap) => {
         const statusData = statusSnap.exists ? statusSnap.data() : {};
         const newStatus = statusData.status || 'stopped';
         showLiveFeatures = statusData.show_live_features !== false; // Default to true if not set
@@ -231,8 +234,8 @@ function initializeGamesSection(seasonData) {
             return;
         }
 
-        currentScoringStatus = newStatus; 
-        
+        currentScoringStatus = newStatus;
+
         if (currentScoringStatus === 'active' || currentScoringStatus === 'paused') {
             loadLiveGames();
         } else { // status is 'stopped'
@@ -2002,4 +2005,27 @@ async function initializePage() {
     }
 }
 
+// Clean up listeners when page is unloaded to prevent memory leaks and excessive reads
+function cleanupListeners() {
+    console.log('Cleaning up Firestore listeners...');
+    if (statusUnsubscribe) {
+        statusUnsubscribe();
+        statusUnsubscribe = null;
+    }
+    if (liveGamesUnsubscribe) {
+        liveGamesUnsubscribe();
+        liveGamesUnsubscribe = null;
+    }
+    if (dailyLeaderboardUnsubscribe) {
+        dailyLeaderboardUnsubscribe();
+        dailyLeaderboardUnsubscribe = null;
+    }
+    if (usageStatsUnsubscribe) {
+        usageStatsUnsubscribe();
+        usageStatsUnsubscribe = null;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', initializePage);
+window.addEventListener('beforeunload', cleanupListeners);
+window.addEventListener('pagehide', cleanupListeners);
