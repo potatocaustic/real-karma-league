@@ -35,7 +35,7 @@ let allDraftPicks = {};
 let allPlayerStats = {};
 
 // --- Pagination State ---
-const TRANSACTIONS_PER_PAGE = 100; // Load 100 transactions at a time
+const TRANSACTIONS_PER_PAGE = 50; // Load 100 transactions at a time
 let lastTransactionDoc = null;
 let hasMoreTransactions = true;
 let isLoadingMore = false;
@@ -51,7 +51,6 @@ async function loadData() {
     transactionsListEl.innerHTML = '<div class="loading">Loading transactions...</div>';
 
     try {
-        // ✅ OPTIMIZED: Use pagination to load 100 transactions at a time instead of all 615+
         const transactionsQuery = query(
             collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
             orderBy('date', 'desc'),
@@ -92,10 +91,7 @@ async function loadData() {
 
         await fetchAllPlayerStats();
 
-        // No need to sort - already ordered by transaction_date DESC in query
-
         populateFilters();
-        // **MODIFIED**: This function will now check the URL and filter automatically
         displayTransactions();
 
         // **NEW**: Check URL params after data load to disable filters if needed

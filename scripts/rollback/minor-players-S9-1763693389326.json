@@ -1,0 +1,859 @@
+{
+  "timestamp": "2025-11-21T02:49:38.430Z",
+  "seasonId": "S9",
+  "collectionName": "minor_v2_players",
+  "createdPlayers": [
+    {
+      "player_id": "WJqABwDJ",
+      "player_handle": "tahadd"
+    },
+    {
+      "player_id": "Y3OqYyXJ",
+      "player_handle": "oscar_rios10"
+    },
+    {
+      "player_id": "lnE9Nean",
+      "player_handle": "nbayoungboythegoat"
+    },
+    {
+      "player_id": "xnr4NGkv",
+      "player_handle": "imgoingd1"
+    },
+    {
+      "player_id": "rnejMRLJ",
+      "player_handle": "dantheman"
+    },
+    {
+      "player_id": "9vY2RBp3",
+      "player_handle": "esh22"
+    },
+    {
+      "player_id": "BJ0OoxKn",
+      "player_handle": "koolesa"
+    },
+    {
+      "player_id": "Y3O08eGn",
+      "player_handle": "bet365"
+    },
+    {
+      "player_id": "dvdmM0z3",
+      "player_handle": "fodn"
+    },
+    {
+      "player_id": "lnE5lkEn",
+      "player_handle": "jowy"
+    },
+    {
+      "player_id": "9JmgZqQ3",
+      "player_handle": "fuchi"
+    },
+    {
+      "player_id": "rnGz2pw3",
+      "player_handle": "knies"
+    },
+    {
+      "player_id": "PJPqaVwv",
+      "player_handle": "42rawchris"
+    },
+    {
+      "player_id": "wJ29pQ1n",
+      "player_handle": "yivis"
+    },
+    {
+      "player_id": "9JmGO4R3",
+      "player_handle": "tomahawkchopped"
+    },
+    {
+      "player_id": "5nxjPRyv",
+      "player_handle": "treveyonhenderson32"
+    },
+    {
+      "player_id": "QvDmVBO3",
+      "player_handle": "ykuno"
+    },
+    {
+      "player_id": "R3X2rz5J",
+      "player_handle": "kungfukendrick"
+    },
+    {
+      "player_id": "PJPqBwYv",
+      "player_handle": "sebastianvettel5"
+    },
+    {
+      "player_id": "xnrb54Nn",
+      "player_handle": "klub"
+    },
+    {
+      "player_id": "5nx5z7DJ",
+      "player_handle": "keegso"
+    },
+    {
+      "player_id": "kJw8mrev",
+      "player_handle": "kaidenpickle3"
+    },
+    {
+      "player_id": "oJlQr8xv",
+      "player_handle": "bryce_young"
+    },
+    {
+      "player_id": "LJ5gqmX3",
+      "player_handle": "riodayungog"
+    },
+    {
+      "player_id": "X3oL9dbn",
+      "player_handle": "didleedoo"
+    },
+    {
+      "player_id": "53jmxWPv",
+      "player_handle": "andrej"
+    },
+    {
+      "player_id": "7J6XA5P3",
+      "player_handle": "kyle.pitts"
+    },
+    {
+      "player_id": "gnVZeNMn",
+      "player_handle": "bensimmons2"
+    },
+    {
+      "player_id": "LJ5YMQNJ",
+      "player_handle": "hxrly"
+    },
+    {
+      "player_id": "7JkryQan",
+      "player_handle": "dc"
+    },
+    {
+      "player_id": "dvdbjqNn",
+      "player_handle": "pankake"
+    },
+    {
+      "player_id": "AnzYGMj3",
+      "player_handle": "rhys"
+    },
+    {
+      "player_id": "lnEpa2a3",
+      "player_handle": "meles"
+    },
+    {
+      "player_id": "7JkryQan",
+      "player_handle": "dc"
+    },
+    {
+      "player_id": "DJ465ao3",
+      "player_handle": "e3thqn"
+    },
+    {
+      "player_id": "43QYqqj3",
+      "player_handle": "cooleyisthegoat"
+    },
+    {
+      "player_id": "KnAGrZ9v",
+      "player_handle": "izzo_"
+    },
+    {
+      "player_id": "kvM5LY5v",
+      "player_handle": "lecappa"
+    },
+    {
+      "player_id": "5nxq49QJ",
+      "player_handle": "florida_sportsfan"
+    },
+    {
+      "player_id": "Y3K11bEJ",
+      "player_handle": "ducked"
+    },
+    {
+      "player_id": "Y3OlpPXn",
+      "player_handle": "horchata_"
+    },
+    {
+      "player_id": "53jpZxZJ",
+      "player_handle": "cywheela"
+    },
+    {
+      "player_id": "R37mp5qJ",
+      "player_handle": "trae_young"
+    },
+    {
+      "player_id": "rneaRWPn",
+      "player_handle": "akumpodametime"
+    },
+    {
+      "player_id": "kJway13X",
+      "player_handle": "livesay"
+    },
+    {
+      "player_id": "7Jk0Mwjv",
+      "player_handle": "maye1drakeyour0rder"
+    },
+    {
+      "player_id": "jvbXbgKn",
+      "player_handle": "soyel"
+    },
+    {
+      "player_id": "eJ9Ppoyn",
+      "player_handle": "laquariously"
+    },
+    {
+      "player_id": "rnegRdPv",
+      "player_handle": "johnson"
+    },
+    {
+      "player_id": "Y3OQoxdJ",
+      "player_handle": "koid"
+    },
+    {
+      "player_id": "7J6YKEgn",
+      "player_handle": "mal1k"
+    },
+    {
+      "player_id": "Gv1VRPy3",
+      "player_handle": "jack"
+    },
+    {
+      "player_id": "R3XW2pyv",
+      "player_handle": "tempmew"
+    },
+    {
+      "player_id": "lnElpja3",
+      "player_handle": "hawaiihockey"
+    },
+    {
+      "player_id": "7J6m6gwn",
+      "player_handle": "ilovebuck67"
+    },
+    {
+      "player_id": "DJ4k4bln",
+      "player_handle": "calvinator"
+    },
+    {
+      "player_id": "rnGZDge3",
+      "player_handle": "dakorienmoore"
+    },
+    {
+      "player_id": "mvgbbaYJ",
+      "player_handle": "norris"
+    },
+    {
+      "player_id": "PJPaMGpv",
+      "player_handle": "vitello"
+    },
+    {
+      "player_id": "kJw0x98v",
+      "player_handle": "skeleta"
+    },
+    {
+      "player_id": "X3o4lkln",
+      "player_handle": "acupp"
+    },
+    {
+      "player_id": "Y3OxYlPn",
+      "player_handle": "therealbenshelton"
+    },
+    {
+      "player_id": "dnW7e2zn",
+      "player_handle": "trickyy"
+    },
+    {
+      "player_id": "jvbGkyb3",
+      "player_handle": "sav"
+    },
+    {
+      "player_id": "4JZRQ7WJ",
+      "player_handle": "xesure"
+    },
+    {
+      "player_id": "Y3Kq1G8J",
+      "player_handle": "2pretty"
+    },
+    {
+      "player_id": "gv8LgOev",
+      "player_handle": "jn"
+    },
+    {
+      "player_id": "jvbLr9Kn",
+      "player_handle": "vice16"
+    },
+    {
+      "player_id": "dvdk7e4J",
+      "player_handle": "koi_perich"
+    },
+    {
+      "player_id": "4JZARy7n",
+      "player_handle": "jensen10"
+    },
+    {
+      "player_id": "LJ55L4AJ",
+      "player_handle": "jiro"
+    },
+    {
+      "player_id": "LJ524ypv",
+      "player_handle": "alonsoburner_"
+    },
+    {
+      "player_id": "rJNYXxYn",
+      "player_handle": "joe_ii"
+    },
+    {
+      "player_id": "jvbGNBp3",
+      "player_handle": "chigoziem"
+    },
+    {
+      "player_id": "wJ2AQBXn",
+      "player_handle": "michael.busch"
+    },
+    {
+      "player_id": "jvbmMqeJ",
+      "player_handle": "bos"
+    },
+    {
+      "player_id": "7J6NEbgJ",
+      "player_handle": "cl1ff"
+    },
+    {
+      "player_id": "qvRMpEKJ",
+      "player_handle": "_kirky"
+    },
+    {
+      "player_id": "5nxBAdYv",
+      "player_handle": "barry"
+    },
+    {
+      "player_id": "X3o5M7wJ",
+      "player_handle": "iceman"
+    },
+    {
+      "player_id": "AnzoWkQJ",
+      "player_handle": "sportsnerd18"
+    },
+    {
+      "player_id": "Gv1D62aJ",
+      "player_handle": "turtleneck"
+    },
+    {
+      "player_id": "Gv18eP6J",
+      "player_handle": "tacko"
+    },
+    {
+      "player_id": "jvba4EKJ",
+      "player_handle": "yunior"
+    },
+    {
+      "player_id": "mvgEAAan",
+      "player_handle": "bearscubsbulls"
+    },
+    {
+      "player_id": "gv8Mpp73",
+      "player_handle": "two"
+    },
+    {
+      "player_id": "LJ5lgPRn",
+      "player_handle": "honey_nut_chourios"
+    },
+    {
+      "player_id": "xnaXrXa3",
+      "player_handle": "stott"
+    },
+    {
+      "player_id": "BJ0eA96v",
+      "player_handle": "kyson"
+    },
+    {
+      "player_id": "BJ0wxzpn",
+      "player_handle": "coltsfan36951"
+    },
+    {
+      "player_id": "k3LaRo1n",
+      "player_handle": "doc14"
+    },
+    {
+      "player_id": "PJP12PYv",
+      "player_handle": "shalloon"
+    },
+    {
+      "player_id": "kvMW0ADn",
+      "player_handle": "bop"
+    },
+    {
+      "player_id": "AnzW6RpJ",
+      "player_handle": "xlenny"
+    },
+    {
+      "player_id": "dvdLm1Wv",
+      "player_handle": "kernalcorn"
+    },
+    {
+      "player_id": "k3LPKOK3",
+      "player_handle": "snm739"
+    },
+    {
+      "player_id": "jvbj20qv",
+      "player_handle": "the_original_jenksta"
+    },
+    {
+      "player_id": "dnW2Lg13",
+      "player_handle": "butlers"
+    },
+    {
+      "player_id": "rneew5pn",
+      "player_handle": "kp"
+    },
+    {
+      "player_id": "43QW9wlJ",
+      "player_handle": "bmo"
+    },
+    {
+      "player_id": "gv8aV2P3",
+      "player_handle": "ryanrehkowszn"
+    },
+    {
+      "player_id": "lnE8Mmq3",
+      "player_handle": "_joey"
+    },
+    {
+      "player_id": "rneyNqQn",
+      "player_handle": "djisthegoat"
+    },
+    {
+      "player_id": "WJq071Qn",
+      "player_handle": "max.anderson.37"
+    },
+    {
+      "player_id": "gv8MM613",
+      "player_handle": "wiggins"
+    },
+    {
+      "player_id": "qnBGqyGJ",
+      "player_handle": "lfcq8"
+    },
+    {
+      "player_id": "dvdM8kN3",
+      "player_handle": "air"
+    },
+    {
+      "player_id": "V3yL9g0v",
+      "player_handle": "mikeyoung345"
+    },
+    {
+      "player_id": "rJNj9gyJ",
+      "player_handle": "jaylenwaddlesburner"
+    },
+    {
+      "player_id": "mvg5AZan",
+      "player_handle": "mcmahonn"
+    },
+    {
+      "player_id": "LJ52DaXv",
+      "player_handle": "nash"
+    },
+    {
+      "player_id": "Gv1V4dR3",
+      "player_handle": "dartt"
+    },
+    {
+      "player_id": "wJ2l1YL3",
+      "player_handle": "youngthug"
+    },
+    {
+      "player_id": "LJ54Nrpn",
+      "player_handle": "4stuntman5"
+    },
+    {
+      "player_id": "oJlPpR2J",
+      "player_handle": "liljahfrmfl"
+    },
+    {
+      "player_id": "lnE6rwrJ",
+      "player_handle": "joeburrow"
+    },
+    {
+      "player_id": "KnAKZBgv",
+      "player_handle": "tristan102"
+    },
+    {
+      "player_id": "wJ2eeyEn",
+      "player_handle": "jets_"
+    },
+    {
+      "player_id": "LJ5j72Rv",
+      "player_handle": "nick.knows"
+    },
+    {
+      "player_id": "xnrWmYxJ",
+      "player_handle": "jesusmade12"
+    },
+    {
+      "player_id": "lnEB6P2J",
+      "player_handle": "jeremiah.smith.4"
+    },
+    {
+      "player_id": "53joRd0n",
+      "player_handle": "sua"
+    },
+    {
+      "player_id": "Y3Kd2zLn",
+      "player_handle": "prodraiders"
+    },
+    {
+      "player_id": "X3ozWywv",
+      "player_handle": "finlandish"
+    },
+    {
+      "player_id": "KnAy7AVn",
+      "player_handle": "turkey"
+    },
+    {
+      "player_id": "qvRygagJ",
+      "player_handle": "coppr"
+    },
+    {
+      "player_id": "xnaXk983",
+      "player_handle": "🌀"
+    },
+    {
+      "player_id": "rnGz0EQ3",
+      "player_handle": "ceddanne"
+    },
+    {
+      "player_id": "xnrRMPWn",
+      "player_handle": "trxple"
+    },
+    {
+      "player_id": "oJl0VBXJ",
+      "player_handle": "nicoluvsredskins"
+    },
+    {
+      "player_id": "gnVqPay3",
+      "player_handle": "theweeknd_"
+    },
+    {
+      "player_id": "V3yg4keJ",
+      "player_handle": "jsn"
+    },
+    {
+      "player_id": "AnzZoXQn",
+      "player_handle": "stz"
+    },
+    {
+      "player_id": "qvRD5o8n",
+      "player_handle": "bucky_"
+    },
+    {
+      "player_id": "mvgbNPGJ",
+      "player_handle": "dru"
+    },
+    {
+      "player_id": "oJlkZk2n",
+      "player_handle": "sportsguy27"
+    },
+    {
+      "player_id": "Gv1RxBD3",
+      "player_handle": "superrockets59"
+    },
+    {
+      "player_id": "Y3O5WVNJ",
+      "player_handle": "bthekingr"
+    },
+    {
+      "player_id": "dnWNeB43",
+      "player_handle": "chefpekka"
+    },
+    {
+      "player_id": "oJl7XXBn",
+      "player_handle": "charlie2105"
+    },
+    {
+      "player_id": "gv8G4bWJ",
+      "player_handle": "rowan"
+    },
+    {
+      "player_id": "gv86Yben",
+      "player_handle": "mpls"
+    },
+    {
+      "player_id": "R3Xo2Elv",
+      "player_handle": "gradyt06"
+    },
+    {
+      "player_id": "R3XzXxdJ",
+      "player_handle": "coast"
+    },
+    {
+      "player_id": "Y3K7lEy3",
+      "player_handle": "vvv2003"
+    },
+    {
+      "player_id": "mvgmz2Xn",
+      "player_handle": "cloudly08"
+    },
+    {
+      "player_id": "dnWgqzAn",
+      "player_handle": "minkah"
+    },
+    {
+      "player_id": "kJwl0zYv",
+      "player_handle": "warren"
+    },
+    {
+      "player_id": "gnV2yLZn",
+      "player_handle": "jpfeffer35"
+    },
+    {
+      "player_id": "V3yDkRKv",
+      "player_handle": "children"
+    },
+    {
+      "player_id": "QvDWeb6J",
+      "player_handle": "poverty"
+    },
+    {
+      "player_id": "eJ9ydVjJ",
+      "player_handle": "rapraprapparaparap"
+    },
+    {
+      "player_id": "kvMWbwjn",
+      "player_handle": "aaroncf"
+    },
+    {
+      "player_id": "oJl5K0Pv",
+      "player_handle": "dylanpope74"
+    },
+    {
+      "player_id": "LJ5DVrrn",
+      "player_handle": "lifestylebrazy"
+    },
+    {
+      "player_id": "43QgNVlJ",
+      "player_handle": "jesus.loves.you"
+    },
+    {
+      "player_id": "LJ5e2ZRJ",
+      "player_handle": "nbayoungboy.top"
+    },
+    {
+      "player_id": "dnW7ND9n",
+      "player_handle": "book"
+    },
+    {
+      "player_id": "k3LrWPKJ",
+      "player_handle": "marvin"
+    },
+    {
+      "player_id": "eJ9bw6kv",
+      "player_handle": "olis.e"
+    },
+    {
+      "player_id": "QvD0GQzv",
+      "player_handle": "thebigd0g"
+    },
+    {
+      "player_id": "PJPEGoPv",
+      "player_handle": "eliteburger"
+    },
+    {
+      "player_id": "DJ47B8qn",
+      "player_handle": "fendforquis"
+    },
+    {
+      "player_id": "R3Xpq2z3",
+      "player_handle": "thebaltimoreravens"
+    },
+    {
+      "player_id": "9JmP00wn",
+      "player_handle": "brown"
+    },
+    {
+      "player_id": "53jpX0DJ",
+      "player_handle": "556s"
+    },
+    {
+      "player_id": "Gv1YX7pv",
+      "player_handle": "luca_"
+    },
+    {
+      "player_id": "Gv1aeOrv",
+      "player_handle": "amzino"
+    },
+    {
+      "player_id": "dvd8MM1v",
+      "player_handle": "mvpbernardo"
+    },
+    {
+      "player_id": "9vYa20Rv",
+      "player_handle": "forrest"
+    },
+    {
+      "player_id": "rner1dZJ",
+      "player_handle": "bostonsportsfan11"
+    },
+    {
+      "player_id": "Gv1aeOrv",
+      "player_handle": "amzino"
+    },
+    {
+      "player_id": "DJ4wYaqn",
+      "player_handle": "notclinx"
+    },
+    {
+      "player_id": "DJ4qRNLv",
+      "player_handle": "bojack"
+    },
+    {
+      "player_id": "4JZoGVDv",
+      "player_handle": "shenli"
+    },
+    {
+      "player_id": "Y3OlKAPn",
+      "player_handle": "payt0n"
+    },
+    {
+      "player_id": "AnzwyoWJ",
+      "player_handle": "skysmores"
+    },
+    {
+      "player_id": "5nx9Z8zJ",
+      "player_handle": "shzckers"
+    },
+    {
+      "player_id": "R3XX1zd3",
+      "player_handle": "tylerll30"
+    },
+    {
+      "player_id": "LJ5Ooaq3",
+      "player_handle": "burning"
+    },
+    {
+      "player_id": "DJ47g76n",
+      "player_handle": "saquon"
+    },
+    {
+      "player_id": "5nx5xRlJ",
+      "player_handle": "hardforbedard"
+    },
+    {
+      "player_id": "PJPlDZPJ",
+      "player_handle": "mayfield"
+    },
+    {
+      "player_id": "k3LXwK13",
+      "player_handle": "lemmystat5"
+    },
+    {
+      "player_id": "AnzXQjpv",
+      "player_handle": "bocchi"
+    },
+    {
+      "player_id": "jvbj20qv",
+      "player_handle": "the_original_jenksta"
+    },
+    {
+      "player_id": "Y3O4pXxn",
+      "player_handle": "kloudygl"
+    },
+    {
+      "player_id": "k3Lzg6eJ",
+      "player_handle": "duster"
+    },
+    {
+      "player_id": "R3XW1ZYv",
+      "player_handle": "tatersmash"
+    },
+    {
+      "player_id": "dnWR8j53",
+      "player_handle": "ninjago"
+    },
+    {
+      "player_id": "wJplOWoJ",
+      "player_handle": "reds"
+    },
+    {
+      "player_id": "43Q5kap3",
+      "player_handle": "tetairoa_mcmillan4"
+    },
+    {
+      "player_id": "kJwDMaVv",
+      "player_handle": "odunze"
+    },
+    {
+      "player_id": "43Q6yNjn",
+      "player_handle": "galaxygiraffe"
+    },
+    {
+      "player_id": "k3LXLp43",
+      "player_handle": "suni_lee"
+    },
+    {
+      "player_id": "X3okrRA3",
+      "player_handle": "dk"
+    },
+    {
+      "player_id": "9JmyWZdJ",
+      "player_handle": "tszyu"
+    },
+    {
+      "player_id": "9Jm2a2Bv",
+      "player_handle": "chrisolive"
+    },
+    {
+      "player_id": "Y3KpKrLn",
+      "player_handle": "bryanbattle"
+    },
+    {
+      "player_id": "X3oN159v",
+      "player_handle": "maridagoat"
+    },
+    {
+      "player_id": "AnzxyxQv",
+      "player_handle": "mangoz29"
+    },
+    {
+      "player_id": "QvD0dw9v",
+      "player_handle": "denver.broncos"
+    },
+    {
+      "player_id": "R37gdal3",
+      "player_handle": "ultron"
+    },
+    {
+      "player_id": "xnraX7P3",
+      "player_handle": "lamarjacksonbih"
+    },
+    {
+      "player_id": "QvDAqG93",
+      "player_handle": "beniskewl"
+    },
+    {
+      "player_id": "Y3OeNONJ",
+      "player_handle": "bballpaulszn"
+    },
+    {
+      "player_id": "qvRNjxZv",
+      "player_handle": "depressedpiratesfan"
+    },
+    {
+      "player_id": "AnzjKwLn",
+      "player_handle": "trik214"
+    },
+    {
+      "player_id": "9vYmb44v",
+      "player_handle": "brunson11"
+    },
+    {
+      "player_id": "43Qgz0EJ",
+      "player_handle": "keegan"
+    },
+    {
+      "player_id": "Y3KAGbLJ",
+      "player_handle": "cub17"
+    },
+    {
+      "player_id": "DJ47Azjn",
+      "player_handle": "alijah"
+    },
+    {
+      "player_id": "jvbxL5pn",
+      "player_handle": "ghostface"
+    }
+  ]
+}
