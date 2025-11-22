@@ -22,7 +22,18 @@ exports.scheduledSampler = onSchedule("every 1 minutes", async (event) => {
         return null;
     }
 
-    const { interval_minutes, last_sample_completed_at } = statusSnap.data();
+    // Additional safety: Check if the active game date matches today
+    const statusData = statusSnap.data();
+    const activeGameDate = statusData.active_game_date;
+    const today = new Date();
+    const todayDateStr = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+
+    if (activeGameDate && activeGameDate !== todayDateStr) {
+        console.log(`Game date mismatch (active: ${activeGameDate}, today: ${todayDateStr}). Exiting to prevent stale reads.`);
+        return null;
+    }
+
+    const { interval_minutes, last_sample_completed_at } = statusData;
     const now = new Date();
 
     if (!last_sample_completed_at || now.getTime() >= last_sample_completed_at.toDate().getTime() + (interval_minutes * 60 * 1000)) {
@@ -125,7 +136,18 @@ exports.minor_scheduledSampler = onSchedule("every 1 minutes", async (event) => 
         return null;
     }
 
-    const { interval_minutes, last_sample_completed_at } = statusSnap.data();
+    // Additional safety: Check if the active game date matches today
+    const statusData = statusSnap.data();
+    const activeGameDate = statusData.active_game_date;
+    const today = new Date();
+    const todayDateStr = `${today.getMonth() + 1}/${today.getDate()}/${today.getFullYear()}`;
+
+    if (activeGameDate && activeGameDate !== todayDateStr) {
+        console.log(`Minor league: Game date mismatch (active: ${activeGameDate}, today: ${todayDateStr}). Exiting to prevent stale reads.`);
+        return null;
+    }
+
+    const { interval_minutes, last_sample_completed_at } = statusData;
     const now = new Date();
 
     if (!last_sample_completed_at || now.getTime() >= last_sample_completed_at.toDate().getTime() + (interval_minutes * 60 * 1000)) {
