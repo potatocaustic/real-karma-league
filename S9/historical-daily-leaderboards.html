@@ -27,6 +27,21 @@
         window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
     </script>
     <script>
+        // Show league switcher immediately for known admins to prevent flash
+        (function() {
+            const isAdmin = localStorage.getItem('rkl_is_admin') === 'true';
+            if (isAdmin) {
+                // This will be executed when DOM is parsed, before full page load
+                document.addEventListener('DOMContentLoaded', function() {
+                    const mountPoint = document.getElementById('league-switcher-mount');
+                    if (mountPoint) {
+                        mountPoint.style.display = 'flex';
+                    }
+                });
+            }
+        })();
+    </script>
+    <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
@@ -160,24 +175,40 @@
 
       // Check if user is admin and show league switcher accordingly
       onAuthStateChanged(auth, async (user) => {
+        const mountPoint = document.getElementById('league-switcher-mount');
+
         if (user) {
           // Check if user is an admin (must check users collection role, not admins collection)
           const userRef = doc(db, "users", user.uid);
 
           try {
             const userDoc = await getDoc(userRef);
+            const isAdmin = userDoc.exists() && userDoc.data().role === 'admin';
 
-            if (userDoc.exists() && userDoc.data().role === 'admin') {
+            // Cache admin status in localStorage to prevent flash on subsequent page loads
+            localStorage.setItem('rkl_is_admin', isAdmin ? 'true' : 'false');
+
+            if (isAdmin) {
               // User is admin - show and initialize league switcher
-              const mountPoint = document.getElementById('league-switcher-mount');
               if (mountPoint) {
                 mountPoint.style.display = 'flex';
                 // Attach event listener to existing switcher element
                 createLeagueSwitcher();
               }
+            } else {
+              // User is not admin - ensure switcher is hidden
+              if (mountPoint) {
+                mountPoint.style.display = 'none';
+              }
             }
           } catch (error) {
             console.error('[League Switcher] Error checking user role:', error);
+          }
+        } else {
+          // User is not logged in - clear admin status and hide switcher
+          localStorage.setItem('rkl_is_admin', 'false');
+          if (mountPoint) {
+            mountPoint.style.display = 'none';
           }
         }
       });
