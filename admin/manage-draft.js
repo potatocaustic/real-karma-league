@@ -14,7 +14,9 @@ import {
     updateDoc,
     orderBy,
     getCurrentLeague,
-    getConferenceNames
+    getConferenceNames,
+    collectionNames,
+    getLeagueCollectionName
 } from '/js/firebase-init.js';
 
 // --- Page Elements ---
@@ -137,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initializePage() {
     try {
         // Fetch active season for team name context
-        const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"));
+        const seasonsQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"));
         const activeSeasonsSnap = await getDocs(seasonsQuery);
         const activeSeasonIdForTeams = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
 
@@ -149,13 +151,13 @@ async function initializePage() {
         const conferences = getConferenceNames();
         const validConferences = [conferences.primary, conferences.secondary];
 
-        const teamsSnap = await getDocs(collection(db, "v2_teams"));
+        const teamsSnap = await getDocs(collection(db, collectionNames.teams));
         const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
             const conference = teamDoc.data().conference;
             if (!conference || !validConferences.includes(conference)) return null;
 
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
-            const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", activeSeasonIdForTeams);
+            const seasonRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, activeSeasonIdForTeams);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
 
             teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
@@ -302,7 +304,7 @@ async function handleProspectsSubmit(e) {
 // Draft Results Logic
 // ===============================================
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, "seasons")));
+    const seasonsSnap = await getDocs(query(collection(db, collectionNames.seasons)));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -332,7 +334,9 @@ async function loadDraftBoard() {
     draftTableBody.innerHTML = `<tr><td colspan="5" class="loading">Loading draft board...</td></tr>`;
 
     const seasonNumber = currentSeasonId.replace('S', '');
-    const draftResultsCollectionRef = collection(db, `draft_results/season_${seasonNumber}/S${seasonNumber}_draft_results`);
+    const currentLeague = getCurrentLeague();
+    const draftResultsParent = currentLeague === 'minor' ? 'minor_draft_results' : 'draft_results';
+    const draftResultsCollectionRef = collection(db, `${draftResultsParent}/season_${seasonNumber}/S${seasonNumber}_draft_results`);
     const existingPicksSnap = await getDocs(draftResultsCollectionRef);
     const existingPicksMap = new Map();
     existingPicksSnap.forEach(doc => {
@@ -428,9 +432,11 @@ async function handleDraftSubmit(e) {
     try {
         const batch = writeBatch(db);
         const seasonNumber = currentSeasonId.replace('S', '');
-        const draftResultsCollectionRef = collection(db, `draft_results/season_${seasonNumber}/S${seasonNumber}_draft_results`);
+        const currentLeague = getCurrentLeague();
+        const draftResultsParent = currentLeague === 'minor' ? 'minor_draft_results' : 'draft_results';
+        const draftResultsCollectionRef = collection(db, `${draftResultsParent}/season_${seasonNumber}/S${seasonNumber}_draft_results`);
 
-        const parentDocRef = doc(db, "draft_results", `season_${seasonNumber}`);
+        const parentDocRef = doc(db, draftResultsParent, `season_${seasonNumber}`);
         batch.set(parentDocRef, { description: `Container for ${currentSeasonId} draft results.` });
 
         for (let i = 1; i <= TOTAL_PICKS; i++) {
