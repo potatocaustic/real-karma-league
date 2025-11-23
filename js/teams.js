@@ -91,8 +91,10 @@ function generateTeamCard(team, rankInConference) {
 async function loadTeams() {
   const easternTeamsGrid = document.getElementById('eastern-teams');
   const westernTeamsGrid = document.getElementById('western-teams');
-  const easternHeader = document.querySelector('.conference-section:first-of-type .conference-header h3');
-  const westernHeader = document.querySelector('.conference-section:last-of-type .conference-header h3');
+
+  // Get conference headers by traversing from the teams grids
+  const easternHeader = easternTeamsGrid.closest('.conference-section')?.querySelector('.conference-header h3');
+  const westernHeader = westernTeamsGrid.closest('.conference-section')?.querySelector('.conference-header h3');
 
   // Determine conference names based on current league
   const currentLeague = getCurrentLeague();
@@ -101,8 +103,19 @@ async function loadTeams() {
   const conference2 = isMinorLeague ? 'Southern' : 'Western';
 
   // Update conference headers
-  if (easternHeader) easternHeader.textContent = `${conference1} Conference`;
-  if (westernHeader) westernHeader.textContent = `${conference2} Conference`;
+  if (easternHeader) {
+    easternHeader.textContent = `${conference1} Conference`;
+    console.log(`Updated first conference header to: ${conference1} Conference`);
+  } else {
+    console.error('Could not find eastern conference header');
+  }
+
+  if (westernHeader) {
+    westernHeader.textContent = `${conference2} Conference`;
+    console.log(`Updated second conference header to: ${conference2} Conference`);
+  } else {
+    console.error('Could not find western conference header');
+  }
 
   easternTeamsGrid.innerHTML = `<div class="loading">Loading ${conference1} Conference teams...</div>`;
   westernTeamsGrid.innerHTML = `<div class="loading">Loading ${conference2} Conference teams...</div>`;
