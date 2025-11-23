@@ -193,6 +193,13 @@ async function initializePage() {
             }
         });
 
+        // Listen for league changes and reload the page data
+        window.addEventListener('leagueChanged', async (event) => {
+            console.log('League changed to:', event.detail.league);
+            // Reload all data for the new league
+            await initializePage();
+        });
+
     } catch (error) {
         console.error("Error initializing draft page:", error);
         draftTableBody.innerHTML = `<tr><td colspan="5" class="error">Could not load required league data.</td></tr>`;
@@ -314,12 +321,11 @@ async function populateSeasons() {
             activeSeasonId = doc.id;
         }
         const seasonNum = parseInt(doc.id.replace('S', ''), 10);
-        return `<option value="S${seasonNum + 1}">S${seasonNum + 1} Draft</option>`;
+        return `<option value="S${seasonNum}">S${seasonNum} Draft</option>`;
     }).join('');
 
     if (activeSeasonId) {
-        const activeNum = parseInt(activeSeasonId.replace('S', ''), 10);
-        seasonSelect.value = `S${activeNum + 1}`;
+        seasonSelect.value = activeSeasonId;
     }
 
     currentSeasonId = seasonSelect.value;
