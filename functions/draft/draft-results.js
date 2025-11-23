@@ -117,6 +117,7 @@ exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{re
                 });
             } else {
                 batch.set(playerRef, {
+                    player_id: newPlayerId,
                     player_handle: player_handle,
                     current_team_id: team_id,
                     player_status: 'ACTIVE',
@@ -176,6 +177,7 @@ exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{re
             } else {
                 console.log(`Player not found. Creating new player for historical draft.`);
                 batch.set(playerRef, {
+                    player_id: newPlayerId,
                     player_handle: player_handle,
                     current_team_id: team_id,
                     player_status: 'ACTIVE',
@@ -314,6 +316,7 @@ exports.minor_onDraftResultCreate = onDocumentCreated(`minor_draft_results/{seas
                 });
             } else {
                 batch.set(playerRef, {
+                    player_id: newPlayerId,
                     player_handle: player_handle,
                     current_team_id: team_id,
                     player_status: 'ACTIVE',
@@ -337,6 +340,7 @@ exports.minor_onDraftResultCreate = onDocumentCreated(`minor_draft_results/{seas
                 const playerRef = db.collection(getCollectionName('v2_players', LEAGUES.MINOR)).doc(newPlayerId);
 
                 batch.set(playerRef, {
+                    player_id: newPlayerId,
                     player_handle: player_handle,
                     current_team_id: team_id,
                     player_status: 'ACTIVE',
