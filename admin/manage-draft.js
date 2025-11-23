@@ -13,7 +13,8 @@ import {
     where,
     updateDoc,
     orderBy,
-    getCurrentLeague
+    getCurrentLeague,
+    getConferenceNames
 } from '/js/firebase-init.js';
 
 // --- Page Elements ---
@@ -144,10 +145,15 @@ async function initializePage() {
             throw new Error("Could not determine the active season to fetch team names.");
         }
 
-        // Fetch team data
+        // Fetch team data filtered by current league's conferences
+        const conferences = getConferenceNames();
+        const validConferences = [conferences.primary, conferences.secondary];
+
         const teamsSnap = await getDocs(collection(db, "v2_teams"));
         const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
-            if (!teamDoc.data().conference) return null;
+            const conference = teamDoc.data().conference;
+            if (!conference || !validConferences.includes(conference)) return null;
+
             const teamData = { id: teamDoc.id, ...teamDoc.data() };
             const seasonRecordRef = doc(db, "v2_teams", teamDoc.id, "seasonal_records", activeSeasonIdForTeams);
             const seasonRecordSnap = await getDoc(seasonRecordRef);
