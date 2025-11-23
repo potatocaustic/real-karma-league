@@ -313,11 +313,11 @@
       // Check if user is admin and show league switcher accordingly
       onAuthStateChanged(auth, async (user) => {
         if (user) {
-          // Check if user is an admin
-          const adminRef = doc(db, "admins", user.uid);
-          const adminDoc = await getDoc(adminRef);
+          // Check if user is an admin (must check users collection role, not admins collection)
+          const userRef = doc(db, "users", user.uid);
+          const userDoc = await getDoc(userRef);
 
-          if (adminDoc.exists()) {
+          if (userDoc.exists() && userDoc.data().role === 'admin') {
             // User is admin - show and initialize league switcher
             const mountPoint = document.getElementById('league-switcher-mount');
             if (mountPoint) {
