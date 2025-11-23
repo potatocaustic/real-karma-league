@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Draft Lottery Simulator</title>
     <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css" />
     <link rel="stylesheet" href="/css/draft-lottery.css">
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
@@ -31,6 +32,9 @@
             <span class="sun-icon">☀️</span>
             <span class="moon-icon">🌙</span>
         </button>
+        <div id="league-switcher-mount" style="display: none;">
+            <!-- League switcher will be added here for admin users -->
+        </div>
         <h1>
             <a href="/index.html" class="header-link">
                 <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
@@ -110,5 +114,35 @@
     </footer>
 
     <script src="/js/draft-lottery.js" type="module"></script>
+
+    <!-- Admin-only league switcher -->
+    <script type="module">
+      import { auth, db, onAuthStateChanged, doc, getDoc } from '/js/firebase-init.js';
+      import { createLeagueSwitcher } from '/common/league-switcher.js';
+
+      // Check if user is admin and show league switcher accordingly
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          // Check if user is an admin (must check users collection role, not admins collection)
+          const userRef = doc(db, "users", user.uid);
+
+          try {
+            const userDoc = await getDoc(userRef);
+
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+              // User is admin - show and initialize league switcher
+              const mountPoint = document.getElementById('league-switcher-mount');
+              if (mountPoint) {
+                mountPoint.style.display = 'flex';
+                const switcher = createLeagueSwitcher();
+                mountPoint.appendChild(switcher);
+              }
+            }
+          } catch (error) {
+            console.error('[League Switcher] Error checking user role:', error);
+          }
+        }
+      });
+    </script>
 </body>
 </html>
