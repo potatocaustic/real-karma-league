@@ -312,20 +312,46 @@
 
       // Check if user is admin and show league switcher accordingly
       onAuthStateChanged(auth, async (user) => {
+        console.log('[League Switcher] Auth state changed. User:', user ? user.uid : 'null');
+
         if (user) {
+          console.log('[League Switcher] User is authenticated:', user.uid);
+
           // Check if user is an admin (must check users collection role, not admins collection)
           const userRef = doc(db, "users", user.uid);
-          const userDoc = await getDoc(userRef);
+          console.log('[League Switcher] Checking user document in users collection...');
 
-          if (userDoc.exists() && userDoc.data().role === 'admin') {
-            // User is admin - show and initialize league switcher
-            const mountPoint = document.getElementById('league-switcher-mount');
-            if (mountPoint) {
-              mountPoint.style.display = 'flex';
-              const switcher = createLeagueSwitcher();
-              mountPoint.appendChild(switcher);
+          try {
+            const userDoc = await getDoc(userRef);
+            console.log('[League Switcher] User doc exists:', userDoc.exists());
+
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              console.log('[League Switcher] User role:', userData.role);
+
+              if (userData.role === 'admin') {
+                console.log('[League Switcher] User is admin! Showing league switcher...');
+                // User is admin - show and initialize league switcher
+                const mountPoint = document.getElementById('league-switcher-mount');
+                if (mountPoint) {
+                  mountPoint.style.display = 'flex';
+                  const switcher = createLeagueSwitcher();
+                  mountPoint.appendChild(switcher);
+                  console.log('[League Switcher] League switcher initialized successfully');
+                } else {
+                  console.error('[League Switcher] Mount point not found!');
+                }
+              } else {
+                console.log('[League Switcher] User is not admin. Role:', userData.role);
+              }
+            } else {
+              console.log('[League Switcher] User document does not exist in users collection');
             }
+          } catch (error) {
+            console.error('[League Switcher] Error checking user role:', error);
           }
+        } else {
+          console.log('[League Switcher] No user authenticated');
         }
       });
     </script>
