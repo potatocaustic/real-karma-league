@@ -21,6 +21,10 @@
             }
         })();
     </script>
+    <script>
+        // Detect league immediately to prevent flash
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
   <script>
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
   </script>
@@ -37,8 +41,12 @@
         </div>
         <h1>
             <a href="/index.html" class="header-link">
-                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
-                <span class="header-text">Real Karma League</span>
+                <script>
+                  document.write('<img src="/icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+                </script>
+                <script>
+                  document.write('<span class="header-text">Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+                </script>
             </a>
         </h1>
         <nav>
