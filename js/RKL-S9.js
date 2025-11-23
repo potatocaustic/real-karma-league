@@ -1,4 +1,4 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId } from '../js/firebase-init.js';
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId, getCurrentLeague, collectionNames, getLeagueCollectionName, getConferenceNames } from '../js/firebase-init.js';
 import { generateLineupTable } from './main.js';
 
 // Get season from path (/S8/ or /S9/), URL parameter, or query for active season
@@ -7,8 +7,6 @@ const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
 const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
 const urlSeasonId = seasonFromPath || urlParams.get('season');
 
-const USE_DEV_COLLECTIONS = false; // Set to false for production
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 let currentScoringStatus = null; // Tracks the current scoring status to prevent redundant re-renders.
 
 let activeSeasonId = urlSeasonId || '';
@@ -70,14 +68,14 @@ function getOrdinal(n) {
 async function getActiveSeason() {
     // If season is specified via URL parameter, fetch that season's data
     if (urlSeasonId) {
-        const seasonDocRef = doc(db, getCollectionName('seasons'), urlSeasonId);
+        const seasonDocRef = doc(db, collectionNames.seasons, urlSeasonId);
         const seasonDocSnap = await getDoc(seasonDocRef);
         if (!seasonDocSnap.exists()) throw new Error(`Season ${urlSeasonId} not found.`);
         return seasonDocSnap.data();
     }
 
     // Otherwise query for the active season
-    const seasonsQuery = query(collection(db, getCollectionName('seasons')), where('status', '==', 'active'), limit(1));
+    const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
     const seasonsSnapshot = await getDocs(seasonsQuery);
     if (seasonsSnapshot.empty) {
         throw new Error("No active season found in Firestore.");
@@ -92,8 +90,8 @@ async function fetchAllTeams(seasonId) {
         console.error("fetchAllTeams was called without a seasonId.");
         return;
     }
-    const teamsCollectionName = getCollectionName('v2_teams');
-    const seasonalRecordsCollectionName = getCollectionName('seasonal_records');
+    const teamsCollectionName = collectionNames.teams;
+    const seasonalRecordsCollectionName = collectionNames.seasonalRecords;
 
     const teamsQuery = query(collection(db, teamsCollectionName));
     const recordsQuery = query(
@@ -138,9 +136,9 @@ async function fetchAllGames(seasonId) {
         return;
     }
     // Add a reference to the exhibition_games collection
-    const gamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('games'));
-    const postGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('post_games'));
-    const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
+    const gamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('games'));
+    const postGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('post_games'));
+    const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('exhibition_games'));
 
     // Fetch all three collections simultaneously
     const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
@@ -170,13 +168,18 @@ function loadStandingsPreview() {
 
     const standingsSort = (a, b) => (a.postseed || 99) - (b.postseed || 99);
 
+    // Get conference names based on current league
+    const conferenceNames = getConferenceNames();
+    const conference1 = conferenceNames.primary;
+    const conference2 = conferenceNames.secondary;
+
     const easternTeams = allTeams
-        .filter(t => t.conference && t.conference.toLowerCase() === 'eastern')
+        .filter(t => t.conference && t.conference.toLowerCase() === conference1.toLowerCase())
         .sort(standingsSort)
         .slice(0, 5);
 
     const westernTeams = allTeams
-        .filter(t => t.conference && t.conference.toLowerCase() === 'western')
+        .filter(t => t.conference && t.conference.toLowerCase() === conference2.toLowerCase())
         .sort(standingsSort)
         .slice(0, 5);
 
@@ -221,7 +224,7 @@ function loadStandingsPreview() {
 }
 
 function initializeGamesSection(seasonData) {
-    const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+    const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
     const gamesList = document.getElementById('recent-games');
 
     // Store the unsubscribe function for cleanup
@@ -288,7 +291,7 @@ function loadLiveGames() {
     gamesList.innerHTML = '<div class="loading">Connecting to live games...</div>';
 
     const liveGamesQuery = query(
-        collection(db, getCollectionName('live_games')),
+        collection(db, collectionNames.liveGames),
         where('seasonId', '==', activeSeasonId)
     );
 
@@ -480,9 +483,9 @@ async function loadRecentGames() {
         // --- THIS IS THE FIX ---
         // Fetch a larger pool of candidates to ensure the true most recent game is found,
         // compensating for non-chronological document IDs.
-        const regularSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
-        const postSeasonGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
-        const exhibitionGamesQuery = query(collection(db, getCollectionName('seasons'), activeSeasonId, getCollectionName('exhibition_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const regularSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const postSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const exhibitionGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('exhibition_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
 
         const [regSnap, postSnap, exhSnap] = await Promise.all([
             getDocs(regularSeasonGamesQuery),
@@ -492,9 +495,9 @@ async function loadRecentGames() {
 
         const potentialGames = [];
         // Now we populate the array with all fetched games, not just one from each
-        if (!regSnap.empty) regSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getCollectionName('games') }));
-        if (!postSnap.empty) postSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getCollectionName('post_games') }));
-        if (!exhSnap.empty) exhSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getCollectionName('exhibition_games') }));
+        if (!regSnap.empty) regSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getLeagueCollectionName('games') }));
+        if (!postSnap.empty) postSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getLeagueCollectionName('post_games') }));
+        if (!exhSnap.empty) exhSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getLeagueCollectionName('exhibition_games') }));
 
 
         if (potentialGames.length === 0) {
@@ -510,7 +513,7 @@ async function loadRecentGames() {
         const mostRecentDate = mostRecentGameInfo.doc.data().date;
         const collectionToQuery = mostRecentGameInfo.collection;
 
-        const gamesSnapshot = await getDocs(query(collection(db, getCollectionName('seasons'), activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
+        const gamesSnapshot = await getDocs(query(collection(db, collectionNames.seasons, activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (games.length === 0) {
@@ -750,7 +753,7 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
 
         const allPlayerIdsInGame = [];
         if (isLiveGame) {
-            const gameRef = doc(db, getCollectionName('live_games'), gameId);
+            const gameRef = doc(db, collectionNames.liveGames, gameId);
             const gameSnap = await getDoc(gameRef);
             if (gameSnap.exists()) {
                 const liveData = gameSnap.data();
@@ -762,23 +765,23 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
             // 3. Determine the correct lineups collection using the passed-in collectionName.
             let lineupsCollectionName;
             if (collectionName && collectionName.includes('exhibition')) {
-                lineupsCollectionName = getCollectionName('exhibition_lineups');
+                lineupsCollectionName = getLeagueCollectionName('exhibition_lineups');
             } else if (collectionName && collectionName.includes('post')) {
-                lineupsCollectionName = getCollectionName('post_lineups');
+                lineupsCollectionName = getLeagueCollectionName('post_lineups');
             } else {
-                lineupsCollectionName = getCollectionName('lineups');
+                lineupsCollectionName = getLeagueCollectionName('lineups');
             }
             // --- MODIFICATION END ---
-            
-            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
+
+            const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
             lineupsSnap.forEach(doc => allPlayerIdsInGame.push(doc.data().player_id));
         }
 
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
-        const playerStatsPromises = uniquePlayerIds.map(playerId => 
-            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
+        const playerStatsPromises = uniquePlayerIds.map(playerId =>
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, activeSeasonId))
         );
         const playerStatsDocs = await Promise.all(playerStatsPromises);
         
@@ -790,10 +793,10 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
         });
 
         if (isLiveGame) {
-            const gameRef = doc(db, getCollectionName('live_games'), gameId);
+            const gameRef = doc(db, collectionNames.liveGames, gameId);
             const gameSnap = await getDoc(gameRef);
             if (!gameSnap.exists()) throw new Error("Live game data not found.");
-            
+
             const liveGameData = gameSnap.data();
             team1Lineups = liveGameData.team1_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
             team2Lineups = liveGameData.team2_lineup.map(p => ({ ...p, ...playerSeasonalStats.get(p.player_id) })) || [];
@@ -801,14 +804,14 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
         } else {
             let lineupsCollectionName;
             if (collectionName && collectionName.includes('exhibition')) {
-                lineupsCollectionName = getCollectionName('exhibition_lineups');
+                lineupsCollectionName = getLeagueCollectionName('exhibition_lineups');
             } else if (collectionName && collectionName.includes('post')) {
-                lineupsCollectionName = getCollectionName('post_lineups');
+                lineupsCollectionName = getLeagueCollectionName('post_lineups');
             } else {
-                lineupsCollectionName = getCollectionName('lineups');
+                lineupsCollectionName = getLeagueCollectionName('lineups');
             }
 
-            const lineupsRef = collection(db, getCollectionName('seasons'), activeSeasonId, lineupsCollectionName);
+            const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
             const allLineupsForGame = lineupsSnap.docs.map(d => {
@@ -891,7 +894,7 @@ let currentTeam2 = null;
 
 async function fetchGameFlowData(gameId) {
     try {
-        const flowRef = doc(db, getCollectionName('game_flow_snapshots'), gameId);
+        const flowRef = doc(db, getLeagueCollectionName('game_flow_snapshots'), gameId);
         const flowSnap = await getDoc(flowRef);
 
         if (flowSnap.exists()) {
@@ -1665,7 +1668,7 @@ function processLeaderboardData(data) {
 
 function setupDailyLeaderboardListener(gameDate, onDataCallback, onErrorCallback) {
     try {
-        const leaderboardRef = doc(db, getCollectionName('daily_leaderboards'), gameDate);
+        const leaderboardRef = doc(db, getLeagueCollectionName('daily_leaderboards'), gameDate);
 
         console.log(`Setting up real-time listener for daily leaderboard: ${gameDate}`);
 
@@ -1726,7 +1729,7 @@ async function renderDailyLeaderboard(leaderboardData) {
 
     try {
         const playerPromises = uniquePlayerIds.map(playerId =>
-            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, activeSeasonId))
         );
         const playerDocs = await Promise.all(playerPromises);
 
@@ -1878,7 +1881,7 @@ async function toggleDailyLeaderboard() {
 
         // Get the active game date from live scoring status
         try {
-            const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+            const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
             const statusSnap = await getDoc(statusRef);
 
             let gameDate;
@@ -2029,3 +2032,25 @@ function cleanupListeners() {
 document.addEventListener('DOMContentLoaded', initializePage);
 window.addEventListener('beforeunload', cleanupListeners);
 window.addEventListener('pagehide', cleanupListeners);
+
+// Reload data when league changes
+window.addEventListener('leagueChanged', async (event) => {
+    const newLeague = event.detail.league;
+    console.log('[RKL-S9] League changed to:', newLeague);
+
+    // Clean up existing listeners
+    cleanupListeners();
+
+    // Reload the page data
+    try {
+        const seasonData = await getActiveSeason();
+        await fetchAllTeams(activeSeasonId);
+        await fetchAllGames(activeSeasonId);
+
+        loadStandingsPreview();
+        initializeGamesSection(seasonData);
+        loadSeasonInfo(seasonData);
+    } catch (error) {
+        console.error('[RKL-S9] Error reloading data after league change:', error);
+    }
+});

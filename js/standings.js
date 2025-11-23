@@ -1,4 +1,4 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
+import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName, getCurrentLeague, getConferenceNames } from './firebase-init.js';
 
 // Get season from path (/S8/ or /S9/), URL parameter, or query for active season
 const urlParams = new URLSearchParams(window.location.search);
@@ -53,7 +53,8 @@ async function getActiveSeason() {
 }
 
 async function fetchAllTeamsAndRecords() {
-    const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', ['Eastern', 'Western']));
+    const conferences = getConferenceNames();
+    const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', [conferences.primary, conferences.secondary]));
     const recordsQuery = query(
       collectionGroup(db, collectionNames.seasonalRecords),
       where('seasonId', '==', activeSeasonId)
@@ -125,6 +126,19 @@ async function fetchAllPowerRankings() {
 
 // --- RENDERING LOGIC ---
 
+function updateConferenceHeaders() {
+    const conferences = getConferenceNames();
+    const easternHeader = document.querySelector('#conferenceViewContainer .conference-section:first-child .conference-header h3');
+    const westernHeader = document.querySelector('#conferenceViewContainer .conference-section:last-child .conference-header h3');
+
+    if (easternHeader) {
+        easternHeader.textContent = `${conferences.primary} Conference`;
+    }
+    if (westernHeader) {
+        westernHeader.textContent = `${conferences.secondary} Conference`;
+    }
+}
+
 function renderStandings() {
     const sortFunction = (tableType) => (a, b) => {
         const { column, direction } = sortState[tableType];
@@ -170,8 +184,9 @@ function renderStandings() {
         return asc ? valA - valB : valB - valA;
     };
 
-    const easternTeams = allTeamsData.filter(t => t.conference === 'Eastern').sort(sortFunction('Eastern'));
-    const westernTeams = allTeamsData.filter(t => t.conference === 'Western').sort(sortFunction('Western'));
+    const conferences = getConferenceNames();
+    const easternTeams = allTeamsData.filter(t => t.conference === conferences.primary).sort(sortFunction('Eastern'));
+    const westernTeams = allTeamsData.filter(t => t.conference === conferences.secondary).sort(sortFunction('Western'));
     const fullLeagueTeams = [...allTeamsData].sort(sortFunction('FullLeague'));
 
     document.getElementById('eastern-standings').innerHTML = generateStandingsRows(easternTeams);
@@ -423,6 +438,7 @@ async function initializePage() {
         await fetchAllTeamsAndRecords();
         await fetchAllPowerRankings();
 
+        updateConferenceHeaders();
         renderStandings();
         setupPowerRankingsSelector();
         renderPowerRankings(latestPRVersion);

@@ -1,11 +1,8 @@
-import { db, getDoc, getDocs, collection, doc, query, orderBy, limit as fbLimit } from './firebase-init.js';
+import { db, getDoc, getDocs, collection, doc, query, orderBy, limit as fbLimit, collectionNames, getLeagueCollectionName, getCurrentLeague, getConferenceNames } from './firebase-init.js';
 
 // Get season from path (/S8/ or /S9/)
 const pathMatch = window.location.pathname.match(/\/S(\d+)\//);
 const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-
-const USE_DEV_COLLECTIONS = false; // Set to false for production
-const getCollectionName = (baseName) => USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
 
 let activeSeasonId = seasonFromPath || 'S9';
 let allTeams = [];
@@ -45,7 +42,7 @@ function formatDate(dateString) {
 async function loadTeams() {
     try {
         const teamsQuery = query(
-            collection(db, 'teams'),
+            collection(db, collectionNames.teams),
             orderBy('team_name')
         );
         const teamsSnap = await getDocs(teamsQuery);
@@ -77,7 +74,7 @@ function isDateCompleted(dateString) {
 
 async function fetchAvailableDates() {
     try {
-        const leaderboardsRef = collection(db, getCollectionName('daily_leaderboards'));
+        const leaderboardsRef = collection(db, getLeagueCollectionName('daily_leaderboards'));
         const leaderboardsSnap = await getDocs(leaderboardsRef);
 
         const allDates = leaderboardsSnap.docs
@@ -111,7 +108,7 @@ async function filterOutExhibitionDates(dates) {
         // Try to fetch exhibition games to get dates to EXCLUDE
         console.log('Attempting to fetch exhibition games from seasons/', seasonId, '/exhibition_games');
 
-        const exhibitionGamesRef = collection(db, getCollectionName('seasons'), seasonId, getCollectionName('exhibition_games'));
+        const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('exhibition_games'));
         const exhibitionGamesSnap = await getDocs(exhibitionGamesRef);
 
         console.log('Exhibition games documents found:', exhibitionGamesSnap.size);
@@ -147,7 +144,7 @@ async function filterOutExhibitionDates(dates) {
 
 async function fetchDailyLeaderboard(dateString) {
     try {
-        const leaderboardRef = doc(db, getCollectionName('daily_leaderboards'), dateString);
+        const leaderboardRef = doc(db, getLeagueCollectionName('daily_leaderboards'), dateString);
         const leaderboardSnap = await getDoc(leaderboardRef);
 
         if (leaderboardSnap.exists()) {
@@ -165,7 +162,7 @@ async function fetchDailyLeaderboard(dateString) {
 
 async function fetchPlayerHistory(playerId, playerName) {
     try {
-        const leaderboardsRef = collection(db, getCollectionName('daily_leaderboards'));
+        const leaderboardsRef = collection(db, getLeagueCollectionName('daily_leaderboards'));
         const leaderboardsSnap = await getDocs(leaderboardsRef);
 
         const playerHistory = [];
@@ -272,7 +269,7 @@ async function renderDailyLeaderboard(leaderboardData, dateString) {
 
     try {
         const playerPromises = uniquePlayerIds.map(playerId =>
-            getDoc(doc(db, getCollectionName('v2_players'), playerId, getCollectionName('seasonal_stats'), activeSeasonId))
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, activeSeasonId))
         );
         const playerDocs = await Promise.all(playerPromises);
 
@@ -806,3 +803,11 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+
+// Reload data when league changes
+window.addEventListener('leagueChanged', async (event) => {
+    const newLeague = event.detail.league;
+    console.log('[Historical Daily Leaderboards] League changed to:', newLeague);
+    // Reinitialize the page with new league data
+    await init();
+});

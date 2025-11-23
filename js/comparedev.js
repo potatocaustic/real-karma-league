@@ -7,7 +7,11 @@ import {
     query,
     where,
     limit,
-    collectionGroup
+    collectionGroup,
+    collectionNames,
+    getLeagueCollectionName,
+    getCurrentLeague,
+    getConferenceNames
 } from '../js/firebase-init.js';
 
 // Get season from URL parameter or default to querying for active season
@@ -294,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeSeasonId = urlSeasonId;
             } else {
                 // Otherwise query for the active season
-                const seasonsQuery = query(collection(db, "seasons"), where("status", "==", "active"), limit(1));
+                const seasonsQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
                 const seasonsSnap = await getDocs(seasonsQuery);
                 if (seasonsSnap.empty) {
                     throw new Error("An active season could not be found.");
@@ -303,16 +307,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // ✅ OPTIMIZED: Filter for ACTIVE players at database level instead of client-side
+            const conferences = getConferenceNames();
             const [
                 playersSnap,
                 teamsSnap,
                 seasonalStatsSnap,
                 seasonalRecordsSnap
             ] = await Promise.all([
-                getDocs(query(collection(db, "v2_players"), where("player_status", "==", "ACTIVE"))),
-                getDocs(query(collection(db, "v2_teams"), where("conference", "in", ["Eastern", "Western"]))),
-                getDocs(collectionGroup(db, 'seasonal_stats')),
-                getDocs(collectionGroup(db, 'seasonal_records'))
+                getDocs(query(collection(db, collectionNames.players), where("player_status", "==", "ACTIVE"))),
+                getDocs(query(collection(db, collectionNames.teams), where("conference", "in", [conferences.primary, conferences.secondary]))),
+                getDocs(collectionGroup(db, collectionNames.seasonalStats)),
+                getDocs(collectionGroup(db, collectionNames.seasonalRecords))
             ]);
 
             const seasonalStatsMap = new Map();
@@ -367,4 +372,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initializeApp();
+
+    // Reload data when league changes
+    window.addEventListener('leagueChanged', async (event) => {
+        const newLeague = event.detail.league;
+        console.log('[Compare] League changed to:', newLeague);
+        // Reinitialize the app with new league data
+        await initializeApp();
+    });
 });

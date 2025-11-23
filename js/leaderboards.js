@@ -1,4 +1,4 @@
-import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
+import { db, collection, getDocs, doc, getDoc, collectionGroup, query, where, collectionNames, getLeagueCollectionName, getCurrentLeague, getConferenceNames } from './firebase-init.js';
 
 // Get season from path (/S8/ or /S9/), URL parameter, or default to S9
 const urlParams = new URLSearchParams(window.location.search);
@@ -293,9 +293,10 @@ async function loadData() {
         };
 
         const teamFilterChecklistContainer = document.getElementById('team-filter-checklist');
-        teamFilterChecklistContainer.innerHTML = ''; 
+        teamFilterChecklistContainer.innerHTML = '';
 
-        const activeTeams = allTeamsData.filter(team => team.conference === 'Eastern' || team.conference === 'Western');
+        const conferences = getConferenceNames();
+        const activeTeams = allTeamsData.filter(team => team.conference === conferences.primary || team.conference === conferences.secondary);
         activeTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
 
         const allTeamsLabel = document.createElement('label');
