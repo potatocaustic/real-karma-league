@@ -289,6 +289,87 @@ service cloud.firestore {
       allow write: if isScorekeeperOrAdmin();
     }
 
+    match /minor_usage_stats/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_draft_results/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_awards/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_power_rankings/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_lottery_results/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_daily_scores/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_post_daily_scores/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_daily_averages/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_post_daily_averages/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_leaderboards/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_post_leaderboards/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_game_flow_snapshots/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_daily_leaderboards/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_v2_teams/{teamId}/seasonal_stats/{recordId} {
+      allow get, list: if true;
+    }
+
+    match /minor_v2_teams/{teamId}/seasonal_records/{recordId} {
+      allow get, list: if true;
+    }
+
+    match /minor_v2_players/{playerId}/seasonal_stats/{recordId} {
+      allow get, list: if true;
+    }
+
+    match /minor_v2_players/{playerId}/seasonal_records/{recordId} {
+      allow get, list: if true;
+    }
+
     // --- Development Rules (_dev) ---
 
     match /seasons_dev/{seasonId} {
@@ -397,6 +478,155 @@ service cloud.firestore {
     match /post_daily_averages_dev/{doc=**} {
       allow read: if true;
       allow write: if isUserAdmin();
+    }
+
+    // =======================================================
+    // MINOR LEAGUE DEVELOPMENT RULES
+    // =======================================================
+
+    match /minor_lineup_deadlines_dev/{deadlineId} {
+      allow read: if request.auth != null;
+      allow write: if get(/databases/$(database)/documents/users_dev/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /minor_pending_transactions_dev/{docId} {
+      allow read, write: if isUserAdmin();
+    }
+
+    match /minor_pending_lineups_dev/{gameId} {
+      allow read: if request.auth != null;
+      allow write: if isScorekeeperOrAdmin();
+    }
+
+    match /minor_archived_live_games_dev/{doc=**} {
+      allow read: if isUserAdmin();
+      allow write: if false;
+    }
+
+    match /minor_seasons_dev/{seasonId} {
+      allow get, list: if request.auth.uid != null;
+      allow write: if isUserAdmin();
+      match /{documents=**} {
+        allow read: if true;
+        allow write: if isUserAdmin();
+      }
+    }
+
+    match /minor_v2_players_dev/{document=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_v2_teams_dev/{document=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_draftPicks_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_live_games_dev/{gameId} {
+      allow read: if true;
+      allow write: if isScorekeeperOrAdmin();
+    }
+
+    match /minor_transactions_dev/{transactionId} {
+      allow read: if true;
+      allow create: if isUserAdmin();
+      allow update, delete: if false;
+    }
+
+    match /minor_transactions_dev/seasons/{seasonId}/{transactionId} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_live_scoring_status_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isScorekeeperOrAdmin();
+    }
+
+    match /minor_usage_stats_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_draft_results_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_awards_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_power_rankings_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_lottery_results_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_daily_scores_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_post_daily_scores_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_daily_averages_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_post_daily_averages_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_leaderboards_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_post_leaderboards_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_game_flow_snapshots_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_daily_leaderboards_dev/{doc=**} {
+      allow read: if true;
+      allow write: if isUserAdmin();
+    }
+
+    match /minor_v2_teams_dev/{teamId}/seasonal_stats/{recordId} {
+      allow get, list: if true;
+    }
+
+    match /minor_v2_teams_dev/{teamId}/seasonal_records/{recordId} {
+      allow get, list: if true;
+    }
+
+    match /minor_v2_players_dev/{playerId}/seasonal_stats/{recordId} {
+      allow get, list: if true;
+    }
+
+    match /minor_v2_players_dev/{playerId}/seasonal_records/{recordId} {
+      allow get, list: if true;
     }
 
     // =======================================================
