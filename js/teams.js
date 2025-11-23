@@ -8,7 +8,8 @@ import {
   where,
   collectionGroup,
   collectionNames,
-  getLeagueCollectionName
+  getLeagueCollectionName,
+  getCurrentLeague
 } from './firebase-init.js';
 
 // Get season from path (/S8/ or /S9/), URL parameter, or default to S9
@@ -90,10 +91,23 @@ function generateTeamCard(team, rankInConference) {
 async function loadTeams() {
   const easternTeamsGrid = document.getElementById('eastern-teams');
   const westernTeamsGrid = document.getElementById('western-teams');
-  easternTeamsGrid.innerHTML = '<div class="loading">Loading Eastern Conference teams...</div>';
-  westernTeamsGrid.innerHTML = '<div class="loading">Loading Western Conference teams...</div>';
+  const easternHeader = document.querySelector('.conference-section:first-of-type .conference-header h3');
+  const westernHeader = document.querySelector('.conference-section:last-of-type .conference-header h3');
 
-  console.log("Attempting to load teams for season:", SEASON_ID);
+  // Determine conference names based on current league
+  const currentLeague = getCurrentLeague();
+  const isMinorLeague = currentLeague === 'minor';
+  const conference1 = isMinorLeague ? 'Northern' : 'Eastern';
+  const conference2 = isMinorLeague ? 'Southern' : 'Western';
+
+  // Update conference headers
+  if (easternHeader) easternHeader.textContent = `${conference1} Conference`;
+  if (westernHeader) westernHeader.textContent = `${conference2} Conference`;
+
+  easternTeamsGrid.innerHTML = `<div class="loading">Loading ${conference1} Conference teams...</div>`;
+  westernTeamsGrid.innerHTML = `<div class="loading">Loading ${conference2} Conference teams...</div>`;
+
+  console.log("Attempting to load teams for season:", SEASON_ID, "League:", currentLeague);
   try {
     const teamsRef = collection(db, collectionNames.teams);
     const recordsQuery = query(
@@ -129,7 +143,7 @@ async function loadTeams() {
         const teamData = teamDoc.data();
         const seasonalRecord = seasonalRecordsMap.get(teamDoc.id);
 
-        if (seasonalRecord && (teamData.conference === 'Eastern' || teamData.conference === 'Western')) {
+        if (seasonalRecord && (teamData.conference === conference1 || teamData.conference === conference2)) {
             const combinedData = {
                 id: teamDoc.id,
                 ...teamData,
@@ -141,17 +155,8 @@ async function loadTeams() {
 
     console.log("Total valid teams found with records:", allTeams.length);
 
-    const easternTeams = allTeams
-      .filter(team => team.conference === 'Eastern')
-      .sort((a, b) => {
-        const winsA = parseInt(a.wins || 0);
-        const winsB = parseInt(b.wins || 0);
-        if (winsB !== winsA) return winsB - winsA;
-        return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
-      });
-      
-    const westernTeams = allTeams
-      .filter(team => team.conference === 'Western')
+    const conference1Teams = allTeams
+      .filter(team => team.conference === conference1)
       .sort((a, b) => {
         const winsA = parseInt(a.wins || 0);
         const winsB = parseInt(b.wins || 0);
@@ -159,14 +164,23 @@ async function loadTeams() {
         return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
       });
 
-    console.log("Eastern teams to display:", easternTeams.length);
-    console.log("Western teams to display:", westernTeams.length);
+    const conference2Teams = allTeams
+      .filter(team => team.conference === conference2)
+      .sort((a, b) => {
+        const winsA = parseInt(a.wins || 0);
+        const winsB = parseInt(b.wins || 0);
+        if (winsB !== winsA) return winsB - winsA;
+        return parseFloat(b.pam || 0) - parseFloat(a.pam || 0);
+      });
 
-    const easternHTML = easternTeams.map((team, index) => generateTeamCard(team, index + 1)).join('');
-    const westernHTML = westernTeams.map((team, index) => generateTeamCard(team, index + 1)).join('');
-    
-    easternTeamsGrid.innerHTML = easternHTML || '<p class="error" style="grid-column: 1 / -1;">No Eastern Conference teams found.</p>';
-    westernTeamsGrid.innerHTML = westernHTML || '<p class="error" style="grid-column: 1 / -1;">No Western Conference teams found.</p>';
+    console.log(`${conference1} teams to display:`, conference1Teams.length);
+    console.log(`${conference2} teams to display:`, conference2Teams.length);
+
+    const conference1HTML = conference1Teams.map((team, index) => generateTeamCard(team, index + 1)).join('');
+    const conference2HTML = conference2Teams.map((team, index) => generateTeamCard(team, index + 1)).join('');
+
+    easternTeamsGrid.innerHTML = conference1HTML || `<p class="error" style="grid-column: 1 / -1;">No ${conference1} Conference teams found.</p>`;
+    westernTeamsGrid.innerHTML = conference2HTML || `<p class="error" style="grid-column: 1 / -1;">No ${conference2} Conference teams found.</p>`;
 
   } catch (error) {
     console.error("Error loading teams from Firestore:", error);
