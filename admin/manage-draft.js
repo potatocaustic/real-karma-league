@@ -651,9 +651,18 @@ async function handleDraftSubmit(e) {
         const parentDocRef = doc(db, draftResultsParent, `season_${seasonNumber}`);
         batch.set(parentDocRef, { description: `Container for ${currentSeasonId} draft results.` });
 
-        for (let i = 1; i <= draftConfig.totalPicks; i++) {
+        // Count actual rows in the table instead of relying on cached config
+        const allRows = draftTableBody.querySelectorAll('tr[id^="pick-row-"]');
+        const actualTotalPicks = allRows.length;
+
+        console.log(`Saving ${actualTotalPicks} draft picks (draftConfig.totalPicks: ${draftConfig.totalPicks})`);
+
+        for (let i = 1; i <= actualTotalPicks; i++) {
             const row = document.getElementById(`pick-row-${i}`);
-            if (!row) continue;
+            if (!row) {
+                console.warn(`Row ${i} not found, skipping`);
+                continue;
+            }
 
             const roundInfo = getRoundInfo(i);
             const teamId = row.querySelector('.team-select').value;
