@@ -71,8 +71,25 @@ function getRoundInfo(overall) {
                 };
             }
         }
-        // Main rounds (1-30 = Round 1, 31-60 = Round 2)
-        const round = Math.ceil(overall / 30);
+
+        // For main rounds, count how many non-comp picks have come before this one
+        let nonCompPickCount = 0;
+        for (let i = 1; i <= overall; i++) {
+            // Check if pick i is a comp pick
+            let isCompPick = false;
+            for (const comp of draftConfig.compRounds) {
+                if (i >= comp.start && i <= comp.end) {
+                    isCompPick = true;
+                    break;
+                }
+            }
+            if (!isCompPick) {
+                nonCompPickCount++;
+            }
+        }
+
+        // First 30 non-comp picks = Round 1, next 30 = Round 2
+        const round = Math.ceil(nonCompPickCount / 30);
         return {
             round: round,
             roundName: String(round)
