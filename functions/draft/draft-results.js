@@ -12,7 +12,7 @@ const { getCollectionName, LEAGUES } = require('../utils/firebase-helpers');
 exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{resultsCollectionId}/{draftPickId}`, async (event) => {
     const { seasonDocId, resultsCollectionId } = event.params;
     const pickData = event.data.data();
-    const { team_id, player_handle, forfeit, season: draftSeason, round, overall } = pickData;
+    const { team_id, player_handle, forfeit, season: draftSeason, round, round_name, overall } = pickData;
 
     const API_ENDPOINT_TEMPLATE = process.env.REAL_API_ENDPOINT;
 
@@ -58,7 +58,8 @@ exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{re
                 default: return n + "th";
             }
         };
-        const bio = `R${round} (${getOrdinal(overall)} overall) selection by ${teamName} in ${draftSeason} draft.`;
+        const roundDisplay = round_name || String(round);
+        const bio = `R${roundDisplay} (${getOrdinal(overall)} overall) selection by ${teamName} in ${draftSeason} draft.`;
         const isCurrentDraft = draftSeason === activeSeasonId;
 
         const initialStats = {
@@ -211,7 +212,7 @@ exports.onDraftResultCreate = onDocumentCreated(`draft_results/{seasonDocId}/{re
 exports.minor_onDraftResultCreate = onDocumentCreated(`minor_draft_results/{seasonDocId}/{resultsCollectionId}/{draftPickId}`, async (event) => {
     const { seasonDocId, resultsCollectionId } = event.params;
     const pickData = event.data.data();
-    const { team_id, player_handle, forfeit, season: draftSeason, round, overall } = pickData;
+    const { team_id, player_handle, forfeit, season: draftSeason, round, round_name, overall } = pickData;
 
     const API_ENDPOINT_TEMPLATE = process.env.REAL_API_ENDPOINT;
 
@@ -257,7 +258,8 @@ exports.minor_onDraftResultCreate = onDocumentCreated(`minor_draft_results/{seas
                 default: return n + "th";
             }
         };
-        const bio = `R${round} (${getOrdinal(overall)} overall) selection by ${teamName} in ${draftSeason} draft.`;
+        const roundDisplay = round_name || String(round);
+        const bio = `R${roundDisplay} (${getOrdinal(overall)} overall) selection by ${teamName} in ${draftSeason} draft.`;
         const isCurrentDraft = draftSeason === activeSeasonId;
 
         const initialStats = {

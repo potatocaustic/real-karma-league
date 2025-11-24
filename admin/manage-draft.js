@@ -27,11 +27,65 @@ const seasonSelect = document.getElementById('season-select');
 const draftTableBody = document.getElementById('draft-table-body');
 const draftForm = document.getElementById('draft-form');
 const prospectsForm = document.getElementById('prospects-form');
+const draftConfigSection = document.getElementById('draft-config-section');
+const totalPicksInput = document.getElementById('total-picks-input');
+const compRoundsInput = document.getElementById('comp-rounds-input');
+const applyConfigBtn = document.getElementById('apply-config-btn');
 
 // --- Global Data Cache ---
 let allTeams = [];
 let currentSeasonId = null;
-const TOTAL_PICKS = 90;
+
+// --- Draft Configuration ---
+let draftConfig = {
+    totalPicks: 90,
+    compRounds: [] // Array of {start, end, roundName} objects
+};
+
+function getDefaultDraftConfig() {
+    const currentLeague = getCurrentLeague();
+    if (currentLeague === 'minor') {
+        return {
+            totalPicks: 60,
+            compRounds: []
+        };
+    } else {
+        return {
+            totalPicks: 90,
+            compRounds: []
+        };
+    }
+}
+
+function getRoundInfo(overall) {
+    const currentLeague = getCurrentLeague();
+
+    if (currentLeague === 'minor') {
+        // Check if in a comp round
+        for (let i = 0; i < draftConfig.compRounds.length; i++) {
+            const comp = draftConfig.compRounds[i];
+            if (overall >= comp.start && overall <= comp.end) {
+                return {
+                    round: Math.ceil(overall / 30), // Keep overall round number for ordering
+                    roundName: comp.roundName
+                };
+            }
+        }
+        // Main rounds (1-30 = Round 1, 31-60 = Round 2)
+        const round = Math.ceil(overall / 30);
+        return {
+            round: round,
+            roundName: String(round)
+        };
+    } else {
+        // Major league: 3 rounds of 30 picks each
+        const round = Math.ceil(overall / 30);
+        return {
+            round: round,
+            roundName: String(round)
+        };
+    }
+}
 
 // --- Auto-Save Cache ---
 const CACHE_KEY_PREFIX = 'draft_entries_cache_';
@@ -42,11 +96,50 @@ function getCacheKey() {
     return `${CACHE_KEY_PREFIX}${currentSeasonId}`;
 }
 
+function parseCompRoundsConfig(configString) {
+    if (!configString || !configString.trim()) return [];
+
+    const compRounds = [];
+    const ranges = configString.split(',');
+
+    for (let i = 0; i < ranges.length; i++) {
+        const range = ranges[i].trim();
+        const match = range.match(/^(\d+)-(\d+)$/);
+        if (match) {
+            const start = parseInt(match[1], 10);
+            const end = parseInt(match[2], 10);
+            compRounds.push({
+                start: start,
+                end: end,
+                roundName: `C${i + 1}`
+            });
+        }
+    }
+
+    return compRounds;
+}
+
+function applyDraftConfig() {
+    const totalPicks = parseInt(totalPicksInput.value, 10);
+    const compRoundsStr = compRoundsInput.value.trim();
+
+    if (isNaN(totalPicks) || totalPicks < 1) {
+        alert('Please enter a valid number of total picks.');
+        return;
+    }
+
+    draftConfig.totalPicks = totalPicks;
+    draftConfig.compRounds = parseCompRoundsConfig(compRoundsStr);
+
+    console.log('Draft config applied:', draftConfig);
+    loadDraftBoard();
+}
+
 function saveDraftCache() {
     if (!currentSeasonId) return;
 
     const cacheData = {};
-    for (let i = 1; i <= TOTAL_PICKS; i++) {
+    for (let i = 1; i <= draftConfig.totalPicks; i++) {
         const row = document.getElementById(`pick-row-${i}`);
         if (!row) continue;
 
@@ -174,6 +267,16 @@ async function initializePage() {
         // Populate season dropdown and load initial draft board
         await populateSeasons();
 
+        // Initialize draft config based on league
+        draftConfig = getDefaultDraftConfig();
+        const currentLeague = getCurrentLeague();
+        if (currentLeague === 'minor') {
+            draftConfigSection.style.display = 'flex';
+            totalPicksInput.value = draftConfig.totalPicks;
+        } else {
+            draftConfigSection.style.display = 'none';
+        }
+
         // Add event listeners
         seasonSelect.addEventListener('change', () => {
             currentSeasonId = seasonSelect.value;
@@ -181,6 +284,7 @@ async function initializePage() {
         });
         draftForm.addEventListener('submit', handleDraftSubmit);
         prospectsForm.addEventListener('submit', handleProspectsSubmit);
+        applyConfigBtn.addEventListener('click', applyDraftConfig);
 
         document.getElementById('progress-close-btn').addEventListener('click', () => {
             document.getElementById('progress-modal').style.display = 'none';
@@ -352,9 +456,9 @@ async function loadDraftBoard() {
     let tableHTML = '';
     const teamOptionsHTML = `<option value="">-- Select Team --</option>` + allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('');
 
-    for (let i = 1; i <= TOTAL_PICKS; i++) {
+    for (let i = 1; i <= draftConfig.totalPicks; i++) {
         const overall = i;
-        const round = Math.ceil(overall / 30);
+        const roundInfo = getRoundInfo(overall);
         const existingPick = existingPicksMap.get(overall);
 
         const selectedTeam = existingPick?.team_id || '';
@@ -362,9 +466,9 @@ async function loadDraftBoard() {
         const isForfeited = existingPick?.forfeit || false;
 
         tableHTML += `
-            <tr id="pick-row-${overall}" class="${isForfeited ? 'is-forfeited' : ''}">
+            <tr id="pick-row-${overall}" class="${isForfeited ? 'is-forfeited' : ''}" data-round-name="${roundInfo.roundName}">
                 <td class="read-only">${overall}</td>
-                <td class="read-only">${round}</td>
+                <td class="read-only">${roundInfo.roundName}</td>
                 <td>
                     <select data-overall="${overall}" class="team-select" ${isForfeited ? 'disabled' : ''}>
                         ${teamOptionsHTML.replace(`value="${selectedTeam}"`, `value="${selectedTeam}" selected`)}
@@ -445,18 +549,26 @@ async function handleDraftSubmit(e) {
         const parentDocRef = doc(db, draftResultsParent, `season_${seasonNumber}`);
         batch.set(parentDocRef, { description: `Container for ${currentSeasonId} draft results.` });
 
-        for (let i = 1; i <= TOTAL_PICKS; i++) {
+        for (let i = 1; i <= draftConfig.totalPicks; i++) {
             const row = document.getElementById(`pick-row-${i}`);
-            const round = Math.ceil(i / 30);
+            if (!row) continue;
+
+            const roundInfo = getRoundInfo(i);
             const teamId = row.querySelector('.team-select').value;
             const playerHandle = row.querySelector('.player-handle-input').value.trim();
             const isForfeited = row.querySelector('.forfeit-checkbox').checked;
 
-            const docId = `round-${round}-pick-${i}`;
+            const docId = `round-${roundInfo.roundName}-pick-${i}`;
             const docRef = doc(draftResultsCollectionRef, docId);
 
             const draftData = {
-                overall: i, round, team_id: isForfeited ? null : teamId, player_handle: isForfeited ? null : playerHandle, forfeit: isForfeited, season: currentSeasonId
+                overall: i,
+                round: roundInfo.round,
+                round_name: roundInfo.roundName,
+                team_id: isForfeited ? null : teamId,
+                player_handle: isForfeited ? null : playerHandle,
+                forfeit: isForfeited,
+                season: currentSeasonId
             };
 
             batch.set(docRef, draftData);
