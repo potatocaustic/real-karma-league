@@ -31,6 +31,7 @@ const draftConfigSection = document.getElementById('draft-config-section');
 const totalPicksInput = document.getElementById('total-picks-input');
 const compRoundsInput = document.getElementById('comp-rounds-input');
 const applyConfigBtn = document.getElementById('apply-config-btn');
+const resetConfigBtn = document.getElementById('reset-config-btn');
 
 // --- Global Data Cache ---
 let allTeams = [];
@@ -71,8 +72,25 @@ function getRoundInfo(overall) {
                 };
             }
         }
-        // Main rounds (1-30 = Round 1, 31-60 = Round 2)
-        const round = Math.ceil(overall / 30);
+
+        // For main rounds, count how many non-comp picks have come before this one
+        let nonCompPickCount = 0;
+        for (let i = 1; i <= overall; i++) {
+            // Check if pick i is a comp pick
+            let isCompPick = false;
+            for (const comp of draftConfig.compRounds) {
+                if (i >= comp.start && i <= comp.end) {
+                    isCompPick = true;
+                    break;
+                }
+            }
+            if (!isCompPick) {
+                nonCompPickCount++;
+            }
+        }
+
+        // First 30 non-comp picks = Round 1, next 30 = Round 2
+        const round = Math.ceil(nonCompPickCount / 30);
         return {
             round: round,
             roundName: String(round)
@@ -89,11 +107,55 @@ function getRoundInfo(overall) {
 
 // --- Auto-Save Cache ---
 const CACHE_KEY_PREFIX = 'draft_entries_cache_';
+const CONFIG_CACHE_KEY_PREFIX = 'draft_config_cache_';
 let autoSaveTimeout = null;
 
 // --- Cache Helper Functions ---
 function getCacheKey() {
     return `${CACHE_KEY_PREFIX}${currentSeasonId}`;
+}
+
+function getConfigCacheKey() {
+    return `${CONFIG_CACHE_KEY_PREFIX}${currentSeasonId}`;
+}
+
+function saveDraftConfig() {
+    if (!currentSeasonId) return;
+
+    const configData = {
+        totalPicks: draftConfig.totalPicks,
+        compRoundsStr: compRoundsInput.value.trim()
+    };
+
+    try {
+        localStorage.setItem(getConfigCacheKey(), JSON.stringify(configData));
+        console.log('Draft config cached locally');
+    } catch (error) {
+        console.error('Error saving draft config:', error);
+    }
+}
+
+function loadDraftConfig() {
+    if (!currentSeasonId) return null;
+
+    try {
+        const cached = localStorage.getItem(getConfigCacheKey());
+        return cached ? JSON.parse(cached) : null;
+    } catch (error) {
+        console.error('Error loading draft config:', error);
+        return null;
+    }
+}
+
+function clearDraftConfig() {
+    if (!currentSeasonId) return;
+
+    try {
+        localStorage.removeItem(getConfigCacheKey());
+        console.log('Draft config cache cleared');
+    } catch (error) {
+        console.error('Error clearing draft config:', error);
+    }
 }
 
 function parseCompRoundsConfig(configString) {
@@ -131,7 +193,31 @@ function applyDraftConfig() {
     draftConfig.totalPicks = totalPicks;
     draftConfig.compRounds = parseCompRoundsConfig(compRoundsStr);
 
+    // Save config to cache
+    saveDraftConfig();
+
     console.log('Draft config applied:', draftConfig);
+    loadDraftBoard();
+}
+
+function resetDraftConfig() {
+    if (!confirm('Are you sure you want to reset the draft configuration? This will clear the cached configuration and reload with defaults.')) {
+        return;
+    }
+
+    // Clear cached config
+    clearDraftConfig();
+
+    // Reset to defaults
+    const defaults = getDefaultDraftConfig();
+    draftConfig.totalPicks = defaults.totalPicks;
+    draftConfig.compRounds = [];
+
+    // Update UI
+    totalPicksInput.value = defaults.totalPicks;
+    compRoundsInput.value = '';
+
+    console.log('Draft config reset to defaults');
     loadDraftBoard();
 }
 
@@ -285,6 +371,7 @@ async function initializePage() {
         draftForm.addEventListener('submit', handleDraftSubmit);
         prospectsForm.addEventListener('submit', handleProspectsSubmit);
         applyConfigBtn.addEventListener('click', applyDraftConfig);
+        resetConfigBtn.addEventListener('click', resetDraftConfig);
 
         document.getElementById('progress-close-btn').addEventListener('click', () => {
             document.getElementById('progress-modal').style.display = 'none';
@@ -443,8 +530,23 @@ async function loadDraftBoard() {
     }
     draftTableBody.innerHTML = `<tr><td colspan="5" class="loading">Loading draft board...</td></tr>`;
 
-    const seasonNumber = currentSeasonId.replace('S', '');
     const currentLeague = getCurrentLeague();
+
+    // Load cached config if available (minor league only)
+    if (currentLeague === 'minor') {
+        const cachedConfig = loadDraftConfig();
+        if (cachedConfig) {
+            console.log('Loading cached draft config:', cachedConfig);
+            draftConfig.totalPicks = cachedConfig.totalPicks;
+            draftConfig.compRounds = parseCompRoundsConfig(cachedConfig.compRoundsStr);
+
+            // Update UI
+            totalPicksInput.value = cachedConfig.totalPicks;
+            compRoundsInput.value = cachedConfig.compRoundsStr;
+        }
+    }
+
+    const seasonNumber = currentSeasonId.replace('S', '');
     const draftResultsParent = currentLeague === 'minor' ? 'minor_draft_results' : 'draft_results';
     const draftResultsCollectionRef = collection(db, `${draftResultsParent}/season_${seasonNumber}/S${seasonNumber}_draft_results`);
     const existingPicksSnap = await getDocs(draftResultsCollectionRef);
