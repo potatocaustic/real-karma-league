@@ -148,6 +148,27 @@
                 </div>
             </div>
 
+            <div id="draft-config-section" class="filters-container" style="display: none; margin-top: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 6px;">
+                <div style="flex: 1;">
+                    <h4 style="margin: 0 0 1rem 0;">Draft Configuration (Minor League)</h4>
+                    <div style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="filter-group">
+                            <label for="total-picks-input">Total Picks:</label>
+                            <input type="number" id="total-picks-input" min="1" max="200" value="60" style="width: 80px;">
+                        </div>
+                        <div class="filter-group">
+                            <label for="comp-rounds-input">Comp Rounds Configuration:</label>
+                            <input type="text" id="comp-rounds-input" placeholder="e.g., 61-70,71-80" style="width: 200px;" title="Format: startPick-endPick,startPick-endPick">
+                        </div>
+                        <button type="button" id="apply-config-btn" class="btn-admin-secondary">Apply Configuration</button>
+                    </div>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #666;">
+                        Main rounds: 1-30 (Round 1), 31-60 (Round 2).
+                        Comp rounds format: "61-70,71-80" creates Round C1 (picks 61-70) and Round C2 (picks 71-80).
+                    </p>
+                </div>
+            </div>
+
             <form id="draft-form">
                 <div class="draft-table-container">
                     <table class="draft-table">
