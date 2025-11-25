@@ -41,6 +41,13 @@ async function initializePage() {
 
         loadingContainer.style.display = 'none';
         adminContainer.style.display = 'block';
+
+        // Listen for league changes and reload the page data
+        window.addEventListener('leagueChanged', async (event) => {
+            console.log('League changed to:', event.detail.league);
+            // Reload all data for the new league
+            await initializePage();
+        });
     } catch (error) {
         console.error("Error initializing lottery management page:", error);
         adminContainer.innerHTML = `<div class="error">Could not load required data.</div>`;

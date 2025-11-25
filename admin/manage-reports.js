@@ -34,6 +34,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 authStatusDiv.innerHTML = `Welcome! | <a href="#" id="logout-btn">Logout</a>`;
                 addLogoutListener();
                 initializeReportButtons();
+
+                // Listen for league changes and reload the active season
+                window.addEventListener('leagueChanged', async (event) => {
+                    console.log('League changed to:', event.detail.league);
+                    // Reload active season for the new league
+                    const activeSeasonQuery = query(collection(db, getCollectionName("seasons")), where("status", "==", "active"));
+                    const activeSeasonSnap = await getDocs(activeSeasonQuery);
+                    if (!activeSeasonSnap.empty) {
+                        activeSeasonId = activeSeasonSnap.docs[0].id;
+                        console.log('Active season updated to:', activeSeasonId);
+                    }
+                });
             } else {
                 displayAccessDenied(authStatusDiv);
             }

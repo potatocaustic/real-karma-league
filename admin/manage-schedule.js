@@ -88,6 +88,13 @@ async function initializePage() {
             forceWeekUpdateBtn.addEventListener('click', handleForceWeekUpdate);
         }
 
+        // Listen for league changes and reload the page data
+        window.addEventListener('leagueChanged', async (event) => {
+            console.log('League changed to:', event.detail.league);
+            // Reload all data for the new league
+            await initializePage();
+        });
+
         loadingContainer.style.display = 'none';
         adminContainer.style.display = 'block';
 
