@@ -186,7 +186,12 @@ window.addEventListener('load', () => {
     async function runFullUpdateWithProgress() {
         const liveGamesQuery = query(collection(db, getLeagueCollectionName('live_games')));
         const liveGamesSnap = await getDocs(liveGamesQuery);
-        const playerCount = liveGamesSnap.docs.reduce((sum, doc) => sum + doc.data().team1_lineup.length + doc.data().team2_lineup.length, 0);
+        const playerCount = liveGamesSnap.docs.reduce((sum, doc) => {
+            const gameData = doc.data();
+            const team1Count = gameData.team1_lineup?.length || 0;
+            const team2Count = gameData.team2_lineup?.length || 0;
+            return sum + team1Count + team2Count;
+        }, 0);
 
         if (playerCount === 0) {
             alert("No active live games found. Cannot run an update.");
