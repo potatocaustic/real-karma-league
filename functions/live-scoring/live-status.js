@@ -36,7 +36,9 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     for (const gameDoc of liveGamesSnap.docs) {
         const gameData = gameDoc.data();
-        const allStarters = [...gameData.team1_lineup, ...gameData.team2_lineup];
+        const team1Lineup = gameData.team1_lineup || [];
+        const team2Lineup = gameData.team2_lineup || [];
+        const allStarters = [...team1Lineup, ...team2Lineup];
 
         for (let i = 0; i < allStarters.length; i++) {
             const player = allStarters[i];
@@ -64,8 +66,8 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
             await delay(Math.floor(Math.random() * 201) + 100);
         }
         batch.update(gameDoc.ref, {
-            team1_lineup: gameData.team1_lineup,
-            team2_lineup: gameData.team2_lineup
+            team1_lineup: team1Lineup,
+            team2_lineup: team2Lineup
         });
     }
 
@@ -81,8 +83,8 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     for (const gameDoc of updatedLiveGamesSnap.docs) {
         const gameData = gameDoc.data();
-        const team1_total = gameData.team1_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
-        const team2_total = gameData.team2_lineup.reduce((sum, p) => sum + (p.final_score || 0), 0);
+        const team1_total = (gameData.team1_lineup || []).reduce((sum, p) => sum + (p.final_score || 0), 0);
+        const team2_total = (gameData.team2_lineup || []).reduce((sum, p) => sum + (p.final_score || 0), 0);
 
         const snapshotRef = db.collection(getCollectionName('game_flow_snapshots', league)).doc(gameDoc.id);
 
@@ -149,7 +151,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
         console.log(`[Daily Leaderboard] Processing ${updatedLiveGamesSnap.size} live games...`);
         for (const gameDoc of updatedLiveGamesSnap.docs) {
             const gameData = gameDoc.data();
-            const allStarters = [...gameData.team1_lineup, ...gameData.team2_lineup];
+            const allStarters = [...(gameData.team1_lineup || []), ...(gameData.team2_lineup || [])];
             console.log(`[Daily Leaderboard] Game ${gameDoc.id}: ${allStarters.length} starters`);
 
             for (const player of allStarters) {
