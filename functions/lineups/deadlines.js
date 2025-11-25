@@ -151,8 +151,12 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
     };
 
     try {
-        const autoFinalizeTime = await getJobSchedule('autoFinalizeGames');
-        const statUpdateTime = await getJobSchedule('updatePlayerRanks');
+        // Use league-specific job names
+        const autoFinalizeJobName = league === 'minor' ? 'minor_autoFinalizeGames' : 'autoFinalizeGames';
+        const statUpdateJobName = league === 'minor' ? 'minor_updatePlayerRanks' : 'updatePlayerRanks';
+
+        const autoFinalizeTime = await getJobSchedule(autoFinalizeJobName);
+        const statUpdateTime = await getJobSchedule(statUpdateJobName);
 
         return { success: true, league, autoFinalizeTime, statUpdateTime };
 
@@ -188,18 +192,23 @@ exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (reque
     const location = 'us-central1';
     const timeZone = 'America/Chicago';
 
+    // Helper function to add league prefix for minor league
+    const getJobName = (baseName) => {
+        return league === 'minor' ? `minor_${baseName}` : baseName;
+    };
+
     const jobsToUpdate = {
         autoFinalize: {
-            name: 'autoFinalizeGames',
+            name: getJobName('autoFinalizeGames'),
             time: autoFinalizeTime
         },
         statUpdates: {
             names: [
-                'scheduledLiveScoringShutdown',
-                'updatePlayerRanks',
-                'updatePerformanceLeaderboards',
-                'updateCurrentWeek',
-                'updatePlayoffBracket'
+                getJobName('scheduledLiveScoringShutdown'),
+                getJobName('updatePlayerRanks'),
+                getJobName('updatePerformanceLeaderboards'),
+                getJobName('updateCurrentWeek'),
+                getJobName('updatePlayoffBracket')
             ],
             time: statUpdateTime
         }
