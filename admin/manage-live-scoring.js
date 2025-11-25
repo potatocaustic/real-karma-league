@@ -1,6 +1,6 @@
 // /admin/manage-live-scoring.js
 
-import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, setDoc, query, collection, getDocs, limit, getCurrentLeague } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, onSnapshot, httpsCallable, getDoc, setDoc, query, collection, getDocs, limit, getCurrentLeague, getLeagueCollectionName, collectionNames } from '/js/firebase-init.js';
 
 window.addEventListener('load', () => {
 
@@ -35,16 +35,6 @@ window.addEventListener('load', () => {
     const autofinalizeTimeInput = document.getElementById('autofinalize-time-input');
     const statUpdateTimeInput = document.getElementById('stat-update-time-input');
     const saveScheduleBtn = document.getElementById('save-schedule-btn');
-
-
-    // --- DEV ENVIRONMENT CONFIG ---
-    const USE_DEV_COLLECTIONS = false;
-    const getCollectionName = (baseName) => {
-        if (baseName.includes('live_scoring_status') || baseName.includes('usage_stats') || baseName.includes('live_games')) {
-            return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-        }
-        return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
-    };
 
     // --- Firebase Callable Functions ---
     const setLiveScoringStatus = httpsCallable(functions, 'setLiveScoringStatus');
@@ -91,7 +81,7 @@ window.addEventListener('load', () => {
     }
 
     async function renderUsageCharts(currentDayId) {
-        const usageQuery = query(collection(db, getCollectionName('usage_stats')));
+        const usageQuery = query(collection(db, getLeagueCollectionName('usage_stats')));
         const usageSnap = await getDocs(usageQuery);
 
         const labels = [];
@@ -194,7 +184,7 @@ window.addEventListener('load', () => {
     }
 
     async function runFullUpdateWithProgress() {
-        const liveGamesQuery = query(collection(db, getCollectionName('live_games')));
+        const liveGamesQuery = query(collection(db, getLeagueCollectionName('live_games')));
         const liveGamesSnap = await getDocs(liveGamesQuery);
         const playerCount = liveGamesSnap.docs.reduce((sum, doc) => sum + doc.data().team1_lineup.length + doc.data().team2_lineup.length, 0);
 
@@ -237,7 +227,7 @@ window.addEventListener('load', () => {
     }
 
     function initializeControlPanel() {
-        const statusRef = doc(db, getCollectionName('live_scoring_status'), 'status');
+        const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
         
         populateScheduleTimes();
 
@@ -308,7 +298,7 @@ window.addEventListener('load', () => {
                 }
                 
                 if (active_game_date) {
-                    const todayUsageRef = doc(db, getCollectionName('usage_stats'), active_game_date);
+                    const todayUsageRef = doc(db, getLeagueCollectionName('usage_stats'), active_game_date);
                     onSnapshot(todayUsageRef, (usageSnap) => {
                         if (usageSnap.exists()) {
                             const { api_requests_full_update = 0, api_requests_sample = 0 } = usageSnap.data();
@@ -336,7 +326,7 @@ window.addEventListener('load', () => {
         beginBtn.addEventListener('click', async () => {
             beginBtn.disabled = true;
             try {
-                const liveGamesQuery = query(collection(db, getCollectionName('live_games')), limit(1));
+                const liveGamesQuery = query(collection(db, getLeagueCollectionName('live_games')), limit(1));
                 const liveGamesSnap = await getDocs(liveGamesQuery);
                 if (liveGamesSnap.empty) {
                     throw new Error("Cannot begin live scoring without any active games.");
@@ -404,7 +394,7 @@ window.addEventListener('load', () => {
             const interval = parseInt(intervalInput.value);
             if (interval > 0) {
                 try {
-                    await setDoc(doc(db, getCollectionName('live_scoring_status'), 'status'), { interval_minutes: interval }, { merge: true });
+                    await setDoc(doc(db, getLeagueCollectionName('live_scoring_status'), 'status'), { interval_minutes: interval }, { merge: true });
                     alert("Interval saved. Change will apply on next sample run.");
                 } catch (error) {
                     alert(`Error saving interval: ${error.message}`);
@@ -495,7 +485,7 @@ window.addEventListener('load', () => {
             featuresToggle.addEventListener('change', async () => {
                 try {
                     const currentLeague = getCurrentLeague();
-                    await setDoc(doc(db, getCollectionName('live_scoring_status', currentLeague), 'status'), {
+                    await setDoc(doc(db, getLeagueCollectionName('live_scoring_status'), 'status'), {
                         show_live_features: featuresToggle.checked
                     }, { merge: true });
                     console.log('Live features visibility updated:', featuresToggle.checked);
@@ -507,19 +497,19 @@ window.addEventListener('load', () => {
                 }
             });
         }
-
-        // Listen for league changes and reload the page data
-        window.addEventListener('leagueChanged', async (event) => {
-            console.log('League changed to:', event.detail.league);
-            // Reload all data for the new league
-            initializeControlPanel();
-        });
     }
+
+    // Listen for league changes and reload the page data
+    window.addEventListener('leagueChanged', async (event) => {
+        console.log('League changed to:', event.detail.league);
+        // Reload all data for the new league
+        initializeControlPanel();
+    });
 
     // --- Main Authentication and Initialization Logic ---
     onAuthStateChanged(auth, async (user) => {
         if (user) {
-            const userRef = doc(db, getCollectionName("users"), user.uid);
+            const userRef = doc(db, collectionNames.users, user.uid);
             const userDoc = await getDoc(userRef);
             if (userDoc.exists() && userDoc.data().role === 'admin') {
                 loadingContainer.style.display = 'none';

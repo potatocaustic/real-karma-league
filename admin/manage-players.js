@@ -18,6 +18,7 @@ let allPlayers = [];
 let allTeams = new Map();
 let currentSeasonId = "";
 let isEditMode = false;
+let listenersInitialized = false;
 
 // --- Primary Auth Check ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -45,24 +46,29 @@ async function initializePage() {
     try {
         await populateSeasons();
 
-        seasonSelect.addEventListener('change', async () => {
-            currentSeasonId = seasonSelect.value;
-            await updateTeamCache(currentSeasonId);
-            await loadAndDisplayPlayers();
-        });
+        // Only add event listeners once
+        if (!listenersInitialized) {
+            seasonSelect.addEventListener('change', async () => {
+                currentSeasonId = seasonSelect.value;
+                await updateTeamCache(currentSeasonId);
+                await loadAndDisplayPlayers();
+            });
 
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filteredPlayers = allPlayers.filter(player => player.player_handle.toLowerCase().includes(searchTerm));
-            displayPlayers(filteredPlayers);
-        });
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredPlayers = allPlayers.filter(player => player.player_handle.toLowerCase().includes(searchTerm));
+                displayPlayers(filteredPlayers);
+            });
 
-        // Listen for league changes and reload the page data
-        window.addEventListener('leagueChanged', async (event) => {
-            console.log('League changed to:', event.detail.league);
-            // Reload all data for the new league
-            await initializePage();
-        });
+            // Listen for league changes and reload the page data
+            window.addEventListener('leagueChanged', async (event) => {
+                console.log('League changed to:', event.detail.league);
+                // Reload all data for the new league
+                await initializePage();
+            });
+
+            listenersInitialized = true;
+        }
 
     } catch (error) {
         console.error("Error initializing page:", error);
@@ -136,7 +142,14 @@ async function loadAndDisplayPlayers() {
         allPlayers = await Promise.all(playerPromises);
         allPlayers.sort((a, b) => (a.player_handle || '').localeCompare(b.player_handle));
 
-        displayPlayers(allPlayers);
+        // Apply search filter if there's a search term
+        const searchTerm = searchInput.value.toLowerCase();
+        if (searchTerm) {
+            const filteredPlayers = allPlayers.filter(player => player.player_handle.toLowerCase().includes(searchTerm));
+            displayPlayers(filteredPlayers);
+        } else {
+            displayPlayers(allPlayers);
+        }
     } catch (error) {
         console.error(`Error loading players for season ${currentSeasonId}:`, error);
         playersListContainer.innerHTML = '<div class="error">Could not load player data.</div>';
