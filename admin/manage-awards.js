@@ -84,9 +84,11 @@ async function initializePage() {
         awardsForm.addEventListener('submit', handleFormSubmit);
         calculateBtn.addEventListener('click', handleCalculationTrigger);
 
-        // Update conference UI when league changes
-        window.addEventListener('leagueChanged', () => {
-            updateConferenceLabels();
+        // Listen for league changes and reload the page data
+        window.addEventListener('leagueChanged', async (event) => {
+            console.log('League changed to:', event.detail.league);
+            // Reload all data for the new league
+            await initializePage();
         });
 
     } catch (error) {

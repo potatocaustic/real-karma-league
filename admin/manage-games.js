@@ -127,6 +127,13 @@ async function initializePage() {
     }
     deadlineForm.addEventListener('submit', handleSetDeadline);
     deadlineDateInput.addEventListener('change', () => displayDeadlineForDate(deadlineDateInput.value));
+
+    // Listen for league changes and reload the page data
+    window.addEventListener('leagueChanged', async (event) => {
+        console.log('League changed to:', event.detail.league);
+        // Reload all data for the new league
+        await initializePage();
+    });
 }
 
 async function updateAwardsCache(seasonId) {

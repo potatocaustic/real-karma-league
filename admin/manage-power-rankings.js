@@ -53,6 +53,12 @@ async function initializePage() {
         rankingsForm.addEventListener('submit', handleFormSubmit);
         rankingsBody.addEventListener('change', handleSelectionChange);
 
+        // Listen for league changes and reload the page data
+        window.addEventListener('leagueChanged', async (event) => {
+            console.log('League changed to:', event.detail.league);
+            // Reload all data for the new league
+            await initializePage();
+        });
     } catch (error) {
         console.error("Error initializing page:", error);
         rankingsBody.innerHTML = `<tr><td colspan="4" class="error">Could not load team data.</td></tr>`;

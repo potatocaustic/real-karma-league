@@ -507,6 +507,13 @@ window.addEventListener('load', () => {
                 }
             });
         }
+
+        // Listen for league changes and reload the page data
+        window.addEventListener('leagueChanged', async (event) => {
+            console.log('League changed to:', event.detail.league);
+            // Reload all data for the new league
+            initializeControlPanel();
+        });
     }
 
     // --- Main Authentication and Initialization Logic ---

@@ -71,9 +71,11 @@ async function initializePage() {
     teamForm.addEventListener('submit', handleTeamFormSubmit);
     rebrandForm.addEventListener('submit', handleRebrandFormSubmit);
 
-    // Repopulate conference dropdown when league changes
-    window.addEventListener('leagueChanged', () => {
-        populateConferenceDropdown();
+    // Listen for league changes and reload the page data
+    window.addEventListener('leagueChanged', async (event) => {
+        console.log('League changed to:', event.detail.league);
+        // Reload all data for the new league
+        await initializePage();
     });
 }
 
