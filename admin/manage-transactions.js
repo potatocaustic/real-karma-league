@@ -15,6 +15,7 @@ const retireTeamFilter = document.getElementById('retire-team-filter-select');
 let allPlayers = [];
 let allTeams = [];
 let allPicks = [];
+let listenersInitialized = false;
 
 // --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -69,15 +70,22 @@ async function initializePage() {
             .filter(Boolean)
             .sort((a, b) => a.team_name.localeCompare(b.team_name));
 
-        setupEventListeners();
+        // Only set up event listeners once
+        if (!listenersInitialized) {
+            setupEventListeners();
+
+            // Listen for league changes and reload the page data
+            window.addEventListener('leagueChanged', async (event) => {
+                console.log('League changed to:', event.detail.league);
+                // Reload all data for the new league
+                await initializePage();
+            });
+
+            listenersInitialized = true;
+        }
+
         populateAllDropdowns();
 
-        // Listen for league changes and reload the page data
-        window.addEventListener('leagueChanged', async (event) => {
-            console.log('League changed to:', event.detail.league);
-            // Reload all data for the new league
-            await initializePage();
-        });
     } catch (error) {
         console.error("Error initializing page:", error);
         adminContainer.innerHTML = '<div class="error">Could not load required league data.</div>';
