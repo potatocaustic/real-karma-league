@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // If this is the GOTD, prepend the GOTD header
             if (isGotd) {
-                gameBlockText = ` :diamond_with_a_dot GOTD ${formattedDate} :diamond_with_a_dot \n~~~~~~~~~~~~\n${gameBlockText}`;
+                gameBlockText = ` 💠 GOTD ${formattedDate} 💠 \n~~~~~~~~~~~~\n${gameBlockText}`;
             }
 
             const gameContainer = document.createElement('div');
