@@ -56,7 +56,9 @@ async function initializePage() {
 
             searchInput.addEventListener('input', () => {
                 const searchTerm = searchInput.value.toLowerCase();
-                const filteredPlayers = allPlayers.filter(player => player.player_handle.toLowerCase().includes(searchTerm));
+                const filteredPlayers = allPlayers.filter(player =>
+                    player.player_handle && player.player_handle.toLowerCase().includes(searchTerm)
+                );
                 displayPlayers(filteredPlayers);
             });
 
@@ -145,7 +147,9 @@ async function loadAndDisplayPlayers() {
         // Apply search filter if there's a search term
         const searchTerm = searchInput.value.toLowerCase();
         if (searchTerm) {
-            const filteredPlayers = allPlayers.filter(player => player.player_handle.toLowerCase().includes(searchTerm));
+            const filteredPlayers = allPlayers.filter(player =>
+                player.player_handle && player.player_handle.toLowerCase().includes(searchTerm)
+            );
             displayPlayers(filteredPlayers);
         } else {
             displayPlayers(allPlayers);
