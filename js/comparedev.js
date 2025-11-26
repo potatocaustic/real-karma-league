@@ -377,7 +377,20 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('leagueChanged', async (event) => {
         const newLeague = event.detail.league;
         console.log('[Compare] League changed to:', newLeague);
-        // Reinitialize the app with new league data
-        await initializeApp();
+
+        // Hide content during transition
+        const mainElement = document.querySelector('main');
+        if (mainElement) mainElement.style.opacity = '0';
+
+        // Small delay before reloading to ensure fade-out completes
+        setTimeout(async () => {
+            // Reinitialize the app with new league data
+            await initializeApp();
+
+            // Show content after reload
+            setTimeout(() => {
+                if (mainElement) mainElement.style.opacity = '1';
+            }, 100);
+        }, 150);
     });
 });

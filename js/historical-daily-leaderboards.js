@@ -808,6 +808,19 @@ if (document.readyState === 'loading') {
 window.addEventListener('leagueChanged', async (event) => {
     const newLeague = event.detail.league;
     console.log('[Historical Daily Leaderboards] League changed to:', newLeague);
-    // Reinitialize the page with new league data
-    await init();
+
+    // Hide content during transition
+    const mainElement = document.querySelector('main');
+    if (mainElement) mainElement.style.opacity = '0';
+
+    // Small delay before reloading to ensure fade-out completes
+    setTimeout(async () => {
+        // Reinitialize the page with new league data
+        await init();
+
+        // Show content after reload
+        setTimeout(() => {
+            if (mainElement) mainElement.style.opacity = '1';
+        }, 100);
+    }, 150);
 });
