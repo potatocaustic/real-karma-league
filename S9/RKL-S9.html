@@ -114,7 +114,11 @@
 
     <main>
         <div class="page-header">
-            <h2>RKL Season 9</h2>
+            <h2 id="page-title">
+                <script>
+                  document.write((window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Season 9');
+                </script>
+            </h2>
         </div>
 
         <div id="playoff-button-container" class="playoff-button-container" style="display: none;">
