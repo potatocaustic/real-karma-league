@@ -176,8 +176,8 @@ function loadStandingsPreview() {
     // Update conference title DOM elements
     const conferenceTitles = document.querySelectorAll('.conference-title');
     if (conferenceTitles.length >= 2) {
-        conferenceTitles[0].textContent = conference1;
-        conferenceTitles[1].textContent = conference2;
+        conferenceTitles[0].textContent = conference1 + ' Conference';
+        conferenceTitles[1].textContent = conference2 + ' Conference';
     }
 
     const easternTeams = allTeams
@@ -2051,11 +2051,13 @@ window.addEventListener('leagueChanged', async (event) => {
     // Reset scoring status to force games refresh
     currentScoringStatus = null;
 
-    // Update page title
+    // Add loading state - hide main content during transition
+    const mainGrid = document.querySelector('.main-grid');
     const pageTitle = document.getElementById('page-title');
-    if (pageTitle) {
-        pageTitle.textContent = (newLeague === 'minor' ? 'RKML' : 'RKL') + ' Season 9';
-    }
+    const seasonInfo = document.querySelector('.season-info');
+
+    if (mainGrid) mainGrid.style.opacity = '0';
+    if (seasonInfo) seasonInfo.style.opacity = '0';
 
     // Reload the page data
     try {
@@ -2063,10 +2065,24 @@ window.addEventListener('leagueChanged', async (event) => {
         await fetchAllTeams(activeSeasonId);
         await fetchAllGames(activeSeasonId);
 
+        // Update page title
+        if (pageTitle) {
+            pageTitle.textContent = (newLeague === 'minor' ? 'RKML' : 'RKL') + ' Season 9';
+        }
+
         loadStandingsPreview();
         initializeGamesSection(seasonData);
         loadSeasonInfo(seasonData);
+
+        // Small delay to ensure DOM updates complete, then show content
+        setTimeout(() => {
+            if (mainGrid) mainGrid.style.opacity = '1';
+            if (seasonInfo) seasonInfo.style.opacity = '1';
+        }, 100);
     } catch (error) {
         console.error('[RKL-S9] Error reloading data after league change:', error);
+        // Restore visibility even on error
+        if (mainGrid) mainGrid.style.opacity = '1';
+        if (seasonInfo) seasonInfo.style.opacity = '1';
     }
 });
