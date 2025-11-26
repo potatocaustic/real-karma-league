@@ -679,5 +679,18 @@ document.addEventListener('DOMContentLoaded', initializePage);
 window.addEventListener('leagueChanged', (event) => {
     const newLeague = event.detail.league;
     console.log('League changed to:', newLeague);
-    loadData();
+
+    // Hide content during transition
+    const mainElement = document.querySelector('main');
+    if (mainElement) mainElement.style.opacity = '0';
+
+    // Small delay before reloading to ensure fade-out completes
+    setTimeout(() => {
+        loadData();
+
+        // Show content after reload
+        setTimeout(() => {
+            if (mainElement) mainElement.style.opacity = '1';
+        }, 100);
+    }, 150);
 });
