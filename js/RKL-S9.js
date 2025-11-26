@@ -173,6 +173,13 @@ function loadStandingsPreview() {
     const conference1 = conferenceNames.primary;
     const conference2 = conferenceNames.secondary;
 
+    // Update conference title DOM elements
+    const conferenceTitles = document.querySelectorAll('.conference-title');
+    if (conferenceTitles.length >= 2) {
+        conferenceTitles[0].textContent = conference1;
+        conferenceTitles[1].textContent = conference2;
+    }
+
     const easternTeams = allTeams
         .filter(t => t.conference && t.conference.toLowerCase() === conference1.toLowerCase())
         .sort(standingsSort)
@@ -2040,6 +2047,15 @@ window.addEventListener('leagueChanged', async (event) => {
 
     // Clean up existing listeners
     cleanupListeners();
+
+    // Reset scoring status to force games refresh
+    currentScoringStatus = null;
+
+    // Update page title
+    const pageTitle = document.getElementById('page-title');
+    if (pageTitle) {
+        pageTitle.textContent = (newLeague === 'minor' ? 'RKML' : 'RKL') + ' Season 9';
+    }
 
     // Reload the page data
     try {
