@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         activeSeasonId = activeSeasonSnap.docs[0].id;
                         console.log('Active season updated to:', activeSeasonId);
                     }
+                    // Refresh the deadline time for the new league
+                    autoPopulateDeadlineTime();
                 });
             } else {
                 displayAccessDenied(authStatusDiv);
@@ -59,10 +61,60 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('deadline-date').value = today;
         document.getElementById('gotd-date').value = today;
 
+        // Add event listener to auto-populate deadline time when date changes
+        document.getElementById('deadline-date').addEventListener('change', autoPopulateDeadlineTime);
+
         document.getElementById('generate-deadline-report').addEventListener('click', generateDeadlineReport);
         document.getElementById('generate-gotd-report').addEventListener('click', generateVoteGotdReport);
         document.getElementById('generate-lineups-report').addEventListener('click', prepareLineupsReport);
         document.getElementById('copy-report-btn').addEventListener('click', copyReportToClipboard);
+
+        // Auto-populate deadline time for today on page load
+        autoPopulateDeadlineTime();
+    }
+
+    async function autoPopulateDeadlineTime() {
+        const dateInput = document.getElementById('deadline-date').value;
+        const timeInput = document.getElementById('deadline-time');
+
+        if (!dateInput) {
+            timeInput.value = '';
+            return;
+        }
+
+        try {
+            // Convert YYYY-MM-DD to the format used in Firestore
+            const dateString = dateInput; // Already in YYYY-MM-DD format
+
+            // Get league-specific collection name
+            const league = getCurrentLeague();
+            const collectionName = league === 'minor' ? 'minor_lineup_deadlines' : 'lineup_deadlines';
+
+            const deadlineRef = doc(db, collectionName, dateString);
+            const deadlineSnap = await getDoc(deadlineRef);
+
+            if (deadlineSnap.exists()) {
+                const data = deadlineSnap.data();
+                const deadline = data.deadline.toDate();
+
+                // Format time as "12:05p ET" format
+                let hours = deadline.getHours();
+                const minutes = String(deadline.getMinutes()).padStart(2, '0');
+                const ampm = hours >= 12 ? 'p' : 'a';
+                hours = hours % 12 || 12; // Convert to 12-hour format
+
+                const formattedTime = `${hours}:${minutes}${ampm} ET`;
+                timeInput.value = formattedTime;
+            } else {
+                // No deadline set for this date
+                timeInput.value = '';
+                timeInput.placeholder = 'No deadline set for this date';
+            }
+        } catch (error) {
+            console.error("Error fetching deadline:", error);
+            timeInput.value = '';
+            timeInput.placeholder = 'Error fetching deadline';
+        }
     }
     
     async function callGetReportData(reportType, options = {}) {
@@ -84,6 +136,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function getDayColorDot(date) {
+        // Color mapping for days of the week
+        const dayColors = {
+            0: '🔴', // Sunday - Red
+            1: '🟡', // Monday - Yellow
+            2: '🟤', // Tuesday - Brown
+            3: '🟢', // Wednesday - Green
+            4: '🟠', // Thursday - Orange
+            5: '🔵', // Friday - Blue
+            6: '🟣'  // Saturday - Purple
+        };
+
+        const dayOfWeek = date.getDay();
+        return dayColors[dayOfWeek] || '';
+    }
+
     async function generateDeadlineReport() {
         const dateInput = document.getElementById('deadline-date').value;
         const timeInput = document.getElementById('deadline-time').value;
@@ -92,10 +160,13 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please provide both a date and a deadline time.");
             return;
         }
-        
+
         const date = new Date(dateInput + 'T00:00:00');
         const formattedDate = date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const firestoreDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+
+        // Get the colored dot for the day of the week
+        const colorDot = getDayColorDot(date);
 
         const data = await callGetReportData('deadline', { date: firestoreDate });
 
@@ -107,14 +178,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const team2Name = g.team2_seed ? `(${g.team2_seed}) ${g.team2_name}` : g.team2_name;
                 return `${team1Name} vs ${team2Name}`;
             }).join('\n');
-            
+
             // 1a: Update final verbiage and link
             const finalVerbiage = `Submit your lineup to me OR through the website by ${timeInput} https://www.realkarmaleague.com/gm/dashboard.html`;
-            
-            const output = `${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\n${finalVerbiage}`;
+
+            // Add the colored dot before the day name
+            const output = `${colorDot} ${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\n${finalVerbiage}`;
             displayReport(output);
         } else {
-             displayReport(`No games found for ${formattedDate}.`);
+             displayReport(`${colorDot} No games found for ${formattedDate}.`);
         }
     }
 
