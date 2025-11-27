@@ -20,7 +20,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
 
     console.log(`Updating seasonal stats for player ${playerId} in ${league} league...`);
 
-    const playerLineupsQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsCollectionName, league))
+    const playerLineupsQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(lineupsCollectionName)
         .where('player_id', '==', playerId)
         .where('started', '==', 'TRUE')
         .where('date', '!=', gameDate);
@@ -31,7 +31,7 @@ async function updatePlayerSeasonalStats(playerId, seasonId, isPostseason, batch
     const allLineups = [...previousLineups, ...newPlayerLineups];
 
     if (allLineups.length === 0) {
-        console.log(`No lineups found for player ${playerId} in ${seasonId} for ${league} league (${getCollectionName(lineupsCollectionName, league)}). Skipping stats update.`);
+        console.log(`No lineups found for player ${playerId} in ${seasonId} for ${league} league (${lineupsCollectionName}). Skipping stats update.`);
         return null;
     }
 
@@ -102,9 +102,9 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores,
 
     const [teamsSnap, gamesSnap, scoresSnap, lineupsSnap] = await Promise.all([
         db.collection(getCollectionName('v2_teams', league)).get(),
-        db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(gamesCollection, league)).where('completed', '==', 'TRUE').get(),
+        db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(gamesCollection).where('completed', '==', 'TRUE').get(),
         db.collection(getCollectionName(scoresCollection, league)).doc(`season_${seasonId.replace('S', '')}`).collection(getCollectionName(`S${seasonId.replace('S', '')}_${scoresCollection}`, league)).get(),
-        db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsCollection, league)).where('started', '==', 'TRUE').get()
+        db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(lineupsCollection).where('started', '==', 'TRUE').get()
     ]);
 
     const playersCollectionRef = db.collection(getCollectionName('v2_players', league));
@@ -230,7 +230,7 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores,
     rankAndSort(calculatedStats, 'pam', false, `${prefix}pam_rank`);
 
     if (!isPostseason) {
-        const incompleteGamesSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('games', league)).where('completed', '!=', 'TRUE').limit(1).get();
+        const incompleteGamesSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('games').where('completed', '!=', 'TRUE').limit(1).get();
         const isRegularSeasonComplete = incompleteGamesSnap.empty;
 
         const eastConf = calculatedStats.filter(t => t.conference === 'Eastern');
@@ -322,8 +322,8 @@ async function performPerformanceRankingUpdate(league = 'major') {
     }
     const seasonId = activeSeasonSnap.docs[0].id;
 
-    const lineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('lineups', league));
-    const postLineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_lineups', league));
+    const lineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('lineups');
+    const postLineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('post_lineups');
 
     const [lineupsSnap, postLineupsSnap] = await Promise.all([
         lineupsRef.get(),

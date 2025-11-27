@@ -52,7 +52,7 @@ async function processCompletedGame(event, league = LEAGUES.MAJOR) {
                 }
             }
 
-            const seriesGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_games', league)).where('series_id', '==', after.series_id);
+            const seriesGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('post_games').where('series_id', '==', after.series_id);
             const seriesGamesSnap = await seriesGamesQuery.get();
 
             seriesGamesSnap.forEach(doc => {
@@ -65,8 +65,8 @@ async function processCompletedGame(event, league = LEAGUES.MAJOR) {
         }
     }
 
-    const regGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('games', league)).where('date', '==', gameDate).get();
-    const postGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_games', league)).where('date', '==', gameDate).get();
+    const regGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('games').where('date', '==', gameDate).get();
+    const postGamesQuery = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('post_games').where('date', '==', gameDate).get();
 
     const [regGamesSnap, postGamesSnap] = await Promise.all([regGamesQuery, postGamesQuery]);
     const allGamesForDate = [...regGamesSnap.docs, ...postGamesSnap.docs];
@@ -94,7 +94,7 @@ async function processCompletedGame(event, league = LEAGUES.MAJOR) {
         batch.update(seasonRef, { gp: FieldValue.increment(gamesCompletedToday) });
     }
 
-    const lineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsColl, league)).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
+    const lineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(lineupsColl).where('date', '==', gameDate).where('started', '==', 'TRUE').get();
     if (lineupsSnap.empty) {
         await batch.commit();
         return null;

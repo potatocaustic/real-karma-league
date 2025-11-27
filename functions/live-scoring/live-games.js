@@ -57,14 +57,14 @@ async function processAndFinalizeGame(liveGameSnap, isAutoFinalize = false, leag
         }
     }
 
-    const gameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(collectionName, league)}/${gameId}`);
+    const gameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${collectionName}/${gameId}`);
     const gameSnap = await gameRef.get();
     const gameData = gameSnap.data();
     let team1FinalScore = 0;
     let team2FinalScore = 0;
 
     const lineupsCollectionName = collectionName.replace('games', 'lineups');
-    const lineupsCollectionRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName(lineupsCollectionName, league));
+    const lineupsCollectionRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(lineupsCollectionName);
 
     for (const player of allPlayersInGame) {
         const finalScores = finalScoresMap.get(player.player_id);
