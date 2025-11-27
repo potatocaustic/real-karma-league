@@ -1,6 +1,6 @@
 // /gm/submit-lineup.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId, limit, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, query, where, orderBy, documentId, limit, getCurrentLeague, collectionNames, getLeagueCollectionName, collectionGroup } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 let loadingContainer, gmContainer, scheduleListContainer, lineupModal, lineupForm, closeLineupModalBtn, lineupModalWarning;
@@ -15,6 +15,7 @@ let awardSelections = new Map();
 let currentGameData = null;
 let lastCheckedCaptain = null;
 let countdownIntervals = [];
+let playerSeasonStats = new Map();
 
 document.addEventListener('DOMContentLoaded', () => {
     loadingContainer = document.getElementById('loading-container');
@@ -74,10 +75,19 @@ async function initializePage(userId) {
 }
 
 async function cacheCoreData(seasonId) {
-    const playersSnap = await getDocs(collection(db, collectionNames.players));
-    playersSnap.docs.forEach(doc => allPlayers.set(doc.id, { id: doc.id, ...doc.data() }));
+    const [playersSnap, teamsSnap, statsSnap] = await Promise.all([
+        getDocs(collection(db, collectionNames.players)),
+        getDocs(collection(db, collectionNames.teams)),
+        getDocs(query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), '==', seasonId)))
+    ]);
 
-    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
+    playerSeasonStats = new Map(statsSnap.docs.map(statDoc => [statDoc.ref.parent.parent.id, statDoc.data()]));
+
+    playersSnap.docs.forEach(doc => {
+        const stats = playerSeasonStats.get(doc.id) || {};
+        allPlayers.set(doc.id, { id: doc.id, ...doc.data(), stats });
+    });
+
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
         const seasonRecordSnap = await getDoc(doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId));
@@ -279,7 +289,7 @@ async function handleOpenModalClick(e) {
 async function openLineupModal(game, deadlineString) {
     lineupForm.reset();
     document.querySelectorAll('.roster-list, .starters-list').forEach(el => el.innerHTML = '');
-    lineupModalWarning.style.display = 'none'; 
+    lineupModalWarning.style.display = 'none';
 
     document.getElementById('lineup-game-id').value = game.id;
     document.getElementById('lineup-game-date').value = game.date;
@@ -340,16 +350,28 @@ async function openLineupModal(game, deadlineString) {
     lineupModal.classList.add('is-visible');
 }
 
+function formatPlayerStatsDisplay(playerId) {
+    const stats = playerSeasonStats.get(playerId) || {};
+    const gamesPlayed = stats.games_played ?? '0';
+    const relMedian = typeof stats.rel_median === 'number' ? stats.rel_median.toFixed(3) : (stats.rel_median ? Number(stats.rel_median).toFixed(3) : 'N/A');
+    const war = typeof stats.WAR === 'number' ? stats.WAR.toFixed(2) : (stats.WAR ? Number(stats.WAR).toFixed(2) : 'N/A');
+    return `GP: ${gamesPlayed} | REL: ${relMedian} | WAR: ${war}`;
+}
+
 function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, startersOrdered = [], isCaptainDisabled = false, existingCaptainId = null) {
     document.getElementById(`${teamPrefix}-name-header`).textContent = teamData.team_name;
     const rosterContainer = document.getElementById(`${teamPrefix}-roster`);
     rosterContainer.innerHTML = '';
     roster.sort((a, b) => a.player_handle.localeCompare(b.player_handle)).forEach(player => {
         const isStarter = startersMap.has(player.id);
+        const statsText = formatPlayerStatsDisplay(player.id);
         rosterContainer.innerHTML += `
             <label class="player-checkbox-item">
                 <input type="checkbox" class="starter-checkbox" data-player-id="${player.id}" data-player-handle="${player.player_handle}" ${isStarter ? 'checked' : ''}>
-                ${player.player_handle}
+                <div class="player-info">
+                    <div class="player-name">${player.player_handle}</div>
+                    <div class="player-stats">${statsText}</div>
+                </div>
             </label>
         `;
     });
@@ -395,16 +417,20 @@ function addStarterCard(checkbox, lineupData = null, isCaptainDisabled = false, 
     const { playerId, playerHandle } = checkbox.dataset;
     const startersContainer = document.getElementById(`my-team-starters`);
     const isCaptain = lineupData?.is_captain;
-    
+    const statsText = formatPlayerStatsDisplay(playerId);
+
     const shouldBeDisabled = isCaptainDisabled && (playerId !== existingCaptainId);
 
     const card = document.createElement('div');
     card.className = 'starter-card';
     card.id = `starter-card-${playerId}`;
     card.innerHTML = `
-        <div>
-            <strong>${playerHandle}</strong>
-            <label><input type="radio" name="my-team-captain" value="${playerId}" ${isCaptain ? 'checked' : ''} ${shouldBeDisabled ? 'disabled' : ''}> Captain</label>
+        <div class="starter-card-header">
+            <div class="starter-card-info">
+                <strong>${playerHandle}</strong>
+                <div class="starter-stats">${statsText}</div>
+            </div>
+            <label class="captain-radio-label"><input type="radio" name="my-team-captain" value="${playerId}" ${isCaptain ? 'checked' : ''} ${shouldBeDisabled ? 'disabled' : ''}> Captain</label>
         </div>`;
     startersContainer.appendChild(card);
     updateStarterCount();

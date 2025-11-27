@@ -56,8 +56,15 @@
         }
 
         /* Player Checkbox Alignment */
-        .player-checkbox-item { display: flex; align-items: center; gap: 0.75rem; }
-        .player-checkbox-item input[type="checkbox"] { width: 1.2em; height: 1.2em; flex-shrink: 0; }
+        .player-checkbox-item { display: flex; align-items: flex-start; gap: 0.75rem; }
+        .player-checkbox-item input[type="checkbox"] { width: 1.2em; height: 1.2em; flex-shrink: 0; margin-top: 0.15rem; }
+        .player-info { display: flex; flex-direction: column; gap: 0.2rem; line-height: 1.35; }
+        .player-name { font-weight: 600; }
+        .player-stats, .starter-stats { font-size: 0.9rem; color: #555; }
+        .starter-card-info { display: flex; flex-direction: column; gap: 0.2rem; }
+        .starter-card-header { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; }
+        .captain-radio-label input { margin-right: 0.35rem; }
+        .dark-mode .player-stats, .dark-mode .starter-stats { color: #bbb; }
         
         /* Disabled Button Styling */
         .btn-admin-edit:disabled {
