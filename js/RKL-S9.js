@@ -502,9 +502,9 @@ async function loadRecentGames() {
 
         const potentialGames = [];
         // Now we populate the array with all fetched games, not just one from each
-        if (!regSnap.empty) regSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getLeagueCollectionName('games') }));
-        if (!postSnap.empty) postSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getLeagueCollectionName('post_games') }));
-        if (!exhSnap.empty) exhSnap.docs.forEach(doc => potentialGames.push({ doc, collection: getLeagueCollectionName('exhibition_games') }));
+        if (!regSnap.empty) regSnap.docs.forEach(doc => potentialGames.push({ doc, collection: 'games' }));
+        if (!postSnap.empty) postSnap.docs.forEach(doc => potentialGames.push({ doc, collection: 'post_games' }));
+        if (!exhSnap.empty) exhSnap.docs.forEach(doc => potentialGames.push({ doc, collection: 'exhibition_games' }));
 
 
         if (potentialGames.length === 0) {
@@ -772,11 +772,11 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
             // 3. Determine the correct lineups collection using the passed-in collectionName.
             let lineupsCollectionName;
             if (collectionName && collectionName.includes('exhibition')) {
-                lineupsCollectionName = getLeagueCollectionName('exhibition_lineups');
+                lineupsCollectionName = 'exhibition_lineups';
             } else if (collectionName && collectionName.includes('post')) {
-                lineupsCollectionName = getLeagueCollectionName('post_lineups');
+                lineupsCollectionName = 'post_lineups';
             } else {
-                lineupsCollectionName = getLeagueCollectionName('lineups');
+                lineupsCollectionName = 'lineups';
             }
             // --- MODIFICATION END ---
 
@@ -811,11 +811,11 @@ async function showGameDetails(gameId, isLiveGame, gameDate = null, collectionNa
         } else {
             let lineupsCollectionName;
             if (collectionName && collectionName.includes('exhibition')) {
-                lineupsCollectionName = getLeagueCollectionName('exhibition_lineups');
+                lineupsCollectionName = 'exhibition_lineups';
             } else if (collectionName && collectionName.includes('post')) {
-                lineupsCollectionName = getLeagueCollectionName('post_lineups');
+                lineupsCollectionName = 'post_lineups';
             } else {
-                lineupsCollectionName = getLeagueCollectionName('lineups');
+                lineupsCollectionName = 'lineups';
             }
 
             const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, lineupsCollectionName);
