@@ -28,7 +28,7 @@
  */
 
 const admin = require('firebase-admin');
-const serviceAccount = require('../real-karma-league-firebase-adminsdk-service-account.json');
+const serviceAccount = require('./serviceAccountKey.json');
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
