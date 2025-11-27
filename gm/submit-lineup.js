@@ -352,10 +352,9 @@ async function openLineupModal(game, deadlineString) {
 
 function formatPlayerStatsDisplay(playerId) {
     const stats = playerSeasonStats.get(playerId) || {};
-    const gamesPlayed = stats.games_played ?? '0';
     const relMedian = typeof stats.rel_median === 'number' ? stats.rel_median.toFixed(3) : (stats.rel_median ? Number(stats.rel_median).toFixed(3) : 'N/A');
     const war = typeof stats.WAR === 'number' ? stats.WAR.toFixed(2) : (stats.WAR ? Number(stats.WAR).toFixed(2) : 'N/A');
-    return `GP: ${gamesPlayed} | REL: ${relMedian} | WAR: ${war}`;
+    return `REL: ${relMedian} | WAR: ${war}`;
 }
 
 function renderMyTeamUI(teamPrefix, teamData, roster, startersMap, startersOrdered = [], isCaptainDisabled = false, existingCaptainId = null) {
