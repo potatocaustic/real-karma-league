@@ -53,12 +53,11 @@ const SUBCOLLECTIONS_TO_MIGRATE = [
  * Migrates documents from one subcollection to another
  */
 async function migrateSubcollection(seasonId, fromCollection, toCollection, isDryRun = false) {
-    const seasonPath = `minor_seasons/${seasonId}`;
-    const fromRef = db.collection(seasonPath).doc(seasonId).collection(fromCollection);
-    const toRef = db.collection(seasonPath).doc(seasonId).collection(toCollection);
+    const fromRef = db.collection('minor_seasons').doc(seasonId).collection(fromCollection);
+    const toRef = db.collection('minor_seasons').doc(seasonId).collection(toCollection);
 
     console.log(`\n${'='.repeat(80)}`);
-    console.log(`Migrating: ${seasonPath}/${fromCollection} -> ${seasonPath}/${toCollection}`);
+    console.log(`Migrating: minor_seasons/${seasonId}/${fromCollection} -> minor_seasons/${seasonId}/${toCollection}`);
     console.log(`${'='.repeat(80)}`);
 
     try {
@@ -134,9 +133,8 @@ async function migrateSubcollection(seasonId, fromCollection, toCollection, isDr
  * Verifies that the migration was successful
  */
 async function verifyMigration(seasonId, fromCollection, toCollection) {
-    const seasonPath = `minor_seasons/${seasonId}`;
-    const fromRef = db.collection(seasonPath).doc(seasonId).collection(fromCollection);
-    const toRef = db.collection(seasonPath).doc(seasonId).collection(toCollection);
+    const fromRef = db.collection('minor_seasons').doc(seasonId).collection(fromCollection);
+    const toRef = db.collection('minor_seasons').doc(seasonId).collection(toCollection);
 
     try {
         const [fromSnap, toSnap] = await Promise.all([
