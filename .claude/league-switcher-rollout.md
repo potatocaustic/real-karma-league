@@ -332,8 +332,8 @@ The following minor league collections have been added to `firestore.rules`:
 ### Subcollections
 - Teams: `minor_v2_teams/{teamId}/minor_seasonal_stats/{recordId}`
 - Teams: `minor_v2_teams/{teamId}/minor_seasonal_records/{recordId}`
-- Players: `minor_v2_players/{playerId}/seasonal_stats/{recordId}` (NO prefix!)
-- Players: `minor_v2_players/{playerId}/seasonal_records/{recordId}` (NO prefix!)
+- Players: `minor_v2_players/{playerId}/minor_seasonal_stats/{recordId}` (WITH prefix for consistency)
+- Players: `minor_v2_players/{playerId}/minor_seasonal_records/{recordId}` (WITH prefix for consistency)
 
 All minor league collections allow public read access and admin-only write access, consistent with major league permissions.
 

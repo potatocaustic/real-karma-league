@@ -54,7 +54,7 @@ function parseCSV(csvText) {
 
 /**
  * Create initial seasonal stats structure with all fields set to 0
- * This matches the structure from v2_players seasonal_stats
+ * This matches the structure from minor_v2_players minor_seasonal_stats
  */
 function createInitialSeasonalStats(seasonId) {
     return {
@@ -180,8 +180,8 @@ async function seedPlayers(players) {
         batch.set(playerRef, playerData);
         operationCount++;
 
-        // Create seasonal_stats subcollection reference
-        const seasonalStatsRef = playerRef.collection('seasonal_stats').doc(SEASON_ID);
+        // Create minor_seasonal_stats subcollection reference
+        const seasonalStatsRef = playerRef.collection('minor_seasonal_stats').doc(SEASON_ID);
         const seasonalStatsData = createInitialSeasonalStats(SEASON_ID);
 
         // Add to batch
@@ -274,7 +274,7 @@ async function main() {
         console.log("✓ SEEDING COMPLETE");
         console.log("=".repeat(60));
         console.log(`Total players created: ${created}`);
-        console.log(`Each player has a seasonal_stats/${SEASON_ID} subcollection`);
+        console.log(`Each player has a minor_seasonal_stats/${SEASON_ID} subcollection`);
         console.log("=".repeat(60));
 
     } catch (error) {

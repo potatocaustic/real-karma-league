@@ -54,8 +54,8 @@ async function deletePlayersWithSubcollections(collectionName, players) {
             const playerId = player.player_id;
             const playerRef = db.collection(collectionName).doc(playerId);
 
-            // Delete the seasonal_stats subcollection documents first
-            const seasonalStatsRef = playerRef.collection('seasonal_stats');
+            // Delete the minor_seasonal_stats subcollection documents first
+            const seasonalStatsRef = playerRef.collection('minor_seasonal_stats');
             const statsSnapshot = await seasonalStatsRef.get();
 
             statsSnapshot.forEach(doc => {
