@@ -266,6 +266,25 @@
             <div id="current-deadline-display">
                 <p>Select a date to see the current deadline.</p>
             </div>
+        </div>
+
+        <div class="admin-card">
+            <h3>Auto-Deadline Setter</h3>
+            <p>Test the automatic deadline setter that fetches game schedules and sets deadlines based on the earliest game time (excluding CBB games without polls).</p>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+                <div class="form-group-admin">
+                    <label for="auto-deadline-target-date">Target Date (optional):</label>
+                    <input type="date" id="auto-deadline-target-date">
+                </div>
+                <button id="test-auto-deadline-btn" class="btn-admin-edit">Test Auto-Deadline Setter</button>
+            </div>
+            <div id="auto-deadline-result" style="margin-top: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px; display: none;">
+                <strong>Result:</strong>
+                <pre id="auto-deadline-result-text" style="margin-top: 0.5rem; white-space: pre-wrap;"></pre>
+            </div>
+        </div>
+
+        <div class="admin-card">
             <div class="admin-section">
                 <h3>Manual Fixes</h3>
                 <button id="manual-bracket-fix-btn" class="btn-admin-danger">Manually Advance Bracket</button>

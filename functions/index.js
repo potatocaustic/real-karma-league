@@ -41,6 +41,7 @@ const draftResults = require('./draft/draft-results');
 // Import extracted lineup modules
 const lineupDeadlines = require('./lineups/deadlines');
 const lineupStaging = require('./lineups/staging');
+const autoDeadlineSetter = require('./lineups/auto-deadline-setter');
 
 // Import extracted live-scoring modules
 const liveGames = require('./live-scoring/live-games');
@@ -137,6 +138,10 @@ exports.getScheduledJobTimes = lineupDeadlines.getScheduledJobTimes;
 exports.updateScheduledJobTimes = lineupDeadlines.updateScheduledJobTimes;
 
 exports.stageLiveLineups = lineupStaging.stageLiveLineups;
+
+exports.autoSetLineupDeadline = autoDeadlineSetter.autoSetLineupDeadline;
+exports.minor_autoSetLineupDeadline = autoDeadlineSetter.minor_autoSetLineupDeadline;
+exports.testAutoSetLineupDeadline = autoDeadlineSetter.testAutoSetLineupDeadline;
 
 // Re-export live-scoring functions from extracted modules
 exports.activateLiveGame = liveGames.activateLiveGame;

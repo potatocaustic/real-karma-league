@@ -125,6 +125,49 @@ async function initializePage() {
             }
         });
     }
+
+    // Add handler for auto-deadline setter test button
+    const testAutoDeadlineBtn = document.getElementById('test-auto-deadline-btn');
+    if (testAutoDeadlineBtn) {
+        testAutoDeadlineBtn.addEventListener('click', async () => {
+            testAutoDeadlineBtn.disabled = true;
+            testAutoDeadlineBtn.textContent = 'Processing...';
+
+            const resultDiv = document.getElementById('auto-deadline-result');
+            const resultText = document.getElementById('auto-deadline-result-text');
+
+            try {
+                const targetDateInput = document.getElementById('auto-deadline-target-date');
+                const targetDate = targetDateInput.value || null;
+
+                const testAutoSetLineupDeadline = httpsCallable(functions, 'testAutoSetLineupDeadline');
+                const result = await testAutoSetLineupDeadline({
+                    league: getCurrentLeague(),
+                    targetDate: targetDate
+                });
+
+                resultDiv.style.display = 'block';
+                resultText.textContent = JSON.stringify(result.data, null, 2);
+
+                // Refresh the deadline display if a date was set
+                if (result.data.success && targetDate) {
+                    deadlineDateInput.value = targetDate;
+                    await displayDeadlineForDate(targetDate);
+                }
+
+                alert(result.data.message || 'Auto-deadline setter executed successfully!');
+            } catch (error) {
+                console.error("Error running auto-deadline setter:", error);
+                resultDiv.style.display = 'block';
+                resultText.textContent = `Error: ${error.message}`;
+                alert(`Failed to run auto-deadline setter: ${error.message}`);
+            } finally {
+                testAutoDeadlineBtn.disabled = false;
+                testAutoDeadlineBtn.textContent = 'Test Auto-Deadline Setter';
+            }
+        });
+    }
+
     deadlineForm.addEventListener('submit', handleSetDeadline);
     deadlineDateInput.addEventListener('change', () => displayDeadlineForDate(deadlineDateInput.value));
 
