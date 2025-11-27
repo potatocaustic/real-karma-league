@@ -111,9 +111,9 @@ async function getActiveSeason() {
 }
 
 async function fetchInitialPageData(seasonId) {
-    const gamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('games'));
-    const postGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('post_games'));
-    const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('exhibition_games'));
+    const gamesRef = collection(db, collectionNames.seasons, seasonId, 'games');
+    const postGamesRef = collection(db, collectionNames.seasons, seasonId, 'post_games');
+    const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, 'exhibition_games');
 
     const [teamsSnapshot, gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
         getDocs(collection(db, collectionNames.teams)),
@@ -510,7 +510,7 @@ async function calculateAndDisplayStandouts(week) {
 
     const seasonNum = activeSeasonId.replace('S', '');
     const dailyScoresRef = collection(db, getLeagueCollectionName('daily_scores'), `season_${seasonNum}`, `S${seasonNum}_daily_scores`);
-    const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('lineups'));
+    const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, 'lineups');
     const dailyScoresQuery = query(dailyScoresRef, where('week', '==', week));
     const lineupsQuery = query(lineupsRef, where('week', '==', week));
     const [dailyScoresSnap, lineupsSnap] = await Promise.all([getDocs(dailyScoresQuery), getDocs(lineupsQuery)]);

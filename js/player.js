@@ -153,11 +153,11 @@ async function loadPlayerData() {
         generateIconStylesheet(allTeamsData);
 
         const lineupsQuery = query(
-            collection(db, collectionNames.seasons, SEASON_ID, getLeagueCollectionName('lineups')),
+            collection(db, collectionNames.seasons, SEASON_ID, 'lineups'),
             where('player_id', '==', finalPlayerId),
             where('started', '==', 'TRUE')
         );
-        const gamesQuery = query(collection(db, collectionNames.seasons, SEASON_ID, getLeagueCollectionName('games')));
+        const gamesQuery = query(collection(db, collectionNames.seasons, SEASON_ID, 'games'));
 
         const [lineupsSnap, gamesSnap] = await Promise.all([
             getDocs(lineupsQuery),
@@ -1083,7 +1083,7 @@ async function showGameDetails(gameId) {
         modalTitle.textContent = `${team1.team_name} vs ${team2.team_name} - ${formattedDate}`;
 
         const lineupsQuery = query(
-            collection(db, collectionNames.seasons, SEASON_ID, getLeagueCollectionName('lineups')),
+            collection(db, collectionNames.seasons, SEASON_ID, 'lineups'),
             where('game_id', '==', gameId),
             where('started', '==', 'TRUE')
         );

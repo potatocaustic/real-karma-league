@@ -108,7 +108,7 @@ async function filterOutExhibitionDates(dates) {
         // Try to fetch exhibition games to get dates to EXCLUDE
         console.log('Attempting to fetch exhibition games from seasons/', seasonId, '/exhibition_games');
 
-        const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('exhibition_games'));
+        const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, 'exhibition_games');
         const exhibitionGamesSnap = await getDocs(exhibitionGamesRef);
 
         console.log('Exhibition games documents found:', exhibitionGamesSnap.size);

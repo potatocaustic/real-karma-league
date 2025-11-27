@@ -136,9 +136,9 @@ async function fetchAllGames(seasonId) {
         return;
     }
     // Add a reference to the exhibition_games collection
-    const gamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('games'));
-    const postGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('post_games'));
-    const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName('exhibition_games'));
+    const gamesRef = collection(db, collectionNames.seasons, seasonId, 'games');
+    const postGamesRef = collection(db, collectionNames.seasons, seasonId, 'post_games');
+    const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, 'exhibition_games');
 
     // Fetch all three collections simultaneously
     const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
@@ -490,9 +490,9 @@ async function loadRecentGames() {
         // --- THIS IS THE FIX ---
         // Fetch a larger pool of candidates to ensure the true most recent game is found,
         // compensating for non-chronological document IDs.
-        const regularSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
-        const postSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('post_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
-        const exhibitionGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, getLeagueCollectionName('exhibition_games')), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const regularSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, 'games'), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const postSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, 'post_games'), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        const exhibitionGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, 'exhibition_games'), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
 
         const [regSnap, postSnap, exhSnap] = await Promise.all([
             getDocs(regularSeasonGamesQuery),

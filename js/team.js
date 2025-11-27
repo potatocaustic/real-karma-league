@@ -95,7 +95,7 @@ async function loadPageData() {
         const rosterQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const rosterPromise = getDocs(rosterQuery);
 
-        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("games")));
+        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, "games"));
 
         const draftPicksPromise = getDocs(collection(db, collectionNames.draftPicks));
 
@@ -1120,7 +1120,7 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     
     try {
         const q = query(
-            collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("lineups")),
+            collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, "lineups"),
             where("date", "==", gameDate), // Query with the original M/D/YYYY date
             where("team_id", "in", [team1_id, team2_id]),
             where("started", "==", "TRUE")
@@ -1162,7 +1162,7 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
             throw new Error("Could not find game document ID.");
         }
 
-        const gameSnap = await getDoc(doc(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("games"), gameDocId));
+        const gameSnap = await getDoc(doc(db, collectionNames.seasons, ACTIVE_SEASON_ID, "games", gameDocId));
         const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
 
         modalContentEl.innerHTML = `

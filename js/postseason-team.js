@@ -87,7 +87,7 @@ async function loadPageData() {
         const rosterPromise = getDocs(rosterQuery);
 
         // Fetch POSTSEASON games instead of regular season
-        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName('post_games')));
+        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, 'post_games'));
 
         // --- AWAIT ALL PROMISES ---
         const [
@@ -306,7 +306,7 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     
     try {
         const q = query(
-            collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName('post_lineups')), // Query post_lineups
+            collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, 'post_lineups'), // Query post_lineups
             where("date", "==", gameDate),
             where("team_id", "in", [team1_id, team2_id]),
             where("started", "==", "TRUE")
@@ -346,7 +346,7 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
         
         if (!gameDocId) throw new Error("Could not find game document ID.");
 
-        const gameSnap = await getDoc(doc(db, collectionNames.seasons, ACTIVE_SEASON_ID, getLeagueCollectionName("post_games"), gameDocId));
+        const gameSnap = await getDoc(doc(db, collectionNames.seasons, ACTIVE_SEASON_ID, "post_games", gameDocId));
         const winnerId = gameSnap.exists() ? gameSnap.data().winner : null;
 
         modalContentEl.innerHTML = `
