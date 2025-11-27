@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const dayColors = {
             0: '🔴', // Sunday - Red
             1: '🟡', // Monday - Yellow
-            2: '🌸', // Tuesday - Pink (cherry blossom - closest to pink dot)
+            2: '🟤', // Tuesday - Brown
             3: '🟢', // Wednesday - Green
             4: '🟠', // Thursday - Orange
             5: '🔵', // Friday - Blue
