@@ -300,7 +300,7 @@ async function fetchAndDisplayGames(seasonId, week) {
     const isExhibition = week === 'All-Star' || week === 'Relegation' || week === 'Preseason';
     let collectionName = isPostseason ? 'post_games' : isExhibition ? 'exhibition_games' : 'games';
 
-    const gamesQuery = query(collection(db, collectionNames.seasons, seasonId, getLeagueCollectionName(collectionName)), where("week", "==", week));
+    const gamesQuery = query(collection(db, collectionNames.seasons, seasonId, collectionName), where("week", "==", week));
 
     try {
         const querySnapshot = await getDocs(gamesQuery);
@@ -463,7 +463,7 @@ async function handleOpenModalClick(e) {
     const gameId = gameEntry.dataset.gameId;
     const collectionName = gameEntry.dataset.collection;
 
-    const gameRef = doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId);
+    const gameRef = doc(db, collectionNames.seasons, currentSeasonId, collectionName, gameId);
     const gameDoc = await getDoc(gameRef);
     if (gameDoc.exists()) {
         currentGameData = { id: gameDoc.id, ...gameDoc.data(), collectionName };
@@ -574,7 +574,7 @@ async function openLineupModal(game) {
         });
 
     } else {
-        const lineupsQuery = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(lineupsCollectionName)), where("game_id", "==", game.id));
+        const lineupsQuery = query(collection(db, collectionNames.seasons, currentSeasonId, lineupsCollectionName), where("game_id", "==", game.id));
         const lineupsSnap = await getDocs(lineupsQuery);
         if (!lineupsSnap.empty) {
             lineupsSnap.forEach(d => {
@@ -807,7 +807,7 @@ async function handleLineupFormSubmit(e) {
 
         const isExhibition = collectionName === 'exhibition_games';
         const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (collectionName === 'post_games' ? 'post_lineups' : 'lineups');
-        const lineupsCollectionRef = collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(lineupsCollectionName));
+        const lineupsCollectionRef = collection(db, collectionNames.seasons, currentSeasonId, lineupsCollectionName);
 
         const team1Roster = getRosterForTeam(team1_id, week);
         const team2Roster = getRosterForTeam(team2_id, week);
@@ -847,7 +847,7 @@ async function handleLineupFormSubmit(e) {
             batch.set(docRef, lineupData, { merge: true });
         }
 
-        const gameRef = doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId);
+        const gameRef = doc(db, collectionNames.seasons, currentSeasonId, collectionName, gameId);
         const team1FinalScore = parseFloat(document.getElementById('team1-final-score').textContent);
         const team2FinalScore = parseFloat(document.getElementById('team2-final-score').textContent);
 

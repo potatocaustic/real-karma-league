@@ -146,9 +146,9 @@ async function loadSchedules() {
     exhibitionGamesByWeek = {};
 
     const [gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
-        getDocs(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName('games'))),
-        getDocs(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName('post_games'))),
-        getDocs(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName('exhibition_games')))
+        getDocs(collection(db, collectionNames.seasons, currentSeasonId, 'games')),
+        getDocs(collection(db, collectionNames.seasons, currentSeasonId, 'post_games')),
+        getDocs(collection(db, collectionNames.seasons, currentSeasonId, 'exhibition_games'))
     ]);
 
     gamesSnap.forEach(doc => {
@@ -296,7 +296,7 @@ async function saveGame(andExit = true) {
         saveAnotherBtn.disabled = true;
         saveAnotherBtn.textContent = 'Saving...';
 
-        await setDoc(doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId), gameData);
+        await setDoc(doc(db, collectionNames.seasons, currentSeasonId, collectionName, gameId), gameData);
         await loadSchedules();
 
         if (andExit) {
@@ -325,7 +325,7 @@ async function handleDeleteGame(e) {
 
     if (confirm("Are you sure you want to delete this game?")) {
         try {
-            await deleteDoc(doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId));
+            await deleteDoc(doc(db, collectionNames.seasons, currentSeasonId, collectionName, gameId));
             await loadSchedules();
         } catch (error) {
             console.error("Error deleting game:", error);
