@@ -231,6 +231,7 @@
       const CURRENT_SEASON_ID = 'S9';
       let allDraftData = [];
       let sortState = { column: 'overall', direction: 'asc' };
+      let isMinorLeague = false;
 
       async function loadDataAndDisplay() {
         const resultsBody = document.getElementById('results-body');
@@ -240,7 +241,7 @@
           // 1. Fetch all draft picks for the current season
           const seasonNumber = CURRENT_SEASON_ID.replace('S', '');
           const currentLeague = getCurrentLeague();
-          const isMinorLeague = currentLeague === 'minor';
+          isMinorLeague = currentLeague === 'minor';
 
           // Use minor_draft_results for minor league, draft_results for major league
           const baseDraftCollection = isMinorLeague ? 'minor_draft_results' : 'draft_results';
@@ -306,11 +307,13 @@
             const playerStats = playersStatsMap.get(pick.player_id);
             const playerInfo = playerInfoMap.get(pick.player_id);
             const displayHandle = playerInfo?.player_handle || pick.player_handle;
+            const displayRound = isMinorLeague ? (pick.round_name || pick.round) : pick.round;
 
             return {
               ...pick,
               team_name: teamsMap.get(pick.team_id) || pick.team_id,
               display_handle: displayHandle,
+              display_round: displayRound,
               games_played: playerStats?.games_played || 0,
               medrank: playerStats?.medrank || Infinity,
               rel_median: playerStats?.rel_median || 0,
@@ -375,7 +378,7 @@
 
           return `
             <tr>
-              <td class="desktop-only">${pick.round}</td>
+              <td class="desktop-only">${pick.display_round}</td>
               <td>${pick.overall}</td>
               <td class="team-cell">
                 <div class="team-cell-content">
