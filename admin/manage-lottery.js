@@ -89,7 +89,7 @@ async function loadLotteryTeams() {
     preLotteryList.innerHTML = `<li class="loading">Loading teams...</li>`;
     finalLotteryList.innerHTML = '';
 
-    const postGamesCollectionRef = collection(db, collectionNames.seasons, completedSeasonId, getLeagueCollectionName('post_games'));
+    const postGamesCollectionRef = collection(db, collectionNames.seasons, completedSeasonId, 'post_games');
 
     const [teamsSnap, postGamesSnap] = await Promise.all([
         getDocs(collection(db, collectionNames.teams)),
