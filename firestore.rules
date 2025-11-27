@@ -362,11 +362,11 @@ service cloud.firestore {
       allow get, list: if true;
     }
 
-    match /minor_v2_players/{playerId}/seasonal_stats/{recordId} {
+    match /minor_v2_players/{playerId}/minor_seasonal_stats/{recordId} {
       allow get, list: if true;
     }
 
-    match /minor_v2_players/{playerId}/seasonal_records/{recordId} {
+    match /minor_v2_players/{playerId}/minor_seasonal_records/{recordId} {
       allow get, list: if true;
     }
 
