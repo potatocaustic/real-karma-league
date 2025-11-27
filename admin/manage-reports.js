@@ -97,9 +97,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = deadlineSnap.data();
                 const deadline = data.deadline.toDate();
 
+                // Convert from Central Time to Eastern Time (add 1 hour)
+                const easternDeadline = new Date(deadline.getTime() + (60 * 60 * 1000));
+
                 // Format time as "12:05p ET" format
-                let hours = deadline.getHours();
-                const minutes = String(deadline.getMinutes()).padStart(2, '0');
+                let hours = easternDeadline.getHours();
+                const minutes = String(easternDeadline.getMinutes()).padStart(2, '0');
                 const ampm = hours >= 12 ? 'p' : 'a';
                 hours = hours % 12 || 12; // Convert to 12-hour format
 
