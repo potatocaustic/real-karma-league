@@ -36,10 +36,10 @@ exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (
         const batch = db.batch();
 
         // 2. Fetch all necessary data (lineups and daily averages for the season)
-        const regLineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('lineups', league))
+        const regLineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('lineups')
             .where('player_id', '==', playerId).where('started', '==', 'TRUE').get();
 
-        const postLineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_lineups', league))
+        const postLineupsSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('post_lineups')
             .where('player_id', '==', playerId).where('started', '==', 'TRUE').get();
 
         const regAveragesSnap = await db.collection(getCollectionName('daily_averages', league)).doc(`season_${seasonNum}`).collection(getCollectionName(`S${seasonNum}_daily_averages`, league)).get();

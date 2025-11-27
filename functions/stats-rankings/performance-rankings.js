@@ -18,8 +18,8 @@ async function performPerformanceRankingUpdate(league = LEAGUES.MAJOR) {
     }
     const seasonId = activeSeasonSnap.docs[0].id;
 
-    const lineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('lineups', league));
-    const postLineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection(getCollectionName('post_lineups', league));
+    const lineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('lineups');
+    const postLineupsRef = db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('post_lineups');
 
     const [lineupsSnap, postLineupsSnap] = await Promise.all([
         lineupsRef.get(),

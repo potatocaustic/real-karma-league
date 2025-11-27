@@ -73,7 +73,7 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
             }
             const gamesPromises = liveGamesSnap.docs.map(async (doc) => {
                 const liveGame = doc.data();
-                const originalGameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(liveGame.collectionName, league)}/${doc.id}`);
+                const originalGameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${liveGame.collectionName}/${doc.id}`);
                 const originalGameSnap = await originalGameRef.get();
 
                 let team1_id, team2_id, originalGameData;
@@ -91,7 +91,7 @@ exports.getReportData = onCall({ region: "us-central1" }, async (request) => {
 
                 return {
                     gameId: doc.id,
-                    collectionName: getCollectionName(liveGame.collectionName, league),
+                    collectionName: liveGame.collectionName,
                     team1_name: team1.name,
                     team2_name: team2.name,
                     team1_record: team1.record,

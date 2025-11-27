@@ -35,7 +35,7 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             const liveGameData = liveGameSnap.data();
             const fullLineupFromLiveGame = [...liveGameData.team1_lineup, ...liveGameData.team2_lineup];
 
-            const originalGameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(liveGameData.collectionName, league)}/${gameId}`);
+            const originalGameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${liveGameData.collectionName}/${gameId}`);
             const originalGameSnap = await originalGameRef.get();
             if (!originalGameSnap.exists) throw new HttpsError('not-found', 'Original game data not found for the live game.');
             gameData = originalGameSnap.data();
@@ -59,14 +59,14 @@ exports.generateGameWriteup = onCall({ region: "us-central1" }, async (request) 
             determinedWinner = calculatedTeam1Score > calculatedTeam2Score ? team1Id : (calculatedTeam2Score > calculatedTeam1Score ? team2Id : '');
 
         } else {
-            const gameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${getCollectionName(collectionName, league)}/${gameId}`);
+            const gameRef = db.doc(`${getCollectionName('seasons', league)}/${seasonId}/${collectionName}/${gameId}`);
             const gameSnap = await gameRef.get();
             if (!gameSnap.exists) throw new HttpsError('not-found', 'Completed game not found.');
             gameData = gameSnap.data();
             team1Id = gameData.team1_id;
             team2Id = gameData.team2_id;
 
-            const lineupsCollection = getCollectionName(collectionName.replace('games', 'lineups'), league);
+            const lineupsCollection = collectionName.replace('games', 'lineups');
             const lineupsQuery = db.collection(`${getCollectionName('seasons', league)}/${seasonId}/${lineupsCollection}`).where('game_id', '==', gameId);
             const lineupsSnap = await lineupsQuery.get();
             lineupsData = lineupsSnap.docs.map(doc => doc.data());
