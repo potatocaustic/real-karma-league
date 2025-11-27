@@ -1,18 +1,36 @@
 ﻿/* /admin/admin-styles.css */
 
+body {
+    background: linear-gradient(180deg, #eef2f7 0%, #e3e8f0 40%, #eef2f7 100%);
+    min-height: 100vh;
+}
+
 main {
-    max-width: 1000px;
+    max-width: 1100px;
+    width: min(1100px, calc(100% - 2rem));
+}
+
+#admin-container {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+    padding: clamp(1.5rem, 2.5vw, 2.5rem);
+    margin: 1.25rem auto 2.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 #admin-container h2 {
     text-align: center;
     margin-bottom: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
 }
 
 #admin-container p {
     text-align: center;
-    margin-bottom: 2rem;
-    color: #666;
+    margin-bottom: 2.25rem;
+    color: #4a5568;
+    font-size: 1.05rem;
 }
 
 .dashboard-grid {
@@ -20,27 +38,30 @@ main {
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
     margin-top: 2rem;
+    grid-auto-rows: 1fr;
 }
 
 .nav-card {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    background: linear-gradient(145deg, #ffffff 0%, #f7f9fc 100%);
+    border-radius: 14px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
     padding: 1.5rem;
     text-align: center;
     text-decoration: none;
-    color: #333;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    color: #1f2937;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    min-height: 180px;
+    min-height: 190px;
+    border: 1px solid transparent;
 }
 
     .nav-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-6px);
+        box-shadow: 0 18px 38px rgba(0, 0, 0, 0.12);
+        border-color: rgba(0, 123, 255, 0.25);
     }
 
 .nav-card-icon {
@@ -74,17 +95,18 @@ main {
 .filters-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 1.5rem;
+    gap: 1.25rem;
     margin-bottom: 2rem;
     padding: 1.5rem;
     background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .filter-group {
     flex: 1;
-    min-width: 200px;
+    min-width: 220px;
 }
 
     .filter-group label {
@@ -256,6 +278,7 @@ main {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
+    align-items: start;
 }
 
 .search-container {
@@ -675,6 +698,31 @@ main {
     color: #90caf9;
 }
 
+.dark-mode body {
+    background: linear-gradient(180deg, #0b1021 0%, #0f172a 50%, #0b1021 100%);
+}
+
+.dark-mode #admin-container {
+    background: #111827;
+    border-color: #1f2937;
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+}
+
+.dark-mode .nav-card {
+    background: linear-gradient(145deg, #1f2937 0%, #0f172a 100%);
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.04);
+}
+
+.dark-mode .nav-card-description {
+    color: #cbd5e1;
+}
+
+.dark-mode .nav-card:hover {
+    border-color: rgba(144, 202, 249, 0.3);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.4);
+}
+
 .dark-mode .back-link {
     color: #90caf9;
 }
@@ -981,4 +1029,37 @@ main {
 
 .copy-icon:hover {
     background-color: #555;
+}
+
+@media (max-width: 1024px) {
+    #admin-container {
+        width: 100%;
+        margin: 1rem auto 2rem;
+    }
+
+    .filters-container {
+        flex-direction: column;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    main {
+        padding: 1.25rem;
+    }
+
+    #admin-container h2 {
+        font-size: 1.6rem;
+    }
+
+    #admin-container p {
+        font-size: 1rem;
+    }
+
+    .filters-container {
+        padding: 1.25rem;
+    }
 }
