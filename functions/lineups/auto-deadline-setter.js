@@ -209,7 +209,7 @@ async function setDeadlineForDate(dateString, league = 'major') {
 
 /**
  * Scheduled function that runs at 8:30 AM ET (7:30 AM CT) daily
- * Automatically sets the lineup deadline for t+2 days
+ * Automatically sets the lineup deadline for t+2 days for BOTH leagues
  */
 exports.autoSetLineupDeadline = onSchedule({
     schedule: "30 7 * * *", // 7:30 AM CT = 8:30 AM ET
@@ -232,11 +232,18 @@ exports.autoSetLineupDeadline = onSchedule({
         console.log(`Today: ${today.toDateString()}`);
         console.log(`Target date (t+2): ${targetDate.toDateString()} (${dateString})`);
 
-        // Set deadline for major league
-        const result = await setDeadlineForDate(dateString, 'major');
-        console.log('Major league result:', result);
+        // Set deadlines for both major and minor leagues
+        const majorResult = await setDeadlineForDate(dateString, 'major');
+        console.log('Major league result:', majorResult);
 
-        return result;
+        const minorResult = await setDeadlineForDate(dateString, 'minor');
+        console.log('Minor league result:', minorResult);
+
+        return {
+            success: majorResult.success && minorResult.success,
+            major: majorResult,
+            minor: minorResult
+        };
 
     } catch (error) {
         console.error("Error in auto-deadline setter:", error);
@@ -245,14 +252,15 @@ exports.autoSetLineupDeadline = onSchedule({
 });
 
 /**
- * Scheduled function for minor league
+ * Scheduled function for minor league (backup)
  * Runs at 8:30 AM ET (7:30 AM CT) daily
+ * Sets deadlines for BOTH leagues (same as main function for redundancy)
  */
 exports.minor_autoSetLineupDeadline = onSchedule({
     schedule: "30 7 * * *", // 7:30 AM CT = 8:30 AM ET
     timeZone: "America/Chicago",
 }, async (event) => {
-    console.log("Running scheduled auto-deadline setter for MINOR LEAGUE at 8:30 AM ET / 7:30 AM CT");
+    console.log("Running scheduled auto-deadline setter (minor function) at 8:30 AM ET / 7:30 AM CT");
 
     try {
         // Calculate t+2 date in Central Time
@@ -266,17 +274,24 @@ exports.minor_autoSetLineupDeadline = onSchedule({
         const day = String(targetDate.getDate()).padStart(2, '0');
         const dateString = `${year}-${month}-${day}`;
 
-        console.log(`Minor League - Today: ${today.toDateString()}`);
-        console.log(`Minor League - Target date (t+2): ${targetDate.toDateString()} (${dateString})`);
+        console.log(`Today: ${today.toDateString()}`);
+        console.log(`Target date (t+2): ${targetDate.toDateString()} (${dateString})`);
 
-        // Set deadline for minor league
-        const result = await setDeadlineForDate(dateString, 'minor');
-        console.log('Minor league result:', result);
+        // Set deadlines for both major and minor leagues
+        const majorResult = await setDeadlineForDate(dateString, 'major');
+        console.log('Major league result:', majorResult);
 
-        return result;
+        const minorResult = await setDeadlineForDate(dateString, 'minor');
+        console.log('Minor league result:', minorResult);
+
+        return {
+            success: majorResult.success && minorResult.success,
+            major: majorResult,
+            minor: minorResult
+        };
 
     } catch (error) {
-        console.error("Minor League - Error in auto-deadline setter:", error);
+        console.error("Error in auto-deadline setter:", error);
         return { success: false, error: error.message };
     }
 });
@@ -284,9 +299,11 @@ exports.minor_autoSetLineupDeadline = onSchedule({
 /**
  * Callable function for testing the auto-deadline setter
  * Can specify a custom date or use default t+2
+ * Supports setting both leagues at once with setBothLeagues parameter
  */
 exports.testAutoSetLineupDeadline = onCall({ region: "us-central1" }, async (request) => {
     const league = getLeagueFromRequest(request.data);
+    const setBothLeagues = request.data.setBothLeagues !== false; // Default to true
 
     // Security check
     if (!request.auth) {
@@ -317,15 +334,33 @@ exports.testAutoSetLineupDeadline = onCall({ region: "us-central1" }, async (req
             dateString = `${year}-${month}-${day}`;
         }
 
-        console.log(`Test run: Setting deadline for ${dateString} (league: ${league})`);
+        if (setBothLeagues) {
+            console.log(`Test run: Setting deadline for ${dateString} for BOTH leagues`);
 
-        const result = await setDeadlineForDate(dateString, league);
+            // Set deadlines for both leagues
+            const majorResult = await setDeadlineForDate(dateString, 'major');
+            console.log('Major league result:', majorResult);
 
-        return {
-            success: true,
-            league,
-            ...result
-        };
+            const minorResult = await setDeadlineForDate(dateString, 'minor');
+            console.log('Minor league result:', minorResult);
+
+            return {
+                success: majorResult.success && minorResult.success,
+                message: 'Deadlines set for both major and minor leagues',
+                major: majorResult,
+                minor: minorResult
+            };
+        } else {
+            console.log(`Test run: Setting deadline for ${dateString} (league: ${league})`);
+
+            const result = await setDeadlineForDate(dateString, league);
+
+            return {
+                success: true,
+                league,
+                ...result
+            };
+        }
 
     } catch (error) {
         console.error("Error in test auto-deadline setter:", error);
