@@ -1,32 +1,221 @@
 ﻿/* /admin/admin-styles.css */
 
+body {
+    background: radial-gradient(circle at 10% 20%, rgba(67, 97, 238, 0.08), transparent 35%),
+                radial-gradient(circle at 90% 10%, rgba(45, 212, 191, 0.08), transparent 35%),
+                #eef1f6;
+    min-height: 100vh;
+}
+
+header {
+    background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.08), transparent 45%),
+                radial-gradient(circle at 80% 0%, rgba(94, 234, 212, 0.08), transparent 40%),
+                linear-gradient(135deg, #0b162c, #111827);
+    color: #e5e7eb;
+    padding: 1.3rem 1.25rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+}
+
+header h1 {
+    color: #f8fafc !important;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 0.65rem 0.9rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(12px);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+#auth-status {
+    position: absolute;
+    left: 1.3rem;
+    top: 1rem;
+    font-size: 0.95rem;
+    color: #cbd5e1;
+    padding: 0.45rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.25);
+}
+
+#auth-status a {
+    color: #e0f2fe;
+}
+
+#theme-toggle-btn {
+    position: absolute;
+    top: 0.95rem;
+    right: 1.15rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e5e7eb;
+    font-size: 1.35rem;
+    padding: 0.6rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+#theme-toggle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.45);
+}
+
+nav {
+    width: min(1200px, calc(100% - 2.5rem));
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    padding: 0.25rem 0.35rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 26px rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(12px);
+}
+
+nav ul {
+    margin-top: 0.35rem;
+    gap: 0.35rem;
+}
+
+nav ul li a,
+.dropdown .dropbtn {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.65rem 0.9rem;
+    border-radius: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+nav ul li a:hover,
+.dropdown .dropbtn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.dropdown-content {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 12px;
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.dropdown-content a {
+    color: #e2e8f0;
+}
+
+.dropdown-content a:hover {
+    background-color: #1f2937;
+}
+
+.nav-toggle {
+    color: #e5e7eb;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+@media (max-width: 640px) {
+    header {
+        border-radius: 0 0 14px 14px;
+        padding: 1.2rem 1rem 0.9rem;
+    }
+
+    nav {
+        width: 100%;
+        padding: 0.35rem 0.5rem 0.5rem;
+        border-radius: 12px;
+    }
+
+    nav ul {
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.55);
+        padding: 0.35rem 0.25rem;
+    }
+
+    nav ul li a,
+    .dropdown .dropbtn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .dropdown-content {
+        width: 100%;
+        box-shadow: none;
+        border-left: none;
+        border-right: none;
+        border-radius: 10px;
+    }
+}
+
+.header-logo {
+    width: 42px;
+    height: 42px;
+    filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45));
+}
+
+.header-text {
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
 main {
-    max-width: 1000px;
+    max-width: 1200px;
+}
+
+#admin-container {
+    width: min(1200px, calc(100% - 2.5rem));
+    margin: 2.5rem auto 3rem;
+    padding: 2rem 2.25rem;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    border: 1px solid #e6e8f0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-x: hidden;
 }
 
 #admin-container h2 {
-    text-align: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    letter-spacing: -0.01em;
 }
 
 #admin-container p {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: #666;
+    margin-bottom: 1.25rem;
+    color: #545c6b;
 }
 
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
+    gap: 1.25rem;
+    margin-top: 1.5rem;
 }
 
 .nav-card {
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    padding: 1.5rem;
+    background: linear-gradient(145deg, #ffffff 0%, #f5f7fb 100%);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+    padding: 1.5rem 1.25rem;
     text-align: center;
     text-decoration: none;
     color: #333;
@@ -36,6 +225,7 @@ main {
     justify-content: center;
     align-items: center;
     min-height: 180px;
+    border: 1px solid #e4e7ec;
 }
 
     .nav-card:hover {
@@ -45,18 +235,18 @@ main {
 
 .nav-card-icon {
     font-size: 3rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .nav-card-title {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: bold;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.35rem;
 }
 
 .nav-card-description {
-    font-size: 0.9rem;
-    color: #666;
+    font-size: 0.95rem;
+    color: #5b6270;
 }
 
 .back-link {
@@ -71,15 +261,39 @@ main {
     text-decoration: underline;
 }
 
+.admin-card {
+    background: #fdfefe;
+    border: 1px solid #e6e8f0;
+    border-radius: 14px;
+    padding: 1.5rem 1.75rem;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
+}
+
+.admin-card h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+    color: #1f2937;
+}
+
+.admin-card p {
+    color: #4b5565;
+    margin-bottom: 0.5rem;
+}
+
+.admin-card + .admin-card {
+    margin-top: 0.5rem;
+}
+
 .filters-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background-color: #f8fafc;
+    border-radius: 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    border: 1px solid #e6e8f0;
 }
 
 .filter-group {
@@ -91,28 +305,30 @@ main {
         font-weight: bold;
         margin-bottom: 0.5rem;
         display: block;
-        color: #555;
+        color: #445063;
     }
 
     .filter-group select {
         width: 100%;
-        padding: 0.8rem;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        background-color: #f9f9f9;
-        color: #333;
+        padding: 0.85rem;
+        border: 1px solid #d8dce4;
+        border-radius: 10px;
+        background-color: #fff;
+        color: #243046;
         font-size: 1rem;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
     }
 
 .game-entry {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    border: 1px solid #eee;
-    border-radius: 4px;
-    margin-bottom: 0.5rem;
-    background-color: #fff;
+    padding: 1rem 1.25rem;
+    border: 1px solid #e8ebf2;
+    border-radius: 10px;
+    margin-bottom: 0.75rem;
+    background-color: #fdfefe;
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
 }
 
 .game-details {
@@ -132,16 +348,17 @@ main {
 
 .btn-admin-primary,
 .btn-admin-secondary,
-.btn-admin-edit, 
-.btn-admin-save, 
+.btn-admin-edit,
+.btn-admin-save,
 .btn-admin-delete {
-    padding: 0.8rem 1.5rem;
+    padding: 0.85rem 1.5rem;
     border: none;
-    border-radius: 4px;
+    border-radius: 10px;
     cursor: pointer;
     font-size: 1rem;
     font-weight: 500;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
 }
 
 .btn-admin-primary {
@@ -150,6 +367,7 @@ main {
 }
 .btn-admin-primary:hover {
     background-color: #0056b3;
+    transform: translateY(-1px);
 }
 .btn-admin-secondary {
     background-color: #6c757d;
@@ -157,6 +375,7 @@ main {
 }
 .btn-admin-secondary:hover {
     background-color: #545b62;
+    transform: translateY(-1px);
 }
 .btn-admin-edit {
     background-color: #ffc107;
@@ -164,6 +383,7 @@ main {
 }
 .btn-admin-edit:hover {
     background-color: #e0a800;
+    transform: translateY(-1px);
 }
 .btn-admin-save {
     background-color: #28a745;
@@ -173,6 +393,7 @@ main {
 }
 .btn-admin-save:hover {
     background-color: #218838;
+    transform: translateY(-1px);
 }
 .btn-admin-delete {
     background-color: #dc3545;
@@ -180,6 +401,7 @@ main {
 }
 .btn-admin-delete:hover {
     background-color: #c82333;
+    transform: translateY(-1px);
 }
 
 .modal-admin {
@@ -204,11 +426,11 @@ main {
     background-color: #fefefe;
     margin: 0;
     padding: 2rem;
-    border-radius: 8px;
+    border-radius: 12px;
     width: 90%;
     max-width: 600px;
     position: relative;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.22);
     max-height: 90vh;
     overflow-y: auto;
     color: #333;
@@ -241,15 +463,20 @@ main {
 .form-group-admin label {
     display: block;
     margin-bottom: 0.5rem;
+    color: #273142;
+    font-weight: 600;
 }
 .form-group-admin input[type="number"],
 .form-group-admin input[type="text"],
 .form-group-admin input[type="date"],
 .form-group-admin select {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 0.85rem;
+    border: 1px solid #d8dce4;
+    border-radius: 10px;
+    background: #fff;
+    color: #273142;
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 .form-grid {
@@ -315,17 +542,19 @@ main {
 }
 
 .form-container-admin {
-    padding: 2rem;
-    background-color: #fff;
-    border-radius: 8px;
-    border: 1px solid #ddd;
+    padding: 1.75rem;
+    background-color: #fdfefe;
+    border-radius: 14px;
+    border: 1px solid #e6e8f0;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
 }
 
 .transaction-section {
     padding: 1.5rem;
     margin-top: 1.5rem;
     border: 1px solid #e0e0e0;
-    border-radius: 6px;
+    border-radius: 12px;
+    background: #f9fbfe;
 }
 
 .transaction-section h4 {
@@ -641,6 +870,60 @@ main {
 /* -------------------------------------- */
 /* Dark Mode Specific Styles              */
 /* -------------------------------------- */
+.dark-mode header {
+    background: radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.06), transparent 45%),
+                radial-gradient(circle at 70% 0%, rgba(56, 189, 248, 0.1), transparent 40%),
+                linear-gradient(135deg, #0a0f1d, #0b1223);
+    border-bottom-color: #1e293b;
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.55);
+}
+
+.dark-mode header h1 {
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+
+.dark-mode #auth-status,
+.dark-mode #theme-toggle-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e5e7eb;
+}
+
+.dark-mode nav {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+
+.dark-mode nav ul li a,
+.dark-mode .dropdown .dropbtn {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark-mode nav ul li a:hover,
+.dark-mode .dropdown .dropbtn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.dark-mode .dropdown-content {
+    background: #0b1223;
+    border-color: #1e293b;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.55);
+}
+
+.dark-mode .nav-toggle {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+.dark-mode #admin-container {
+    background: #121826;
+    border-color: #30394a;
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.55);
+}
+
 .dark-mode .form-container-admin,
 .dark-mode .game-entry,
 .dark-mode .player-entry,
@@ -650,8 +933,9 @@ main {
 .dark-mode .schedule-section,
 .dark-mode .filters-container,
 .dark-mode #writeup-container {
-    background-color: #2a2a2a;
-    border-color: #444;
+    background-color: #1d2330;
+    border-color: #30394a;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
 }
 
 .dark-mode #admin-container p,
@@ -660,13 +944,18 @@ main {
 .dark-mode .team-sub-details,
 .dark-mode .modal-content-admin p,
 .dark-mode .description-text {
-    color: #ccc;
+    color: #cfd8e3;
 }
 
 .dark-mode .nav-card {
-    background-color: #2a2a2a;
-    border-color: #444;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    background: linear-gradient(145deg, #1f2635 0%, #171d29 100%);
+    border-color: #30394a;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+.dark-mode .admin-card {
+    background-color: #1d2330;
+    border-color: #30394a;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
 .dark-mode .nav-card:hover {
     border-color: #90caf9;
@@ -682,10 +971,14 @@ main {
 .dark-mode .filter-group label {
     color: #bbb;
 }
+.dark-mode .filters-container {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .dark-mode .filter-group select {
-    background-color: #3a3a3a;
-    border-color: #555;
-    color: #eee;
+    background-color: #242c3b;
+    border-color: #3b4557;
+    color: #e6ebf5;
 }
 
 .dark-mode .game-score {
@@ -840,6 +1133,13 @@ main {
 }
 
 @media (max-width: 600px) {
+    #admin-container {
+        width: calc(100% - 1.5rem);
+        margin: 1.5rem auto;
+        padding: 1.25rem 1.1rem;
+        border-radius: 12px;
+    }
+
     main {
         padding: 1rem; /* Reduce padding on main content */
     }
