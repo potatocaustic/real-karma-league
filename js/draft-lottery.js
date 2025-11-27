@@ -233,7 +233,7 @@ async function initializeApp() {
             where('round', '==', '1')
         );
 
-        const postGamesQuery = collection(db, collectionNames.seasons, PREVIOUS_SEASON_ID, getLeagueCollectionName('post_games'));
+        const postGamesQuery = collection(db, collectionNames.seasons, PREVIOUS_SEASON_ID, 'post_games');
 
         const [teamsSnap, draftPicksSnap, postseasonGamesSnap] = await Promise.all([
             getDocs(teamsQuery),

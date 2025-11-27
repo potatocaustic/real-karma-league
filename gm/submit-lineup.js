@@ -94,10 +94,10 @@ async function fetchAndDisplaySchedule() {
     countdownIntervals.forEach(clearInterval);
     countdownIntervals = [];
 
-    const gamesQuery1 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("games")), where("team1_id", "==", myTeamId));
-    const gamesQuery2 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("games")), where("team2_id", "==", myTeamId));
-    const postGamesQuery1 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("post_games")), where("team1_id", "==", myTeamId));
-    const postGamesQuery2 = query(collection(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName("post_games")), where("team2_id", "==", myTeamId));
+    const gamesQuery1 = query(collection(db, collectionNames.seasons, currentSeasonId, "games"), where("team1_id", "==", myTeamId));
+    const gamesQuery2 = query(collection(db, collectionNames.seasons, currentSeasonId, "games"), where("team2_id", "==", myTeamId));
+    const postGamesQuery1 = query(collection(db, collectionNames.seasons, currentSeasonId, "post_games"), where("team1_id", "==", myTeamId));
+    const postGamesQuery2 = query(collection(db, collectionNames.seasons, currentSeasonId, "post_games"), where("team2_id", "==", myTeamId));
 
     const [snap1, snap2, postSnap1, postSnap2] = await Promise.all([
         getDocs(gamesQuery1), getDocs(gamesQuery2), getDocs(postGamesQuery1), getDocs(postGamesQuery2)
@@ -265,7 +265,7 @@ async function handleOpenModalClick(e) {
     const collectionName = gameEntry.dataset.collection;
     const deadlineString = gameEntry.dataset.deadline;
 
-    const gameRef = doc(db, collectionNames.seasons, currentSeasonId, getLeagueCollectionName(collectionName), gameId);
+    const gameRef = doc(db, collectionNames.seasons, currentSeasonId, collectionName, gameId);
     const gameDoc = await getDoc(gameRef);
 
     if (gameDoc.exists()) {
