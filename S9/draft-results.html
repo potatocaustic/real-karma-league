@@ -217,7 +217,7 @@
 
     <script src="../js/main.js" type="module"></script>
     <script type="module">
-      import { db, collection, getDocs, doc, getDoc, query, where } from '../js/firebase-init.js';
+      import { db, collection, getDocs, doc, getDoc, query, where, getCurrentLeague, getLeagueCollectionName } from '../js/firebase-init.js';
 
       // --- DEV ENVIRONMENT CONFIG ---
       const USE_DEV_COLLECTIONS = false;
@@ -239,7 +239,12 @@
         try {
           // 1. Fetch all draft picks for the current season
           const seasonNumber = CURRENT_SEASON_ID.replace('S', '');
-          const draftResultsCollectionRef = collection(db, getCollectionName('draft_results'), `season_${seasonNumber}`, getCollectionName(`S${seasonNumber}_draft_results`));
+          const currentLeague = getCurrentLeague();
+          const isMinorLeague = currentLeague === 'minor';
+
+          // Use minor_draft_results for minor league, draft_results for major league
+          const baseDraftCollection = isMinorLeague ? 'minor_draft_results' : 'draft_results';
+          const draftResultsCollectionRef = collection(db, getCollectionName(baseDraftCollection), `season_${seasonNumber}`, getCollectionName(`S${seasonNumber}_draft_results`));
           const draftPicksSnap = await getDocs(draftResultsCollectionRef);
           const draftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
@@ -259,9 +264,14 @@
           });
 
           // 3. Fetch all required team and player data in parallel
-          const teamPromises = [...teamIds].map(id => getDoc(doc(db, getCollectionName('v2_teams'), id, getCollectionName('seasonal_records'), CURRENT_SEASON_ID)));
-          const playerStatsPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id, getCollectionName('seasonal_stats'), CURRENT_SEASON_ID)));
-          const playerInfoPromises = [...playerIds].map(id => getDoc(doc(db, getCollectionName('v2_players'), id)));
+          const teamsCollection = getLeagueCollectionName('v2_teams');
+          const playersCollection = getLeagueCollectionName('v2_players');
+          const seasonalRecordsCollection = getLeagueCollectionName('seasonal_records');
+          const seasonalStatsCollection = getLeagueCollectionName('seasonal_stats');
+
+          const teamPromises = [...teamIds].map(id => getDoc(doc(db, teamsCollection, id, seasonalRecordsCollection, CURRENT_SEASON_ID)));
+          const playerStatsPromises = [...playerIds].map(id => getDoc(doc(db, playersCollection, id, seasonalStatsCollection, CURRENT_SEASON_ID)));
+          const playerInfoPromises = [...playerIds].map(id => getDoc(doc(db, playersCollection, id)));
           
           const [teamDocs, playerStatsDocs, playerInfoDocs] = await Promise.all([
               Promise.all(teamPromises),
@@ -430,6 +440,12 @@
       document.addEventListener('DOMContentLoaded', () => {
         loadDataAndDisplay();
         updateSortIndicators();
+      });
+
+      // Reload data when league is switched
+      window.addEventListener('leagueChanged', () => {
+        console.log('League changed, reloading draft results...');
+        loadDataAndDisplay();
       });
     </script>
 
