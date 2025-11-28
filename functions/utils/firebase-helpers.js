@@ -34,7 +34,6 @@ const getCollectionName = (baseName, league = LEAGUES.MAJOR) => {
         'leaderboards',
         'post_leaderboards',
         'game_flow_snapshots',
-        'daily_leaderboards',
         // Nested under league-specific docs, so double-prefixing would create a wrong path
         'seasonal_records',
         'seasonal_stats',
