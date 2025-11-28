@@ -15,13 +15,18 @@ import {
     getCurrentLeague
 } from '/js/firebase-init.js';
 
+import {
+    isLeagueSwitcherPublic,
+    setLeagueSwitcherPublic
+} from '/js/league-switcher-settings.js';
+
 // --- Notification Logic ---
 async function checkForNotifications() {
     const manageDraftCard = document.getElementById('manage-draft-card');
     if (!manageDraftCard) return;
 
     const badge = manageDraftCard.querySelector('.notification-badge');
-    
+
     const notificationsQuery = query(
         collection(db, 'notifications'),
         where('module', '==', 'manage-draft'),
@@ -34,6 +39,55 @@ async function checkForNotifications() {
         badge.style.display = !querySnapshot.empty ? 'flex' : 'none';
     } catch (error) {
         console.error("Error checking for notifications:", error);
+    }
+}
+
+// --- League Switcher Rollout Logic ---
+async function updateLeagueSwitcherStatus() {
+    const statusDiv = document.getElementById('league-switcher-status');
+    if (!statusDiv) return;
+
+    try {
+        const isPublic = await isLeagueSwitcherPublic();
+        statusDiv.textContent = isPublic
+            ? '✅ Public (click to disable)'
+            : '🔒 Admin Only (click to enable)';
+    } catch (error) {
+        console.error("Error checking league switcher status:", error);
+        statusDiv.textContent = 'Error loading status';
+    }
+}
+
+async function toggleLeagueSwitcherRollout() {
+    const statusDiv = document.getElementById('league-switcher-status');
+    if (!statusDiv) return;
+
+    try {
+        const currentStatus = await isLeagueSwitcherPublic();
+        const newStatus = !currentStatus;
+
+        const action = newStatus ? 'enable public access' : 'disable public access and make admin-only';
+        const confirmation = confirm(
+            `Are you sure you want to ${action} for the league switcher?\n\n` +
+            `This will ${newStatus ? 'show' : 'hide'} the league switcher button to all users on S9 pages.`
+        );
+
+        if (confirmation) {
+            statusDiv.textContent = 'Updating...';
+            const success = await setLeagueSwitcherPublic(newStatus);
+
+            if (success) {
+                await updateLeagueSwitcherStatus();
+                alert(`League switcher is now ${newStatus ? 'public' : 'admin-only'}!`);
+            } else {
+                alert('Failed to update league switcher settings. Please try again.');
+                await updateLeagueSwitcherStatus();
+            }
+        }
+    } catch (error) {
+        console.error("Error toggling league switcher rollout:", error);
+        alert(`An error occurred: ${error.message}`);
+        await updateLeagueSwitcherStatus();
     }
 }
 
@@ -59,11 +113,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingContainer.style.display = 'none';
                 adminContainer.style.display = 'block';
                 authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
-                
+
                 // Initialize all dashboard functionalities
                 addLogoutListener();
                 addSeasonManagementListeners();
+                addLeagueSwitcherRolloutListener();
                 checkForNotifications(); // Check for notifications on load
+                updateLeagueSwitcherStatus(); // Check league switcher status on load
             } else {
                 loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
                 authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
@@ -130,6 +186,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
                 }
+            });
+        }
+    }
+
+    function addLeagueSwitcherRolloutListener() {
+        const rolloutBtn = document.getElementById('league-switcher-rollout-btn');
+        if (rolloutBtn) {
+            rolloutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await toggleLeagueSwitcherRollout();
             });
         }
     }
