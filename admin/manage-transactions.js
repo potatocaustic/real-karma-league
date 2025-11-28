@@ -1,6 +1,6 @@
 // /admin/manage-transactions.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, functions, serverTimestamp, query, where, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, httpsCallable, functions, serverTimestamp, query, where, getCurrentLeague, collectionNames, getLeagueCollectionName, updateDoc, increment } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -16,6 +16,7 @@ let allPlayers = [];
 let allTeams = [];
 let allPicks = [];
 let listenersInitialized = false;
+let activeSeasonId = '';
 
 // --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -42,7 +43,7 @@ async function initializePage() {
     try {
         const seasonsQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"));
         const activeSeasonsSnap = await getDocs(seasonsQuery);
-        const activeSeasonId = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
+        activeSeasonId = !activeSeasonsSnap.empty ? activeSeasonsSnap.docs[0].id : null;
 
         if (!activeSeasonId) {
             throw new Error("Could not determine the active season to fetch team names.");
@@ -334,6 +335,10 @@ async function handleFormSubmit(e) {
         const result = await admin_processTransaction({ ...transactionData, league: getCurrentLeague() });
 
         alert(result.data.message); // Show the dynamic message from the backend
+
+        if (getCurrentLeague() === 'minor' && activeSeasonId) {
+            await updateDoc(doc(db, collectionNames.seasons, activeSeasonId), { season_trans: increment(1) });
+        }
 
         // Re-enable button and restore original text after success
         submitButton.disabled = false;

@@ -25,7 +25,8 @@ import {
     connectFirestoreEmulator,
     collectionGroup,
     documentId,
-    Timestamp
+    Timestamp,
+    increment
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 import { getFunctions, httpsCallable, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
 
@@ -183,5 +184,6 @@ export {
     onSnapshot,
     collectionGroup,
     documentId,
-    Timestamp
+    Timestamp,
+    increment
 };
