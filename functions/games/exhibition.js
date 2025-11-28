@@ -22,7 +22,7 @@ exports.processCompletedExhibitionGame = onDocumentUpdated(`seasons/{seasonId}/e
 /**
  * Logs completion of exhibition games for minor league (no stat aggregation)
  */
-exports.minor_processCompletedExhibitionGame = onDocumentUpdated(`minor_seasons/{seasonId}/minor_exhibition_games/{gameId}`, async (event) => {
+exports.minor_processCompletedExhibitionGame = onDocumentUpdated(`minor_seasons/{seasonId}/exhibition_games/{gameId}`, async (event) => {
     const before = event.data.before.data();
     const after = event.data.after.data();
     const { seasonId, gameId } = event.params;
