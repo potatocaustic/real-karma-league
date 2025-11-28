@@ -22,7 +22,16 @@
     </script>
     <script>
         // Detect league immediately to prevent flash
-        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const leagueParam = urlParams.get('league');
+            if (leagueParam === 'major' || leagueParam === 'minor') {
+                window.__currentLeague = leagueParam;
+                localStorage.setItem('rkl_current_league', leagueParam);
+            } else {
+                window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+            }
+        })();
     </script>
     <script>
       window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
