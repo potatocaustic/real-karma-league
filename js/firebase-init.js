@@ -63,10 +63,17 @@ function getInitialLeague() {
     // Fall back to localStorage
     const storedLeague = localStorage.getItem(LEAGUE_STORAGE_KEY);
     if (storedLeague === 'major' || storedLeague === 'minor') {
+        // Update URL to reflect the league from localStorage
+        const url = new URL(window.location);
+        url.searchParams.set('league', storedLeague);
+        window.history.replaceState({}, '', url);
         return storedLeague;
     }
 
-    // Default to major league
+    // Default to major league and update URL
+    const url = new URL(window.location);
+    url.searchParams.set('league', 'major');
+    window.history.replaceState({}, '', url);
     return 'major';
 }
 
@@ -87,6 +94,11 @@ export function setCurrentLeague(league) {
 
     // Persist to localStorage
     localStorage.setItem(LEAGUE_STORAGE_KEY, league);
+
+    // Update URL parameter to make sharing easier
+    const url = new URL(window.location);
+    url.searchParams.set('league', league);
+    window.history.pushState({}, '', url);
 
     console.log('League context switched to:', league);
 
