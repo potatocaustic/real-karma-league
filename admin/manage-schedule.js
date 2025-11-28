@@ -1,6 +1,6 @@
 // /admin/manage-schedule.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, writeBatch, deleteDoc, setDoc, httpsCallable, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collection, getDocs, query, where, writeBatch, deleteDoc, setDoc, httpsCallable, getCurrentLeague, collectionNames, getLeagueCollectionName, updateDoc, increment } from '/js/firebase-init.js';
 
 const loadingContainer = document.getElementById('loading-container');
 const adminContainer = document.getElementById('admin-container');
@@ -297,6 +297,10 @@ async function saveGame(andExit = true) {
         saveAnotherBtn.textContent = 'Saving...';
 
         await setDoc(doc(db, collectionNames.seasons, currentSeasonId, collectionName, gameId), gameData);
+
+        if (getCurrentLeague() === 'minor' && collectionName === 'games') {
+            await updateDoc(doc(db, collectionNames.seasons, currentSeasonId), { gs: increment(1) });
+        }
         await loadSchedules();
 
         if (andExit) {
@@ -326,6 +330,10 @@ async function handleDeleteGame(e) {
     if (confirm("Are you sure you want to delete this game?")) {
         try {
             await deleteDoc(doc(db, collectionNames.seasons, currentSeasonId, collectionName, gameId));
+
+            if (getCurrentLeague() === 'minor' && collectionName === 'games') {
+                await updateDoc(doc(db, collectionNames.seasons, currentSeasonId), { gs: increment(-1) });
+            }
             await loadSchedules();
         } catch (error) {
             console.error("Error deleting game:", error);
