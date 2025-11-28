@@ -9,6 +9,7 @@ import {
     query,
     where,
     orderBy,
+    limit,
     collectionNames,
     getLeagueCollectionName
 } from './firebase-init.js';
@@ -24,26 +25,64 @@ const seasonsGridContainer = document.getElementById('seasons-grid-container');
 async function initHomepage() {
     try {
         // Fetch the active season first to determine context
-        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"), orderBy("__name__", "desc"));
+        // Note: Removed orderBy to avoid requiring composite index (status + __name__)
+        const activeSeasonQuery = query(
+            collection(db, collectionNames.seasons),
+            where("status", "==", "active"),
+            limit(1)
+        );
         const activeSeasonSnap = await getDocs(activeSeasonQuery);
 
-        if (activeSeasonSnap.empty) {
-            throw new Error("No active season found in the database.");
-        }
-        
-        const activeSeasonDoc = activeSeasonSnap.docs[0];
-        const activeSeasonId = activeSeasonDoc.id; // e.g., "S8"
-        const activeSeasonData = activeSeasonDoc.data();
-        const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''));
+        let activeSeasonId = null;
 
-        // Update all dynamic sections of the page
-        updateCurrentSeasonBanner(activeSeasonId);
-        updateNavGrid(activeSeasonId);
+        if (!activeSeasonSnap.empty) {
+            const activeSeasonDoc = activeSeasonSnap.docs[0];
+            activeSeasonId = activeSeasonDoc.id; // e.g., "S8" or "S9"
+            const activeSeasonData = activeSeasonDoc.data();
+            const activeSeasonNum = parseInt(activeSeasonId.replace('S', ''));
+
+            // Update current season banner and navigation
+            updateCurrentSeasonBanner(activeSeasonId);
+            updateNavGrid(activeSeasonId);
+        } else {
+            // No active season found - try to find the most recent season
+            console.warn("No active season found, looking for most recent season...");
+            const allSeasonsQuery = query(collection(db, collectionNames.seasons));
+            const allSeasonsSnap = await getDocs(allSeasonsQuery);
+
+            if (!allSeasonsSnap.empty) {
+                // Sort seasons by ID (S1, S2, S3, etc.) and get the most recent
+                const sortedSeasons = allSeasonsSnap.docs.sort((a, b) => {
+                    const aNum = parseInt(a.id.replace('S', ''));
+                    const bNum = parseInt(b.id.replace('S', ''));
+                    return bNum - aNum;
+                });
+                activeSeasonId = sortedSeasons[0].id;
+
+                // Show warning banner that no active season exists
+                currentSeasonContainer.innerHTML = `
+                    <div class="current-season" style="background: linear-gradient(135deg, #ffc107, #ff9800);">
+                        <h3>No Active Season</h3>
+                        <p>There is currently no active season. Showing most recent season: ${activeSeasonId.replace('S', '')}</p>
+                        <a href="/${activeSeasonId}/RKL-${activeSeasonId}.html" class="cta-button">View Season ${activeSeasonId.replace('S', '')} Hub →</a>
+                    </div>
+                `;
+                updateNavGrid(activeSeasonId);
+            } else {
+                // No seasons at all
+                currentSeasonContainer.innerHTML = `
+                    <div class="error">No seasons found in the database. Please check back later.</div>
+                `;
+                navGridContainer.innerHTML = '';
+            }
+        }
+
+        // Always try to update league history, even if there's no active season
         await updateLeagueHistory(activeSeasonId);
 
     } catch (error) {
         console.error("Error initializing homepage:", error);
-        currentSeasonContainer.innerHTML = `<div class="error">Failed to load page data.</div>`;
+        currentSeasonContainer.innerHTML = `<div class="error">Failed to load page data: ${error.message}</div>`;
         navGridContainer.innerHTML = '';
         seasonsGridContainer.innerHTML = '';
     }
