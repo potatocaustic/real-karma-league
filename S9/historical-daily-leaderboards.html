@@ -168,50 +168,7 @@
     <script src="/js/main.js" type="module"></script>
     <script src="/js/historical-daily-leaderboards.js" type="module"></script>
 
-    <!-- Admin-only league switcher -->
-    <script type="module">
-      import { auth, db, onAuthStateChanged, doc, getDoc } from '/js/firebase-init.js';
-      import { createLeagueSwitcher } from '/common/league-switcher.js';
-
-      // Check if user is admin and show league switcher accordingly
-      onAuthStateChanged(auth, async (user) => {
-        const mountPoint = document.getElementById('league-switcher-mount');
-
-        if (user) {
-          // Check if user is an admin (must check users collection role, not admins collection)
-          const userRef = doc(db, "users", user.uid);
-
-          try {
-            const userDoc = await getDoc(userRef);
-            const isAdmin = userDoc.exists() && userDoc.data().role === 'admin';
-
-            // Cache admin status in localStorage to prevent flash on subsequent page loads
-            localStorage.setItem('rkl_is_admin', isAdmin ? 'true' : 'false');
-
-            if (isAdmin) {
-              // User is admin - show and initialize league switcher
-              if (mountPoint) {
-                mountPoint.style.display = 'flex';
-                // Attach event listener to existing switcher element
-                createLeagueSwitcher();
-              }
-            } else {
-              // User is not admin - ensure switcher is hidden
-              if (mountPoint) {
-                mountPoint.style.display = 'none';
-              }
-            }
-          } catch (error) {
-            console.error('[League Switcher] Error checking user role:', error);
-          }
-        } else {
-          // User is not logged in - clear admin status and hide switcher
-          localStorage.setItem('rkl_is_admin', 'false');
-          if (mountPoint) {
-            mountPoint.style.display = 'none';
-          }
-        }
-      });
-    </script>
+        <!-- League switcher with feature flag support -->
+    <script type="module" src="/js/init-league-switcher.js"></script>
 </body>
 </html>
