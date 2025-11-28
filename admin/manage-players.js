@@ -329,10 +329,16 @@ playerForm.addEventListener('submit', async (e) => {
         } else {
             // For creating a new player, we can do it on the client
             const newHandle = document.getElementById('player-handle-input').value.trim();
-            const playerRef = doc(db, collectionNames.players, playerId);
+
+            // Explicitly get the current league and collection name to ensure correct duplicate check
+            const currentLeague = getCurrentLeague();
+            const playersCollectionName = getLeagueCollectionName('v2_players', currentLeague);
+            console.log(`[Create Player] Checking for duplicate in collection: ${playersCollectionName} (league: ${currentLeague})`);
+
+            const playerRef = doc(db, playersCollectionName, playerId);
             const docSnap = await getDoc(playerRef);
             if (docSnap.exists()) {
-                alert("A player with this ID already exists. Please choose a unique ID.");
+                alert(`A player with this ID already exists in the ${currentLeague} league. Please choose a unique ID.`);
                 submitButton.disabled = false;
                 submitButton.textContent = 'Save Player Changes';
                 return;
@@ -344,7 +350,8 @@ playerForm.addEventListener('submit', async (e) => {
                 player_status: document.getElementById('player-status-select').value,
             });
 
-            const seasonStatsRef = doc(playerRef, collectionNames.seasonalStats, currentSeasonId);
+            const seasonalStatsCollectionName = getLeagueCollectionName('seasonal_stats', currentLeague);
+            const seasonStatsRef = doc(playerRef, seasonalStatsCollectionName, currentSeasonId);
             await setDoc(seasonStatsRef, {
                 aag_mean: 0, aag_mean_pct: 0, aag_median: 0, aag_median_pct: 0, games_played: 0, GEM: 0, meansum: 0, medrank: 0, medsum: 0,
                 post_aag_mean: 0, post_aag_mean_pct: 0, post_aag_median: 0, post_aag_median_pct: 0, post_games_played: 0, post_GEM: 0, post_meansum: 0,
