@@ -25,22 +25,6 @@
         // Detect league immediately to prevent flash
         window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
     </script>
-    <script>
-        // Show league switcher immediately for known admins or public rollout to prevent flash
-        (function() {
-            const isAdmin = localStorage.getItem('rkl_is_admin') === 'true';
-            const isPublic = localStorage.getItem('rkl_league_switcher_public') === 'true';
-            if (isAdmin || isPublic) {
-                // This will be executed when DOM is parsed, before full page load
-                document.addEventListener('DOMContentLoaded', function() {
-                    const mountPoint = document.getElementById('league-switcher-mount');
-                    if (mountPoint) {
-                        mountPoint.style.display = 'flex';
-                    }
-                });
-            }
-        })();
-    </script>
     <style id="team-icon-styles"></style>
     <script>
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
@@ -54,7 +38,7 @@
             <span class="sun-icon">☀️</span>
             <span class="moon-icon">🌙</span>
         </button>
-        <div id="league-switcher-mount" style="display: none;">
+        <div id="league-switcher-mount">
             <div class="league-switcher">
                 <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
