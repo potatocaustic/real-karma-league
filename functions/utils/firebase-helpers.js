@@ -56,7 +56,7 @@ const getCollectionName = (baseName, league = LEAGUES.MAJOR) => {
     }
 
     // Return structured collections without league prefix (handled internally)
-    if (structuredCollections.some(col => baseName.includes(col))) {
+    if (structuredCollections.includes(baseName)) {
         return `${baseName}${devSuffix}`;
     }
 
