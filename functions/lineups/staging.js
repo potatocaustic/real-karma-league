@@ -3,14 +3,13 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
-const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-helpers');
+const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/firebase-helpers');
 
 /**
  * Stages lineups for live scoring. This function handles both GM submissions and admin submissions.
  * It validates deadlines, manages pending lineups, and automatically activates games when both lineups are ready.
  */
 exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => {
-    const league = getLeagueFromRequest(request.data);
     if (!request.auth) {
         throw new HttpsError('permission-denied', 'You must be logged in to submit a lineup.');
     }
@@ -23,6 +22,17 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
     }
     if (!team1_lineup && !team2_lineup) {
         throw new HttpsError('invalid-argument', 'At least one team lineup must be provided.');
+    }
+
+    // Ensure we use the correct league context based on both the request and the season location.
+    let league = getLeagueFromRequest(request.data);
+    const [majorSeasonDoc, minorSeasonDoc] = await Promise.all([
+        db.collection(getCollectionName('seasons', LEAGUES.MAJOR)).doc(seasonId).get(),
+        db.collection(getCollectionName('seasons', LEAGUES.MINOR)).doc(seasonId).get()
+    ]);
+
+    if (majorSeasonDoc.exists !== minorSeasonDoc.exists) {
+        league = minorSeasonDoc.exists ? LEAGUES.MINOR : LEAGUES.MAJOR;
     }
 
     const logBatch = db.batch();
