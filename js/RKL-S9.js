@@ -2072,6 +2072,26 @@ window.addEventListener('leagueChanged', async (event) => {
 
         loadStandingsPreview();
         initializeGamesSection(seasonData);
+
+        // Explicitly reload games after league switch to ensure they refresh immediately
+        const statusRef = doc(db, getLeagueCollectionName('live_scoring_status'), 'status');
+        try {
+            const statusSnap = await getDoc(statusRef);
+            const statusData = statusSnap.exists() ? statusSnap.data() : {};
+            const status = statusData.status || 'stopped';
+            showLiveFeatures = statusData.show_live_features !== false;
+            currentScoringStatus = status;
+
+            if (status === 'active' || status === 'paused') {
+                loadLiveGames();
+            } else {
+                loadRecentGames();
+            }
+        } catch (error) {
+            console.error('[RKL-S9] Error loading games after league change:', error);
+            loadRecentGames(); // Fallback to recent games
+        }
+
         loadSeasonInfo(seasonData);
 
         // Small delay to ensure DOM updates complete, then show content
