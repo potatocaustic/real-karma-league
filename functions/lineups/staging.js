@@ -24,15 +24,22 @@ exports.stageLiveLineups = onCall({ region: "us-central1" }, async (request) => 
         throw new HttpsError('invalid-argument', 'At least one team lineup must be provided.');
     }
 
-    // Ensure we use the correct league context based on both the request and the season location.
+    // Ensure we use the correct league context.
+    // Trust the frontend's league parameter first, then verify against season location.
     let league = getLeagueFromRequest(request.data);
-    const [majorSeasonDoc, minorSeasonDoc] = await Promise.all([
-        db.collection(getCollectionName('seasons', LEAGUES.MAJOR)).doc(seasonId).get(),
-        db.collection(getCollectionName('seasons', LEAGUES.MINOR)).doc(seasonId).get()
-    ]);
 
-    if (majorSeasonDoc.exists !== minorSeasonDoc.exists) {
-        league = minorSeasonDoc.exists ? LEAGUES.MINOR : LEAGUES.MAJOR;
+    // Only override if the frontend didn't provide a league or if the season doesn't exist in the specified league
+    const requestedLeague = request.data?.league;
+    if (!requestedLeague) {
+        // No league specified, check where the season exists
+        const [majorSeasonDoc, minorSeasonDoc] = await Promise.all([
+            db.collection(getCollectionName('seasons', LEAGUES.MAJOR)).doc(seasonId).get(),
+            db.collection(getCollectionName('seasons', LEAGUES.MINOR)).doc(seasonId).get()
+        ]);
+
+        if (majorSeasonDoc.exists !== minorSeasonDoc.exists) {
+            league = minorSeasonDoc.exists ? LEAGUES.MINOR : LEAGUES.MAJOR;
+        }
     }
 
     const logBatch = db.batch();
