@@ -19,14 +19,14 @@ exports.onPostGameUpdate_V2 = onDocumentUpdated(`seasons/{seasonId}/post_games/{
 /**
  * Regular season game update trigger for minor league
  */
-exports.minor_onRegularGameUpdate_V2 = onDocumentUpdated(`minor_seasons/{seasonId}/minor_games/{gameId}`, async (event) => {
+exports.minor_onRegularGameUpdate_V2 = onDocumentUpdated(`minor_seasons/{seasonId}/games/{gameId}`, async (event) => {
     return processCompletedGame(event, LEAGUES.MINOR);
 });
 
 /**
  * Postseason game update trigger for minor league
  */
-exports.minor_onPostGameUpdate_V2 = onDocumentUpdated(`minor_seasons/{seasonId}/minor_post_games/{gameId}`, async (event) => {
+exports.minor_onPostGameUpdate_V2 = onDocumentUpdated(`minor_seasons/{seasonId}/post_games/{gameId}`, async (event) => {
     return processCompletedGame(event, LEAGUES.MINOR);
 });
 
@@ -57,7 +57,7 @@ exports.updateGamesScheduledCount = onDocumentWritten(`seasons/{seasonId}/games/
 /**
  * Updates games scheduled count when games are added/removed for minor league
  */
-exports.minor_updateGamesScheduledCount = onDocumentWritten(`minor_seasons/{seasonId}/minor_games/{gameId}`, (event) => {
+exports.minor_updateGamesScheduledCount = onDocumentWritten(`minor_seasons/{seasonId}/games/{gameId}`, (event) => {
     const { seasonId, gameId } = event.params;
     if (gameId === 'placeholder') {
         return null;
