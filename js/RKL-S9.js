@@ -2036,6 +2036,14 @@ function cleanupListeners() {
     }
 }
 
+function resetGamesSectionState() {
+    const gamesList = document.getElementById('recent-games');
+    if (gamesList) {
+        gamesList.dataset.liveInitialized = 'false';
+        gamesList.innerHTML = '<div class="loading">Loading games...</div>';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', initializePage);
 window.addEventListener('beforeunload', cleanupListeners);
 window.addEventListener('pagehide', cleanupListeners);
@@ -2047,6 +2055,9 @@ window.addEventListener('leagueChanged', async (event) => {
 
     // Clean up existing listeners
     cleanupListeners();
+
+    // Ensure the games section can reinitialize listeners for the new league
+    resetGamesSectionState();
 
     // Reset scoring status to force games refresh
     currentScoringStatus = null;
