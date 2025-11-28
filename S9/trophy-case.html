@@ -26,10 +26,11 @@
         window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
     </script>
     <script>
-        // Show league switcher immediately for known admins to prevent flash
+        // Show league switcher immediately for known admins or public rollout to prevent flash
         (function() {
             const isAdmin = localStorage.getItem('rkl_is_admin') === 'true';
-            if (isAdmin) {
+            const isPublic = localStorage.getItem('rkl_league_switcher_public') === 'true';
+            if (isAdmin || isPublic) {
                 // This will be executed when DOM is parsed, before full page load
                 document.addEventListener('DOMContentLoaded', function() {
                     const mountPoint = document.getElementById('league-switcher-mount');

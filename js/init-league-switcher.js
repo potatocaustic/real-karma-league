@@ -21,6 +21,9 @@ export async function initLeagueSwitcher() {
         // Check if league switcher is available to public
         const isPublic = await isLeagueSwitcherPublic();
 
+        // Cache public status in localStorage to prevent flash on subsequent page loads
+        localStorage.setItem('rkl_league_switcher_public', isPublic ? 'true' : 'false');
+
         if (isPublic) {
             // Public rollout enabled - show to everyone
             console.log('[League Switcher] Public access enabled');
