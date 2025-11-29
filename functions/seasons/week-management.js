@@ -132,24 +132,21 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
 
 /**
  * Scheduled function that runs daily at 5:15 AM Chicago time
- * Updates the current week for all leagues
+ * Updates the current week for major league
  */
 exports.updateCurrentWeek = onSchedule({
     schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    console.log("Running scheduled week update for all leagues...");
-    // Process week updates for both leagues
-    for (const league of Object.values(LEAGUES)) {
-        await performWeekUpdate(league);
-    }
-    console.log("Week update completed for all leagues.");
+    console.log("Running scheduled week update for major league...");
+    await performWeekUpdate(LEAGUES.MAJOR);
+    console.log("Major league week update completed.");
     return null;
 });
 
 /**
  * Scheduled function that runs daily at 5:15 AM Chicago time
- * Updates the current week for minor league only (deprecated - kept for backwards compatibility)
+ * Updates the current week for minor league
  */
 exports.minor_updateCurrentWeek = onSchedule({
     schedule: "15 5 * * *",
