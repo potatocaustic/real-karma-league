@@ -233,8 +233,13 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores,
         const incompleteGamesSnap = await db.collection(getCollectionName('seasons', league)).doc(seasonId).collection('games').where('completed', '!=', 'TRUE').limit(1).get();
         const isRegularSeasonComplete = incompleteGamesSnap.empty;
 
-        const eastConf = calculatedStats.filter(t => t.conference === 'Eastern');
-        const westConf = calculatedStats.filter(t => t.conference === 'Western');
+        // Use league-specific conference names
+        const conferences = league === 'minor'
+            ? { primary: 'Northern', secondary: 'Southern' }
+            : { primary: 'Eastern', secondary: 'Western' };
+
+        const eastConf = calculatedStats.filter(t => t.conference === conferences.primary);
+        const westConf = calculatedStats.filter(t => t.conference === conferences.secondary);
 
         [eastConf, westConf].forEach(conf => {
             if (conf.length === 0) return;

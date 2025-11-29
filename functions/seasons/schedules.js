@@ -32,8 +32,13 @@ exports.generatePostseasonSchedule = onCall({ region: "us-central1" }, async (re
             return { ...team, ...recordSnap.data() };
         }));
 
-        const eastConf = teamRecords.filter(t => t.conference === 'Eastern' && t.postseed).sort((a, b) => a.postseed - b.postseed);
-        const westConf = teamRecords.filter(t => t.conference === 'Western' && t.postseed).sort((a, b) => a.postseed - b.postseed);
+        // Use league-specific conference names
+        const conferences = league === 'minor'
+            ? { primary: 'Northern', secondary: 'Southern' }
+            : { primary: 'Eastern', secondary: 'Western' };
+
+        const eastConf = teamRecords.filter(t => t.conference === conferences.primary && t.postseed).sort((a, b) => a.postseed - b.postseed);
+        const westConf = teamRecords.filter(t => t.conference === conferences.secondary && t.postseed).sort((a, b) => a.postseed - b.postseed);
 
         if (eastConf.length < 10 || westConf.length < 10) {
             throw new HttpsError('failed-precondition', 'Not all teams have a final postseed. Ensure the regular season is complete.');
