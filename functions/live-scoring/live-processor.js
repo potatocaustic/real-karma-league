@@ -117,47 +117,45 @@ exports.minor_processPendingLiveGames = onSchedule({
 });
 
 /**
- * Scheduled job to auto-finalize games
- * Runs daily at 5:00 AM CST for all leagues
+ * Scheduled job to auto-finalize games for major league
+ * Runs daily at 5:00 AM CST
  * Fetches final scores and writes them to season collections
  */
 exports.autoFinalizeGames = onSchedule({
     schedule: "every day 05:00",
     timeZone: "America/Chicago",
 }, async (event) => {
-    console.log("Running scheduled job to auto-finalize games.");
+    console.log("Running scheduled job to auto-finalize games (Major League).");
 
-    // Process games for both leagues
-    for (const league of Object.values(LEAGUES)) {
-        console.log(`Processing auto-finalization for ${league} league...`);
-        const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
+    const league = LEAGUES.MAJOR;
+    console.log(`Processing auto-finalization for ${league} league...`);
+    const liveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
 
-        if (liveGamesSnap.empty) {
-            console.log(`No live games found to auto-finalize for ${league} league.`);
-            continue;
-        }
+    if (liveGamesSnap.empty) {
+        console.log(`No live games found to auto-finalize for ${league} league.`);
+        return null;
+    }
 
-        console.log(`Found ${liveGamesSnap.size} games to auto-finalize for ${league} league.`);
+    console.log(`Found ${liveGamesSnap.size} games to auto-finalize for ${league} league.`);
 
-        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-        for (const gameDoc of liveGamesSnap.docs) {
-            try {
-                const randomGameDelay = Math.floor(Math.random() * 201) + 200;
-                await delay(randomGameDelay);
+    for (const gameDoc of liveGamesSnap.docs) {
+        try {
+            const randomGameDelay = Math.floor(Math.random() * 201) + 200;
+            await delay(randomGameDelay);
 
-                console.log(`Auto-finalizing game ${gameDoc.id} for ${league} league after a ${randomGameDelay}ms delay.`);
-                await processAndFinalizeGame(gameDoc, true, league);
-                console.log(`Successfully auto-finalized game ${gameDoc.id} for ${league} league.`);
+            console.log(`Auto-finalizing game ${gameDoc.id} for ${league} league after a ${randomGameDelay}ms delay.`);
+            await processAndFinalizeGame(gameDoc, true, league);
+            console.log(`Successfully auto-finalized game ${gameDoc.id} for ${league} league.`);
 
-            } catch (error) {
-                console.error(`Failed to auto-finalize game ${gameDoc.id} for ${league} league:`, error);
-                await gameDoc.ref.update({ status: 'AUTO_FINALIZE_FAILED', error: error.message });
-            }
+        } catch (error) {
+            console.error(`Failed to auto-finalize game ${gameDoc.id} for ${league} league:`, error);
+            await gameDoc.ref.update({ status: 'AUTO_FINALIZE_FAILED', error: error.message });
         }
     }
 
-    console.log("Auto-finalization job completed for all leagues.");
+    console.log("Auto-finalization job completed for major league.");
     return null;
 });
 

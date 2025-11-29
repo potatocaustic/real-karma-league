@@ -30,7 +30,7 @@ async function performBracketUpdate(gameDateStr, league = LEAGUES.MAJOR) {
 }
 
 /**
- * Scheduled function to update playoff brackets for all leagues
+ * Scheduled function to update playoff bracket for major league
  * Processes games from yesterday
  * Runs daily at 5:15 AM CT
  */
@@ -38,18 +38,15 @@ exports.updatePlayoffBracket = onSchedule({
     schedule: "15 5 * * *",
     timeZone: "America/Chicago",
 }, async (event) => {
-    console.log("Running daily job to update playoff bracket for all leagues...");
+    console.log("Running daily job to update playoff bracket for major league...");
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = `${yesterday.getMonth() + 1}/${yesterday.getDate()}/${yesterday.getFullYear()}`;
 
-    // Process playoff bracket updates for both leagues
-    for (const league of Object.values(LEAGUES)) {
-        console.log(`Processing playoff bracket for ${league} league...`);
-        await performBracketUpdate(yesterdayStr, league);
-    }
+    console.log(`Processing playoff bracket for major league...`);
+    await performBracketUpdate(yesterdayStr, LEAGUES.MAJOR);
 
-    console.log("Playoff bracket update job finished for all leagues.");
+    console.log("Major league playoff bracket update job finished.");
     return null;
 });
 
