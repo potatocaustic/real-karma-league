@@ -4,7 +4,6 @@ import { auth, db, onAuthStateChanged, doc, getDoc, collectionNames, getCurrentL
 import {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
-    OAuthProvider,
     signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 
@@ -86,30 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     errorMessageDiv.textContent = 'Pop-up blocked. Please allow pop-ups for this site.';
                 } else {
                     errorMessageDiv.textContent = 'Google sign-in failed: ' + error.message;
-                }
-            }
-        });
-    }
-
-    // Apple Sign-In
-    const appleSignInBtn = document.getElementById('apple-signin-btn');
-    if (appleSignInBtn) {
-        appleSignInBtn.addEventListener('click', async () => {
-            const provider = new OAuthProvider('apple.com');
-            errorMessageDiv.textContent = '';
-
-            try {
-                const result = await signInWithPopup(auth, provider);
-                console.log('Apple sign-in successful for:', result.user.email);
-                await handleOAuthSignIn(result.user);
-            } catch (error) {
-                console.error('Apple sign-in failed:', error);
-                if (error.code === 'auth/popup-closed-by-user') {
-                    errorMessageDiv.textContent = 'Sign-in cancelled.';
-                } else if (error.code === 'auth/popup-blocked') {
-                    errorMessageDiv.textContent = 'Pop-up blocked. Please allow pop-ups for this site.';
-                } else {
-                    errorMessageDiv.textContent = 'Apple sign-in failed: ' + error.message;
                 }
             }
         });
