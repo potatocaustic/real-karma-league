@@ -20,8 +20,8 @@ This document describes how the Real Karma League Firestore database is organize
 - **Users & auth:** `users`/`users_dev` documents store role, `team_id`, and identity used by rules for authorization checks. Activation codes live in `activation_codes` and `activation_codes_dev` for gated onboarding.【F:firestore.rules†L6-L191】
 - **Season containers:** `seasons` (and `minor_seasons`) hold one document per season with metadata like `status`, `current_week`, cumulative games/transactions/karma counters, and a child hierarchy (see below). Historical seasons are created with the same structure but a `completed` status.【F:functions/seasons/season-creation.js†L8-L90】
 - **Master data:**
-  - `v2_players` / `minor_v2_players`: One document per player, plus a `seasonal_stats` subcollection with season documents. GMs may update `player_handle` for their own players; other edits are admin-only.【F:firestore.rules†L127-L137】
-  - `v2_teams` / `minor_v2_teams`: One document per franchise with a `seasonal_records` subcollection keyed by season.【F:firestore.rules†L138-L140】【F:functions/seasons/structure.js†L55-L76】
+  - `v2_players` / `minor_v2_players`: One document per player, plus a `seasonal_stats` subcollection with season documents. In the minor league, the child subcollection itself is also prefixed (`minor_seasonal_stats`) even though it already lives under `minor_v2_players`. GMs may update `player_handle` for their own players; other edits are admin-only.【F:firestore.rules†L127-L137】【F:functions/utils/firebase-helpers.js†L22-L62】
+  - `v2_teams` / `minor_v2_teams`: One document per franchise with a `seasonal_records` subcollection keyed by season. The minor branch uses `minor_seasonal_records` for those child collections, mirroring the parent prefixing behavior.【F:firestore.rules†L138-L140】【F:functions/seasons/structure.js†L55-L76】【F:functions/utils/firebase-helpers.js†L22-L62】
   - `draftPicks`, `draft_results`: Draft inventory and per-pick outcomes, including generated future picks during season rollovers.【F:firestore.rules†L142-L162】【F:functions/seasons/season-creation.js†L33-L85】
 - **Scheduling and lineups:**
   - `lineup_deadlines` govern submission cutoffs; readable by authenticated users, writable by admins.【F:firestore.rules†L50-L63】
@@ -41,7 +41,16 @@ Each season document (`seasons/S{N}` or `minor_seasons/S{N}`) is created by back
 
 ## Player seasonal stats (per-player subcollection)
 
-When a season is created, every player receives a `seasonal_stats/S{N}` document initialized to zero for all tracked metrics so downstream processors can write with merges. The fields include gameplay counts (`games_played`, `post_games_played`), scoring aggregates (`total_points`, `WAR`/`post_WAR`, `aag_mean`, `aag_median` and their percentages), rank-based medians/means, relative scores to daily averages (`rel_mean`, `rel_median` and postseason counterparts), and top-finish counters (`t50`, `t100`, and postseason variants). Rookie/all-star flags are also initialized as strings.【F:functions/seasons/structure.js†L43-L53】
+When a season is created, every player receives a `seasonal_stats/S{N}` document initialized to zero for all tracked metrics so downstream processors can write with merges. (In the minor league, these documents live under `minor_seasonal_stats` within `minor_v2_players`.) The seeded fields cover:
+
+- **Game volume and participation:** Regular and postseason `games_played` and `post_games_played`, plus rookie/all-star string flags used for eligibility markers.【F:functions/seasons/structure.js†L43-L53】
+- **Raw scoring and value:** Totals of adjusted points and single-game WAR for both season phases (`total_points`, `WAR`, and `post_` counterparts), plus geometric mean of ranks (`GEM`).【F:functions/seasons/structure.js†L43-L53】【F:functions/admin/admin-players.js†L55-L83】
+- **Above-average/median performance:** Counts of days beating the daily mean/median (`aag_mean`, `aag_median`, `post_aag_mean`, `post_aag_median`) and percentage rates derived from games played (`*_pct`).【F:functions/seasons/structure.js†L43-L53】【F:functions/admin/admin-players.js†L84-L104】
+- **Relative scoring to league baselines:** Sums of mean/median day scores (`meansum`, `medsum` and postseason equivalents) plus relative efficiency ratios (`rel_mean`, `rel_median`, `post_rel_mean`, `post_rel_median`).【F:functions/seasons/structure.js†L43-L53】【F:functions/admin/admin-players.js†L84-L104】
+- **Ranking distribution:** Median/mean global ranks and geometric mean recorded for games played (`medrank`, `meanrank`, `GEM` and postseason versions).【F:functions/seasons/structure.js†L43-L53】【F:functions/admin/admin-players.js†L55-L83】
+- **Top finishes:** Counts and rates for top-50/top-100 placements (`t50`, `t100`, `t50_pct`, `t100_pct` and postseason variants).【F:functions/seasons/structure.js†L43-L53】【F:functions/admin/admin-players.js†L84-L104】
+
+These fields are later recomputed by `admin_recalculatePlayerStats`, which rebuilds the aggregates from lineup rows, daily averages, and postseason data before merging them back into the same document path.【F:functions/admin/admin-players.js†L38-L119】
 
 ### How stats are written
 
@@ -52,7 +61,11 @@ The `admin_recalculatePlayerStats` Cloud Function recomputes a player’s season
 
 ## Team seasonal records (per-team subcollection)
 
-For every team, `seasonal_records/S{N}` is created with win/loss totals, playoff progression markers (`playoffs`, `playin`, `postseed`, `elim`), Pythagorean/efficiency style metrics (`pam`, `apPAM`, `med_starter_rank`, and their postseason equivalents), transaction totals, team name (copied from the active season record), and GM linkage via `gm_player_id`. These zeroed records give downstream calculations a consistent schema.【F:functions/seasons/structure.js†L55-L76】
+For every team, `seasonal_records/S{N}` is created with zeroed competitive and bookkeeping fields so downstream calculations have a consistent schema. In the minor league those child collections are stored under `minor_seasonal_records`. Seeded fields include:
+
+- **Results and progression:** Regular/postseason wins and losses, win percentage (`wpct`), and markers for play-in participation, playoff qualification, seeds, eliminations, and potential wins (`MaxPotWins`).【F:functions/seasons/structure.js†L55-L76】
+- **Efficiency and rank metrics:** Pythagorean-style margin fields (`pam`, `apPAM`, `apPAM_total`, `apPAM_count`) and starter-rank aggregates (`med_starter_rank`, `msr_rank`, `post_med_starter_rank`, `post_msr_rank`, `pam_rank`, `post_pam_rank`).【F:functions/seasons/structure.js†L55-L76】
+- **Transactions and ratings:** Total transaction count, tREL/post_tREL placeholders, overall sorting score, and copied metadata such as `team_name` from the active season record plus `gm_player_id` linkage back to the franchise owner.【F:functions/seasons/structure.js†L55-L76】
 
 ## Draft inventory lifecycle
 
