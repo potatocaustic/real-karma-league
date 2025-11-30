@@ -37,12 +37,13 @@ The seeder performs the following steps:
 
 1. **Parse markdown file**: Extracts draft pick data from `minor-draft-capital.md` for all seasons (S9-S14)
 
-2. **Generate all picks**: Creates 2 draft picks (rounds 1-2) for each of the 30 minor league teams for each season
-   - Total picks generated: 30 teams × 2 rounds × 6 seasons = **360 draft picks**
+2. **Generate all picks**: Creates 2 draft picks (rounds 1-2) for each of the 29 minor league teams for each season
+   - Total picks generated: 29 teams × 2 rounds × 6 seasons = **348 draft picks**
 
 3. **Process trades**: Updates `current_owner` field based on trades documented in the markdown:
    - If a team has incoming picks, those picks' `current_owner` is updated to that team
    - If a team's outgoing shows "(traded)", that pick's ownership goes to whoever has it in their incoming list
+   - Team name changes (e.g., Bullets → Strips) are handled so picks from old team names don't create false trades
 
 4. **Write to Firestore**: Commits all draft picks to the `minor_draftPicks` collection in batches
 
@@ -90,17 +91,17 @@ Step 1: Parsing minor-draft-capital.md...
 ✓ Found data for seasons: S10, S11, S12, S13, S14, S9
 
 Step 2: Generating all draft picks for all teams...
-✓ Generated 360 draft picks (30 teams × 2 rounds × 6 seasons)
+✓ Generated 348 draft picks (29 teams × 2 rounds × 6 seasons)
 
 Step 3: Processing trades and updating pick ownership...
-✓ Updated ownership for 52 traded picks
+✓ Updated ownership for 51 traded picks
 
 Step 4: Writing to Firestore...
-  ✓ Committed batch 1: 360/360 picks written
+  ✓ Committed batch 1: 348/348 picks written
 
 === ✅ Minor League Draft Picks Seeding Complete! ===
-Total picks created: 360
-Picks traded: 52
+Total picks created: 348
+Picks traded: 51
 Collection: minor_draftPicks
 ```
 
@@ -137,12 +138,24 @@ This collection mirrors the structure of the major league `draftPicks` collectio
 ## Validation
 
 The script has been tested to ensure:
-- ✅ All 360 draft picks are created correctly
+- ✅ All 348 draft picks are created correctly (29 teams, not 30 - Bullets is not a separate team)
 - ✅ Trades are properly reflected in ownership changes
+- ✅ Team name changes are handled correctly (Bullets → Strips)
 - ✅ Document IDs follow the correct format
 - ✅ All required fields are populated
 - ✅ Season numbers are stored as integers
 - ✅ Round numbers are 1 or 2 only
+
+## Team Name Changes
+
+The script handles historical team name changes:
+
+- **Bullets → Strips**: The Bullets were renamed to Strips. When "Bullets S12 2RP" appears in Strips' incoming picks, this is recognized as their own pick (not a trade) and is handled correctly.
+
+The `TEAM_NAME_CHANGES` constant in the script maps old team names to current names and ensures:
+- No duplicate teams are created
+- Picks are properly attributed to the current team name
+- "Incoming" picks from a team's old name are recognized as their own picks, not trades
 
 ## Related Files
 
@@ -159,3 +172,4 @@ The script has been tested to ensure:
 - Historical season S9 is included with limited trade data
 - Some teams may not appear in certain seasons if they had no draft pick activity
 - The script is idempotent - running it multiple times will overwrite existing data with the same values
+- Team name changes (like Bullets → Strips) are handled automatically

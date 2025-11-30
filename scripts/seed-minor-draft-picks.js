@@ -23,8 +23,13 @@ const MINOR_LEAGUE_TEAMS = [
     "Fruit", "Goats", "Hippos", "Huskies", "Kings", "Knights", "Leeks",
     "Mafia", "Methsters", "Minors", "Rams", "Raptors", "Savages", "Seagulls",
     "Strips", "SuperSonics", "Tigers", "Titans", "Twins", "Venom", "Vultures",
-    "Wizards", "Bullets"
+    "Wizards"
 ];
+
+// Team name changes (old name -> current name)
+const TEAM_NAME_CHANGES = {
+    "Bullets": "Strips"  // Bullets was the old name for Strips
+};
 
 // --- Helper Functions ---
 
@@ -105,7 +110,7 @@ function parseMarkdownFile() {
  * Parse incoming picks string to extract individual picks
  * Example: "SuperSonics S10 1RP, Fruit S10 1RP" -> [{ team: "SuperSonics", season: "S10", round: 1 }, ...]
  */
-function parseIncomingPicks(incomingStr) {
+function parseIncomingPicks(incomingStr, currentTeam) {
     if (!incomingStr || incomingStr === "-" || incomingStr.trim() === "") {
         return [];
     }
@@ -117,8 +122,20 @@ function parseIncomingPicks(incomingStr) {
         // Match pattern like "SuperSonics S10 1RP"
         const match = pickStr.match(/^(.+?)\s+(S\d+)\s+([12])RP/);
         if (match) {
+            let team = match[1].trim();
+
+            // Handle team name changes (e.g., Bullets -> Strips)
+            if (TEAM_NAME_CHANGES[team]) {
+                const actualTeam = TEAM_NAME_CHANGES[team];
+                // If the pick is from the old name of the current team, it's their own pick, not a trade
+                if (actualTeam === currentTeam) {
+                    continue; // Skip - this is their own pick, not an incoming trade
+                }
+                team = actualTeam;
+            }
+
             picks.push({
-                team: match[1].trim(),
+                team: team,
                 season: match[2],
                 round: parseInt(match[3])
             });
@@ -184,7 +201,7 @@ function updatePickOwnership(picks, parsedData) {
         // Process first round picks
         for (const [team, roundData] of Object.entries(seasonData.firstRound)) {
             // Handle incoming picks - update current_owner
-            const incomingPicks = parseIncomingPicks(roundData.incoming);
+            const incomingPicks = parseIncomingPicks(roundData.incoming, team);
             for (const incoming of incomingPicks) {
                 const pickId = `${incoming.season}_${incoming.team}_${incoming.round}`;
                 const pick = pickMap.get(pickId);
@@ -198,7 +215,7 @@ function updatePickOwnership(picks, parsedData) {
         // Process second round picks
         for (const [team, roundData] of Object.entries(seasonData.secondRound)) {
             // Handle incoming picks - update current_owner
-            const incomingPicks = parseIncomingPicks(roundData.incoming);
+            const incomingPicks = parseIncomingPicks(roundData.incoming, team);
             for (const incoming of incomingPicks) {
                 const pickId = `${incoming.season}_${incoming.team}_${incoming.round}`;
                 const pick = pickMap.get(pickId);
