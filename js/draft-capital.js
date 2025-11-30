@@ -83,7 +83,7 @@ async function loadData() {
       // Fetch only current season (S9) team records for team names
       const activeLeagueSeason = "S9";
       const teamRecordsQuery = query(
-          collectionGroup(db, collectionNames.seasonalRecords),
+          collectionGroup(db, 'seasonal_records'),
           where('seasonId', '==', activeLeagueSeason)
       );
       const teamRecordsSnap = await getDocs(teamRecordsQuery);

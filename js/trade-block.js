@@ -95,7 +95,7 @@ async function displayAllTradeBlocks(currentUserId) {
         // Fetch all team data (static and seasonal) at the beginning
         const activeSeasonId = await getActiveSeasonId();
         const teamsSnap = await getDocs(collection(db, collectionNames.teams));
-        const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
+        const teamsRecordSnap = await getDocs(query(collectionGroup(db, 'seasonal_records'), where('season', '==', activeSeasonId)));
         const teamsRecordMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
 
         const allTeamsMap = new Map(teamsSnap.docs.map(doc => {
@@ -183,8 +183,8 @@ async function displayAllTradeBlocks(currentUserId) {
             for (let i = 0; i < allPlayerIds.length; i += CHUNK_SIZE) {
                 const chunk = allPlayerIds.slice(i, i + CHUNK_SIZE);
                 const playersQuery = query(collection(db, collectionNames.players), where(documentId(), 'in', chunk));
-                const playerStatsPaths = chunk.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
-                const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
+                const playerStatsPaths = chunk.map(id => `${collectionNames.players}/${id}/seasonal_stats/${activeSeasonId}`);
+                const statsQuery = query(collectionGroup(db, 'seasonal_stats'), where(documentId(), 'in', playerStatsPaths));
                 const [playersDataSnap, statsDataSnap] = await Promise.all([getDocs(playersQuery), getDocs(statsQuery)]);
                 playersDataSnap.forEach(doc => playersMap.set(doc.id, doc.data()));
                 statsDataSnap.forEach(doc => statsMap.set(doc.ref.parent.parent.id, doc.data()));

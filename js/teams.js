@@ -124,7 +124,7 @@ async function loadTeams() {
   try {
     const teamsRef = collection(db, collectionNames.teams);
     const recordsQuery = query(
-      collectionGroup(db, collectionNames.seasonalRecords),
+      collectionGroup(db, 'seasonal_records'),
       where('seasonId', '==', SEASON_ID)
     );
 
