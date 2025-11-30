@@ -56,7 +56,7 @@ async function authorizeAndLoadForm(user, teamId) {
 
         // Define references to the new V2 collections
         const teamRef = doc(db, collectionNames.teams, teamId);
-        const teamRecordRef = doc(teamRef, collectionNames.seasonalRecords, activeSeasonId);
+        const teamRecordRef = doc(teamRef, 'seasonal_records', activeSeasonId);
         const userAdminRef = doc(db, collectionNames.users, user.uid);
         const playersQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const picksQuery = query(collection(db, collectionNames.draftPicks), where("current_owner", "==", teamId));
@@ -89,7 +89,7 @@ async function authorizeAndLoadForm(user, teamId) {
         }
 
         // Fetch seasonal records for all teams (this is necessary to format pick descriptions)
-        const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
+        const teamsRecordSnap = await getDocs(query(collectionGroup(db, 'seasonal_records'), where('season', '==', activeSeasonId)));
         const teamsMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
         
         editTitle.textContent = `Edit ${teamRecordData.team_name || teamId} Trade Block`;
@@ -99,8 +99,8 @@ async function authorizeAndLoadForm(user, teamId) {
         let availablePlayers = [];
         if (playerIds.length > 0) {
             // Firestore 'in' query is limited to 30, but a team roster will not exceed this.
-            const playerStatsPaths = playerIds.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${activeSeasonId}`);
-            const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', playerStatsPaths));
+            const playerStatsPaths = playerIds.map(id => `${collectionNames.players}/${id}/seasonal_stats/${activeSeasonId}`);
+            const statsQuery = query(collectionGroup(db, 'seasonal_stats'), where(documentId(), 'in', playerStatsPaths));
             const statsSnap = await getDocs(statsQuery);
             const statsMap = new Map(statsSnap.docs.map(doc => [doc.ref.parent.parent.id, doc.data()]));
             

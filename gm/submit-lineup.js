@@ -78,7 +78,7 @@ async function cacheCoreData(seasonId) {
     const [playersSnap, teamsSnap, statsSnap] = await Promise.all([
         getDocs(collection(db, collectionNames.players)),
         getDocs(collection(db, collectionNames.teams)),
-        getDocs(query(collectionGroup(db, collectionNames.seasonalStats), where('seasonId', '==', seasonId)))
+        getDocs(query(collectionGroup(db, 'seasonal_stats'), where('seasonId', '==', seasonId)))
     ]);
 
     playerSeasonStats = new Map(statsSnap.docs.map(statDoc => [statDoc.ref.parent.parent.id, statDoc.data()]));

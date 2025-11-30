@@ -316,8 +316,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ] = await Promise.all([
                 getDocs(query(collection(db, collectionNames.players), where("player_status", "==", "ACTIVE"))),
                 getDocs(query(collection(db, collectionNames.teams), where("conference", "in", [conferences.primary, conferences.secondary]))),
-                getDocs(collectionGroup(db, collectionNames.seasonalStats)),
-                getDocs(collectionGroup(db, collectionNames.seasonalRecords))
+                getDocs(collectionGroup(db, 'seasonal_stats')),
+                getDocs(collectionGroup(db, 'seasonal_records'))
             ]);
 
             const seasonalStatsMap = new Map();
