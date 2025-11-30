@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activate GM Account - RKL</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <script>
+        // Detect league immediately
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const leagueParam = urlParams.get('league');
+            if (leagueParam === 'major' || leagueParam === 'minor') {
+                window.__currentLeague = leagueParam;
+                localStorage.setItem('rkl_current_league', leagueParam);
+            } else {
+                window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <script>
+                  document.write('<img src="/icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="lazy">');
+                </script>
+                <script>
+                  document.write('<span class="header-text">Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+                </script>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="/S9/RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="/S9/standings.html">Standings & Rankings</a></li>
+                <li><a href="/S9/schedule.html">Schedule</a></li>
+                <li><a href="/S9/teams.html">Teams</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="login-container">
+            <h2 id="activation-title">Activate Your GM Account</h2>
+            <p id="league-indicator" style="text-align: center; margin-bottom: 20px; font-weight: 500;"></p>
+
+            <div id="user-info" style="text-align: center; margin-bottom: 20px; padding: 10px; background-color: rgba(66, 133, 244, 0.1); border-radius: 8px;">
+                <p style="margin: 5px 0;">Signed in as: <strong id="user-email"></strong></p>
+            </div>
+
+            <p style="text-align: center; margin-bottom: 20px;">
+                Enter the activation code provided by the league administrator to link your account to your team:
+            </p>
+
+            <form id="activation-form">
+                <div class="form-group">
+                    <label for="activation-code">Activation Code</label>
+                    <input
+                        type="text"
+                        id="activation-code"
+                        placeholder="MAJOR-ABC-123"
+                        required
+                        style="text-transform: uppercase; text-align: center; font-size: 18px; letter-spacing: 2px;"
+                    >
+                </div>
+
+                <button type="submit" class="login-btn">Activate Account</button>
+            </form>
+
+            <div id="error-message" style="color: #d32f2f; margin-top: 15px; text-align: center;"></div>
+            <div id="success-message" style="color: #2e7d32; margin-top: 15px; text-align: center;"></div>
+
+            <div style="margin-top: 30px; text-align: center; padding-top: 20px; border-top: 1px solid #ddd;">
+                <p style="color: #666; font-size: 14px;">
+                    Don't have an activation code? Contact the league administrator.
+                </p>
+                <p style="margin-top: 10px;">
+                    <a href="/login.html" style="color: #4285f4; text-decoration: none;">← Back to Login</a>
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="/index.html">Home</a>
+    </footer>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/activate.js"></script>
+</body>
+</html>

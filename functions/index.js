@@ -65,6 +65,9 @@ const reports = require('./reporting/reports');
 // Import extracted data sync modules
 const sheetsSync = require('./data-sync/sheets-sync');
 
+// Import auth modules
+const activation = require('./auth/activation');
+
 const USE_DEV_COLLECTIONS = false;
 
 /**
@@ -192,5 +195,11 @@ exports.getReportData = reports.getReportData;
 
 // Re-export data sync functions from extracted modules
 exports.syncSheetsToFirestore = sheetsSync.syncSheetsToFirestore;
+
+// Re-export auth functions from extracted modules
+exports.generateActivationCode = activation.generateActivationCode;
+exports.activateUserWithCode = activation.activateUserWithCode;
+exports.revokeActivationCode = activation.revokeActivationCode;
+exports.listActivationCodes = activation.listActivationCodes;
 
 module.exports = { ...module.exports, ...require('./draft-prospects') };

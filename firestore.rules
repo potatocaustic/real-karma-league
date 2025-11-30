@@ -182,6 +182,14 @@ service cloud.firestore {
         // Only admins can change roles
         allow write: if isUserAdmin();
     }
+    match /activation_codes/{codeId} {
+        // Only admins can read and manage activation codes
+        allow read, write: if isUserAdmin();
+    }
+    match /activation_codes_dev/{codeId} {
+        // Only admins can read and manage activation codes
+        allow read, write: if isUserAdmin();
+    }
     match /daily_scores/{doc=**} {
       allow read: if true;
       allow write: if isUserAdmin();
