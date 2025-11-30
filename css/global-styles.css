@@ -306,3 +306,109 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
 .dark-mode::-webkit-scrollbar-thumb:hover {
   background-color: #666;
 }
+/* =================================== */
+/* OAuth & Activation Styles           */
+/* =================================== */
+
+/* OAuth Section */
+.oauth-section {
+    margin-bottom: 1.5rem;
+}
+
+.oauth-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #fff;
+    color: #333;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+}
+
+.oauth-btn:hover {
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.oauth-btn:active {
+    transform: scale(0.98);
+}
+
+.oauth-btn.google-btn:hover {
+    border-color: #4285f4;
+}
+
+.oauth-btn.apple-btn {
+    background-color: #000;
+    color: #fff;
+    border-color: #000;
+}
+
+.oauth-btn.apple-btn:hover {
+    background-color: #333;
+    border-color: #333;
+}
+
+.oauth-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* Login Divider */
+.login-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+    color: #666;
+}
+
+.login-divider::before,
+.login-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+}
+
+.login-divider span {
+    padding: 0 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Dark mode OAuth styles */
+.dark-mode .oauth-btn {
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+.dark-mode .oauth-btn:hover {
+    background-color: #3c3c3c;
+}
+
+.dark-mode .oauth-btn.apple-btn {
+    background-color: #000;
+    border-color: #444;
+}
+
+.dark-mode .oauth-btn.apple-btn:hover {
+    background-color: #222;
+}
+
+.dark-mode .login-divider {
+    color: #999;
+}
+
+.dark-mode .login-divider::before,
+.dark-mode .login-divider::after {
+    border-bottom-color: #444;
+}
