@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Access Codes - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <style>
+        .codes-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .section {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+
+        .dark-mode .section {
+            background: #2c2c2c;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .dark-mode .form-group input,
+        .dark-mode .form-group select {
+            background: #1e1e1e;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+
+        .filters {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filters label {
+            font-weight: 500;
+        }
+
+        .filters select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .dark-mode .filters select {
+            background: #1e1e1e;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+
+        .codes-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+
+        .codes-table th,
+        .codes-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .dark-mode .codes-table th,
+        .dark-mode .codes-table td {
+            border-bottom-color: #444;
+        }
+
+        .codes-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .dark-mode .codes-table th {
+            background-color: #1e1e1e;
+        }
+
+        .codes-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .dark-mode .codes-table tr:hover {
+            background-color: #3c3c3c;
+        }
+
+        .code-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+            background: #e3f2fd;
+            color: #1976d2;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .code-badge:hover {
+            background: #bbdefb;
+            transform: scale(1.05);
+        }
+
+        .dark-mode .code-badge {
+            background: #1e3a5f;
+            color: #64b5f6;
+        }
+
+        .dark-mode .code-badge:hover {
+            background: #2c5282;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-used {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-expired {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .dark-mode .status-active {
+            background: #1e4620;
+            color: #a3cfbb;
+        }
+
+        .dark-mode .status-used {
+            background: #4a3f1a;
+            color: #f4e4a6;
+        }
+
+        .dark-mode .status-expired {
+            background: #4a1f1f;
+            color: #f5b7b1;
+        }
+
+        .league-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .league-major {
+            background: #007bff;
+            color: white;
+        }
+
+        .league-minor {
+            background: #6c757d;
+            color: white;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .dark-mode .message-success {
+            background: #1e4620;
+            color: #a3cfbb;
+            border-color: #2d6a2f;
+        }
+
+        .dark-mode .message-error {
+            background: #4a1f1f;
+            color: #f5b7b1;
+            border-color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .dark-mode .empty-state {
+            color: #999;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .copied-tooltip {
+            position: fixed;
+            background: #28a745;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .copied-tooltip.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div id="auth-status"></div>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <script>
+                document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+            </script>
+            <script>
+                document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+            </script>
+        </h1>
+        <div id="league-switcher-mount">
+            <div class="league-switcher">
+                <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="/admin/dashboard.html">Admin Dashboard</a></li>
+                <li><a href="/S9/RKL-S9.html">S9 Home</a></li>
+                <li><a href="/S9/standings.html">Standings</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main id="main-container" style="display: none;">
+        <div class="codes-container">
+            <div class="page-header">
+                <h2>Manage GM Access Codes</h2>
+                <p>Generate activation codes for new GMs and manage existing codes</p>
+            </div>
+
+            <!-- Generate New Code Section -->
+            <div class="section">
+                <h3 class="section-title">Generate New Access Code</h3>
+                <div id="generate-message"></div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="league-select">League *</label>
+                        <select id="league-select" required>
+                            <option value="major">Major League</option>
+                            <option value="minor">Minor League</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="team-select">Team *</label>
+                        <select id="team-select" required>
+                            <option value="">Loading teams...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="expires-days">Expires In (days)</label>
+                        <input type="number" id="expires-days" placeholder="Leave empty for no expiration" min="1" max="365">
+                    </div>
+                </div>
+
+                <button id="generate-code-btn" class="btn btn-primary">Generate Code</button>
+            </div>
+
+            <!-- View Codes Section -->
+            <div class="section">
+                <h3 class="section-title">Existing Access Codes</h3>
+
+                <div class="filters">
+                    <label for="filter-league">Filter by League:</label>
+                    <select id="filter-league">
+                        <option value="all">All Leagues</option>
+                        <option value="major">Major League</option>
+                        <option value="minor">Minor League</option>
+                    </select>
+
+                    <label for="filter-status">Filter by Status:</label>
+                    <select id="filter-status">
+                        <option value="all">All Codes</option>
+                        <option value="active">Active Only</option>
+                        <option value="used">Used Only</option>
+                        <option value="expired">Expired Only</option>
+                    </select>
+
+                    <button id="refresh-codes-btn" class="btn btn-secondary btn-sm">Refresh</button>
+                </div>
+
+                <div id="codes-list-container">
+                    <div class="empty-state">Loading codes...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+    <div class="copied-tooltip" id="copied-tooltip">Code copied!</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/admin/manage-access-codes.js"></script>
+</body>
+</html>
