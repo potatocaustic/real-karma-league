@@ -131,7 +131,7 @@ async function fetchSingleGameLeaderboard(boardName) {
 async function fetchAllData() {
     const playersQuery = query(collection(db, collectionNames.players));
     const teamsQuery = query(collection(db, collectionNames.teams));
-    const recordsQuery = query(collectionGroup(db, 'seasonal_records'), where('season', '==', SEASON_ID));
+    const recordsQuery = query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', SEASON_ID));
 
     const [playersSnap, teamsSnap, recordsSnap, singleGameKarma, singleGameRank] = await Promise.all([
         getDocs(playersQuery),
@@ -141,7 +141,7 @@ async function fetchAllData() {
         fetchSingleGameLeaderboard('post_single_game_rank')
     ]);
 
-    const statsPromises = playersSnap.docs.map(pDoc => getDoc(doc(db, collectionNames.players, pDoc.id, 'seasonal_stats', SEASON_ID)));
+    const statsPromises = playersSnap.docs.map(pDoc => getDoc(doc(db, collectionNames.players, pDoc.id, collectionNames.seasonalStats, SEASON_ID)));
     const statsSnaps = await Promise.all(statsPromises);
 
     const recordsMap = new Map(recordsSnap.docs.map(doc => [doc.ref.parent.parent.id, doc.data()]));

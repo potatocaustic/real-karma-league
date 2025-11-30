@@ -95,7 +95,7 @@ async function loadPlayerData() {
         // Use document.title for a more robust way to set the page title
         document.title = `${playerData.player_handle} - RKL ${SEASON_ID}`;
 
-        const seasonalStatsRef = doc(db, collectionNames.players, finalPlayerId, 'seasonal_stats', SEASON_ID);
+        const seasonalStatsRef = doc(db, collectionNames.players, finalPlayerId, collectionNames.seasonalStats, SEASON_ID);
         const teamsQuery = query(collection(db, collectionNames.teams));
         const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
 
@@ -137,7 +137,7 @@ async function loadPlayerData() {
         }
         
         const seasonalRecordsQuery = query(
-            collectionGroup(db, 'seasonal_records'),
+            collectionGroup(db, collectionNames.seasonalRecords),
             where('seasonId', '==', SEASON_ID)
         );
         const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
@@ -1093,7 +1093,7 @@ async function showGameDetails(gameId) {
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
 
         const playerStatsPromises = uniquePlayerIds.map(playerId =>
-            getDoc(doc(db, collectionNames.players, playerId, 'seasonal_stats', SEASON_ID))
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, SEASON_ID))
         );
         const playerStatsDocs = await Promise.all(playerStatsPromises);
         

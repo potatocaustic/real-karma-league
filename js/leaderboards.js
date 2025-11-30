@@ -199,7 +199,7 @@ async function fetchTeamsData(seasonId) {
 async function fetchAllPlayerStats(seasonId) {
     const playersQuery = query(collection(db, collectionNames.players));
     const statsQuery = query(
-      collectionGroup(db, 'seasonal_stats'),
+      collectionGroup(db, collectionNames.seasonalStats),
       where('seasonId', '==', seasonId)
     );
 

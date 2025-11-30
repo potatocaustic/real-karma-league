@@ -56,7 +56,7 @@ async function fetchAllTeamsAndRecords() {
     const conferences = getConferenceNames();
     const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', [conferences.primary, conferences.secondary]));
     const recordsQuery = query(
-      collectionGroup(db, 'seasonal_records'),
+      collectionGroup(db, collectionNames.seasonalRecords),
       where('seasonId', '==', activeSeasonId)
     );
 

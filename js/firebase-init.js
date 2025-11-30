@@ -118,7 +118,8 @@ export function getLeagueCollectionName(baseName, league = null) {
 
     // Structured collections (no prefix, handled internally)
     const structuredCollections = ['daily_averages', 'daily_scores', 'post_daily_averages',
-                                   'post_daily_scores', 'awards', 'draft_results'];
+                                   'post_daily_scores', 'leaderboards', 'post_leaderboards',
+                                   'awards', 'draft_results'];
     if (structuredCollections.includes(baseName)) {
         return IS_DEVELOPMENT ? `${baseName}_dev` : baseName;
     }
