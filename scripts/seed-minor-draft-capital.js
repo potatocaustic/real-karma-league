@@ -85,7 +85,7 @@ const DRAFT_CAPITAL = {
         outgoing: {
             Avatars: ['S10 2RP'],
             Buffalos: ['S10 1RP'],
-            Da Bois: ['S10 2RP'],
+            'Da Bois': ['S10 2RP'],
             Huskies: ['S10 1RP', 'S10 2RP'],
             Knights: ['S10 1RP', 'S10 2RP'],
             Leeks: ['S10 2RP'],
@@ -114,7 +114,7 @@ const DRAFT_CAPITAL = {
             Titans: ['Rams S11 1RP'],
             Chiefs: ['Huskies S11 2RP'],
             Crows: ['Vultures S11 2RP'],
-            Da Bois: ['Knights S11 2RP'],
+            'Da Bois': ['Knights S11 2RP'],
             Methsters: ['Seagulls S11 2RP'],
             Rams: ['Wizards S11 2RP', 'Eggheads S11 2RP', 'Tigers S11 2RP'],
             Vultures: ['Venom S11 2RP', 'Raptors S11 2RP']
@@ -135,7 +135,7 @@ const DRAFT_CAPITAL = {
     },
     12: {
         incoming: {
-            Da Bois: ['Knights S12 2RP'],
+            'Da Bois': ['Knights S12 2RP'],
             Leeks: ['Huskies S12 2RP', 'Strips S12 2RP'],
             Raptors: ['Hippos S12 2RP']
         },
@@ -151,7 +151,7 @@ const DRAFT_CAPITAL = {
             Kings: ['Knights S13 1RP'],
             Leeks: ['Huskies S13 1RP'],
             Crows: ['Wizards S13 2RP'],
-            Da Bois: ['Knights S13 2RP'],
+            'Da Bois': ['Knights S13 2RP'],
             Wizards: ['Crows S13 2RP']
         },
         outgoing: {
