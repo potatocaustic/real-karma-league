@@ -1,7 +1,15 @@
 // functions/utils/firebase-helpers.js
 
-const { HttpsError } = require("firebase-functions/v2/https");
 const { admin } = require('./firebase-admin');
+
+let HttpsError;
+
+function getHttpsError() {
+    if (!HttpsError) {
+        ({ HttpsError } = require('firebase-functions/v2/https'));
+    }
+    return HttpsError;
+}
 
 const USE_DEV_COLLECTIONS = false;
 
@@ -68,7 +76,8 @@ const getCollectionName = (baseName, league = LEAGUES.MAJOR) => {
  */
 const validateLeague = (league) => {
     if (league && !Object.values(LEAGUES).includes(league)) {
-        throw new HttpsError('invalid-argument', `Invalid league: ${league}. Must be 'major' or 'minor'.`);
+        const HttpsErrorCtor = getHttpsError();
+        throw new HttpsErrorCtor('invalid-argument', `Invalid league: ${league}. Must be 'major' or 'minor'.`);
     }
 };
 
