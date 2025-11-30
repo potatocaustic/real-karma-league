@@ -197,24 +197,26 @@ async function fetchTeamsData(seasonId) {
 }
 
 async function fetchAllPlayerStats(seasonId) {
+    // Fetch all players from the league-aware collection
     const playersQuery = query(collection(db, collectionNames.players));
-    const statsQuery = query(
-      collectionGroup(db, collectionNames.seasonalStats),
-      where('seasonId', '==', seasonId)
+    const playersSnap = await getDocs(playersQuery);
+
+    // Fetch seasonal stats for each player individually to respect league context
+    const statsPromises = playersSnap.docs.map(playerDoc =>
+        getDoc(doc(db, collectionNames.players, playerDoc.id, collectionNames.seasonalStats, seasonId))
     );
+    const statsSnaps = await Promise.all(statsPromises);
 
-    const [playersSnap, statsSnap] = await Promise.all([
-        getDocs(playersQuery),
-        getDocs(statsQuery)
-    ]);
-
+    // Build map of player stats
     const statsMap = new Map();
-    statsSnap.docs.forEach(statDoc => {
-        // Server-side filtered by seasonId - all results match seasonId
-        const playerId = statDoc.ref.parent.parent.id;
-        statsMap.set(playerId, statDoc.data());
+    statsSnaps.forEach((statSnap, index) => {
+        if (statSnap.exists()) {
+            const playerId = playersSnap.docs[index].id;
+            statsMap.set(playerId, statSnap.data());
+        }
     });
 
+    // Merge player data with their seasonal stats
     const mergedData = playersSnap.docs.map(playerDoc => {
         const playerId = playerDoc.id;
         const playerData = playerDoc.data();

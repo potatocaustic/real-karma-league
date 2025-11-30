@@ -157,29 +157,19 @@ async function loadPageData() {
         allDraftPicks = draftPicksSnap.docs.map(d => d.data());
         allTransactions = transactionsSnap.docs.map(d => ({id: d.id, ...d.data()}));
 
-        // --- PROCESS ROSTER & PLAYER SEASONAL STATS (EFFICIENT) ---
-        // ✅ EFFICIENT - Fetch all player seasonal stats in one query using player IDs
+        // --- PROCESS ROSTER & PLAYER SEASONAL STATS (LEAGUE-AWARE) ---
+        // Fetch seasonal stats for each roster player individually to respect league context
         const playerDocs = rosterSnap.docs;
-        const playerIds = playerDocs.map(pDoc => pDoc.id);
 
-        // Fetch all seasonal stats for roster players in one query
-        const playerStatsQuery = query(
-            collectionGroup(db, collectionNames.seasonalStats),
-            where('seasonId', '==', ACTIVE_SEASON_ID)
+        // Fetch all seasonal stats for roster players using league-aware collection path
+        const playerStatsPromises = playerDocs.map(pDoc =>
+            getDoc(doc(db, collectionNames.players, pDoc.id, collectionNames.seasonalStats, ACTIVE_SEASON_ID))
         );
-        const playerStatsSnap = await getDocs(playerStatsQuery);
+        const playerStatsSnaps = await Promise.all(playerStatsPromises);
 
-        // Build a map of playerId -> seasonal stats
-        const playerStatsMap = new Map();
-        playerStatsSnap.forEach(statDoc => {
-            const playerId = statDoc.ref.parent.parent.id;
-            if (playerIds.includes(playerId)) {
-                playerStatsMap.set(playerId, statDoc.data());
-            }
-        });
-
-        rosterPlayers = playerDocs.map(pDoc => {
-            const seasonalStats = playerStatsMap.get(pDoc.id) || {};
+        // Build roster players with their seasonal stats
+        rosterPlayers = playerDocs.map((pDoc, index) => {
+            const seasonalStats = playerStatsSnaps[index].exists() ? playerStatsSnaps[index].data() : {};
             return {
                 id: pDoc.id,
                 ...pDoc.data(),
