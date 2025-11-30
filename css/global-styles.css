@@ -362,6 +362,18 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
     height: 20px;
 }
 
+.privacy-note {
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    color: #666;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.privacy-note small {
+    font-size: 0.85rem;
+}
+
 /* Login Divider */
 .login-divider {
     display: flex;
@@ -411,4 +423,8 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
 .dark-mode .login-divider::before,
 .dark-mode .login-divider::after {
     border-bottom-color: #444;
+}
+
+.dark-mode .privacy-note {
+    color: #999;
 }
