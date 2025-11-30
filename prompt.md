@@ -1,3 +1,0 @@
-I'm currently in the process of migrating the site to a multi-league system that supports both the major league and minor league. I want you to thoroughly and completely read and understand my codebases and instructions - even if you have to do it in pieces to fit within your context window. Then, I want you to help me do the following: 
-1. Write me a script that I can run locally to create all the necessary minor league collections in my Firestore database. 
-2. Assess where I am at in the migration process and then write a thorough, detailed, and comprehensive prompt in a markdown file that I can provide to an AI coding agent to seamlessly continue the migration process.

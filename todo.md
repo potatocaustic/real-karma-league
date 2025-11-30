@@ -1,9 +1,0 @@
-1. Team standings are not properly handling the edge case in which, at the beginning of the season, some teams are 0-0 while others have played their first game. This is causing teams with a 0-1 record and positive PAM to be near the top of the
-   standings (because of PAM tiebreaker) while 0-1 teams with negative PAM are at the bottom. All 0-1 teams should be below all 0-0 teams in the standings - then, PAM should be used as a tiebreaker among the 0-1 teams. Affected pages: /S9/standings.html; /S9/RKL-S9.html; /S9/draft-lottery.html; and the scripts those pages reference.
-2. I want to add a player management module to the GM portal (in the /gm/ directory). This module should be very similar to the admin-level player management module at /admin/manage-players.html and /admin/manage-players.js. Key differences:
-   a. GMs should not be able to create a new player.
-   b. GMs should only be allowed to manage players on their own team in the current season - not any other players on other teams or from prior seasons.
-   c. For GMs, the "Edit Player" modal should only have one field - "Player Handle" - along with the save changes button. All other elements of the admin-level edit player modal, such as Player ID, current team, player status, accolades, and the danger zone (ID migration) should *not* be available to GMs.
-   Creation of this module may require changes to firestore rules - please verify.
-3. In /S9/draft-lottery.html, the page's table title and description still says "S9 Lottery Odds" and "S9 lottery odds for the 14 non-playoff teams" even though I changed the html to correctly say "S10 Lottery Odds" and "S10 lottery odds for the 14 non-playoff teams".
-   Please fix. If fixing this requires changes to /js/draft-lottery.js, please ensure that /S8/draft-lottery.html - which also references /js/draft-lottery.js - is unaffected.
