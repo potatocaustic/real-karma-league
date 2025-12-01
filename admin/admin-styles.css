@@ -1509,7 +1509,25 @@ main:hover {
 
     .asset-to-label {
         gap: 0.25rem;
-        justify-content: center;
+        justify-content: flex-start;
+    }
+
+    .asset-item .asset-value-shell,
+    .asset-item .asset-destination-select {
+        width: 100%;
+    }
+
+    .asset-item .btn-admin-remove-asset {
+        justify-self: end;
+    }
+
+    .asset-item .asset-value-shell,
+    .asset-item .asset-destination-select {
+        width: 100%;
+    }
+
+    .asset-item .btn-admin-remove-asset {
+        justify-self: end;
     }
 
     .asset-item .asset-value-shell,
