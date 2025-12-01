@@ -511,7 +511,7 @@ async function calculateAndDisplayStandouts(week) {
     const seasonNum = activeSeasonId.replace('S', '');
     const currentLeague = getCurrentLeague();
     const leaguePrefix = currentLeague === 'minor' ? 'minor_' : '';
-    const dailyScoresRef = collection(db, getLeagueCollectionName('daily_scores'), `${leaguePrefix}season_${seasonNum}`, `${leaguePrefix}S${seasonNum}_daily_scores`);
+    const dailyScoresRef = collection(db, getLeagueCollectionName('daily_scores'), `season_${seasonNum}`, `${leaguePrefix}S${seasonNum}_daily_scores`);
     const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, 'lineups');
     const dailyScoresQuery = query(dailyScoresRef, where('week', '==', week));
     const lineupsQuery = query(lineupsRef, where('week', '==', week));
