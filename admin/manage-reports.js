@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const reportOutputContainer = document.getElementById('report-output-container');
     const reportOutputEl = document.getElementById('report-output');
 
+    let currentReportType = null;
+
     let activeSeasonId = null;
 
     onAuthStateChanged(auth, async (user) => {
@@ -64,13 +66,34 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add event listener to auto-populate deadline time when date changes
         document.getElementById('deadline-date').addEventListener('change', autoPopulateDeadlineTime);
 
-        document.getElementById('generate-deadline-report').addEventListener('click', generateDeadlineReport);
-        document.getElementById('generate-gotd-report').addEventListener('click', generateVoteGotdReport);
-        document.getElementById('generate-lineups-report').addEventListener('click', prepareLineupsReport);
+        addGenerateHandler('generate-deadline-report', generateDeadlineReport);
+        addGenerateHandler('generate-gotd-report', generateVoteGotdReport);
+        addGenerateHandler('generate-lineups-report', prepareLineupsReport);
         document.getElementById('copy-report-btn').addEventListener('click', copyReportToClipboard);
 
         // Auto-populate deadline time for today on page load
         autoPopulateDeadlineTime();
+    }
+
+    function addGenerateHandler(buttonId, handler) {
+        const button = document.getElementById(buttonId);
+        if (!button) return;
+
+        button.dataset.defaultText = button.textContent;
+        button.addEventListener('click', async () => {
+            setButtonLoadingState(button, true);
+            try {
+                await handler();
+            } finally {
+                setButtonLoadingState(button, false);
+            }
+        });
+    }
+
+    function setButtonLoadingState(button, isLoading) {
+        if (!button) return;
+        button.disabled = isLoading;
+        button.textContent = isLoading ? 'Generating...' : (button.dataset.defaultText || 'Generate Report');
     }
 
     async function autoPopulateDeadlineTime() {
@@ -187,9 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Add the colored dot before the day name
             const output = `${colorDot} ${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\n${finalVerbiage}`;
-            displayReport(output);
+            displayReport(output, { reportType: 'deadline' });
         } else {
-             displayReport(`${colorDot} No games found for ${formattedDate}.`);
+             displayReport(`${colorDot} No games found for ${formattedDate}.`, { reportType: 'deadline' });
         }
     }
 
@@ -206,12 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data && data.games && data.games.length > 0) {
             const reportContainer = document.createDocumentFragment();
-            
-            const titleEl = document.createElement('div');
-            titleEl.textContent = `Vote GOTD (${firestoreDate}):`;
-            titleEl.style.fontWeight = 'bold';
-            titleEl.style.marginBottom = '10px';
-            reportContainer.appendChild(titleEl);
+
+            const header = buildReportHeader(`Vote GOTD ${firestoreDate}`, copyReportToClipboard);
+            reportContainer.appendChild(header);
 
             data.games.forEach(g => {
                 const gameText = `${g.team1_name} (${g.team1_record}) vs ${g.team2_name} (${g.team2_record})`;
@@ -239,9 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 reportContainer.appendChild(gameContainer);
             });
 
-            displayReport(reportContainer);
+            displayReport(reportContainer, { reportType: 'gotd' });
         } else {
-            displayReport(`No games found for ${firestoreDate}.`);
+            displayReport(`No games found for ${firestoreDate}.`, { reportType: 'gotd' });
         }
     }
 
@@ -342,11 +362,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
         
         const reportContainer = document.createDocumentFragment();
-        const titleEl = document.createElement('div');
-        titleEl.textContent = `Lineups ${formattedDate}`;
-        titleEl.style.fontWeight = 'bold';
-        titleEl.style.marginBottom = '10px';
-        reportContainer.appendChild(titleEl);
+        const header = buildReportHeader(`Lineups ${formattedDate}`, copyReportToClipboard);
+        reportContainer.appendChild(header);
 
         const captainEmojis = { 'Penguins': ' 🐧', 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮', 'Flames': ' 🔥' };
         const usa_diabetics = ['PJPB7G3y', 'QvDP2zgv', 'k3LgQL4v', 'rnejGZ2J', 'V3yAQ6Y3', 'Anzoj9LJ', 'BJ0VQoY3', 'wJpX8ALJ'];
@@ -443,11 +460,11 @@ document.addEventListener('DOMContentLoaded', () => {
             reportContainer.appendChild(gotdGameBlock);
         }
 
-        displayReport(reportContainer);
+        displayReport(reportContainer, { reportType: 'lineups' });
         document.getElementById('gotd-selector-container').style.display = 'none';
     }
 
-    function displayReport(content) {
+    function displayReport(content, options = {}) {
         reportOutputContainer.style.display = 'block';
         reportOutputEl.innerHTML = ''; // Clear previous content
 
@@ -458,27 +475,83 @@ document.addEventListener('DOMContentLoaded', () => {
             reportOutputEl.appendChild(content);
         }
         reportOutputEl.scrollTop = 0; // Scroll to top
+
+        currentReportType = options.reportType || null;
+        const copyBtn = document.getElementById('copy-report-btn');
+        if (copyBtn) {
+            const shouldShowCopyBtn = currentReportType === 'deadline';
+            copyBtn.style.display = shouldShowCopyBtn ? 'inline-flex' : 'none';
+            copyBtn.textContent = 'Copy to Clipboard';
+            if (shouldShowCopyBtn) {
+                copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy to Clipboard</span>`;
+            }
+        }
     }
 
     function copyReportToClipboard() {
-        // This improved copy function handles the multi-element reports better
-        let reportText = '';
-        const items = reportOutputEl.querySelectorAll('.report-item-text, div');
-        items.forEach(item => {
-            reportText += item.textContent + '\n\n';
-        });
-
-        // Fallback for simple text content
-        if (!reportText) {
-            reportText = reportOutputEl.textContent;
-        }
-
-        navigator.clipboard.writeText(reportText.trim()).then(() => {
+        const reportText = buildReportText();
+        navigator.clipboard.writeText(reportText).then(() => {
             alert("Report copied to clipboard!");
         }).catch(err => {
             alert("Failed to copy report.");
             console.error('Clipboard copy error:', err);
         });
+    }
+
+    function buildReportHeader(title, copyHandler) {
+        const header = document.createElement('div');
+        header.className = 'report-header';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'report-title';
+        titleSpan.textContent = title;
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'header-copy-btn';
+        copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy report</span>`;
+        copyBtn.addEventListener('click', copyHandler);
+        copyBtn.setAttribute('aria-label', 'Copy report');
+
+        header.appendChild(titleSpan);
+        header.appendChild(copyBtn);
+        return header;
+    }
+
+    function buildReportText() {
+        const segments = [];
+
+        Array.from(reportOutputEl.childNodes).forEach(node => {
+            if (node.nodeType === Node.TEXT_NODE) {
+                const text = node.textContent.trim();
+                if (text) segments.push(text);
+                return;
+            }
+
+            if (node.classList && node.classList.contains('report-header')) {
+                const title = node.querySelector('.report-title');
+                if (title?.textContent) segments.push(title.textContent.trim());
+                return;
+            }
+
+            if (node.classList && node.classList.contains('report-item')) {
+                const text = node.querySelector('.report-item-text');
+                if (text?.textContent) segments.push(text.textContent.trim());
+                return;
+            }
+
+            if (node.textContent) {
+                const text = node.textContent.trim();
+                if (text) segments.push(text);
+            }
+        });
+
+        if (!segments.length) {
+            const fallback = reportOutputEl.textContent.trim();
+            if (fallback) return fallback;
+            return '';
+        }
+
+        return segments.join('\n\n');
     }
 
     function displayAccessDenied(authStatusDiv) {
