@@ -26,152 +26,6 @@
             useProdCollections: true
         };
     </script>
-    <style>
-        /* --- MODAL CENTERING & SCROLLING FIX --- */
-        /* Base state of the modal is hidden. We use flexbox for centering. */
-        .modal-admin {
-            display: none; /* Hidden by default */
-            align-items: center; /* Vertical center */
-            justify-content: center; /* Horizontal center */
-            padding: 1rem; /* Give space on smaller screens */
-        }
-            /* When modal is active, we change its display property to flex */
-            .modal-admin.is-visible {
-                display: flex;
-            }
-
-        .lineup-modal .modal-content-admin {
-            max-width: 1200px; /* Wider modal for lineup details */
-            width: 95%;
-            margin: 0; /* Reset margin, flexbox now handles centering */
-            max-height: 90vh; /* Limit height to 90% of the viewport height */
-            overflow-y: auto; /* Add a scrollbar if the content overflows this height */
-        }
-        /* --- END FIX --- */
-
-        .lineup-entry-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin-top: 1rem;
-        }
-
-        .team-lineup-section {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 1rem;
-            background-color: #fdfdfd;
-        }
-
-            .team-lineup-section h4 {
-                text-align: center;
-                background-color: #f0f2f5;
-                padding: 0.5rem;
-                margin: -1rem -1rem 1rem -1rem;
-                border-top-left-radius: 8px;
-                border-top-right-radius: 8px;
-                border-bottom: 1px solid #ddd;
-            }
-
-        .roster-selection h5, .starters-entry h5 {
-            margin-bottom: 0.75rem;
-            font-size: 1rem;
-            color: #333;
-        }
-
-        .roster-list {
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            padding: 0.5rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-        }
-
-        /* MODIFICATION: Switched to flexbox for vertical alignment */
-        .player-checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem; /* Adds space between checkbox and name */
-            margin-bottom: 0.5rem;
-        }
-
-        .starters-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .starter-card {
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            padding: 0.75rem;
-        }
-
-        .starter-card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-            .starter-card-header strong {
-                font-size: 1.05rem;
-            }
-
-        .starter-inputs {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 0.5rem;
-        }
-
-            .starter-inputs .form-group-admin {
-                margin-bottom: 0;
-            }
-
-            .starter-inputs label {
-                font-size: 0.8rem;
-                margin-bottom: 0.2rem;
-            }
-
-            .starter-inputs input[type="number"] {
-                padding: 0.5rem;
-                width: 100%;
-            }
-
-        .team-score-summary {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            text-align: center;
-            font-size: 1.2rem;
-            font-weight: bold;
-            background-color: #e9f5ff;
-            color: #0056b3;
-            border: 1px solid #b3d7ff;
-            border-radius: 6px;
-        }
-
-        .validation-error {
-            border-color: #dc3545 !important;
-        }
-        .deadline-management-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 2rem;
-            margin-bottom: 1.5rem;
-        }
-        #deadline-form {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-        #current-deadline-display {
-            font-style: italic;
-            color: #555;
-        }
-    </style>
 </head>
 <body>
     <header>
@@ -261,7 +115,7 @@
                     <label for="deadline-time">Time (Central)</label>
                     <input type="time" id="deadline-time" required>
                 </div>
-                <button type="submit" class="btn-admin-save" style="align-self: flex-end;">Set</button>
+                <button type="submit" class="btn-admin-save">Set</button>
             </form>
             <div id="current-deadline-display">
                 <p>Select a date to see the current deadline.</p>
@@ -272,16 +126,16 @@
             <h3>Auto-Deadline Setter</h3>
             <p>Test the automatic deadline setter that fetches game schedules and sets deadlines based on the earliest game time (excluding CBB games without polls).</p>
             <p><strong>Note:</strong> This will set deadlines for <strong>both Major and Minor leagues</strong>.</p>
-            <div style="display: flex; gap: 1rem; align-items: center; margin-top: 1rem;">
+            <div class="inline-control-row">
                 <div class="form-group-admin">
                     <label for="auto-deadline-target-date">Target Date (optional - defaults to t+2):</label>
                     <input type="date" id="auto-deadline-target-date">
                 </div>
                 <button id="test-auto-deadline-btn" class="btn-admin-edit">Test Auto-Deadline Setter (Both Leagues)</button>
             </div>
-            <div id="auto-deadline-result" style="margin-top: 1rem; padding: 1rem; background-color: #f8f9fa; border-radius: 4px; display: none;">
+            <div id="auto-deadline-result">
                 <strong>Result:</strong>
-                <pre id="auto-deadline-result-text" style="margin-top: 0.5rem; white-space: pre-wrap;"></pre>
+                <pre id="auto-deadline-result-text"></pre>
             </div>
         </div>
 
@@ -339,18 +193,18 @@
                     </div>
                 </div>
 
-                <div class="form-group-admin" style="margin-top: 1.5rem;">
+                <div class="form-group-admin lineup-complete-toggle">
                     <input type="checkbox" id="lineup-game-completed-checkbox">
                     <label for="lineup-game-completed-checkbox">Mark Game as Completed</label>
                 </div>
 
                 <button type="submit" class="btn-admin-save">Save Lineups & Final Score</button>
 
-                <div id="live-scoring-controls" style="display: none; margin-top: 1rem; border-top: 1px solid #ddd; padding-top: 1rem;">
-                    <p style="text-align: center; margin-bottom: 1rem; color: #0056b3; font-weight: bold;">Live Scoring Actions</p>
-                    <div style="display: flex; gap: 1rem;">
-                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit" style="background-color: #17a2b8; flex-grow: 1;">Submit Lineups for Live Scoring</button>
-                        <button type="button" id="finalize-live-game-btn" class="btn-admin-delete" style="flex-grow: 1;">Finalize Live Game Now</button>
+                <div id="live-scoring-controls">
+                    <p class="live-scoring-title">Live Scoring Actions</p>
+                    <div class="live-scoring-actions">
+                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit">Submit Lineups for Live Scoring</button>
+                        <button type="button" id="finalize-live-game-btn" class="btn-admin-delete">Finalize Live Game Now</button>
                     </div>
                 </div>
             </form>
