@@ -1371,16 +1371,9 @@ main:hover {
     color: #0f172a;
 }
 
-.asset-value-shell {
-    flex: 1 1 220px;
-    min-width: 0;
-}
-
 .asset-type-select,
 .asset-value-select,
 .asset-destination-select {
-    min-width: 160px;
-    max-width: 100%;
     padding: 0.7rem 0.9rem;
     border: 1px solid #d7dde5;
     border-radius: 12px;
@@ -1394,11 +1387,6 @@ main:hover {
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 14px;
-}
-
-.asset-value-shell .asset-value-select,
-.asset-destination-select {
-    width: 100%;
 }
 
 .asset-type-select:focus,
@@ -1512,13 +1500,6 @@ main:hover {
 
     .btn-admin-add-asset {
         width: 100%;
-    }
-
-    .asset-value-shell,
-    .asset-value-select,
-    .asset-destination-select {
-        width: 100%;
-        min-width: 0;
     }
 
     .btn-admin-remove-asset {
