@@ -54,10 +54,10 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
         });
 
         const triggerTime = new Date(deadlineDate.getTime() + 15 * 60 * 1000);
-        const jobName = `start-live-scoring-${deadlineId}`;
+        const jobName = league === 'minor' ? `minor-start-live-scoring-${deadlineId}` : `start-live-scoring-${deadlineId}`;
         const projectId = process.env.GCLOUD_PROJECT;
         const location = 'us-central1';
-        const topicName = 'start-live-scoring-topic';
+        const topicName = league === 'minor' ? 'minor-start-live-scoring-topic' : 'start-live-scoring-topic';
         const pubSubTopic = `projects/${projectId}/topics/${topicName}`;
         const parent = `projects/${projectId}/locations/${location}`;
         const jobPath = schedulerClient.jobPath(projectId, location, jobName);
