@@ -1383,6 +1383,10 @@ main:hover {
     font-weight: 600;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     appearance: none;
+    background-image: none;
+}
+
+.asset-type-select {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%232563eb'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
@@ -1479,14 +1483,24 @@ main:hover {
         gap: 0.45rem;
         padding: 0.65rem 0.75rem;
         padding-right: 0.75rem;
-        grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr);
+        grid-template-columns: 1fr;
         display: grid;
-        align-items: center;
+        align-items: stretch;
+        grid-auto-rows: auto;
     }
 
     .asset-to-label {
         gap: 0.25rem;
-        justify-content: center;
+        justify-content: flex-start;
+    }
+
+    .asset-item .asset-value-shell,
+    .asset-item .asset-destination-select {
+        width: 100%;
+    }
+
+    .asset-item .btn-admin-remove-asset {
+        justify-self: end;
     }
 
     .asset-controls {
