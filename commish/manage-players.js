@@ -185,9 +185,6 @@ function openPlayerModal(player = null) {
     playerForm.reset();
     isEditMode = !!player;
 
-    const dangerZoneWrapper = document.getElementById('danger-zone-wrapper');
-    const dangerZoneContainer = document.getElementById('danger-zone-container');
-
     document.getElementById('modal-title-player').textContent = isEditMode ? 'Edit Player' : 'Create New Player';
     document.getElementById('player-id-input').readOnly = isEditMode;
 
@@ -197,19 +194,12 @@ function openPlayerModal(player = null) {
         document.getElementById('player-status-select').value = player.player_status || 'ACTIVE';
         document.getElementById('player-rookie-checkbox').checked = player.season_stats?.rookie === '1';
         document.getElementById('player-allstar-checkbox').checked = player.season_stats?.all_star === '1';
-        
-        // MODIFICATION: Show the wrapper, but hide the content initially
-        dangerZoneWrapper.style.display = 'block'; 
-        dangerZoneContainer.style.display = 'none';
-        document.getElementById('toggle-danger-zone-btn').textContent = 'Show Danger Zone';
 
     } else {
         document.getElementById('player-id-input').readOnly = false;
         document.getElementById('player-id-input').placeholder = "Enter a new unique ID (e.g. jdoe123)";
         document.getElementById('player-rookie-checkbox').checked = true;
         document.getElementById('player-allstar-checkbox').checked = false;
-
-        dangerZoneWrapper.style.display = 'none'; 
     }
 
     const teamSelect = document.getElementById('player-team-select');
@@ -229,52 +219,6 @@ function openPlayerModal(player = null) {
 
 closeModalBtn.addEventListener('click', () => {
     playerModal.style.display = 'none';
-});
-
-playerModal.addEventListener('click', async (e) => {
-    if (e.target.id === 'toggle-danger-zone-btn') {
-        const dangerZoneContainer = document.getElementById('danger-zone-container');
-        const isVisible = dangerZoneContainer.style.display === 'block';
-        dangerZoneContainer.style.display = isVisible ? 'none' : 'block';
-        e.target.textContent = isVisible ? 'Show Danger Zone' : 'Hide Danger Zone';
-        return; 
-    }
-
-    if (e.target.id !== 'migrate-player-id-btn') return;
-
-    const migrateBtn = e.target;
-    const oldPlayerId = document.getElementById('player-id-input').value;
-    const newPlayerId = document.getElementById('player-new-id-input').value.trim();
-
-    if (!newPlayerId) {
-        alert("Please enter the new Player ID to migrate to.");
-        return;
-    }
-
-    const confirmation = confirm(
-        `DANGER ZONE\n\nYou are about to migrate this player from ID:\n${oldPlayerId}\nTO a new ID:\n${newPlayerId}\n\nThis action will update all historical stats and records and cannot be undone. Are you absolutely sure you want to proceed?`
-    );
-
-    if (!confirmation) return;
-
-    migrateBtn.disabled = true;
-    migrateBtn.textContent = 'Migrating...';
-
-    try {
-        const admin_updatePlayerId = httpsCallable(functions, 'admin_updatePlayerId');
-        const result = await admin_updatePlayerId({ oldPlayerId, newPlayerId, league: getCurrentLeague() });
-
-        alert(result.data.message);
-        playerModal.style.display = 'none';
-        await loadAndDisplayPlayers(); 
-
-    } catch (error) {
-        console.error("Player ID migration failed:", error);
-        alert(`Migration failed: ${error.message}`);
-    } finally {
-        migrateBtn.disabled = false;
-        migrateBtn.textContent = 'Migrate to New ID';
-    }
 });
 
 /**
