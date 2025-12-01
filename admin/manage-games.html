@@ -105,46 +105,55 @@
             </div>
         </div>
         
-        <div class="admin-card deadline-management-card">
-            <form id="deadline-form">
-                <div class="form-group-admin">
-                    <label for="deadline-date">Set Deadline For:</label>
-                    <input type="date" id="deadline-date" required>
+        <div class="admin-card collapsible-card">
+            <button class="collapsible-toggle" type="button" aria-expanded="false" aria-controls="deadline-tools">Deadline &amp; Auto-Set Tools</button>
+            <div id="deadline-tools" class="collapsible-content" hidden>
+                <div class="deadline-tools-grid">
+                    <div class="deadline-management-card admin-subcard">
+                        <form id="deadline-form">
+                            <div class="form-group-admin">
+                                <label for="deadline-date">Set Deadline For:</label>
+                                <input type="date" id="deadline-date" required>
+                            </div>
+                            <div class="form-group-admin">
+                                <label for="deadline-time">Time (Central)</label>
+                                <input type="time" id="deadline-time" required>
+                            </div>
+                            <button type="submit" class="btn-admin-save">Set</button>
+                        </form>
+                        <div id="current-deadline-display">
+                            <p>Select a date to see the current deadline.</p>
+                        </div>
+                    </div>
+
+                    <div class="admin-subcard">
+                        <h3>Auto-Deadline Setter</h3>
+                        <p>Test the automatic deadline setter that fetches game schedules and sets deadlines based on the earliest game time (excluding CBB games without polls).</p>
+                        <p><strong>Note:</strong> This will set deadlines for <strong>both Major and Minor leagues</strong>.</p>
+                        <div class="inline-control-row">
+                            <div class="form-group-admin">
+                                <label for="auto-deadline-target-date">Target Date (optional - defaults to t+2):</label>
+                                <input type="date" id="auto-deadline-target-date">
+                            </div>
+                            <button id="test-auto-deadline-btn" class="btn-admin-edit">Test Auto-Deadline Setter (Both Leagues)</button>
+                        </div>
+                        <div id="auto-deadline-result">
+                            <strong>Result:</strong>
+                            <pre id="auto-deadline-result-text"></pre>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group-admin">
-                    <label for="deadline-time">Time (Central)</label>
-                    <input type="time" id="deadline-time" required>
-                </div>
-                <button type="submit" class="btn-admin-save">Set</button>
-            </form>
-            <div id="current-deadline-display">
-                <p>Select a date to see the current deadline.</p>
             </div>
         </div>
 
-        <div class="admin-card">
-            <h3>Auto-Deadline Setter</h3>
-            <p>Test the automatic deadline setter that fetches game schedules and sets deadlines based on the earliest game time (excluding CBB games without polls).</p>
-            <p><strong>Note:</strong> This will set deadlines for <strong>both Major and Minor leagues</strong>.</p>
-            <div class="inline-control-row">
-                <div class="form-group-admin">
-                    <label for="auto-deadline-target-date">Target Date (optional - defaults to t+2):</label>
-                    <input type="date" id="auto-deadline-target-date">
-                </div>
-                <button id="test-auto-deadline-btn" class="btn-admin-edit">Test Auto-Deadline Setter (Both Leagues)</button>
-            </div>
-            <div id="auto-deadline-result">
-                <strong>Result:</strong>
-                <pre id="auto-deadline-result-text"></pre>
-            </div>
-        </div>
-
+        <!--
         <div class="admin-card">
             <div class="admin-section">
                 <h3>Manual Fixes</h3>
                 <button id="manual-bracket-fix-btn" class="btn-admin-danger">Manually Advance Bracket</button>
             </div>
         </div>
+        -->
         <div id="games-list-container">
             <p class="placeholder-text">Please select a season and week to view games.</p>
         </div>
