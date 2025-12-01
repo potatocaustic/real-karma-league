@@ -1160,6 +1160,83 @@ main:hover {
     gap: 0.75rem;
 }
 
+#admin-container .admin-feedback {
+    display: none;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.2rem;
+    margin: 0.75rem 0 0.25rem;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #f8fafc, #eef2ff);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+#admin-container .admin-feedback:not([hidden]) {
+    display: flex;
+}
+
+#admin-container .admin-feedback .admin-feedback-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    background: rgba(22, 101, 52, 0.12);
+    color: #15803d;
+}
+
+#admin-container .admin-feedback .admin-feedback-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+#admin-container .admin-feedback .admin-feedback-message {
+    margin: 0.15rem 0 0;
+    color: #1f2937;
+    line-height: 1.5;
+}
+
+#admin-container .admin-feedback.admin-feedback--error {
+    border-color: #fecdd3;
+    background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+}
+
+#admin-container .admin-feedback.admin-feedback--error .admin-feedback-icon {
+    background: rgba(239, 68, 68, 0.12);
+    color: #b91c1c;
+}
+
+.dark-mode #admin-container .admin-feedback {
+    border-color: #243047;
+    background: linear-gradient(135deg, #0f172a, #111827);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode #admin-container .admin-feedback .admin-feedback-title,
+.dark-mode #admin-container .admin-feedback .admin-feedback-message {
+    color: #e5e7eb;
+}
+
+.dark-mode #admin-container .admin-feedback .admin-feedback-icon {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ade80;
+}
+
+.dark-mode #admin-container .admin-feedback.admin-feedback--error {
+    border-color: #7f1d1d;
+    background: linear-gradient(135deg, rgba(127, 29, 29, 0.4), rgba(127, 29, 29, 0.3));
+}
+
+.dark-mode #admin-container .admin-feedback.admin-feedback--error .admin-feedback-icon {
+    background: rgba(248, 113, 113, 0.16);
+    color: #fecdd3;
+}
+
 .transaction-section {
     padding: 1.35rem 1.25rem;
     margin-top: 1.25rem;
@@ -1584,6 +1661,23 @@ main:hover {
 .form-actions .btn-admin-secondary {
     flex: 1 1 240px;
     padding-inline: 1.25rem;
+}
+
+.transaction-actions .btn-admin-save {
+    width: auto;
+    margin-top: 0;
+    min-height: 52px;
+}
+
+.transaction-actions .btn-admin-secondary {
+    min-height: 52px;
+}
+
+@media (max-width: 720px) {
+    .transaction-actions .btn-admin-save,
+    .transaction-actions .btn-admin-secondary {
+        width: 100%;
+    }
 }
 
 .btn-admin-add-asset {
