@@ -520,22 +520,10 @@ async function calculateAndDisplayStandouts(week) {
     const weeklyLineups = lineupsSnap.docs.map(d => d.data());
     const completedGamesThisWeek = allGamesCache.filter(g => g.week === week && g.completed === 'TRUE');
 
-    // Debug logging
-    console.log(`[Standouts Week ${week}] Found ${weeklyDailyScores.length} daily score documents`);
-    console.log(`[Standouts Week ${week}] Daily score dates:`, weeklyDailyScores.map(ds => ds.date));
-    console.log(`[Standouts Week ${week}] Found ${completedGamesThisWeek.length} completed games`);
-    console.log(`[Standouts Week ${week}] Game dates:`, [...new Set(completedGamesThisWeek.map(g => g.date))]);
-
     let bestTeam = { id: null, name: 'N/A', pct_diff: -Infinity }, worstTeam = { id: null, name: 'N/A', pct_diff: Infinity };
-    let processedGames = 0, skippedGames = 0;
     completedGamesThisWeek.forEach(game => {
         const dailyScoreData = weeklyDailyScores.find(ds => ds.date === game.date);
-        if (!dailyScoreData || !dailyScoreData.daily_median) {
-            skippedGames++;
-            console.log(`[Standouts Week ${week}] Skipped game on ${game.date} - dailyScoreData found: ${!!dailyScoreData}, has daily_median: ${dailyScoreData?.daily_median}`);
-            return;
-        }
-        processedGames++;
+        if (!dailyScoreData || !dailyScoreData.daily_median) return;
         const processTeam = (teamId, teamScore) => {
             const pct_diff = ((teamScore / dailyScoreData.daily_median) - 1) * 100;
             if (pct_diff > bestTeam.pct_diff) bestTeam = { id: teamId, name: getTeamById(teamId).team_name, pct_diff };
@@ -544,8 +532,6 @@ async function calculateAndDisplayStandouts(week) {
         processTeam(game.team1_id, game.team1_score);
         processTeam(game.team2_id, game.team2_score);
     });
-
-    console.log(`[Standouts Week ${week}] Processed ${processedGames} games, skipped ${skippedGames} games`);
 
     let bestPlayer = { handle: null, rank: Infinity }, worstPlayer = { handle: null, rank: -Infinity };
     weeklyLineups.filter(l => l.started === 'TRUE' && l.global_rank > 0).forEach(lineup => {
