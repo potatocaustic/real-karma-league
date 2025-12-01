@@ -4,8 +4,10 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
+const { CloudSchedulerClient } = require("@google-cloud/scheduler");
 const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-helpers');
 const fetch = require("node-fetch");
+const schedulerClient = new CloudSchedulerClient();
 
 const API_BASE = 'https://schedule.tommyek67.workers.dev/';
 const POLL_CHECK_API = 'https://has-polls.tomfconreal.workers.dev/';
@@ -199,9 +201,42 @@ async function setDeadlineForDate(dateString, league = 'major') {
 
     console.log(`Successfully set deadline for ${dateString} to ${timeString} CT`);
 
+    // Schedule automatic live scoring start 15 minutes after the deadline
+    const triggerTime = new Date(deadlineDate.getTime() + 15 * 60 * 1000);
+    const jobName = league === 'minor' ? `minor-start-live-scoring-${dateString}` : `start-live-scoring-${dateString}`;
+    const projectId = process.env.GCLOUD_PROJECT;
+    const location = 'us-central1';
+    const topicName = league === 'minor' ? 'minor-start-live-scoring-topic' : 'start-live-scoring-topic';
+    const pubSubTopic = `projects/${projectId}/topics/${topicName}`;
+    const parent = `projects/${projectId}/locations/${location}`;
+    const jobPath = schedulerClient.jobPath(projectId, location, jobName);
+
+    try {
+        await schedulerClient.deleteJob({ name: jobPath });
+        console.log(`Deleted existing job ${jobName} to reschedule.`);
+    } catch (error) {
+        if (error.code !== 5) { // 5 = NOT_FOUND
+            console.error(`Error deleting existing schedule job ${jobName}:`, error);
+            throw new Error('Could not clear the existing schedule for the deadline.');
+        }
+    }
+
+    const job = {
+        name: jobPath,
+        pubsubTarget: {
+            topicName: pubSubTopic,
+            data: Buffer.from(JSON.stringify({ gameDate: dateString })).toString('base64'),
+        },
+        schedule: `${triggerTime.getUTCMinutes()} ${triggerTime.getUTCHours()} ${triggerTime.getUTCDate()} ${triggerTime.getUTCMonth() + 1} *`,
+        timeZone: 'UTC',
+    };
+
+    await schedulerClient.createJob({ parent: parent, job: job });
+    console.log(`Scheduled job ${jobName} to automatically start live scoring at ${triggerTime.toISOString()}`);
+
     return {
         success: true,
-        message: `Deadline for ${dateForFunction} set to ${timeString} America/Chicago`,
+        message: `Deadline for ${dateForFunction} set to ${timeString} America/Chicago. Live scoring will start automatically 15 minutes later.`,
         deadlineTime: timeString,
         gameDate: dateForFunction
     };
