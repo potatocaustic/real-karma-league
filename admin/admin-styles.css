@@ -870,6 +870,7 @@ main:hover {
 
 .adjustments-toggle-btn {
     margin: 0 0 0.75rem 0;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 .starter-card-header strong {
@@ -917,7 +918,8 @@ main:hover {
 }
 
 .lineup-complete-toggle {
-    margin-top: 1.35rem;
+    display: flex;
+    margin: 0.25rem 0;
     gap: 0.5rem;
     flex-direction: row;
     align-items: center;
@@ -972,9 +974,19 @@ main:hover {
     display: none;
 }
 
+.action-dropdown-menu .dropdown-checkbox {
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
 .live-scoring-actions .btn-admin-edit,
-.live-scoring-actions .btn-admin-delete {
+.live-scoring-actions .btn-admin-delete,
+.live-scoring-actions .btn-admin-secondary,
+.action-dropdown-menu .btn-admin-save,
+.action-dropdown-menu .btn-admin-delete {
     flex: 1 1 220px;
+    min-height: 44px;
+    padding: 0.65rem 1.1rem;
 }
 
 #submit-live-lineups-btn {
@@ -1766,6 +1778,15 @@ main:hover {
     background: #0f172a;
     border-color: #2f3b50;
     box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+.dark-mode .adjustments-toggle-btn {
+    background-color: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+.dark-mode .adjustments-toggle-btn:hover {
+    background-color: #2b3648;
+    border-color: #4b5563;
 }
 .dark-mode .lineup-modal .team-score-summary {
     background-color: #0b2a52;

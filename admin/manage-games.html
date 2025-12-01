@@ -179,7 +179,7 @@
                             <div id="team1-roster" class="roster-list"></div>
                         </div>
                         <div class="starters-entry">
-                            <h5>Enter Starter Scores (<span id="team1-starter-count">0</span>/6)</h5>
+                            <h5>Starters (<span id="team1-starter-count">0</span>/6)</h5>
                             <div id="team1-starters" class="starters-list"></div>
                         </div>
                         <div class="team-score-summary">
@@ -194,7 +194,7 @@
                             <div id="team2-roster" class="roster-list"></div>
                         </div>
                         <div class="starters-entry">
-                            <h5>Enter Starter Scores (<span id="team2-starter-count">0</span>/6)</h5>
+                            <h5>Starters (<span id="team2-starter-count">0</span>/6)</h5>
                             <div id="team2-starters" class="starters-list"></div>
                         </div>
                         <div class="team-score-summary">
@@ -203,18 +203,16 @@
                     </div>
                 </div>
 
-                <div class="form-group-admin lineup-complete-toggle">
-                    <input type="checkbox" id="lineup-game-completed-checkbox">
-                    <label for="lineup-game-completed-checkbox">Mark Game as Completed</label>
-                </div>
-
                 <div id="live-scoring-controls">
-                    <p class="live-scoring-title">Live Scoring Actions</p>
                     <div class="live-scoring-actions">
-                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit">Submit Lineup</button>
+                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit">Submit Lineups</button>
                         <div class="secondary-actions">
                             <button type="button" id="action-dropdown-toggle" class="btn-admin-secondary" aria-expanded="false" aria-controls="action-dropdown-menu">More Actions ▾</button>
                             <div id="action-dropdown-menu" class="action-dropdown-menu" hidden>
+                                <label class="dropdown-checkbox lineup-complete-toggle">
+                                    <input type="checkbox" id="lineup-game-completed-checkbox">
+                                    <span>Mark Game as Completed</span>
+                                </label>
                                 <button type="submit" class="btn-admin-save">Submit Adjustment</button>
                                 <button type="button" id="finalize-live-game-btn" class="btn-admin-delete">Finalize Game</button>
                             </div>

@@ -551,7 +551,7 @@ async function openLineupModal(game) {
         const dayDiff = timeDiff / (1000 * 3600 * 24);
 
         liveScoringControls.style.display = (dayDiff >= 0 && dayDiff <= 2) ? 'block' : 'none';
-        document.getElementById('submit-live-lineups-btn').textContent = 'Submit Lineup';
+        document.getElementById('submit-live-lineups-btn').textContent = 'Submit Lineups';
     }
 
 
@@ -927,7 +927,7 @@ async function handleStageLiveLineups(e) {
     if (!isTeam1LineupValid && !isTeam2LineupValid) {
         alert("Validation failed. At least one team must have exactly 6 starters selected to submit a lineup.");
         button.disabled = false;
-        button.textContent = 'Submit Lineup';
+        button.textContent = 'Submit Lineups';
         return;
     }
 
@@ -999,7 +999,7 @@ async function handleStageLiveLineups(e) {
         alert(`Failed to submit lineups: ${error.message}`);
     } finally {
         button.disabled = false;
-        button.textContent = 'Submit Lineup';
+        button.textContent = 'Submit Lineups';
     }
 }
 
