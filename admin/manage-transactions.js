@@ -180,36 +180,79 @@ function addTradePartyBlock() {
     const container = document.querySelector('.trade-parties-container');
     const partyId = `party-${Date.now()}`;
     const block = document.createElement('div');
-    block.className = 'trade-party-block';
+    block.className = 'trade-party-block elevated-card';
     block.id = partyId;
 
-    const removeButtonHTML = container.children.length >= 2
-        ? `<button type="button" class="btn-admin-remove-asset" onclick="this.closest('.trade-party-block').remove()" style="color: white;">&times;</button>`
-        : '';
+    const removeButtonHTML = `
+        <button type="button" class="icon-button remove-trade-party" aria-label="Remove team from trade">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    `;
 
     block.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label>Team</label>
-            ${removeButtonHTML}
+        <div class="trade-party-header">
+            <div class="trade-party-heading-group">
+                <span class="trade-party-index">Team</span>
+            </div>
+            <div class="trade-party-actions">
+                ${removeButtonHTML}
+            </div>
         </div>
-        <select class="team-select trade-team-select" required>
-            <option value="">Select team...</option>
-            ${allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('')}
-        </select>
+        <div class="form-group-admin compact">
+            <label class="sr-only">Team</label>
+            <select class="team-select trade-team-select" required>
+                <option value="">Select team...</option>
+                ${allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('')}
+            </select>
+        </div>
         <div class="assets-container">
-            <label>Assets Sent by this Team:</label>
+            <div class="assets-header">
+                <div>
+                    <p class="eyebrow">Assets Sent by this Team</p>
+                </div>
+            </div>
             <div class="asset-list"></div>
             <div class="asset-controls">
-                <select class="asset-type-select">
-                    <option value="player">Player</option>
-                    <option value="pick">Draft Pick</option>
-                </select>
+                <div class="asset-type-group">
+                    <label class="sr-only" for="asset-type-${partyId}">Asset type</label>
+                    <select id="asset-type-${partyId}" class="asset-type-select">
+                        <option value="player">Player</option>
+                        <option value="pick">Draft Pick</option>
+                    </select>
+                </div>
                 <button type="button" class="btn-admin-add-asset">+ Add Asset</button>
             </div>
         </div>
     `;
     container.appendChild(block);
+
+    const removeButton = block.querySelector('.remove-trade-party');
+    if (removeButton) {
+        removeButton.addEventListener('click', () => {
+            block.remove();
+            refreshTradePartyHeaders();
+        });
+    }
+
     block.querySelector('.btn-admin-add-asset').addEventListener('click', addAssetToTrade);
+    refreshTradePartyHeaders();
+}
+
+function refreshTradePartyHeaders() {
+    const blocks = Array.from(document.querySelectorAll('.trade-party-block'));
+    const shouldShowRemove = blocks.length > 2;
+
+    blocks.forEach((block, idx) => {
+        const indexLabel = block.querySelector('.trade-party-index');
+        if (indexLabel) {
+            indexLabel.textContent = `Team ${idx + 1}`;
+        }
+
+        const removeBtn = block.querySelector('.remove-trade-party');
+        if (removeBtn) {
+            removeBtn.style.display = shouldShowRemove ? 'inline-flex' : 'none';
+        }
+    });
 }
 
 function addAssetToTrade(event) {
@@ -242,17 +285,25 @@ function addAssetToTrade(event) {
     let assetSelectHTML = '';
     if (assetType === 'player') {
         const teamPlayers = allPlayers.filter(p => p.current_team_id === teamId);
+        if (!teamPlayers.length) {
+            alert('No players available for the selected team.');
+            return;
+        }
         assetSelectHTML = `<select class="asset-value-select" data-asset-type="player">${teamPlayers.map(p => `<option value="${p.id}">${p.player_handle}</option>`).join('')}</select>`;
     } else {
         const teamPicks = allPicks.filter(p => p.current_owner === teamId);
+        if (!teamPicks.length) {
+            alert('No picks available for the selected team.');
+            return;
+        }
         assetSelectHTML = `<select class="asset-value-select" data-asset-type="pick">${teamPicks.map(p => `<option value="${p.id}">${p.pick_description}</option>`).join('')}</select>`;
     }
 
     assetItem.innerHTML = `
-        ${assetSelectHTML}
-        <span> to </span>
+        <div class="asset-value-shell">${assetSelectHTML}</div>
+        <button type="button" class="btn-admin-remove-asset" aria-label="Remove asset" onclick="this.parentElement.remove()">&times;</button>
+        <span class="asset-to-label">to</span>
         <select class="asset-destination-select">${destinationOptions}</select>
-        <button type="button" class="btn-admin-remove-asset" onclick="this.parentElement.remove()">&times;</button>
     `;
     assetList.appendChild(assetItem);
 }
