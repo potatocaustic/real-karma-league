@@ -496,10 +496,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function copyReportToClipboard() {
         const reportText = buildReportText();
+        const copyBtn = document.getElementById('copy-report-btn');
+        const defaultContent = copyBtn ? copyBtn.innerHTML : '';
+
         navigator.clipboard.writeText(reportText).then(() => {
-            alert("Report copied to clipboard!");
+            if (copyBtn) {
+                copyBtn.textContent = 'Copied!';
+                copyBtn.classList.add('copied');
+                setTimeout(() => {
+                    copyBtn.innerHTML = defaultContent || 'Copy to Clipboard';
+                    copyBtn.classList.remove('copied');
+                }, 1200);
+            }
         }).catch(err => {
-            alert("Failed to copy report.");
+            if (copyBtn) {
+                copyBtn.textContent = 'Copy failed';
+                setTimeout(() => {
+                    copyBtn.innerHTML = defaultContent || 'Copy to Clipboard';
+                }, 1200);
+            }
             console.error('Clipboard copy error:', err);
         });
     }
