@@ -1304,7 +1304,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
                 liveGameData.team2_lineup.forEach(p => allPlayerIdsInGame.push(p.player_id));
             }
         } else {
-            const lineupsCollectionName = isGamePostseason ? getLeagueCollectionName('post_lineups') : getLeagueCollectionName('lineups');
+            const lineupsCollectionName = isGamePostseason ? 'post_lineups' : 'lineups';
             const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
             const lineupsSnap = await getDocs(lineupsQuery);
@@ -1347,11 +1347,11 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
             const isExhibition = gameData.week === 'All-Star' || gameData.week === 'Relegation' || gameData.week === 'Preseason';
             let lineupsCollectionName;
             if (isExhibition) {
-                lineupsCollectionName = getLeagueCollectionName('exhibition_lineups');
+                lineupsCollectionName = 'exhibition_lineups';
             } else if (isGamePostseason) {
-                lineupsCollectionName = getLeagueCollectionName('post_lineups');
+                lineupsCollectionName = 'post_lineups';
             } else {
-                lineupsCollectionName = getLeagueCollectionName('lineups');
+                lineupsCollectionName = 'lineups';
             }
             const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, lineupsCollectionName);
             const lineupsQuery = query(lineupsRef, where('game_id', '==', gameId));
