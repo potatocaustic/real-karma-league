@@ -199,7 +199,7 @@ function addTradePartyBlock() {
             </div>
         </div>
         <div class="form-group-admin compact">
-            <label>Team</label>
+            <label class="sr-only">Team</label>
             <select class="team-select trade-team-select" required>
                 <option value="">Select team...</option>
                 ${allTeams.map(t => `<option value="${t.id}">${t.team_name}</option>`).join('')}
@@ -209,7 +209,6 @@ function addTradePartyBlock() {
             <div class="assets-header">
                 <div>
                     <p class="eyebrow">Assets Sent by this Team</p>
-                    <p class="muted">Pick a player or draft pick, then set the destination.</p>
                 </div>
             </div>
             <div class="asset-list"></div>
@@ -301,7 +300,7 @@ function addAssetToTrade(event) {
     }
 
     assetItem.innerHTML = `
-        ${assetSelectHTML}
+        <div class="asset-value-shell">${assetSelectHTML}</div>
         <button type="button" class="btn-admin-remove-asset" aria-label="Remove asset" onclick="this.parentElement.remove()">&times;</button>
         <span class="asset-to-label">to</span>
         <select class="asset-destination-select">${destinationOptions}</select>

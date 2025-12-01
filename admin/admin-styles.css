@@ -1350,12 +1350,14 @@ main:hover {
     align-items: center;
     gap: 0.75rem;
     margin-bottom: 0.65rem;
-    padding: 0.75rem 0.8rem;
+    padding: 0.75rem 1rem;
     background-color: #fff;
     border-radius: 12px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
     flex-wrap: wrap;
+    position: relative;
+    padding-right: 3.35rem;
 }
 
 .asset-item span {
@@ -1369,10 +1371,16 @@ main:hover {
     color: #0f172a;
 }
 
+.asset-value-shell {
+    flex: 1 1 220px;
+    min-width: 0;
+}
+
 .asset-type-select,
 .asset-value-select,
 .asset-destination-select {
     min-width: 160px;
+    max-width: 100%;
     padding: 0.7rem 0.9rem;
     border: 1px solid #d7dde5;
     border-radius: 12px;
@@ -1388,6 +1396,11 @@ main:hover {
     background-size: 14px;
 }
 
+.asset-value-shell .asset-value-select,
+.asset-destination-select {
+    width: 100%;
+}
+
 .asset-type-select:focus,
 .asset-value-select:focus,
 .asset-destination-select:focus {
@@ -1401,6 +1414,15 @@ main:hover {
 .asset-value-select::-ms-expand,
 .asset-destination-select::-ms-expand {
     display: none;
+}
+
+.asset-type-select option,
+.asset-value-select option,
+.asset-destination-select option,
+.team-select option {
+    background: #f8fbff;
+    color: #0f172a;
+    font-weight: 600;
 }
 
 .asset-type-group {
@@ -1466,14 +1488,17 @@ main:hover {
     }
 
     .asset-item {
-        flex-direction: row;
+        gap: 0.45rem;
+        padding: 0.65rem 0.75rem;
+        padding-right: 0.75rem;
+        grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1fr);
+        display: grid;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.6rem 0.65rem;
     }
 
     .asset-to-label {
-        gap: 0.35rem;
+        gap: 0.25rem;
+        justify-content: center;
     }
 
     .asset-controls {
@@ -1487,6 +1512,22 @@ main:hover {
 
     .btn-admin-add-asset {
         width: 100%;
+    }
+
+    .asset-value-shell,
+    .asset-value-select,
+    .asset-destination-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .btn-admin-remove-asset {
+        position: static;
+        transform: none;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        margin: 0 0.35rem;
     }
 }
 
@@ -1502,7 +1543,7 @@ main:hover {
 }
 
 .form-actions .btn-admin-secondary {
-    flex: 0 0 auto;
+    flex: 1 1 240px;
     padding-inline: 1.25rem;
 }
 
@@ -1526,14 +1567,18 @@ main:hover {
     background-color: #dc2626;
     color: white;
     border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    line-height: 32px;
+    border-radius: 999px;
+    width: 26px;
+    height: 26px;
+    line-height: 26px;
     text-align: center;
     cursor: pointer;
     font-weight: 800;
-    box-shadow: 0 10px 18px rgba(220, 38, 38, 0.22);
+    box-shadow: 0 8px 16px rgba(220, 38, 38, 0.22);
+    position: absolute;
+    right: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
 }
 
 .draft-table-container {
@@ -1986,6 +2031,14 @@ main:hover {
 .dark-mode .asset-destination-select {
     background: linear-gradient(135deg, #0f172a, #111827);
     border-color: #243047;
+    color: #e5e7eb;
+}
+
+.dark-mode .asset-type-select option,
+.dark-mode .asset-value-select option,
+.dark-mode .asset-destination-select option,
+.dark-mode .team-select option {
+    background: #0b1220;
     color: #e5e7eb;
 }
 
