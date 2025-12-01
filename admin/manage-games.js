@@ -349,7 +349,7 @@ async function fetchAndDisplayGames(seasonId, week) {
 
             const isLive = liveGameIds.has(game.id);
             const isComplete = game.completed === 'TRUE';
-            const gameStatus = isComplete ? `${game.team1_score} - ${game.team2_score}` : (isLive ? 'Live' : 'Pending');
+            const gameStatus = isComplete ? 'Complete' : (isLive ? 'Live' : 'Pending');
             
             let team1Indicator = '';
             let team2Indicator = '';
@@ -366,7 +366,7 @@ async function fetchAndDisplayGames(seasonId, week) {
                             <strong>${team1?.team_name || game.team1_id} ${team1Indicator}</strong> vs 
                             <strong>${team2?.team_name || game.team2_id} ${team2Indicator}</strong>
                         </span>
-                        <span class="game-date">Date: ${game.date || 'N/A'}</span>
+                        <span class="game-date">${game.date || 'N/A'}</span>
                     </span>
                     <span class="game-score">${gameStatus}</span>
                     <button class="btn-admin-edit">Edit</button>
