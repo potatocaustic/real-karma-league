@@ -705,6 +705,10 @@ main:hover {
     flex-direction: column;
     gap: 0.35rem;
 }
+
+.form-group-admin.compact {
+    margin-bottom: 0.5rem;
+}
 .form-group-admin label {
     display: block;
     margin-bottom: 0;
@@ -1165,6 +1169,55 @@ main:hover {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
+.transaction-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.section-subtext {
+    margin: 0.35rem 0 0;
+    color: #475569;
+}
+
+.eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin: 0 0 0.25rem;
+}
+
+.muted {
+    color: #64748b;
+    margin: 0.15rem 0 0;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.chip.subtle {
+    background: #eef2ff;
+    color: #312e81;
+    border: 1px solid #c7d2fe;
+}
+
+.trade-guidance {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
 .transaction-section h4 {
     margin-top: 0;
     margin-bottom: 1rem;
@@ -1181,41 +1234,212 @@ main:hover {
 }
 
 .trade-party-block {
-    padding: 1rem 1.1rem;
-    border: 1px dashed #cbd5e1;
+    padding: 1.25rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: linear-gradient(160deg, #ffffff, #f8fbff);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.08);
+}
+
+.elevated-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.elevated-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.08), transparent 30%),
+                radial-gradient(circle at 90% 10%, rgba(56, 189, 248, 0.06), transparent 35%);
+    z-index: 0;
+}
+
+.elevated-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.trade-party-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.trade-party-heading-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.trade-party-index {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2563eb, #22d3ee);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+}
+
+.trade-party-subtext {
+    margin: 0;
+    color: #475569;
+}
+
+.trade-party-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
     border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #0f172a;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.icon-button:hover {
+    background: #e0e7ff;
+    box-shadow: 0 10px 18px rgba(59, 130, 246, 0.18);
+    transform: translateY(-1px);
+}
+
+.icon-button:active {
+    transform: translateY(0);
 }
 
 .assets-container {
     margin-top: 1rem;
-    padding: 0.85rem 1rem;
-    border-left: 4px solid #e5e7eb;
-    border-radius: 10px;
-    background: #f9fafb;
+    padding: 1rem 1.1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.assets-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .asset-controls {
     display: flex;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
 }
 
 .asset-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    padding: 0.6rem 0.7rem;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+    padding: 0.75rem 0.8rem;
     background-color: #fff;
-    border-radius: 10px;
+    border-radius: 12px;
     border: 1px solid #e5e7eb;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
 }
 
 .asset-item span {
     font-weight: 600;
+}
+
+.asset-type-group {
+    min-width: 180px;
+}
+
+.trade-actions-row {
+    margin-top: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px dashed #dbeafe;
+    border-radius: 12px;
+    background: #f8fbff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.trade-actions-copy {
+    color: #334155;
+    font-weight: 600;
+}
+
+.btn-admin-ghost {
+    border: 1px solid #cbd5e1;
+    background: linear-gradient(135deg, #ffffff, #f8fafc);
+    color: #0f172a;
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.06);
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-admin-ghost:hover {
+    border-color: #2563eb;
+    box-shadow: 0 16px 34px rgba(37, 99, 235, 0.18);
+    transform: translateY(-1px);
+}
+
+.btn-admin-ghost:active {
+    transform: translateY(0);
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 720px) {
+    .trade-party-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .asset-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .asset-item span {
+        text-align: center;
+    }
+
+    .asset-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .asset-type-group {
+        width: 100%;
+    }
 }
 
 .form-actions {
@@ -1235,24 +1459,29 @@ main:hover {
 }
 
 .btn-admin-add-asset {
-    background-color: #17a2b8;
+    background: linear-gradient(135deg, #0ea5e9, #6366f1);
     color: white;
     border: none;
-    padding: 0.25rem 0.75rem;
-    border-radius: 4px;
+    padding: 0.65rem 1rem;
+    border-radius: 12px;
     cursor: pointer;
+    font-weight: 700;
+    box-shadow: 0 12px 24px rgba(14, 165, 233, 0.25);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .btn-admin-remove-asset {
-    background-color: #dc3545;
+    background-color: #dc2626;
     color: white;
     border: none;
     border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    line-height: 20px;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
     text-align: center;
     cursor: pointer;
+    font-weight: 800;
+    box-shadow: 0 10px 18px rgba(220, 38, 38, 0.22);
 }
 
 .draft-table-container {
@@ -1689,15 +1918,42 @@ main:hover {
 
 .dark-mode .trade-party-block {
     border-color: #334155;
-    background: #0b1220;
+    background: linear-gradient(160deg, #0f172a, #111827);
 }
 .dark-mode .assets-container {
-    border-left-color: #243047;
+    border-color: #243047;
     background: #0f172a;
 }
 .dark-mode .asset-item {
     background-color: #0b1220;
     border-color: #1f2a3d;
+}
+
+.dark-mode .asset-controls {
+    border-color: #243047;
+}
+
+.dark-mode .trade-actions-row {
+    border-color: #1f2937;
+    background: #0f172a;
+}
+
+.dark-mode .btn-admin-ghost {
+    background: linear-gradient(135deg, #0f172a, #111827);
+    color: #e5e7eb;
+    border-color: #243047;
+}
+
+.dark-mode .icon-button {
+    background: #0f172a;
+    border-color: #243047;
+    color: #e5e7eb;
+}
+
+.dark-mode .chip.subtle {
+    background: rgba(59, 130, 246, 0.12);
+    color: #bfdbfe;
+    border-color: rgba(59, 130, 246, 0.2);
 }
 
 .dark-mode .draft-table th, 
