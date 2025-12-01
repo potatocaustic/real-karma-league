@@ -108,10 +108,22 @@
             </div>
 
             <div id="trade-section" class="transaction-section" style="display: none;">
-                <h4>Trade Details</h4>
-                <div class="trade-parties-container">
+                <div class="transaction-section-header">
+                    <div>
+                        <p class="eyebrow">Trade Builder</p>
+                        <h4>Trade Details</h4>
+                        <p class="section-subtext">Add each team involved, list the assets they are sending, and choose where they are headed.</p>
+                    </div>
+                    <div class="trade-guidance">
+                        <span class="chip subtle">Tip: Start with the first two teams, then add more if needed.</span>
+                        <span class="chip subtle">Mobile friendly: fields stack for easier tapping.</span>
+                    </div>
                 </div>
-                <button type="button" id="add-team-btn" class="btn-admin-secondary">Add Another Team</button>
+                <div class="trade-parties-container"></div>
+                <div class="trade-actions-row">
+                    <div class="trade-actions-copy">Ensure every asset has a destination team selected.</div>
+                    <button type="button" id="add-team-btn" class="btn-admin-ghost">+ Add Another Team</button>
+                </div>
             </div>
 
             <div id="sign-section" class="transaction-section" style="display: none;">
