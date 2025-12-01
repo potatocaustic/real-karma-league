@@ -6,6 +6,7 @@ import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-
 // --- Page Elements ---
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
 let deadlineForm, deadlineDateInput, deadlineDisplay, deadlineToolsToggle, deadlineToolsContent;
+let adjustmentsToggleBtn, actionDropdownToggle, actionDropdownMenu;
 
 
 
@@ -30,6 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     lineupForm = document.getElementById('lineup-form');
     closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
     liveScoringControls = document.getElementById('live-scoring-controls');
+    adjustmentsToggleBtn = document.getElementById('toggle-adjustments-btn');
+    actionDropdownToggle = document.getElementById('action-dropdown-toggle');
+    actionDropdownMenu = document.getElementById('action-dropdown-menu');
     deadlineForm = document.getElementById('deadline-form');
     deadlineDateInput = document.getElementById('deadline-date');
     deadlineDisplay = document.getElementById('current-deadline-display');
@@ -96,6 +100,21 @@ async function initializePage() {
     lineupForm.addEventListener('input', calculateAllScores);
     document.getElementById('team1-starters').addEventListener('click', handleCaptainToggle);
     document.getElementById('team2-starters').addEventListener('click', handleCaptainToggle);
+
+    if (adjustmentsToggleBtn) {
+        adjustmentsToggleBtn.addEventListener('click', () => {
+            const isShowingAdjustments = lineupModal.classList.toggle('show-adjustments');
+            adjustmentsToggleBtn.textContent = isShowingAdjustments ? 'Hide adjustments' : 'Adjust scores';
+        });
+    }
+
+    if (actionDropdownToggle && actionDropdownMenu) {
+        actionDropdownToggle.addEventListener('click', () => {
+            const isHidden = actionDropdownMenu.hasAttribute('hidden');
+            actionDropdownMenu.toggleAttribute('hidden');
+            actionDropdownToggle.setAttribute('aria-expanded', String(isHidden));
+        });
+    }
 
     if (liveScoringControls) {
         liveScoringControls.addEventListener('click', (e) => {
@@ -363,7 +382,7 @@ async function fetchAndDisplayGames(seasonId, week) {
                 <div class="game-entry" data-game-id="${game.id}" data-collection="${collectionName}">
                     <span class="game-details">
                         <span class="game-teams">
-                            <strong>${team1?.team_name || game.team1_id} ${team1Indicator}</strong> vs 
+                            <strong>${team1?.team_name || game.team1_id} ${team1Indicator}</strong> v.
                             <strong>${team2?.team_name || game.team2_id} ${team2Indicator}</strong>
                         </span>
                         <span class="game-date">${game.date || 'N/A'}</span>
@@ -532,7 +551,7 @@ async function openLineupModal(game) {
         const dayDiff = timeDiff / (1000 * 3600 * 24);
 
         liveScoringControls.style.display = (dayDiff >= 0 && dayDiff <= 2) ? 'block' : 'none';
-        document.getElementById('submit-live-lineups-btn').textContent = 'Submit Lineups for Live Scoring';
+        document.getElementById('submit-live-lineups-btn').textContent = 'Submit Lineups';
     }
 
 
@@ -602,8 +621,17 @@ async function openLineupModal(game) {
     renderTeamUI('team1', team1, team1Roster, existingLineups, team1StartersOrdered);
     renderTeamUI('team2', team2, team2Roster, existingLineups, team2StartersOrdered);
 
+    lineupModal.classList.remove('show-adjustments');
+    if (adjustmentsToggleBtn) {
+        adjustmentsToggleBtn.textContent = 'Adjust scores';
+    }
+    if (actionDropdownMenu && actionDropdownToggle) {
+        actionDropdownMenu.setAttribute('hidden', '');
+        actionDropdownToggle.setAttribute('aria-expanded', 'false');
+    }
 
-    document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} vs ${team2.team_name}`;
+
+    document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} v. ${team2.team_name}`;
     calculateAllScores();
     lineupModal.classList.add('is-visible');
 }
@@ -679,7 +707,7 @@ function addStarterCard(checkbox, lineupData = null) {
             <strong>${playerHandle}</strong>
             <label><input type="radio" name="${teamPrefix}-captain" value="${playerId}" ${isCaptain ? 'checked' : ''}> Captain</label>
         </div>
-        <div class="starter-inputs">
+        <div class="starter-inputs adjustment-fields">
             <div class="form-group-admin"><label for="raw-score-${playerId}">Raw Score</label><input type="number" id="raw-score-${playerId}" value="${rawScore}" step="any"></div>
             <div class="form-group-admin"><label for="global-rank-${playerId}">Global Rank</label><input type="number" id="global-rank-${playerId}" value="${lineupData?.global_rank || 0}"></div>
             <div class="form-group-admin"><label for="reductions-${playerId}">Reductions</label><input type="number" id="reductions-${playerId}" value="${lineupData?.adjustments || 0}" step="any"></div>
@@ -751,7 +779,7 @@ async function handleLineupFormSubmit(e) {
     if (!isValid) {
         alert("Validation failed. Each team must have exactly 6 starters selected.");
         submitButton.disabled = false;
-        submitButton.textContent = 'Save Lineups & Final Score';
+        submitButton.textContent = 'Submit Adjustment';
         return;
     }
 
@@ -879,7 +907,7 @@ async function handleLineupFormSubmit(e) {
         alert('An error occurred. Check the console for details.');
     } finally {
         submitButton.disabled = false;
-        submitButton.textContent = 'Save Lineups & Final Score';
+        submitButton.textContent = 'Submit Adjustment';
     }
 }
 
@@ -899,7 +927,7 @@ async function handleStageLiveLineups(e) {
     if (!isTeam1LineupValid && !isTeam2LineupValid) {
         alert("Validation failed. At least one team must have exactly 6 starters selected to submit a lineup.");
         button.disabled = false;
-        button.textContent = 'Submit Lineups for Live Scoring';
+        button.textContent = 'Submit Lineups';
         return;
     }
 
@@ -971,7 +999,7 @@ async function handleStageLiveLineups(e) {
         alert(`Failed to submit lineups: ${error.message}`);
     } finally {
         button.disabled = false;
-        button.textContent = 'Submit Lineups for Live Scoring';
+        button.textContent = 'Submit Lineups';
     }
 }
 
@@ -998,7 +1026,7 @@ async function handleFinalizeLiveGame(e) {
         alert(`Failed to finalize game: ${error.message}`);
     } finally {
         button.disabled = false;
-        button.textContent = 'Finalize Live Game Now';
+        button.textContent = 'Finalize Game';
     }
 }
 
