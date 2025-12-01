@@ -94,6 +94,8 @@
         <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
         <h2>Log New Transaction</h2>
 
+        <div id="transaction-feedback" class="admin-feedback" role="status" aria-live="polite" hidden></div>
+
         <form id="transaction-form" class="form-container-admin">
             <div class="form-group-admin">
                 <label for="transaction-type-select">Transaction Type</label>
@@ -181,7 +183,7 @@
                 <textarea id="transaction-notes" rows="3"></textarea>
             </div>
 
-            <div class="form-actions">
+            <div class="form-actions transaction-actions">
                 <button type="submit" class="btn-admin-save">Log Transaction</button>
                 <button type="reset" class="btn-admin-secondary">Reset Form</button>
             </div>
