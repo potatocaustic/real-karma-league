@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 authStatusDiv.innerHTML = `Welcome! | <a href="#" id="logout-btn">Logout</a>`;
                 addLogoutListener();
                 initializeReportButtons();
+                setupReportPreviews();
 
                 // Listen for league changes and reload the active season
                 window.addEventListener('leagueChanged', async (event) => {
@@ -73,6 +74,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Auto-populate deadline time for today on page load
         autoPopulateDeadlineTime();
+    }
+
+    function setupReportPreviews() {
+        const previewButtons = document.querySelectorAll('[data-report-toggle]');
+        previewButtons.forEach(button => {
+            const targetKey = button.dataset.reportToggle;
+            const body = document.querySelector(`[data-report-body="${targetKey}"]`);
+
+            if (!body) return;
+
+            button.addEventListener('click', () => {
+                const isOpen = button.classList.toggle('open');
+                body.hidden = !isOpen;
+                body.classList.toggle('open', isOpen);
+                button.setAttribute('aria-expanded', String(isOpen));
+            });
+        });
     }
 
     function addGenerateHandler(buttonId, handler) {

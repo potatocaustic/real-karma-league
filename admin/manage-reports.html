@@ -97,35 +97,59 @@
             <p>Select a report to generate. Outputs can be copied and pasted.</p>
         </div>
 
-        <div class="content-container report-section">
-            <h3>Lineups Deadline Report</h3>
-            <div class="form-group">
-                <label for="deadline-date">Game Date:</label>
-                <input type="date" id="deadline-date">
+        <div class="content-container report-shell">
+            <button class="report-preview-card" type="button" data-report-toggle="deadline" aria-expanded="false">
+                <div class="report-preview-text">
+                    <h3>Lineups Deadline Report</h3>
+                    <p class="report-preview-description">Share today’s matchups and the deadline reminder link.</p>
+                </div>
+                <span class="preview-indicator" aria-hidden="true">&#9656;</span>
+            </button>
+            <div class="report-section" data-report-body="deadline" hidden>
+                <div class="form-group">
+                    <label for="deadline-date">Game Date:</label>
+                    <input type="date" id="deadline-date">
+                </div>
+                <div class="form-group">
+                    <label for="deadline-time">Deadline Time (e.g., 12:05p ET):</label>
+                    <input type="text" id="deadline-time" placeholder="12:05p ET">
+                </div>
+                <button id="generate-deadline-report" class="btn-admin-edit">Generate Report</button>
             </div>
-            <div class="form-group">
-                <label for="deadline-time">Deadline Time (e.g., 12:05p ET):</label>
-                <input type="text" id="deadline-time" placeholder="12:05p ET">
-            </div>
-            <button id="generate-deadline-report" class="btn-admin-edit">Generate Report</button>
         </div>
 
-        <div class="content-container report-section">
-            <h3>Vote GOTD Report</h3>
-            <div class="form-group">
-                <label for="gotd-date">Game Date:</label>
-                <input type="date" id="gotd-date">
+        <div class="content-container report-shell">
+            <button class="report-preview-card" type="button" data-report-toggle="gotd" aria-expanded="false">
+                <div class="report-preview-text">
+                    <h3>Vote GOTD Report</h3>
+                    <p class="report-preview-description">Collect Game of the Day votes with a copyable headline.</p>
+                </div>
+                <span class="preview-indicator" aria-hidden="true">&#9656;</span>
+            </button>
+            <div class="report-section" data-report-body="gotd" hidden>
+                <div class="form-group">
+                    <label for="gotd-date">Game Date:</label>
+                    <input type="date" id="gotd-date">
+                </div>
+                <button id="generate-gotd-report" class="btn-admin-edit">Generate Report</button>
             </div>
-            <button id="generate-gotd-report" class="btn-admin-edit">Generate Report</button>
         </div>
 
-        <div class="content-container report-section">
-            <h3>Daily Lineups Report</h3>
-             <div id="gotd-selector-container" style="display: none;">
-                <p><strong>Step 1: Select the Game of the Day (GOTD)</strong></p>
-                <div id="gotd-game-list" class="form-group"></div>
+        <div class="content-container report-shell">
+            <button class="report-preview-card" type="button" data-report-toggle="lineups" aria-expanded="false">
+                <div class="report-preview-text">
+                    <h3>Daily Lineups Report</h3>
+                    <p class="report-preview-description">Publish lineups and highlight the GOTD matchup.</p>
+                </div>
+                <span class="preview-indicator" aria-hidden="true">&#9656;</span>
+            </button>
+            <div class="report-section" data-report-body="lineups" hidden>
+                 <div id="gotd-selector-container" style="display: none;">
+                    <p><strong>Step 1: Select the Game of the Day (GOTD)</strong></p>
+                    <div id="gotd-game-list" class="form-group"></div>
+                </div>
+                <button id="generate-lineups-report" class="btn-admin-edit">Generate Report</button>
             </div>
-            <button id="generate-lineups-report" class="btn-admin-edit">Generate Report</button>
         </div>
 
 
