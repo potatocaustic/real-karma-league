@@ -230,7 +230,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data && data.games && data.games.length > 0) {
             const reportContainer = document.createDocumentFragment();
 
-            const header = buildReportHeader(`Vote GOTD ${firestoreDate}`, copyReportToClipboard);
+            const headerTitle = `Vote GOTD ${firestoreDate}`;
+            const header = buildReportHeader(headerTitle, {
+                copyHandler: (button, defaultContent) => copyHeaderText(headerTitle, button, defaultContent),
+                copyLabel: 'Copy header',
+                iconOnly: true
+            });
             reportContainer.appendChild(header);
 
             data.games.forEach(g => {
@@ -362,7 +367,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
         
         const reportContainer = document.createDocumentFragment();
-        const header = buildReportHeader(`Lineups ${formattedDate}`, copyReportToClipboard);
+        const headerTitle = `Lineups ${formattedDate}`;
+        const header = buildReportHeader(headerTitle, {
+            copyHandler: (button, defaultContent) => copyHeaderText(headerTitle, button, defaultContent),
+            copyLabel: 'Copy header',
+            iconOnly: true
+        });
         reportContainer.appendChild(header);
 
         const captainEmojis = { 'Penguins': ' 🐧', 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮', 'Flames': ' 🔥' };
@@ -498,7 +508,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function buildReportHeader(title, copyHandler) {
+    const headerClipboardIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+
+    function copyHeaderText(title, button, defaultContent) {
+        navigator.clipboard.writeText(title).then(() => {
+            if (button) {
+                button.innerHTML = '✅';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.innerHTML = defaultContent || headerClipboardIcon;
+                    button.classList.remove('copied');
+                }, 1200);
+            }
+        }).catch(err => console.error('Failed to copy header:', err));
+    }
+
+    function buildReportHeader(title, { copyHandler, copyLabel = 'Copy header', iconOnly = false } = {}) {
         const header = document.createElement('div');
         header.className = 'report-header';
 
@@ -508,9 +533,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const copyBtn = document.createElement('button');
         copyBtn.className = 'header-copy-btn';
-        copyBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg><span>Copy report</span>`;
-        copyBtn.addEventListener('click', copyHandler);
-        copyBtn.setAttribute('aria-label', 'Copy report');
+        const defaultContent = iconOnly ? headerClipboardIcon : `${headerClipboardIcon}<span>${copyLabel}</span>`;
+        copyBtn.innerHTML = defaultContent;
+        copyBtn.addEventListener('click', () => {
+            if (typeof copyHandler === 'function') {
+                copyHandler(copyBtn, defaultContent);
+            }
+        });
+        copyBtn.setAttribute('aria-label', copyLabel);
 
         header.appendChild(titleSpan);
         header.appendChild(copyBtn);

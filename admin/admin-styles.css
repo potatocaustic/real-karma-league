@@ -164,6 +164,23 @@ main {
     transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
+#admin-container .report-section {
+    background: linear-gradient(145deg, #f8fafc, #eef2ff);
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+#admin-container .report-section + .report-section {
+    margin-top: 0.75rem;
+}
+
+#admin-container .report-section h3 {
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
 #admin-container {
     display: flex;
     flex-direction: column;
