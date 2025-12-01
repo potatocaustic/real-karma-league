@@ -1355,10 +1355,52 @@ main:hover {
     border-radius: 12px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 12px 26px rgba(15, 23, 42, 0.08);
+    flex-wrap: wrap;
 }
 
 .asset-item span {
     font-weight: 600;
+}
+
+.asset-to-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: #0f172a;
+}
+
+.asset-type-select,
+.asset-value-select,
+.asset-destination-select {
+    min-width: 160px;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid #d7dde5;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffffff, #f8fafc);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    color: #0f172a;
+    font-weight: 600;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%232563eb'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.24 4.5a.75.75 0 01-1.08 0l-4.24-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 14px;
+}
+
+.asset-type-select:focus,
+.asset-value-select:focus,
+.asset-destination-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    outline: none;
+    background-color: #fff;
+}
+
+.asset-type-select::-ms-expand,
+.asset-value-select::-ms-expand,
+.asset-destination-select::-ms-expand {
+    display: none;
 }
 
 .asset-type-group {
@@ -1424,12 +1466,14 @@ main:hover {
     }
 
     .asset-item {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 0.65rem;
     }
 
-    .asset-item span {
-        text-align: center;
+    .asset-to-label {
+        gap: 0.35rem;
     }
 
     .asset-controls {
@@ -1438,6 +1482,10 @@ main:hover {
     }
 
     .asset-type-group {
+        width: 100%;
+    }
+
+    .btn-admin-add-asset {
         width: 100%;
     }
 }
@@ -1468,6 +1516,10 @@ main:hover {
     font-weight: 700;
     box-shadow: 0 12px 24px rgba(14, 165, 233, 0.25);
     transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.asset-item .btn-admin-remove-asset {
+    flex: 0 0 auto;
 }
 
 .btn-admin-remove-asset {
@@ -1927,6 +1979,14 @@ main:hover {
 .dark-mode .asset-item {
     background-color: #0b1220;
     border-color: #1f2a3d;
+}
+
+.dark-mode .asset-type-select,
+.dark-mode .asset-value-select,
+.dark-mode .asset-destination-select {
+    background: linear-gradient(135deg, #0f172a, #111827);
+    border-color: #243047;
+    color: #e5e7eb;
 }
 
 .dark-mode .asset-controls {

@@ -193,7 +193,6 @@ function addTradePartyBlock() {
         <div class="trade-party-header">
             <div class="trade-party-heading-group">
                 <span class="trade-party-index">Team</span>
-                <p class="trade-party-subtext">Select the team and list what they're sending out.</p>
             </div>
             <div class="trade-party-actions">
                 ${removeButtonHTML}
@@ -303,9 +302,9 @@ function addAssetToTrade(event) {
 
     assetItem.innerHTML = `
         ${assetSelectHTML}
-        <span> to </span>
+        <button type="button" class="btn-admin-remove-asset" aria-label="Remove asset" onclick="this.parentElement.remove()">&times;</button>
+        <span class="asset-to-label">to</span>
         <select class="asset-destination-select">${destinationOptions}</select>
-        <button type="button" class="btn-admin-remove-asset" onclick="this.parentElement.remove()">&times;</button>
     `;
     assetList.appendChild(assetItem);
 }
