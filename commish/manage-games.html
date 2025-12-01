@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Games & Scores - RKL Commish</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        // Detect league immediately to prevent flash
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <script>
+          document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+        </script>
+        <script>
+          document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+        </script>
+      </h1>
+      <div id="league-switcher-mount">
+        <div class="league-switcher">
+            <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="17 1 21 5 17 9"></polyline>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                    <polyline points="7 23 3 19 7 15"></polyline>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                </svg>
+            </button>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li class="dropdown">
+                <a href="/S9/RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
+                <div class="dropdown-content">
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                    <a href="/S8/RKL-S8.html">S8 Home</a>
+                    <a href="/S7/RKL-S7.html">S7 Home</a>
+                </div>
+            </li>
+            <li><a href="/S9/standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/leaderboards.html">Season Leaderboards</a>
+                    <a href="/S9/compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="/S9/schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/draft-capital.html">Draft Capital</a>
+                    <a href="/S9/draft-results.html">Draft Results</a>
+                    <a href="/S9/draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="/S9/transactions.html">Transactions</a></li>
+            <li><a href="/S9/teams.html">Teams</a></li>
+            <li><a href="/S9/trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/commish/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Manage Games & Scores</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select">Season:</label>
+                <select id="season-select"><option>Loading...</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="week-select">Week:</label>
+                <select id="week-select"><option>Select a season...</option></select>
+            </div>
+        </div>
+
+        <div class="status-legend" aria-label="Game status legend">
+            <div class="legend-item">
+                <span class="game-score game-status-badge status-complete" aria-hidden="true">C</span>
+                <span class="legend-text">C: Complete</span>
+            </div>
+            <div class="legend-item">
+                <span class="game-score game-status-badge status-live" aria-hidden="true">R</span>
+                <span class="legend-text">R: Ready/Live</span>
+            </div>
+            <div class="legend-item">
+                <span class="game-score game-status-badge status-pending" aria-hidden="true">P</span>
+                <span class="legend-text">P: Pending/Incomplete</span>
+            </div>
+        </div>
+
+        <div class="admin-card collapsible-card">
+            <button class="collapsible-toggle" type="button" aria-expanded="false" aria-controls="deadline-tools">Deadline Tools</button>
+            <div id="deadline-tools" class="collapsible-content" hidden>
+                <div class="deadline-tools-grid">
+                    <div class="deadline-management-card admin-subcard">
+                        <form id="deadline-form">
+                            <div class="form-group-admin">
+                                <label for="deadline-date">Set Deadline For:</label>
+                                <input type="date" id="deadline-date" required>
+                            </div>
+                            <div class="form-group-admin">
+                                <label for="deadline-time">Time (Central)</label>
+                                <input type="time" id="deadline-time" required>
+                            </div>
+                            <button type="submit" class="btn-admin-save">Set</button>
+                        </form>
+                        <div id="current-deadline-display">
+                            <p>Select a date to see the current deadline.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--
+        <div class="admin-card">
+            <div class="admin-section">
+                <h3>Manual Fixes</h3>
+                <button id="manual-bracket-fix-btn" class="btn-admin-danger">Manually Advance Bracket</button>
+            </div>
+        </div>
+        -->
+        <div id="games-list-container">
+            <p class="placeholder-text">Please select a season and week to view games.</p>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <div id="lineup-modal" class="modal-admin lineup-modal">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="lineup-modal-title">Enter Lineups & Scores</h3>
+            <button type="button" id="toggle-adjustments-btn" class="btn-admin-secondary adjustments-toggle-btn">Adjust scores</button>
+            <form id="lineup-form">
+                <input type="hidden" id="lineup-game-id">
+                <input type="hidden" id="lineup-game-date">
+                <input type="hidden" id="lineup-is-postseason">
+
+                <div class="lineup-entry-container">
+                    <div id="team1-section" class="team-lineup-section">
+                        <h4 id="team1-name-header">Team 1</h4>
+                        <div class="roster-selection">
+                            <h5>Select 6 Starters</h5>
+                            <div id="team1-roster" class="roster-list"></div>
+                        </div>
+                        <div class="starters-entry">
+                            <h5>Starters (<span id="team1-starter-count">0</span>/6)</h5>
+                            <div id="team1-starters" class="starters-list"></div>
+                        </div>
+                        <div class="team-score-summary">
+                            Final Score: <span id="team1-final-score">0</span>
+                        </div>
+                    </div>
+
+                    <div id="team2-section" class="team-lineup-section">
+                        <h4 id="team2-name-header">Team 2</h4>
+                        <div class="roster-selection">
+                            <h5>Select 6 Starters</h5>
+                            <div id="team2-roster" class="roster-list"></div>
+                        </div>
+                        <div class="starters-entry">
+                            <h5>Starters (<span id="team2-starter-count">0</span>/6)</h5>
+                            <div id="team2-starters" class="starters-list"></div>
+                        </div>
+                        <div class="team-score-summary">
+                            Final Score: <span id="team2-final-score">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="live-scoring-controls">
+                    <div class="live-scoring-actions">
+                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit">Submit Lineups</button>
+                        <div class="secondary-actions">
+                            <button type="button" id="action-dropdown-toggle" class="btn-admin-secondary" aria-expanded="false" aria-controls="action-dropdown-menu">More Actions ▾</button>
+                            <div id="action-dropdown-menu" class="action-dropdown-menu" hidden>
+                                <label class="dropdown-checkbox lineup-complete-toggle">
+                                    <input type="checkbox" id="lineup-game-completed-checkbox">
+                                    <span>Mark Game as Completed</span>
+                                </label>
+                                <button type="submit" class="btn-admin-save">Submit Adjustment</button>
+                                <button type="button" id="finalize-live-game-btn" class="btn-admin-delete">Finalize Game</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/commish/manage-games.js"></script>
+    <script type="module">
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+        const switcher = createLeagueSwitcher();
+        document.getElementById('league-switcher-mount').appendChild(switcher);
+    </script>
+</body>
+</html>

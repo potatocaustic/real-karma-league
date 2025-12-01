@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Teams - RKL Commish</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        // Detect league immediately to prevent flash
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <script>
+          document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+        </script>
+        <script>
+          document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+        </script>
+      </h1>
+      <div id="league-switcher-mount">
+        <div class="league-switcher">
+            <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="17 1 21 5 17 9"></polyline>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                    <polyline points="7 23 3 19 7 15"></polyline>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                </svg>
+            </button>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li class="dropdown">
+                <a href="/S9/RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
+                <div class="dropdown-content">
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                    <a href="/S8/RKL-S8.html">S8 Home</a>
+                    <a href="/S7/RKL-S7.html">S7 Home</a>
+                </div>
+            </li>
+            <li><a href="/S9/standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/leaderboards.html">Season Leaderboards</a>
+                    <a href="/S9/compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="/S9/schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/draft-capital.html">Draft Capital</a>
+                    <a href="/S9/draft-results.html">Draft Results</a>
+                    <a href="/S9/draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="/S9/transactions.html">Transactions</a></li>
+            <li><a href="/S9/teams.html">Teams</a></li>
+            <li><a href="/S9/trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/commish/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Manage Teams</h2>
+
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="season-select-teams">Season:</label>
+                <select id="season-select-teams"></select>
+            </div>
+        </div>
+        <div id="teams-list-container">
+            <div class="loading">Loading teams...</div>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Edit Team Modal -->
+    <div id="team-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3 id="modal-title-team">Edit Team</h3>
+            <form id="team-form">
+                <input type="hidden" id="team-id-input">
+                <div class="form-group-admin">
+                    <label>Team ID (Read-only)</label>
+                    <p id="team-id-display" class="read-only-field"></p>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-name-input">Team Name</label>
+                    <input type="text" id="team-name-input" required>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-conference-select">Conference</label>
+                    <select id="team-conference-select" required>
+                        <!-- Options will be populated dynamically by JS based on league -->
+                    </select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-gm-handle-input">GM Handle</label>
+                    <input type="text" id="team-gm-handle-input">
+                </div>
+                <div class="form-group-admin">
+                    <label for="team-color-override-input">Color Override (hex code, optional)</label>
+                    <input type="color" id="team-color-override-input">
+                    <small style="display: block; margin-top: 0.25rem; color: #666;">Leave default to use auto-detected color from team logo</small>
+                </div>
+                <button type="submit" class="btn-admin-save">Save Team Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rebrand Team Modal -->
+    <div id="rebrand-modal" class="modal-admin">
+        <div class="modal-content-admin">
+            <span class="close-btn-admin">&times;</span>
+            <h3>Rebrand Team</h3>
+            <form id="rebrand-form">
+                <input type="hidden" id="rebrand-old-team-id-input">
+                <div class="form-group-admin">
+                    <label>Old Team ID</label>
+                    <p id="rebrand-old-team-id-display" class="read-only-field"></p>
+                </div>
+                <div class="form-group-admin">
+                    <label for="rebrand-new-name-input">New Team Name</label>
+                    <input type="text" id="rebrand-new-name-input" required>
+                </div>
+                <div class="form-group-admin">
+                    <label for="rebrand-new-id-input">New Team ID</label>
+                    <input type="text" id="rebrand-new-id-input" required pattern="[A-Z0-9]{2,4}" title="Please enter 2-4 uppercase letters or numbers.">
+                </div>
+                <p class="form-note"><strong>Warning:</strong> Rebranding is a permanent and complex operation. It will update all associated players and draft picks. Double-check all information before submitting.</p>
+                <button type="submit" class="btn-admin-save btn-admin-danger">Submit Rebrand</button>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/commish/manage-teams.js"></script>
+    <script type="module">
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+        const switcher = createLeagueSwitcher();
+        document.getElementById('league-switcher-mount').appendChild(switcher);
+    </script>
+</body>
+</html>

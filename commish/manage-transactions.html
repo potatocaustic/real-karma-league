@@ -1,0 +1,204 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Transactions - RKL Commish</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        // Detect league immediately to prevent flash
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <script>
+          document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+        </script>
+        <script>
+          document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+        </script>
+      </h1>
+      <div id="league-switcher-mount">
+        <div class="league-switcher">
+            <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="17 1 21 5 17 9"></polyline>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                    <polyline points="7 23 3 19 7 15"></polyline>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                </svg>
+            </button>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li class="dropdown">
+                <a href="/S9/RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
+                <div class="dropdown-content">
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                    <a href="/S8/RKL-S8.html">S8 Home</a>
+                    <a href="/S7/RKL-S7.html">S7 Home</a>
+                </div>
+            </li>
+            <li><a href="/S9/standings.html">Standings & Rankings</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/leaderboards.html">Season Leaderboards</a>
+                    <a href="/S9/compare.html">Comparison Tool</a>
+                </div>
+            </li>
+            <li><a href="/S9/schedule.html">Schedule</a></li>
+            <li class="dropdown">
+                <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                <div class="dropdown-content">
+                    <a href="/S9/draft-capital.html">Draft Capital</a>
+                    <a href="/S9/draft-results.html">Draft Results</a>
+                    <a href="/S9/draft-lottery.html">Draft Lottery</a>
+                </div>
+            </li>
+            <li><a href="/S9/transactions.html">Transactions</a></li>
+            <li><a href="/S9/teams.html">Teams</a></li>
+            <li><a href="/S9/trophy-case.html">Trophy Case</a></li>
+            <li><a href="changelog.html">Changelog</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/commish/dashboard.html" class="back-link">← Back to Dashboard</a>
+        <h2>Log New Transaction</h2>
+
+        <div id="transaction-feedback" class="admin-feedback" role="status" aria-live="polite" hidden></div>
+
+        <form id="transaction-form" class="form-container-admin">
+            <div class="form-group-admin">
+                <label for="transaction-type-select">Transaction Type</label>
+                <select id="transaction-type-select">
+                    <option value="">Select a type...</option>
+                    <option value="TRADE">Trade</option>
+                    <option value="SIGN">Free Agent Signing</option>
+                    <option value="CUT">Cut Player</option>
+                    <option value="RETIREMENT">Retirement</option>
+                    <option value="UNRETIREMENT">Unretirement</option>
+                </select>
+            </div>
+
+            <div id="trade-section" class="transaction-section" style="display: none;">
+                <div class="transaction-section-header">
+                    <div>
+                        <p class="eyebrow">Trade Builder</p>
+                        <h4>Trade Details</h4>
+                        <p class="section-subtext">Add each team involved, list the assets they are sending, and choose where they are headed.</p>
+                    </div>
+                </div>
+                <div class="trade-parties-container"></div>
+                <div class="trade-actions-row">
+                    <div class="trade-actions-copy">Ensure every asset has a destination team selected.</div>
+                    <button type="button" id="add-team-btn" class="btn-admin-ghost">+ Add Another Team</button>
+                </div>
+            </div>
+
+            <div id="sign-section" class="transaction-section" style="display: none;">
+                <h4>Signing Details</h4>
+                <div class="form-group-admin">
+                    <label for="sign-team-select">Signing Team</label>
+                    <select id="sign-team-select" class="team-select"></select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="sign-player-input">Player to Sign (Type to search)</label>
+                    <input type="text" id="sign-player-input" list="free-agent-list" placeholder="Start typing a free agent's handle..." autocomplete="off">
+                    <datalist id="free-agent-list"></datalist>
+                </div>
+            </div>
+
+            <div id="cut-section" class="transaction-section" style="display: none;">
+                <h4>Cut Details</h4>
+                <div class="form-group-admin">
+                    <label for="cut-team-filter-select">Filter by Team</label>
+                    <select id="cut-team-filter-select" class="team-select">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="cut-player-select">Player to Cut</label>
+                    <select id="cut-player-select" class="player-select"></select>
+                </div>
+            </div>
+
+            <div id="retirement-section" class="transaction-section" style="display: none;">
+                <h4>Retirement Details</h4>
+                <div class="form-group-admin">
+                     <label for="retire-team-filter-select">Filter by Team</label>
+                    <select id="retire-team-filter-select" class="team-select">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="retire-player-select">Player to Retire</label>
+                    <select id="retire-player-select" class="player-select"></select>
+                </div>
+            </div>
+
+            <div id="unretirement-section" class="transaction-section" style="display: none;">
+                <h4>Unretirement Details</h4>
+                 <div class="form-group-admin">
+                    <label for="unretire-player-select">Player to Unretire</label>
+                    <select id="unretire-player-select" class="player-select"></select>
+                </div>
+                <div class="form-group-admin">
+                    <label for="unretire-team-select">Assign to Team</label>
+                    <select id="unretire-team-select" class="team-select"></select>
+                </div>
+            </div>
+
+
+            <div class="form-group-admin">
+                <label for="transaction-notes">Notes (Optional)</label>
+                <textarea id="transaction-notes" rows="3"></textarea>
+            </div>
+
+            <div class="form-actions transaction-actions">
+                <button type="submit" class="btn-admin-save">Log Transaction</button>
+                <button type="reset" class="btn-admin-secondary">Reset Form</button>
+            </div>
+        </form>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/commish/manage-transactions.js"></script>
+    <script type="module">
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+        const switcher = createLeagueSwitcher();
+        document.getElementById('league-switcher-mount').appendChild(switcher);
+    </script>
+</body>
+</html>
