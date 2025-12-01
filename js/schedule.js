@@ -1,7 +1,7 @@
 // /js/schedule.js
 
 import { generateLineupTable } from '../js/main.js';
-import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot, collectionNames, getLeagueCollectionName } from '../js/firebase-init.js';
+import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot, collectionNames, getLeagueCollectionName, getCurrentLeague } from '../js/firebase-init.js';
 
 // Get season from path (/S8/ or /S9/), URL parameter, or query for active season
 const urlParams = new URLSearchParams(window.location.search);
@@ -509,7 +509,9 @@ async function calculateAndDisplayStandouts(week) {
     if (standoutWeekEl) standoutWeekEl.textContent = week;
 
     const seasonNum = activeSeasonId.replace('S', '');
-    const dailyScoresRef = collection(db, getLeagueCollectionName('daily_scores'), `season_${seasonNum}`, `S${seasonNum}_daily_scores`);
+    const currentLeague = getCurrentLeague();
+    const leaguePrefix = currentLeague === 'minor' ? 'minor_' : '';
+    const dailyScoresRef = collection(db, getLeagueCollectionName('daily_scores'), `${leaguePrefix}season_${seasonNum}`, `${leaguePrefix}S${seasonNum}_daily_scores`);
     const lineupsRef = collection(db, collectionNames.seasons, activeSeasonId, 'lineups');
     const dailyScoresQuery = query(dailyScoresRef, where('week', '==', week));
     const lineupsQuery = query(lineupsRef, where('week', '==', week));
