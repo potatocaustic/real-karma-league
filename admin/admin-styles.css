@@ -1,62 +1,211 @@
 ﻿/* /admin/admin-styles.css */
 
+/* Layout & shell */
+body {
+    background: #f2f4f8;
+    color: #0f172a;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+    padding: 1.25rem 1rem 1.75rem;
+}
+
+header h1 {
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+header nav {
+    width: 100%;
+}
+
+#nav-menu {
+    width: min(1200px, 100%);
+    margin: 1rem auto 0;
+    padding: 0.85rem 1rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.14);
+    gap: 0.35rem;
+}
+
+#nav-menu li {
+    margin: 0.15rem 0.35rem;
+}
+
+#nav-menu li a,
+#nav-menu .dropbtn {
+    padding: 0.55rem 0.95rem;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+#nav-menu li a:hover,
+#nav-menu .dropbtn:hover,
+#nav-menu .dropdown:hover .dropbtn {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #e5e7eb;
+}
+
+@media (max-width: 1100px) {
+    #nav-menu {
+        width: calc(100% - 1.5rem);
+    }
+
+    main#admin-container,
+    main {
+        width: calc(100% - 2rem);
+    }
+}
+
+@media (max-width: 820px) {
+    #nav-menu {
+        justify-content: flex-start;
+    }
+
+    #nav-menu li {
+        flex: 1 1 45%;
+    }
+}
+
+@media (max-width: 640px) {
+    header {
+        padding: 1rem 0.75rem 1.25rem;
+    }
+
+    #nav-menu {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    #nav-menu li {
+        width: 100%;
+    }
+
+    #nav-menu li a,
+    #nav-menu .dropbtn {
+        width: 100%;
+        text-align: center;
+    }
+
+    main#admin-container,
+    main {
+        width: calc(100% - 1.25rem);
+        padding: 1.5rem 1.25rem;
+    }
+}
+
+main#admin-container,
 main {
-    max-width: 1000px;
+    width: min(1200px, 100% - 2.5rem);
+    margin: 1.5rem auto 2.5rem;
+    padding: 2rem;
+    background: #ffffff;
+    border-radius: 18px;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.12);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+#admin-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 #admin-container h2 {
-    text-align: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    font-size: 2rem;
 }
 
 #admin-container p {
-    text-align: center;
-    margin-bottom: 2rem;
-    color: #666;
+    margin-bottom: 1.25rem;
+    color: #4b5563;
+    max-width: 840px;
+}
+
+#loading-container.loading {
+    background: #ffffff;
+    width: min(680px, 100% - 2.5rem);
+    margin: 3rem auto;
+    border-radius: 16px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
+}
+
+main#admin-container,
+main {
+    line-height: 1.65;
+}
+
+main#admin-container:hover,
+main:hover {
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
+}
+
+#admin-container p,
+#admin-container li,
+#admin-container label,
+#admin-container table,
+#admin-container td,
+#admin-container th {
+    word-break: break-word;
 }
 
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1.5rem;
-    margin-top: 2rem;
+    margin-top: 1rem;
 }
 
 .nav-card {
     background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    padding: 1.5rem;
-    text-align: center;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.08);
+    padding: 1.4rem 1.6rem;
+    text-align: left;
     text-decoration: none;
-    color: #333;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    color: #0f172a;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
-    min-height: 180px;
+    align-items: flex-start;
+    min-height: 190px;
+    gap: 0.35rem;
 }
 
     .nav-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-6px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14);
+        border-color: #d1d5db;
     }
 
 .nav-card-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    font-size: 2.25rem;
+    line-height: 1;
+    margin-bottom: 0.15rem;
 }
 
 .nav-card-title {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.15rem;
 }
 
 .nav-card-description {
-    font-size: 0.9rem;
-    color: #666;
+    font-size: 0.95rem;
+    color: #4b5563;
 }
 
 .back-link {
@@ -641,6 +790,45 @@ main {
 /* -------------------------------------- */
 /* Dark Mode Specific Styles              */
 /* -------------------------------------- */
+.dark-mode body {
+    background: #0b1220;
+    color: #e5e7eb;
+}
+
+.dark-mode header {
+    background: linear-gradient(135deg, #0b1220, #0f172a);
+    border-bottom-color: #0f172a;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode #nav-menu {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode #nav-menu li a,
+.dark-mode #nav-menu .dropbtn {
+    color: #e5e7eb;
+}
+
+.dark-mode #nav-menu li a:hover,
+.dark-mode #nav-menu .dropbtn:hover,
+.dark-mode #nav-menu .dropdown:hover .dropbtn {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+}
+
+.dark-mode main#admin-container,
+.dark-mode main {
+    background: #111827;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
+}
+
+.dark-mode #loading-container.loading {
+    background: #111827;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.38);
+}
+
 .dark-mode .form-container-admin,
 .dark-mode .game-entry,
 .dark-mode .player-entry,
@@ -664,15 +852,16 @@ main {
 }
 
 .dark-mode .nav-card {
-    background-color: #2a2a2a;
-    border-color: #444;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4);
+    background-color: #0f172a;
+    border-color: #1f2937;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
 }
 .dark-mode .nav-card:hover {
-    border-color: #90caf9;
+    border-color: #334155;
+    box-shadow: 0 22px 45px rgba(0, 0, 0, 0.45);
 }
 .dark-mode .nav-card-icon {
-    color: #90caf9;
+    color: #9ec5fe;
 }
 
 .dark-mode .back-link {
