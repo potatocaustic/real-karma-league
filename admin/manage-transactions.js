@@ -8,6 +8,7 @@ const adminContainer = document.getElementById('admin-container');
 const authStatusDiv = document.getElementById('auth-status');
 const transactionForm = document.getElementById('transaction-form');
 const typeSelect = document.getElementById('transaction-type-select');
+const feedbackContainer = document.getElementById('transaction-feedback');
 const cutTeamFilter = document.getElementById('cut-team-filter-select');
 const retireTeamFilter = document.getElementById('retire-team-filter-select');
 
@@ -17,6 +18,7 @@ let allTeams = [];
 let allPicks = [];
 let listenersInitialized = false;
 let activeSeasonId = '';
+let preserveFeedbackOnReset = false;
 
 // --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -158,6 +160,10 @@ function setupEventListeners() {
     });
 
     transactionForm.addEventListener('reset', () => {
+        if (!preserveFeedbackOnReset) {
+            clearFeedbackMessage();
+        }
+        preserveFeedbackOnReset = false;
         document.querySelectorAll('.transaction-section').forEach(sec => {
             sec.style.display = 'none';
         });
@@ -311,6 +317,7 @@ function addAssetToTrade(event) {
 
 async function handleFormSubmit(e) {
     e.preventDefault();
+    clearFeedbackMessage();
     const type = typeSelect.value;
 
     // Get the submit button and store original text
@@ -385,7 +392,10 @@ async function handleFormSubmit(e) {
         const admin_processTransaction = httpsCallable(functions, 'admin_processTransaction');
         const result = await admin_processTransaction({ ...transactionData, league: getCurrentLeague() });
 
-        alert(result.data.message); // Show the dynamic message from the backend
+        showFeedbackMessage('success', {
+            title: 'Transaction Logged',
+            message: result.data.message
+        });
 
         if (getCurrentLeague() === 'minor' && activeSeasonId) {
             await updateDoc(doc(db, collectionNames.seasons, activeSeasonId), { season_trans: increment(1) });
@@ -395,6 +405,7 @@ async function handleFormSubmit(e) {
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
 
+        preserveFeedbackOnReset = true;
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
@@ -405,12 +416,38 @@ async function handleFormSubmit(e) {
 
     } catch (error) {
         console.error("Error logging transaction:", error);
-        alert(`Error: ${error.message}`);
+        showFeedbackMessage('error', {
+            title: 'Could not log transaction',
+            message: error.message
+        });
 
         // Re-enable button and restore original text on error
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
     }
+}
+
+function showFeedbackMessage(type, { title, message }) {
+    if (!feedbackContainer) return;
+
+    feedbackContainer.innerHTML = `
+        <div class="admin-feedback-icon" aria-hidden="true">${type === 'success' ? '✓' : '!'}</div>
+        <div>
+            <p class="admin-feedback-title">${title}</p>
+            <p class="admin-feedback-message">${message}</p>
+        </div>
+    `;
+
+    feedbackContainer.classList.remove('admin-feedback--success', 'admin-feedback--error');
+    feedbackContainer.classList.add(type === 'success' ? 'admin-feedback--success' : 'admin-feedback--error');
+    feedbackContainer.hidden = false;
+}
+
+function clearFeedbackMessage() {
+    if (!feedbackContainer) return;
+    feedbackContainer.hidden = true;
+    feedbackContainer.innerHTML = '';
+    feedbackContainer.classList.remove('admin-feedback--success', 'admin-feedback--error');
 }
 
 
