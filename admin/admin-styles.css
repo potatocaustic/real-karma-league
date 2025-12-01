@@ -1515,6 +1515,15 @@ main:hover {
         justify-self: end;
     }
 
+    .asset-item .asset-value-shell,
+    .asset-item .asset-destination-select {
+        width: 100%;
+    }
+
+    .asset-item .btn-admin-remove-asset {
+        justify-self: end;
+    }
+
     .asset-controls {
         flex-direction: column;
         align-items: stretch;
