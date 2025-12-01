@@ -232,9 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const headerTitle = `Vote GOTD ${firestoreDate}`;
             const header = buildReportHeader(headerTitle, {
-                copyHandler: (button, defaultContent) => copyHeaderText(headerTitle, button, defaultContent),
-                copyLabel: 'Copy header',
-                iconOnly: true
+                copyLabel: 'Copy header'
             });
             reportContainer.appendChild(header);
 
@@ -248,17 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 textSpan.className = 'report-item-text';
                 textSpan.textContent = gameText;
 
-                const copyIcon = document.createElement('span');
-                copyIcon.className = 'copy-icon';
-                copyIcon.textContent = '📋';
-                copyIcon.title = 'Copy game';
-                copyIcon.onclick = () => {
-                    navigator.clipboard.writeText(gameText).then(() => {
-                        copyIcon.textContent = '✅';
-                        setTimeout(() => { copyIcon.textContent = '📋'; }, 1500);
-                    }).catch(err => console.error('Failed to copy text: ', err));
-                };
-                
+                const copyIcon = createCopyButton(() => gameText, { label: 'Copy game' });
+
                 gameContainer.appendChild(textSpan);
                 gameContainer.appendChild(copyIcon);
                 reportContainer.appendChild(gameContainer);
@@ -369,9 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const reportContainer = document.createDocumentFragment();
         const headerTitle = `Lineups ${formattedDate}`;
         const header = buildReportHeader(headerTitle, {
-            copyHandler: (button, defaultContent) => copyHeaderText(headerTitle, button, defaultContent),
-            copyLabel: 'Copy header',
-            iconOnly: true
+            copyLabel: 'Copy header'
         });
         reportContainer.appendChild(header);
 
@@ -445,16 +432,7 @@ document.addEventListener('DOMContentLoaded', () => {
             textPre.className = 'report-item-text';
             textPre.textContent = gameBlockText;
 
-            const copyIcon = document.createElement('span');
-            copyIcon.className = 'copy-icon';
-            copyIcon.textContent = '📋';
-            copyIcon.title = 'Copy matchup';
-            copyIcon.onclick = () => {
-                navigator.clipboard.writeText(gameBlockText).then(() => {
-                    copyIcon.textContent = '✅';
-                    setTimeout(() => { copyIcon.textContent = '📋'; }, 1500);
-                }).catch(err => console.error('Failed to copy text: ', err));
-            };
+            const copyIcon = createCopyButton(() => gameBlockText, { label: 'Copy matchup' });
 
             gameContainer.appendChild(textPre);
             gameContainer.appendChild(copyIcon);
@@ -510,20 +488,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const headerClipboardIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
 
-    function copyHeaderText(title, button, defaultContent) {
-        navigator.clipboard.writeText(title).then(() => {
-            if (button) {
+    function createCopyButton(getText, { label = 'Copy to clipboard' } = {}) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'copy-icon';
+        const defaultContent = headerClipboardIcon;
+        button.innerHTML = defaultContent;
+        button.title = label;
+        button.setAttribute('aria-label', label);
+
+        button.addEventListener('click', () => {
+            const text = typeof getText === 'function' ? getText() : '';
+            if (!text) return;
+
+            navigator.clipboard.writeText(text).then(() => {
                 button.innerHTML = '✅';
                 button.classList.add('copied');
                 setTimeout(() => {
-                    button.innerHTML = defaultContent || headerClipboardIcon;
+                    button.innerHTML = defaultContent;
                     button.classList.remove('copied');
                 }, 1200);
-            }
-        }).catch(err => console.error('Failed to copy header:', err));
+            }).catch(err => console.error('Failed to copy text: ', err));
+        });
+
+        return button;
     }
 
-    function buildReportHeader(title, { copyHandler, copyLabel = 'Copy header', iconOnly = false } = {}) {
+    function buildReportHeader(title, { copyLabel = 'Copy header', getCopyText } = {}) {
         const header = document.createElement('div');
         header.className = 'report-header';
 
@@ -531,16 +522,13 @@ document.addEventListener('DOMContentLoaded', () => {
         titleSpan.className = 'report-title';
         titleSpan.textContent = title;
 
-        const copyBtn = document.createElement('button');
-        copyBtn.className = 'header-copy-btn';
-        const defaultContent = iconOnly ? headerClipboardIcon : `${headerClipboardIcon}<span>${copyLabel}</span>`;
-        copyBtn.innerHTML = defaultContent;
-        copyBtn.addEventListener('click', () => {
-            if (typeof copyHandler === 'function') {
-                copyHandler(copyBtn, defaultContent);
+        const copyBtn = createCopyButton(() => {
+            if (typeof getCopyText === 'function') {
+                return getCopyText(title);
             }
-        });
-        copyBtn.setAttribute('aria-label', copyLabel);
+            return title;
+        }, { label: copyLabel });
+        copyBtn.classList.add('header-copy-btn');
 
         header.appendChild(titleSpan);
         header.appendChild(copyBtn);
