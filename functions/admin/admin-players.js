@@ -417,6 +417,29 @@ exports.gm_updatePlayerHandle = onCall({ region: "us-central1" }, async (request
             await batch.commit();
         }
 
+        // 4b. Propagate handle change to pending_transactions
+        console.log(`Propagating handle change to pending transactions...`);
+        const pendingTransSnap = await db.collection(getCollectionName('pending_transactions', league)).get();
+        if (!pendingTransSnap.empty) {
+            const batch = db.batch();
+            pendingTransSnap.forEach(doc => {
+                const data = doc.data();
+                let wasModified = false;
+                if (data.involved_players && Array.isArray(data.involved_players)) {
+                    data.involved_players.forEach(player => {
+                        if (player.id === playerId && player.player_handle !== newPlayerHandle) {
+                            player.player_handle = newPlayerHandle;
+                            wasModified = true;
+                        }
+                    });
+                }
+                if (wasModified) {
+                    batch.update(doc.ref, { involved_players: data.involved_players });
+                }
+            });
+            await batch.commit();
+        }
+
         // 5. Propagate handle change to draft results
         console.log(`Propagating handle change to draft results...`);
         const draftResultsParentSnap = await db.collection(getCollectionName('draft_results', league)).get();
@@ -472,6 +495,12 @@ exports.gm_updatePlayerHandle = onCall({ region: "us-central1" }, async (request
                 await batch.commit();
             }
         }
+
+        // 7. Regenerate performance leaderboards to update single-game rankings
+        console.log(`Regenerating performance leaderboards to reflect handle change...`);
+        const { performPerformanceRankingUpdate } = require('../stats-rankings/performance-rankings');
+        await performPerformanceRankingUpdate(league);
+        console.log(`Performance leaderboards regenerated successfully.`);
 
         return { success: true, league, message: `Successfully updated player handle from '${oldPlayerHandle}' to '${newPlayerHandle}' and all associated records.` };
 
@@ -619,6 +648,28 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
             await batch.commit();
         }
 
+        // 5b. Propagate handle change to pending_transactions
+        console.log(`Propagating handle change to pending transactions...`);
+        const pendingTransSnap2 = await db.collection(getCollectionName('pending_transactions', league)).get();
+        if (!pendingTransSnap2.empty) {
+            const batch = db.batch();
+            pendingTransSnap2.forEach(doc => {
+                const data = doc.data();
+                let wasModified = false;
+                if (data.involved_players && Array.isArray(data.involved_players)) {
+                    data.involved_players.forEach(player => {
+                        if (player.id === playerId && player.player_handle !== newPlayerHandle) {
+                            player.player_handle = newPlayerHandle;
+                            wasModified = true;
+                        }
+                    });
+                }
+                if (wasModified) {
+                    batch.update(doc.ref, { involved_players: data.involved_players });
+                }
+            });
+            await batch.commit();
+        }
 
         // 6. Propagate handle change to draft results
         console.log(`Propagating handle change to draft results...`);
@@ -676,6 +727,11 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
             }
         }
 
+        // 8. Regenerate performance leaderboards to update single-game rankings
+        console.log(`Regenerating performance leaderboards to reflect handle change...`);
+        const { performPerformanceRankingUpdate } = require('../stats-rankings/performance-rankings');
+        await performPerformanceRankingUpdate(league);
+        console.log(`Performance leaderboards regenerated successfully.`);
 
         return { success: true, league, message: `Successfully updated player ${newPlayerHandle} and all associated records.` };
 
