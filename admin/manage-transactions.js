@@ -302,7 +302,7 @@ function addAssetToTrade(event) {
     assetItem.innerHTML = `
         <div class="asset-value-shell">${assetSelectHTML}</div>
         <button type="button" class="btn-admin-remove-asset" aria-label="Remove asset" onclick="this.parentElement.remove()">&times;</button>
-        <span class="asset-to-label">to</span>
+        <span class="asset-to-label" aria-hidden="true"></span>
         <select class="asset-destination-select">${destinationOptions}</select>
     `;
     assetList.appendChild(assetItem);
