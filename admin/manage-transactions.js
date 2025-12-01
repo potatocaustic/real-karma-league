@@ -18,6 +18,7 @@ let allTeams = [];
 let allPicks = [];
 let listenersInitialized = false;
 let activeSeasonId = '';
+let preserveFeedbackOnReset = false;
 
 // --- Primary Auth Check & Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -159,7 +160,10 @@ function setupEventListeners() {
     });
 
     transactionForm.addEventListener('reset', () => {
-        clearFeedbackMessage();
+        if (!preserveFeedbackOnReset) {
+            clearFeedbackMessage();
+        }
+        preserveFeedbackOnReset = false;
         document.querySelectorAll('.transaction-section').forEach(sec => {
             sec.style.display = 'none';
         });
@@ -401,6 +405,7 @@ async function handleFormSubmit(e) {
         submitButton.disabled = false;
         submitButton.textContent = originalButtonText;
 
+        preserveFeedbackOnReset = true;
         transactionForm.reset();
         document.querySelectorAll('.transaction-section').forEach(sec => sec.style.display = 'none');
         document.querySelector('.trade-parties-container').innerHTML = '';
