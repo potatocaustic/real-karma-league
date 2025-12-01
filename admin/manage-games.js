@@ -7,6 +7,7 @@ import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
 let deadlineForm, deadlineDateInput, deadlineDisplay, deadlineToolsToggle, deadlineToolsContent;
 let adjustmentsToggleBtn, actionDropdownToggle, actionDropdownMenu;
+let submitLiveLineupsBtn, finalizeLiveGameBtn;
 let liveScoringDefaultDisplay = 'none';
 
 
@@ -35,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     adjustmentsToggleBtn = document.getElementById('toggle-adjustments-btn');
     actionDropdownToggle = document.getElementById('action-dropdown-toggle');
     actionDropdownMenu = document.getElementById('action-dropdown-menu');
+    submitLiveLineupsBtn = document.getElementById('submit-live-lineups-btn');
+    finalizeLiveGameBtn = document.getElementById('finalize-live-game-btn');
     deadlineForm = document.getElementById('deadline-form');
     deadlineDateInput = document.getElementById('deadline-date');
     deadlineDisplay = document.getElementById('current-deadline-display');
@@ -110,6 +113,7 @@ async function initializePage() {
             if (currentGameData?.completed === 'TRUE' && liveScoringControls) {
                 if (isShowingAdjustments) {
                     liveScoringControls.classList.add('force-visible');
+                    toggleCompletedGameActions(true);
                     if (actionDropdownMenu && actionDropdownToggle) {
                         actionDropdownMenu.removeAttribute('hidden');
                         actionDropdownToggle.setAttribute('aria-expanded', 'true');
@@ -117,6 +121,7 @@ async function initializePage() {
                 } else {
                     liveScoringControls.classList.remove('force-visible');
                     liveScoringControls.style.display = liveScoringDefaultDisplay;
+                    toggleCompletedGameActions(false);
                     if (actionDropdownMenu && actionDropdownToggle) {
                         actionDropdownMenu.setAttribute('hidden', '');
                         actionDropdownToggle.setAttribute('aria-expanded', 'false');
@@ -583,6 +588,7 @@ async function openLineupModal(game) {
     document.getElementById('lineup-game-date').value = game.date;
     document.getElementById('lineup-is-postseason').value = game.collectionName === 'post_games';
     document.getElementById('lineup-game-completed-checkbox').checked = game.completed === 'TRUE';
+    lineupModal.dataset.gameCompleted = game.completed === 'TRUE' ? 'true' : 'false';
 
     const isExhibition = game.collectionName === 'exhibition_games';
     const lineupsCollectionName = isExhibition ? 'exhibition_lineups' : (game.collectionName === 'post_games' ? 'post_lineups' : 'lineups');
@@ -641,6 +647,13 @@ async function openLineupModal(game) {
     const team1 = allTeams.get(game.team1_id) || { team_name: game.team1_id };
     const team2 = allTeams.get(game.team2_id) || { team_name: game.team2_id };
 
+    if (!team1StartersOrdered.length) {
+        team1StartersOrdered = deriveStarterOrder(team1Roster, existingLineups);
+    }
+    if (!team2StartersOrdered.length) {
+        team2StartersOrdered = deriveStarterOrder(team2Roster, existingLineups);
+    }
+
 
     renderTeamUI('team1', team1, team1Roster, existingLineups, team1StartersOrdered);
     renderTeamUI('team2', team2, team2Roster, existingLineups, team2StartersOrdered);
@@ -653,11 +666,40 @@ async function openLineupModal(game) {
         actionDropdownMenu.setAttribute('hidden', '');
         actionDropdownToggle.setAttribute('aria-expanded', 'false');
     }
+    toggleCompletedGameActions(false);
 
 
     document.getElementById('lineup-modal-title').textContent = `Lineups for ${team1.team_name} v. ${team2.team_name}`;
     calculateAllScores();
     lineupModal.classList.add('is-visible');
+}
+
+function toggleCompletedGameActions(hideActions) {
+    if (currentGameData?.completed !== 'TRUE') return;
+    [submitLiveLineupsBtn, finalizeLiveGameBtn].forEach(btn => {
+        if (!btn) return;
+        if (hideActions) {
+            btn.setAttribute('hidden', '');
+        } else {
+            btn.removeAttribute('hidden');
+        }
+    });
+}
+
+function deriveStarterOrder(roster, existingLineups) {
+    const starters = roster
+        .map(player => ({ player, data: existingLineups.get(player.id) }))
+        .filter(entry => entry.data?.started === 'TRUE');
+
+    const captains = starters.filter(entry => entry.data.is_captain === 'TRUE');
+    const nonCaptains = starters
+        .filter(entry => entry.data.is_captain !== 'TRUE')
+        .sort((a, b) => a.player.player_handle.localeCompare(b.player.player_handle));
+
+    return [...captains, ...nonCaptains].map(entry => ({
+        player_id: entry.player.id,
+        is_captain: entry.data.is_captain === 'TRUE'
+    }));
 }
 
 function renderTeamUI(teamPrefix, teamData, roster, existingLineups, startersOrdered = []) {

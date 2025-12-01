@@ -343,8 +343,8 @@ main:hover {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.35rem;
+    height: 2.35rem;
     border-radius: 9999px;
     color: #fff;
     margin-right: 0;
@@ -353,7 +353,7 @@ main:hover {
 }
 
 .status-complete { background: #16a34a; }
-.status-live { background: #fbbf24; color: #0f172a; }
+.status-live { background: #f59e0b; color: #111827; }
 .status-pending { background: #ef4444; }
 
 .status-legend {
@@ -1494,6 +1494,12 @@ main:hover {
     color: #e5e7eb;
 }
 
+.dark-mode .status-live {
+    background: #d97706;
+    color: #0b1220;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
 .dark-mode .admin-card p,
 .dark-mode #current-deadline-display p {
     color: #cbd5e1;
@@ -1878,7 +1884,7 @@ main:hover {
     #games-list-container .game-entry {
         flex-wrap: wrap;
         align-items: flex-start;
-        padding-right: 3.25rem;
+        padding-right: 3.85rem;
     }
 
     #games-list-container .game-teams {
@@ -1896,6 +1902,11 @@ main:hover {
         right: 0.5rem;
         width: auto;
         margin-right: 0;
+    }
+
+    #games-list-container .game-status-badge {
+        width: 2.5rem;
+        height: 2.5rem;
     }
 
     #games-list-container .game-entry .btn-admin-edit {
