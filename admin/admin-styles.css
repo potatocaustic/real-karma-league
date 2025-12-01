@@ -338,54 +338,169 @@ main:hover {
 
 .btn-admin-primary,
 .btn-admin-secondary,
-.btn-admin-edit, 
-.btn-admin-save, 
+.btn-admin-edit,
+.btn-admin-save,
 .btn-admin-delete {
-    padding: 0.8rem 1.5rem;
-    border: none;
-    border-radius: 4px;
+    padding: 0.8rem 1.25rem;
+    border-radius: 10px;
+    border: 1px solid transparent;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 500;
-    transition: background-color 0.2s ease;
+    font-size: 0.98rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
 }
 
 .btn-admin-primary {
-    background-color: #007bff;
-    color: white;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #f8fafc;
+    border-color: rgba(37, 99, 235, 0.2);
 }
 .btn-admin-primary:hover {
-    background-color: #0056b3;
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    box-shadow: 0 12px 30px rgba(30, 64, 175, 0.25);
 }
 .btn-admin-secondary {
-    background-color: #6c757d;
-    color: white;
+    background: #0f172a;
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.08);
 }
 .btn-admin-secondary:hover {
-    background-color: #545b62;
+    background: #111827;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
 }
 .btn-admin-edit {
-    background-color: #ffc107;
-    color: #333;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    color: #f0f9ff;
+    border-color: rgba(14, 165, 233, 0.18);
 }
 .btn-admin-edit:hover {
-    background-color: #e0a800;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    box-shadow: 0 12px 30px rgba(2, 132, 199, 0.25);
 }
 .btn-admin-save {
-    background-color: #28a745;
-    color: white;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: #ecfdf3;
+    border-color: rgba(22, 163, 74, 0.18);
     width: 100%;
     margin-top: 1rem;
 }
 .btn-admin-save:hover {
-    background-color: #218838;
+    background: linear-gradient(135deg, #15803d, #166534);
+    box-shadow: 0 12px 30px rgba(22, 101, 52, 0.26);
 }
 .btn-admin-delete {
-    background-color: #dc3545;
-    color: white;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fef2f2;
+    border-color: rgba(239, 68, 68, 0.2);
 }
 .btn-admin-delete:hover {
-    background-color: #c82333;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    box-shadow: 0 12px 30px rgba(185, 28, 28, 0.26);
+}
+
+.btn-admin-primary:focus-visible,
+.btn-admin-secondary:focus-visible,
+.btn-admin-edit:focus-visible,
+.btn-admin-save:focus-visible,
+.btn-admin-delete:focus-visible {
+    outline: 2px solid #60a5fa;
+    outline-offset: 2px;
+}
+
+.collapsible-card {
+    padding: 1.5rem;
+}
+
+.collapsible-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: linear-gradient(145deg, #f8fafc, #eef2ff);
+    color: #0f172a;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.16s ease;
+}
+
+.collapsible-toggle::after {
+    content: '\25BC';
+    font-size: 0.9rem;
+    color: #475569;
+    transition: transform 0.2s ease;
+}
+
+.collapsible-toggle[aria-expanded="true"]::after {
+    transform: rotate(-180deg);
+}
+
+.collapsible-toggle:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.collapsible-content {
+    margin-top: 1rem;
+}
+
+.deadline-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.admin-subcard {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+
+.deadline-management-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+#current-deadline-display p {
+    word-break: normal;
+    white-space: normal;
+    color: #0f172a;
+}
+
+.inline-control-row {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .collapsible-card {
+        padding: 1.25rem 1rem;
+    }
+
+    .collapsible-toggle {
+        font-size: 1rem;
+    }
+
+    .deadline-tools-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .inline-control-row {
+        flex-direction: column;
+    }
 }
 
 .modal-admin {
@@ -1276,6 +1391,26 @@ main:hover {
     border-color: #334155;
     color: #e5e7eb;
     box-shadow: none;
+}
+
+.dark-mode .collapsible-toggle {
+    background: linear-gradient(145deg, #0f172a, #0b1220);
+    color: #e5e7eb;
+    border-color: #1f2937;
+}
+
+.dark-mode .admin-subcard {
+    background: #0f172a;
+    border-color: #1f2937;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode #current-deadline-display p {
+    color: #e5e7eb;
+}
+
+.dark-mode .form-group-admin label {
+    color: #e5e7eb;
 }
 
 .dark-mode .game-score {

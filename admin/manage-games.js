@@ -5,7 +5,7 @@ import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-
 
 // --- Page Elements ---
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
-let deadlineForm, deadlineDateInput, deadlineDisplay;
+let deadlineForm, deadlineDateInput, deadlineDisplay, deadlineToolsToggle, deadlineToolsContent;
 
 
 
@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
     deadlineForm = document.getElementById('deadline-form');
     deadlineDateInput = document.getElementById('deadline-date');
     deadlineDisplay = document.getElementById('current-deadline-display');
+    deadlineToolsToggle = document.querySelector('.collapsible-toggle');
+    deadlineToolsContent = document.getElementById('deadline-tools');
 
 
 
@@ -104,6 +106,14 @@ async function initializePage() {
             }
         });
     }
+
+    if (deadlineToolsToggle && deadlineToolsContent) {
+        deadlineToolsToggle.addEventListener('click', () => {
+            const isHidden = deadlineToolsContent.hasAttribute('hidden');
+            deadlineToolsContent.toggleAttribute('hidden');
+            deadlineToolsToggle.setAttribute('aria-expanded', String(isHidden));
+        });
+    }
     const bracketFixButton = document.getElementById('manual-bracket-fix-btn');
     if (bracketFixButton) {
         bracketFixButton.addEventListener('click', async () => {
@@ -129,6 +139,7 @@ async function initializePage() {
     // Add handler for auto-deadline setter test button
     const testAutoDeadlineBtn = document.getElementById('test-auto-deadline-btn');
     if (testAutoDeadlineBtn) {
+        const autoDeadlineDefaultLabel = 'Test Auto-Deadline Setter (Both Leagues)';
         testAutoDeadlineBtn.addEventListener('click', async () => {
             testAutoDeadlineBtn.disabled = true;
             testAutoDeadlineBtn.textContent = 'Processing...';
@@ -163,7 +174,7 @@ async function initializePage() {
                 alert(`Failed to run auto-deadline setter: ${error.message}`);
             } finally {
                 testAutoDeadlineBtn.disabled = false;
-                testAutoDeadlineBtn.textContent = 'Test Auto-Deadline Setter';
+                testAutoDeadlineBtn.textContent = autoDeadlineDefaultLabel;
             }
         });
     }
@@ -358,7 +369,7 @@ async function fetchAndDisplayGames(seasonId, week) {
                         <span class="game-date">Date: ${game.date || 'N/A'}</span>
                     </span>
                     <span class="game-score">${gameStatus}</span>
-                    <button class="btn-admin-edit">Enter/Edit Score</button>
+                    <button class="btn-admin-edit">Edit</button>
                 </div>`;
         });
         gamesListContainer.innerHTML = gamesHTML;
