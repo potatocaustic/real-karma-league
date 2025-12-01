@@ -1855,12 +1855,34 @@ main:hover {
 /* Add to /admin/admin-styles.css */
 
 #report-output {
-    white-space: normal; /* Allow the container to wrap content normally */
+    white-space: pre-wrap;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    background: linear-gradient(135deg, #0f172a 0%, #111827 100%);
+    border: 1px solid #22314a;
+    border-radius: 10px;
+    padding: 16px;
+    color: #e5e7eb;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
-/* This targets the <pre> tag inside the lineups report specifically */
-#report-output .report-item-text {
-    white-space: pre-wrap; 
+/* Ensure nested report items keep intentional spacing */
+#report-output .report-item-text,
+#report-output pre {
+    white-space: pre-wrap;
+}
+
+.report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.report-title {
+    font-weight: 700;
+    color: #e5e7eb;
+    letter-spacing: 0.01em;
 }
 
 .report-item {
@@ -1933,13 +1955,84 @@ main:hover {
 
 .copy-icon {
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+    font-size: 1.1rem;
+    padding: 6px;
+    border-radius: 8px;
+    transition: background-color 0.2s, transform 0.2s;
     user-select: none; /* Prevents text selection on double click */
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .copy-icon:hover {
-    background-color: #555;
+    background-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+}
+
+.header-copy-btn,
+#copy-report-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid #2d3d5c;
+    background: linear-gradient(145deg, #0d1526, #0f1c33);
+    color: #e5e7eb;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.header-copy-btn svg,
+#copy-report-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+}
+
+.header-copy-btn:hover,
+#copy-report-btn:hover {
+    transform: translateY(-1px);
+    border-color: #3b4f75;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.header-copy-btn:active,
+#copy-report-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+#copy-report-btn {
+    margin-top: 12px;
+}
+
+/* Admin-only league switcher refinement */
+header .league-switcher .league-toggle-btn {
+    background: linear-gradient(135deg, #0f172a, #111827);
+    border: 1px solid #243452;
+    color: #5fcefa;
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35);
+    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    padding: 10px;
+}
+
+header .league-switcher .league-toggle-btn:hover {
+    border-color: #6edbff;
+    color: #8be0ff;
+    transform: translateY(-1px) scale(1.02);
+}
+
+header .league-switcher .league-toggle-btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+header .league-switcher .league-toggle-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.2;
 }
