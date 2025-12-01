@@ -165,6 +165,7 @@
         <div class="modal-content-admin">
             <span class="close-btn-admin">&times;</span>
             <h3 id="lineup-modal-title">Enter Lineups & Scores</h3>
+            <button type="button" id="toggle-adjustments-btn" class="btn-admin-secondary adjustments-toggle-btn">Adjust scores</button>
             <form id="lineup-form">
                 <input type="hidden" id="lineup-game-id">
                 <input type="hidden" id="lineup-game-date">
@@ -207,13 +208,17 @@
                     <label for="lineup-game-completed-checkbox">Mark Game as Completed</label>
                 </div>
 
-                <button type="submit" class="btn-admin-save">Save Lineups & Final Score</button>
-
                 <div id="live-scoring-controls">
                     <p class="live-scoring-title">Live Scoring Actions</p>
                     <div class="live-scoring-actions">
-                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit">Submit Lineups for Live Scoring</button>
-                        <button type="button" id="finalize-live-game-btn" class="btn-admin-delete">Finalize Live Game Now</button>
+                        <button type="button" id="submit-live-lineups-btn" class="btn-admin-edit">Submit Lineup</button>
+                        <div class="secondary-actions">
+                            <button type="button" id="action-dropdown-toggle" class="btn-admin-secondary" aria-expanded="false" aria-controls="action-dropdown-menu">More Actions ▾</button>
+                            <div id="action-dropdown-menu" class="action-dropdown-menu" hidden>
+                                <button type="submit" class="btn-admin-save">Submit Adjustment</button>
+                                <button type="button" id="finalize-live-game-btn" class="btn-admin-delete">Finalize Game</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
