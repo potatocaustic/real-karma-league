@@ -4,7 +4,9 @@
 const admin = require('firebase-admin');
 const { getCollectionName, LEAGUES } = require('../functions/utils/firebase-helpers');
 
-admin.initializeApp({ projectId: 'real-karma-league' });
+if (!admin.apps.length) {
+    admin.initializeApp({ projectId: 'real-karma-league' });
+}
 const db = admin.firestore();
 
 const MINOR_SEASONS = [10, 11, 12, 13, 14];
