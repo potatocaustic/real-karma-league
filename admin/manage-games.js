@@ -7,6 +7,7 @@ import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-
 let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
 let deadlineForm, deadlineDateInput, deadlineDisplay, deadlineToolsToggle, deadlineToolsContent;
 let adjustmentsToggleBtn, actionDropdownToggle, actionDropdownMenu;
+let liveScoringDefaultDisplay = 'none';
 
 
 
@@ -105,6 +106,23 @@ async function initializePage() {
         adjustmentsToggleBtn.addEventListener('click', () => {
             const isShowingAdjustments = lineupModal.classList.toggle('show-adjustments');
             adjustmentsToggleBtn.textContent = isShowingAdjustments ? 'Hide adjustments' : 'Adjust scores';
+
+            if (currentGameData?.completed === 'TRUE' && liveScoringControls) {
+                if (isShowingAdjustments) {
+                    liveScoringControls.classList.add('force-visible');
+                    if (actionDropdownMenu && actionDropdownToggle) {
+                        actionDropdownMenu.removeAttribute('hidden');
+                        actionDropdownToggle.setAttribute('aria-expanded', 'true');
+                    }
+                } else {
+                    liveScoringControls.classList.remove('force-visible');
+                    liveScoringControls.style.display = liveScoringDefaultDisplay;
+                    if (actionDropdownMenu && actionDropdownToggle) {
+                        actionDropdownMenu.setAttribute('hidden', '');
+                        actionDropdownToggle.setAttribute('aria-expanded', 'false');
+                    }
+                }
+            }
         });
     }
 
@@ -368,7 +386,11 @@ async function fetchAndDisplayGames(seasonId, week) {
 
             const isLive = liveGameIds.has(game.id);
             const isComplete = game.completed === 'TRUE';
-            const gameStatus = isComplete ? 'Complete' : (isLive ? 'Live' : 'Pending');
+            const statusMeta = isComplete
+                ? { label: 'C', className: 'status-complete', description: 'Complete' }
+                : (isLive
+                    ? { label: 'R', className: 'status-live', description: 'Ready/Live' }
+                    : { label: 'P', className: 'status-pending', description: 'Pending/Incomplete' });
             
             let team1Indicator = '';
             let team2Indicator = '';
@@ -387,7 +409,7 @@ async function fetchAndDisplayGames(seasonId, week) {
                         </span>
                         <span class="game-date">${game.date || 'N/A'}</span>
                     </span>
-                    <span class="game-score">${gameStatus}</span>
+                    <span class="game-score game-status-badge ${statusMeta.className}" title="${statusMeta.description}" aria-label="${statusMeta.description}">${statusMeta.label}</span>
                     <button class="btn-admin-edit">Edit</button>
                 </div>`;
         });
@@ -551,6 +573,8 @@ async function openLineupModal(game) {
         const dayDiff = timeDiff / (1000 * 3600 * 24);
 
         liveScoringControls.style.display = (dayDiff >= 0 && dayDiff <= 2) ? 'block' : 'none';
+        liveScoringControls.classList.remove('force-visible');
+        liveScoringDefaultDisplay = liveScoringControls.style.display;
         document.getElementById('submit-live-lineups-btn').textContent = 'Submit Lineups';
     }
 
