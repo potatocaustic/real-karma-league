@@ -23,6 +23,19 @@ service cloud.firestore {
       return isProdPermitted || isDevPermitted;
     }
 
+    // Function to check if a user is a commish for a specific league
+    function isLeagueCommish(league) {
+      if (request.auth == null) return false;
+      let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
+      let userDevPath = /databases/$(database)/documents/users_dev/$(request.auth.uid);
+
+      let roleField = league == 'minor' ? 'role_minor' : 'role_major';
+      let isProdCommish = exists(userPath) && get(userPath).data[roleField] == 'commish';
+      let isDevCommish = exists(userDevPath) && get(userDevPath).data[roleField] == 'commish';
+
+      return isProdCommish || isDevCommish;
+    }
+
     // Function to check if user is a GM
     function isUserGM() {
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
@@ -114,10 +127,10 @@ service cloud.firestore {
 
     match /seasons/{seasonId} {
       allow get, list: if request.auth.uid != null;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
       match /{documents=**} {
         allow read: if true;
-        allow write: if isUserAdmin();
+        allow write: if isUserAdmin() || isLeagueCommish('major');
       }
     }
     match /usage_stats/{doc=**} {
@@ -126,18 +139,18 @@ service cloud.firestore {
     }
     match /v2_players/{playerId} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
       // Allow GMs to update only player_handle for their team's players
       allow update: if isUserGM() && gmManagesPlayer(playerId)
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['player_handle']);
       match /{document=**} {
         allow read: if true;
-        allow write: if isUserAdmin();
+        allow write: if isUserAdmin() || isLeagueCommish('major');
       }
     }
     match /v2_teams/{document=**} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
     }
     match /draftPicks/{doc=**} {
       allow read: if true;
@@ -145,16 +158,16 @@ service cloud.firestore {
     }
     match /live_games/{gameId} {
         allow read: if true;
-        allow write: if isScorekeeperOrAdmin(); // Allow scorekeepers to write
+        allow write: if isScorekeeperOrAdmin() || isLeagueCommish('major'); // Allow scorekeepers/commish to write
     }
     match /transactions/{transactionId} {
       allow read: if true;
-      allow create: if isUserAdmin();
-      allow update, delete: if false; 
+      allow create: if isUserAdmin() || isLeagueCommish('major');
+      allow update, delete: if false;
     }
     match /transactions/seasons/{seasonId}/{transactionId} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
     }
     match /draft_results/{doc=**} {
         allow read: if true;
@@ -254,21 +267,21 @@ service cloud.firestore {
 
     match /minor_seasons/{seasonId} {
       allow get, list: if request.auth.uid != null;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
       match /{documents=**} {
         allow read: if true;
-        allow write: if isUserAdmin();
+        allow write: if isUserAdmin() || isLeagueCommish('minor');
       }
     }
 
     match /minor_v2_players/{document=**} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_v2_teams/{document=**} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_draftPicks/{doc=**} {
@@ -278,18 +291,18 @@ service cloud.firestore {
 
     match /minor_live_games/{gameId} {
       allow read: if true;
-      allow write: if isScorekeeperOrAdmin();
+      allow write: if isScorekeeperOrAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_transactions/{transactionId} {
       allow read: if true;
-      allow create: if isUserAdmin();
+      allow create: if isUserAdmin() || isLeagueCommish('minor');
       allow update, delete: if false;
     }
 
     match /minor_transactions/seasons/{seasonId}/{transactionId} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_live_scoring_status/{doc=**} {
@@ -391,40 +404,40 @@ service cloud.firestore {
 
     match /seasons_dev/{seasonId} {
       allow get, list: if request.auth.uid != null;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
       match /{documents=**} {
         allow read: if true;
-        allow write: if isUserAdmin();
+        allow write: if isUserAdmin() || isLeagueCommish('major');
       }
     }
 
     match /v2_players_dev/{playerId} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
       // Allow GMs to update only player_handle for their team's players
       allow update: if isUserGM() && gmManagesPlayer(playerId)
                     && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['player_handle']);
       match /{document=**} {
         allow read: if true;
-        allow write: if isUserAdmin();
+        allow write: if isUserAdmin() || isLeagueCommish('major');
       }
     }
     match /v2_teams_dev/{document=**} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
     }
     match /live_games_dev/{gameId} {
         allow read: if true;
-        allow write: if isScorekeeperOrAdmin(); // Allow scorekeepers to write
+        allow write: if isScorekeeperOrAdmin() || isLeagueCommish('major'); // Allow scorekeepers/commish to write
     }
     match /transactions_dev/{transactionId} {
       allow read: if true;
-      allow create: if isUserAdmin();
+      allow create: if isUserAdmin() || isLeagueCommish('major');
       allow update, delete: if false;
     }
     match /transactions_dev/seasons/{seasonId}/{transactionId} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('major');
     }
     match /draft_results_dev/{doc=**} {
         allow read: if true;
@@ -522,21 +535,21 @@ service cloud.firestore {
 
     match /minor_seasons_dev/{seasonId} {
       allow get, list: if request.auth.uid != null;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
       match /{documents=**} {
         allow read: if true;
-        allow write: if isUserAdmin();
+        allow write: if isUserAdmin() || isLeagueCommish('minor');
       }
     }
 
     match /minor_v2_players_dev/{document=**} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_v2_teams_dev/{document=**} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_draftPicks_dev/{doc=**} {
@@ -546,18 +559,18 @@ service cloud.firestore {
 
     match /minor_live_games_dev/{gameId} {
       allow read: if true;
-      allow write: if isScorekeeperOrAdmin();
+      allow write: if isScorekeeperOrAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_transactions_dev/{transactionId} {
       allow read: if true;
-      allow create: if isUserAdmin();
+      allow create: if isUserAdmin() || isLeagueCommish('minor');
       allow update, delete: if false;
     }
 
     match /minor_transactions_dev/seasons/{seasonId}/{transactionId} {
       allow read: if true;
-      allow write: if isUserAdmin();
+      allow write: if isUserAdmin() || isLeagueCommish('minor');
     }
 
     match /minor_live_scoring_status_dev/{doc=**} {

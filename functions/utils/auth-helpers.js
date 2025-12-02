@@ -12,18 +12,22 @@ const LEAGUES = {
 };
 
 /**
- * Helper function to check for admin or scorekeeper roles
+ * Helper function to check for admin, scorekeeper, or league commish roles
  * @param {object} auth - The Firebase auth context
  * @param {string} league - League context ('major' or 'minor')
- * @returns {Promise<boolean>} True if user is admin or scorekeeper
+ * @returns {Promise<boolean>} True if user is admin, scorekeeper, or commish for the league
  */
 async function isScorekeeperOrAdmin(auth, league = LEAGUES.MAJOR) {
     if (!auth) return false;
     // 'users' is a shared collection, so no league parameter needed
     const userDoc = await db.collection(getCollectionName('users')).doc(auth.uid).get();
     if (!userDoc.exists) return false;
-    const role = userDoc.data().role;
-    return role === 'admin' || role === 'scorekeeper';
+
+    const userData = userDoc.data();
+    const role = userData.role;
+    const leagueRoleField = league === LEAGUES.MINOR ? 'role_minor' : 'role_major';
+
+    return role === 'admin' || role === 'scorekeeper' || userData[leagueRoleField] === 'commish';
 }
 
 /**
