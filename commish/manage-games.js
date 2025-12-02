@@ -5,7 +5,7 @@ import { writeBatch } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-
 import { initCommishAuth } from '/commish/commish.js';
 
 // --- Page Elements ---
-let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls;
+let loadingContainer, adminContainer, authStatusDiv, seasonSelect, weekSelect, gamesListContainer, lineupModal, lineupForm, closeLineupModalBtn, liveScoringControls, lineupFeedbackContainer;
 let deadlineForm, deadlineDateInput, deadlineDisplay, deadlineToolsToggle, deadlineToolsContent;
 let adjustmentsToggleBtn, actionDropdownToggle, actionDropdownMenu;
 let submitLiveLineupsBtn, finalizeLiveGameBtn;
@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     lineupForm = document.getElementById('lineup-form');
     closeLineupModalBtn = lineupModal.querySelector('.close-btn-admin');
     liveScoringControls = document.getElementById('live-scoring-controls');
+    lineupFeedbackContainer = document.getElementById('lineup-feedback');
     adjustmentsToggleBtn = document.getElementById('toggle-adjustments-btn');
     actionDropdownToggle = document.getElementById('action-dropdown-toggle');
     actionDropdownMenu = document.getElementById('action-dropdown-menu');
@@ -805,6 +806,7 @@ function calculateAllScores() {
 
 async function handleLineupFormSubmit(e) {
     e.preventDefault();
+    clearLineupFeedback();
     const submitButton = e.target.querySelector('button[type="submit"]');
     submitButton.disabled = true;
     submitButton.textContent = 'Saving...';
@@ -884,10 +886,13 @@ async function handleLineupFormSubmit(e) {
                 team2_lineup: merged_team2_lineup
             });
 
-            alert('Live game lineup updated successfully!');
+            showLineupFeedback('success', {
+                title: 'Lineups updated',
+                message: 'Live game lineup updated successfully.'
+            });
             lineupModal.classList.remove('is-visible');
             fetchAndDisplayGames(currentSeasonId, weekSelect.value);
-            return; 
+            return;
         }
 
         const isExhibition = collectionName === 'exhibition_games';
@@ -944,7 +949,10 @@ async function handleLineupFormSubmit(e) {
         });
 
         await batch.commit();
-        alert('Lineups and scores saved successfully!');
+        showLineupFeedback('success', {
+            title: 'Lineups saved',
+            message: 'Lineups and scores saved successfully.'
+        });
         lineupModal.classList.remove('is-visible');
         fetchAndDisplayGames(currentSeasonId, weekSelect.value);
 
@@ -960,6 +968,7 @@ async function handleLineupFormSubmit(e) {
 
 async function handleStageLiveLineups(e) {
     e.preventDefault();
+    clearLineupFeedback();
     const button = e.target;
     button.disabled = true;
     button.textContent = 'Processing...';
@@ -1035,7 +1044,10 @@ async function handleStageLiveLineups(e) {
             league: getCurrentLeague()
         });
 
-        alert('Lineup(s) submitted successfully! The server will process them according to the game day schedule.');
+        showLineupFeedback('success', {
+            title: 'Lineups submitted',
+            message: 'Lineup(s) submitted successfully. The server will process them according to the game day schedule.'
+        });
 
         lineupModal.classList.remove('is-visible');
         fetchAndDisplayGames(currentSeasonId, weekSelect.value);
@@ -1074,4 +1086,29 @@ async function handleFinalizeLiveGame(e) {
         button.disabled = false;
         button.textContent = 'Finalize Game';
     }
+}
+
+function showLineupFeedback(type, { title, message }) {
+    if (!lineupFeedbackContainer) return;
+
+    lineupFeedbackContainer.innerHTML = `
+        <div class="admin-feedback-icon" aria-hidden="true">${type === 'success' ? '✓' : '!'}</div>
+        <div>
+            <p class="admin-feedback-title">${title}</p>
+            <p class="admin-feedback-message">${message}</p>
+        </div>
+    `;
+
+    lineupFeedbackContainer.classList.remove('admin-feedback--success', 'admin-feedback--error');
+    lineupFeedbackContainer.classList.add(type === 'success' ? 'admin-feedback--success' : 'admin-feedback--error');
+    lineupFeedbackContainer.hidden = false;
+    lineupFeedbackContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function clearLineupFeedback() {
+    if (!lineupFeedbackContainer) return;
+
+    lineupFeedbackContainer.hidden = true;
+    lineupFeedbackContainer.innerHTML = '';
+    lineupFeedbackContainer.classList.remove('admin-feedback--success', 'admin-feedback--error');
 }

@@ -1,6 +1,6 @@
 // /admin/manage-players.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, query, httpsCallable, functions, getCurrentLeague, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, updateDoc, setDoc, query, httpsCallable, functions, getCurrentLeague, collectionNames, getLeagueCollectionName, orderBy, startAt, endAt, limit } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -14,11 +14,12 @@ const playerForm = document.getElementById('player-form');
 const createPlayerBtn = document.getElementById('create-player-btn');
 const seasonSelect = document.getElementById('player-season-select');
 
-let allPlayers = [];
 let allTeams = new Map();
 let currentSeasonId = "";
 let isEditMode = false;
 let listenersInitialized = false;
+let displayedPlayers = [];
+let searchDebounceId = null;
 
 // --- Primary Auth Check ---
 document.addEventListener('DOMContentLoaded', () => {
@@ -51,15 +52,17 @@ async function initializePage() {
             seasonSelect.addEventListener('change', async () => {
                 currentSeasonId = seasonSelect.value;
                 await updateTeamCache(currentSeasonId);
-                await loadAndDisplayPlayers();
+                await handlePlayerSearch();
             });
 
             searchInput.addEventListener('input', () => {
-                const searchTerm = searchInput.value.toLowerCase();
-                const filteredPlayers = allPlayers.filter(player =>
-                    player.player_handle && player.player_handle.toLowerCase().includes(searchTerm)
-                );
-                displayPlayers(filteredPlayers);
+                if (searchDebounceId) {
+                    clearTimeout(searchDebounceId);
+                }
+
+                searchDebounceId = setTimeout(() => {
+                    handlePlayerSearch();
+                }, 250);
             });
 
             // Listen for league changes and reload the page data
@@ -121,13 +124,30 @@ async function populateSeasons() {
     currentSeasonId = seasonSelect.value;
 
     await updateTeamCache(currentSeasonId);
-    await loadAndDisplayPlayers();
+    showSearchPrompt();
 }
 
-async function loadAndDisplayPlayers() {
-    playersListContainer.innerHTML = '<div class="loading">Loading players...</div>';
+async function handlePlayerSearch() {
+    const searchTermRaw = searchInput.value.trim();
+
+    if (!searchTermRaw) {
+        displayedPlayers = [];
+        showSearchPrompt();
+        return;
+    }
+
+    playersListContainer.innerHTML = '<div class="loading">Searching players...</div>';
+
     try {
-        const playersSnap = await getDocs(collection(db, collectionNames.players));
+        const playersQuery = query(
+            collection(db, collectionNames.players),
+            orderBy('player_handle'),
+            startAt(searchTermRaw),
+            endAt(searchTermRaw + '\uf8ff'),
+            limit(50)
+        );
+
+        const playersSnap = await getDocs(playersQuery);
 
         const playerPromises = playersSnap.docs.map(async (playerDoc) => {
             const playerData = { id: playerDoc.id, ...playerDoc.data() };
@@ -141,23 +161,18 @@ async function loadAndDisplayPlayers() {
             return playerData;
         });
 
-        allPlayers = await Promise.all(playerPromises);
-        allPlayers.sort((a, b) => (a.player_handle || '').localeCompare(b.player_handle));
+        displayedPlayers = await Promise.all(playerPromises);
+        displayedPlayers.sort((a, b) => (a.player_handle || '').localeCompare(b.player_handle));
 
-        // Apply search filter if there's a search term
-        const searchTerm = searchInput.value.toLowerCase();
-        if (searchTerm) {
-            const filteredPlayers = allPlayers.filter(player =>
-                player.player_handle && player.player_handle.toLowerCase().includes(searchTerm)
-            );
-            displayPlayers(filteredPlayers);
-        } else {
-            displayPlayers(allPlayers);
-        }
+        displayPlayers(displayedPlayers);
     } catch (error) {
-        console.error(`Error loading players for season ${currentSeasonId}:`, error);
+        console.error(`Error searching players for season ${currentSeasonId}:`, error);
         playersListContainer.innerHTML = '<div class="error">Could not load player data.</div>';
     }
+}
+
+function showSearchPrompt() {
+    playersListContainer.innerHTML = '<p class="placeholder-text">Start typing a player handle to search.</p>';
 }
 
 function displayPlayers(players) {
@@ -186,7 +201,7 @@ function displayPlayers(players) {
 playersListContainer.addEventListener('click', (e) => {
     if (e.target.matches('.btn-admin-edit')) {
         const playerId = e.target.dataset.playerId;
-        const playerData = allPlayers.find(p => p.id === playerId);
+        const playerData = displayedPlayers.find(p => p.id === playerId);
         if (playerData) {
             openPlayerModal(playerData);
         }
@@ -282,7 +297,7 @@ playerModal.addEventListener('click', async (e) => {
 
         alert(result.data.message);
         playerModal.style.display = 'none';
-        await loadAndDisplayPlayers(); 
+        await handlePlayerSearch();
 
     } catch (error) {
         console.error("Player ID migration failed:", error);
@@ -363,7 +378,7 @@ playerForm.addEventListener('submit', async (e) => {
             alert('New player created successfully!');
         }
 
-        await loadAndDisplayPlayers(); // Refresh the list
+        await handlePlayerSearch(); // Refresh the list
         playerModal.style.display = 'none';
 
     } catch (error) {

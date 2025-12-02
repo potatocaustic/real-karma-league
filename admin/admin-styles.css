@@ -168,6 +168,11 @@ header nav {
         border-color: rgba(255, 255, 255, 0.16);
         box-shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
         width: 100%;
+        position: static;
+        left: 0;
+        right: 0;
+        transform: none;
+        margin-top: 0.35rem;
     }
 
     main#admin-container,
@@ -256,6 +261,11 @@ main {
     border: 1px solid var(--admin-border);
     border-radius: 14px;
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+#admin-container .content-container.content-container--borderless {
+    border-color: transparent;
+    box-shadow: none;
 }
 
 #admin-container .report-section h3 {
