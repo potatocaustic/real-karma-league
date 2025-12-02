@@ -25,7 +25,6 @@ service cloud.firestore {
 
     // Function to check if a user is a commish for a specific league
     function isLeagueCommish(league) {
-      if (request.auth == null) return false;
       let userPath = /databases/$(database)/documents/users/$(request.auth.uid);
       let userDevPath = /databases/$(database)/documents/users_dev/$(request.auth.uid);
 
@@ -33,7 +32,7 @@ service cloud.firestore {
       let isProdCommish = exists(userPath) && get(userPath).data[roleField] == 'commish';
       let isDevCommish = exists(userDevPath) && get(userDevPath).data[roleField] == 'commish';
 
-      return isProdCommish || isDevCommish;
+      return request.auth != null && (isProdCommish || isDevCommish);
     }
 
     // Function to check if user is a GM
