@@ -224,7 +224,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }).join('\n');
 
             // 1a: Update final verbiage and link
-            const finalVerbiage = `Submit your lineup to me OR through the website by ${timeInput} https://www.realkarmaleague.com/gm/dashboard.html`;
+            const league = getCurrentLeague();
+            const recipient = league === 'minor' ? '@det' : 'me';
+            const finalVerbiage = `Submit your lineup to ${recipient} OR through the website by ${timeInput} https://www.realkarmaleague.com/gm/dashboard.html?league=${league}`;
 
             // Add the colored dot before the day name
             const output = `${colorDot} ${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\n${finalVerbiage}`;
