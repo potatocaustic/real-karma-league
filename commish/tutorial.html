@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commish Portal Tutorial - RKL</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <style>
+        .tutorial-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .tutorial-hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .tutorial-hero h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2.5rem;
+        }
+
+        .tutorial-hero p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        .tutorial-toc {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .tutorial-toc h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+        }
+
+        .tutorial-toc ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tutorial-toc li {
+            margin: 0.75rem 0;
+        }
+
+        .tutorial-toc a {
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .tutorial-toc a:hover {
+            background: var(--hover-bg);
+        }
+
+        .tutorial-toc a::before {
+            content: "→";
+            margin-right: 0.75rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .tutorial-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            scroll-margin-top: 2rem;
+        }
+
+        .tutorial-section h2 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tutorial-section h3 {
+            color: var(--secondary-color);
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            margin: 1.5rem 0;
+            padding-left: 3rem;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background: var(--primary-color);
+            color: white;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .dark-mode .info-box {
+            background: #1a2332;
+            border-left-color: #64b5f6;
+        }
+
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .dark-mode .warning-box {
+            background: #2d2416;
+            border-left-color: #ffb74d;
+        }
+
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 1rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .dark-mode .success-box {
+            background: #1b2e1d;
+            border-left-color: #81c784;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .feature-card {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .feature-card-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h4 {
+            margin: 0.5rem 0;
+            color: var(--primary-color);
+        }
+
+        .feature-card p {
+            margin: 0.5rem 0 0 0;
+            font-size: 0.9rem;
+            opacity: 0.85;
+        }
+
+        .screenshot-placeholder {
+            background: var(--hover-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .key-combo {
+            background: var(--hover-bg);
+            border: 1px solid var(--border-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--primary-color);
+            color: white;
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-4px);
+        }
+
+        code {
+            background: var(--hover-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        .tip-icon::before {
+            content: "💡";
+            margin-right: 0.5rem;
+        }
+
+        .warning-icon::before {
+            content: "⚠️";
+            margin-right: 0.5rem;
+        }
+
+        .success-icon::before {
+            content: "✅";
+            margin-right: 0.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .tutorial-hero h1 {
+                font-size: 2rem;
+            }
+
+            .tutorial-section {
+                padding: 1.5rem;
+            }
+
+            .step-list li {
+                padding-left: 2.5rem;
+            }
+        }
+    </style>
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+</head>
+<body>
+    <header>
+        <div id="auth-status"></div>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <img src="../icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="eager">
+            <span class="header-text">Real Karma League</span>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="/commish/dashboard.html">Commish Dashboard</a></li>
+                <li><a href="/admin/dashboard.html">Admin Dashboard</a></li>
+                <li><a href="/">Home</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="tutorial-container">
+        <div class="tutorial-hero">
+            <h1>📚 Commish Portal Tutorial</h1>
+            <p>Your complete guide to managing your league like a pro</p>
+        </div>
+
+        <!-- Table of Contents -->
+        <div class="tutorial-toc">
+            <h2>📋 Table of Contents</h2>
+            <ul>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#manage-games">Manage Games & Scores</a></li>
+                <li><a href="#manage-transactions">Manage Transactions</a></li>
+                <li><a href="#manage-players">Manage Players</a></li>
+                <li><a href="#manage-teams">Manage Teams</a></li>
+                <li><a href="#manage-reports">Generate Reports</a></li>
+                <li><a href="#tips-tricks">Tips & Best Practices</a></li>
+            </ul>
+        </div>
+
+        <!-- Getting Started Section -->
+        <section id="getting-started" class="tutorial-section">
+            <h2>🚀 Getting Started</h2>
+
+            <h3>What is the Commish Portal?</h3>
+            <p>The Commish Portal is a league management system that gives commissioners the tools they need to run their league effectively. As a commish, you have access to five powerful tools for managing games, players, teams, and more.</p>
+
+            <div class="info-box">
+                <strong class="tip-icon">Important:</strong> Your commish access is <strong>league-specific</strong>. If you're a commish for the Major League, you'll only have access to Major League tools. The same applies to the Minor League.
+            </div>
+
+            <h3>Accessing the Portal</h3>
+            <ol class="step-list">
+                <li>Navigate to <code>/commish/dashboard.html</code> in your browser</li>
+                <li>Log in with your authorized account</li>
+                <li>You'll see the Commish Dashboard with five tool cards</li>
+                <li>Use the league switcher (if you have access to multiple leagues) to switch between Major and Minor leagues</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                Screenshot: Commish Dashboard showing the five management tool cards
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-card-icon">📅</div>
+                    <h4>Games & Scores</h4>
+                    <p>Manage weekly matchups and enter game results</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">🔄</div>
+                    <h4>Transactions</h4>
+                    <p>Log trades, signings, cuts, and more</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">👥</div>
+                    <h4>Players</h4>
+                    <p>Edit player information and assignments</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">🏆</div>
+                    <h4>Teams</h4>
+                    <p>Update team details and information</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">📄</div>
+                    <h4>Reports</h4>
+                    <p>Generate formatted reports for announcements</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Manage Games Section -->
+        <section id="manage-games" class="tutorial-section">
+            <h2>📅 Manage Games & Scores</h2>
+
+            <p>This tool allows you to enter lineups, scores, and manage deadlines for weekly matchups.</p>
+
+            <h3>Setting Deadlines</h3>
+            <ol class="step-list">
+                <li>Click on "Manage Games & Scores" from the dashboard</li>
+                <li>Expand the "Deadline Tools" section at the top</li>
+                <li>Select the game date and enter the deadline time (in Central Time)</li>
+                <li>Click "Set" to save the deadline</li>
+            </ol>
+
+            <div class="info-box">
+                <strong class="tip-icon">Tip:</strong> Set deadlines a few hours before the first game of the day to give GMs time to submit their lineups.
+            </div>
+
+            <h3>Entering Game Scores & Lineups</h3>
+            <ol class="step-list">
+                <li>Select a <strong>Season</strong> from the dropdown</li>
+                <li>Select a <strong>Week</strong> from the dropdown</li>
+                <li>The games for that week will appear below</li>
+                <li>Click the <strong>"Edit"</strong> button on any game card to open the lineup modal</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                Screenshot: Games list showing game cards with team names, current scores, and Edit buttons
+            </div>
+
+            <h3>Using the Lineup Modal</h3>
+            <ol class="step-list">
+                <li><strong>Select 6 starters</strong> for each team from their roster on the left</li>
+                <li>The selected players will appear in the "Starters" section</li>
+                <li>Click on a starter to designate them as <strong>Captain</strong> (gets 1.5x multiplier)</li>
+                <li>Enter scores for each player (scores are calculated automatically)</li>
+                <li>Use the <strong>"Adjust scores"</strong> button if you need to make manual adjustments</li>
+                <li>Click <strong>"Submit Lineups"</strong> to save the lineups</li>
+                <li>Use <strong>"More Actions"</strong> dropdown to:
+                    <ul>
+                        <li>Mark game as completed</li>
+                        <li>Submit score adjustments</li>
+                        <li>Finalize the game (locks it from further edits)</li>
+                    </ul>
+                </li>
+            </ol>
+
+            <div class="warning-box">
+                <strong class="warning-icon">Important:</strong> Once you click "Finalize Game," the game is locked and cannot be edited without admin intervention.
+            </div>
+
+            <h3>Game Status Indicators</h3>
+            <ul>
+                <li><strong>C (Complete):</strong> Game has been finalized</li>
+                <li><strong>R (Ready/Live):</strong> Game is in progress or ready for scoring</li>
+                <li><strong>P (Pending):</strong> Game hasn't been set up yet</li>
+            </ul>
+        </section>
+
+        <!-- Manage Transactions Section -->
+        <section id="manage-transactions" class="tutorial-section">
+            <h2>🔄 Manage Transactions</h2>
+
+            <p>Log all roster moves including trades, signings, cuts, retirements, and unretirements.</p>
+
+            <h3>Logging a Trade</h3>
+            <ol class="step-list">
+                <li>Select <strong>"Trade"</strong> from the Transaction Type dropdown</li>
+                <li>The Trade Builder section will appear</li>
+                <li>For each team involved:
+                    <ul>
+                        <li>Select the team from the dropdown</li>
+                        <li>Click "Add Player" or "Add Pick" to add assets they're sending</li>
+                        <li>For each asset, select its <strong>destination team</strong></li>
+                    </ul>
+                </li>
+                <li>Click <strong>"+ Add Another Team"</strong> if the trade involves more than 2 teams</li>
+                <li>Add optional notes about the trade</li>
+                <li>Click <strong>"Log Transaction"</strong> to submit</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                Screenshot: Trade Builder showing two teams with players and picks being exchanged
+            </div>
+
+            <div class="info-box">
+                <strong class="tip-icon">Trade Tips:</strong>
+                <ul>
+                    <li>Make sure every asset has a destination team selected</li>
+                    <li>For 3+ team trades, carefully verify each asset's destination</li>
+                    <li>Use the notes field to record trade details or conditions</li>
+                </ul>
+            </div>
+
+            <h3>Free Agent Signing</h3>
+            <ol class="step-list">
+                <li>Select <strong>"Free Agent Signing"</strong> from the dropdown</li>
+                <li>Choose the signing team</li>
+                <li>Type the player's handle in the search box (it will auto-complete)</li>
+                <li>Add optional notes</li>
+                <li>Click <strong>"Log Transaction"</strong></li>
+            </ol>
+
+            <h3>Cutting a Player</h3>
+            <ol class="step-list">
+                <li>Select <strong>"Cut Player"</strong> from the dropdown</li>
+                <li>Optionally filter by team to narrow down the player list</li>
+                <li>Select the player to cut from the dropdown</li>
+                <li>Add optional notes</li>
+                <li>Click <strong>"Log Transaction"</strong></li>
+            </ol>
+
+            <h3>Retirement & Unretirement</h3>
+            <p><strong>Retirement:</strong></p>
+            <ol class="step-list">
+                <li>Select <strong>"Retirement"</strong></li>
+                <li>Optionally filter by team</li>
+                <li>Select the retiring player</li>
+                <li>Click <strong>"Log Transaction"</strong></li>
+            </ol>
+
+            <p><strong>Unretirement:</strong></p>
+            <ol class="step-list">
+                <li>Select <strong>"Unretirement"</strong></li>
+                <li>Select the player coming out of retirement</li>
+                <li>Select which team they're joining</li>
+                <li>Click <strong>"Log Transaction"</strong></li>
+            </ol>
+
+            <div class="success-box">
+                <strong class="success-icon">Success!</strong> After logging a transaction, you'll see a green success message. You can immediately log another transaction or click "Reset Form" to clear the form.
+            </div>
+        </section>
+
+        <!-- Manage Players Section -->
+        <section id="manage-players" class="tutorial-section">
+            <h2>👥 Manage Players</h2>
+
+            <p>Edit player information, team assignments, and manage player statuses.</p>
+
+            <h3>Finding a Player</h3>
+            <ol class="step-list">
+                <li>Select a <strong>Season</strong> from the dropdown</li>
+                <li>Use the <strong>search box</strong> to filter players by handle</li>
+                <li>The player list will update in real-time as you type</li>
+                <li>Click <strong>"Edit"</strong> on any player card to open the edit modal</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                Screenshot: Player cards showing player handles, team affiliations, and Edit buttons
+            </div>
+
+            <h3>Editing Player Information</h3>
+            <p>In the player edit modal, you can modify:</p>
+            <ul>
+                <li><strong>Player Handle:</strong> Their display name</li>
+                <li><strong>Current Team:</strong> Which team they're on</li>
+                <li><strong>Player Status:</strong>
+                    <ul>
+                        <li>ACTIVE - Currently playing</li>
+                        <li>RETIRED - No longer playing</li>
+                        <li>INACTIVE - Temporarily not playing</li>
+                        <li>FREE_AGENT - Not on any team</li>
+                    </ul>
+                </li>
+                <li><strong>Accolades:</strong>
+                    <ul>
+                        <li>Rookie - First season player</li>
+                        <li>All-Star - All-star selection</li>
+                    </ul>
+                </li>
+            </ul>
+
+            <div class="info-box">
+                <strong class="tip-icon">Note:</strong> Player ID is read-only and cannot be changed through the commish portal.
+            </div>
+
+            <h3>Creating a New Player</h3>
+            <ol class="step-list">
+                <li>Click the <strong>"Create New Player"</strong> button at the top right</li>
+                <li>The modal will open in "Create" mode</li>
+                <li>Enter the player's handle</li>
+                <li>Select their team</li>
+                <li>Set their status (usually ACTIVE for new players)</li>
+                <li>Check "Rookie" if they're in their first season</li>
+                <li>Click <strong>"Save Player Changes"</strong></li>
+            </ol>
+
+            <div class="warning-box">
+                <strong class="warning-icon">Remember:</strong> When a player is cut or signs with a new team, update their team assignment here to keep rosters accurate.
+            </div>
+        </section>
+
+        <!-- Manage Teams Section -->
+        <section id="manage-teams" class="tutorial-section">
+            <h2>🏆 Manage Teams</h2>
+
+            <p>Update team information including names, conferences, and GM assignments.</p>
+
+            <h3>Editing Team Information</h3>
+            <ol class="step-list">
+                <li>Select a <strong>Season</strong> from the dropdown</li>
+                <li>Find the team you want to edit</li>
+                <li>Click <strong>"Edit"</strong> on the team card</li>
+                <li>In the modal, you can update:
+                    <ul>
+                        <li><strong>Team Name</strong></li>
+                        <li><strong>Conference</strong> (varies by league)</li>
+                        <li><strong>GM Handle</strong> (their display name)</li>
+                        <li><strong>Color Override</strong> (hex color for the team)</li>
+                    </ul>
+                </li>
+                <li>Click <strong>"Save Team Changes"</strong></li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                Screenshot: Team edit modal showing editable fields
+            </div>
+
+            <div class="info-box">
+                <strong class="tip-icon">About Conferences:</strong>
+                <ul>
+                    <li><strong>Major League:</strong> Western and Eastern conferences</li>
+                    <li><strong>Minor League:</strong> Uses different conference structure</li>
+                </ul>
+            </div>
+
+            <h3>Team Rebranding</h3>
+            <p>If a team wants to change their name and ID (full rebrand):</p>
+            <ol class="step-list">
+                <li>Click <strong>"Rebrand"</strong> on the team card</li>
+                <li>Enter the new team name</li>
+                <li>Enter the new team ID (2-4 uppercase letters/numbers, e.g., "LAL", "BOS")</li>
+                <li>Double-check all information</li>
+                <li>Click <strong>"Submit Rebrand"</strong></li>
+            </ol>
+
+            <div class="warning-box">
+                <strong class="warning-icon">Critical:</strong> Rebranding is permanent and updates all historical records, players, and draft picks associated with that team. This action cannot be easily undone!
+            </div>
+
+            <h3>Color Overrides</h3>
+            <p>By default, team colors are detected from their logo. To manually set a color:</p>
+            <ol class="step-list">
+                <li>Click the color picker in the edit modal</li>
+                <li>Select your desired color</li>
+                <li>Click "Save Team Changes"</li>
+            </ol>
+        </section>
+
+        <!-- Manage Reports Section -->
+        <section id="manage-reports" class="tutorial-section">
+            <h2>📄 Generate Reports</h2>
+
+            <p>Generate formatted reports for lineup announcements, deadlines, and Game of the Day (GOTD) voting.</p>
+
+            <h3>Available Reports</h3>
+
+            <h4>1. Lineups Deadline Report</h4>
+            <p>Generate a deadline reminder with the day's matchups.</p>
+            <ol class="step-list">
+                <li>Click to expand the "Lineups Deadline Report" section</li>
+                <li>Select the <strong>Game Date</strong></li>
+                <li>Enter the <strong>Deadline Time</strong> (e.g., "12:05p ET")</li>
+                <li>Click <strong>"Generate Report"</strong></li>
+                <li>The formatted report appears below</li>
+                <li>Click <strong>"Copy to Clipboard"</strong> to copy the text</li>
+                <li>Paste into Discord or your announcement channel</li>
+            </ol>
+
+            <div class="screenshot-placeholder">
+                Screenshot: Generated deadline report showing matchups and deadline time
+            </div>
+
+            <h4>2. Vote GOTD Report</h4>
+            <p>Create a Game of the Day voting announcement.</p>
+            <ol class="step-list">
+                <li>Expand the "Vote GOTD Report" section</li>
+                <li>Select the <strong>Game Date</strong></li>
+                <li>Click <strong>"Generate Report"</strong></li>
+                <li>A formatted list of the day's matchups appears</li>
+                <li>Copy and share for voting</li>
+            </ol>
+
+            <h4>3. Daily Lineups Report</h4>
+            <p>Publish the official lineups for the day's games.</p>
+            <ol class="step-list">
+                <li>Expand the "Daily Lineups Report" section</li>
+                <li>If there are multiple games, you'll see a GOTD selector</li>
+                <li>Select which game is the <strong>Game of the Day</strong></li>
+                <li>Click <strong>"Generate Report"</strong></li>
+                <li>The formatted lineups appear, with GOTD highlighted</li>
+                <li>Copy and share the lineups</li>
+            </ol>
+
+            <div class="info-box">
+                <strong class="tip-icon">Pro Tip:</strong> Generate these reports in order:
+                <ol>
+                    <li>Lineups Deadline Report (before deadline)</li>
+                    <li>Vote GOTD Report (after deadline, before lineups)</li>
+                    <li>Daily Lineups Report (after GOTD voting closes)</li>
+                </ol>
+            </div>
+
+            <div class="success-box">
+                <strong class="success-icon">Time Saver:</strong> The deadline time auto-populates based on the earliest game time for the selected date!
+            </div>
+        </section>
+
+        <!-- Tips & Best Practices Section -->
+        <section id="tips-tricks" class="tutorial-section">
+            <h2>💡 Tips & Best Practices</h2>
+
+            <h3>General Workflow</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-card-icon">🌅</div>
+                    <h4>Morning Routine</h4>
+                    <p>Set deadlines for upcoming games and generate deadline reports</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">🎯</div>
+                    <h4>Game Day</h4>
+                    <p>Generate GOTD voting, then publish lineups after voting</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">🌙</div>
+                    <h4>Evening Routine</h4>
+                    <p>Enter scores and finalize games after they complete</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-card-icon">📝</div>
+                    <h4>Off-Season</h4>
+                    <p>Process transactions, update rosters, manage player statuses</p>
+                </div>
+            </div>
+
+            <h3>Keyboard Shortcuts & Quick Actions</h3>
+            <ul>
+                <li><strong>Theme Toggle:</strong> Click the sun/moon icon in the header to switch between light and dark mode</li>
+                <li><strong>League Switcher:</strong> Click the league switcher icon to quickly toggle between Major and Minor leagues</li>
+                <li><strong>Search Players:</strong> Start typing in any search box for instant filtering</li>
+            </ul>
+
+            <h3>Common Questions</h3>
+
+            <h4>Q: I can't see Minor League games. Why?</h4>
+            <p><strong>A:</strong> Make sure you're using the league switcher to view the Minor League. Your access must be granted for that specific league.</p>
+
+            <h4>Q: Can I undo a finalized game?</h4>
+            <p><strong>A:</strong> No, finalized games are locked. Contact an admin if you need to make changes to a finalized game.</p>
+
+            <h4>Q: What happens when I log a trade?</h4>
+            <p><strong>A:</strong> The transaction is recorded, but you'll still need to manually update player team assignments in "Manage Players."</p>
+
+            <h4>Q: How do I change a GM's login credentials?</h4>
+            <p><strong>A:</strong> GM User IDs and authentication are admin-only features. Contact an admin for these changes.</p>
+
+            <h3>Best Practices</h3>
+            <ul>
+                <li>✅ <strong>Set deadlines early</strong> to give GMs time to prepare</li>
+                <li>✅ <strong>Double-check trades</strong> before logging them - verify all assets and destinations</li>
+                <li>✅ <strong>Finalize games promptly</strong> after scores are entered and verified</li>
+                <li>✅ <strong>Use the notes field</strong> in transactions to document important details</li>
+                <li>✅ <strong>Keep player statuses updated</strong> when roster changes occur</li>
+                <li>❌ <strong>Don't finalize games</strong> if there's any uncertainty about the scores</li>
+                <li>❌ <strong>Don't forget to update player teams</strong> after logging transactions</li>
+            </ul>
+
+            <div class="warning-box">
+                <strong class="warning-icon">Remember:</strong> As a commish, you're responsible for your designated league only. If you need to make changes affecting multiple leagues or access admin-only features, contact your league administrator.
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding: 3rem 0; border-top: 1px solid var(--border-color); margin-top: 3rem;">
+            <p style="margin: 0.5rem 0;">Need help? Contact your league administrator</p>
+            <p style="margin: 0.5rem 0;">
+                <a href="/commish/dashboard.html" style="color: var(--primary-color);">← Back to Commish Dashboard</a>
+            </p>
+        </div>
+    </div>
+
+    <a href="#" class="back-to-top" title="Back to top">↑</a>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Show/hide back to top button
+        window.addEventListener('scroll', () => {
+            const backToTop = document.querySelector('.back-to-top');
+            if (window.scrollY > 500) {
+                backToTop.style.display = 'flex';
+            } else {
+                backToTop.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -115,6 +115,7 @@ The system uses `getCurrentLeague()` from `firebase-init.js` to determine which 
 ```
 /commish/
 ├── README.md                    # This file
+├── tutorial.html                # Comprehensive tutorial and guide
 ├── commish.js                   # Shared authentication utilities
 ├── dashboard.html               # Main commish portal dashboard
 ├── dashboard.js                 # Dashboard logic
@@ -134,6 +135,7 @@ The system uses `getCurrentLeague()` from `firebase-init.js` to determine which 
 
 Commish users can access the portal at:
 - **Main Dashboard**: `/commish/dashboard.html`
+- **Tutorial & Guide**: `/commish/tutorial.html`
 - The dashboard provides links to all available commish tools
 
 ## Notes
