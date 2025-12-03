@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Site Styling Rollout</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <style>
+        #style-rollout-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #style-rollout-table th,
+        #style-rollout-table td {
+            padding: 0.85rem 0.75rem;
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.01em;
+        }
+
+        .badge-success {
+            background: rgba(34, 197, 94, 0.12);
+            color: #16a34a;
+        }
+
+        .badge-muted {
+            background: rgba(15, 23, 42, 0.06);
+            color: #475569;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #1f2937, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            color: #e5e7eb;
+            padding: 0.6rem 1.1rem;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div id="auth-status"></div>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <script>
+                document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\\'none\\'" loading="eager">');
+            </script>
+            <script>
+                document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+            </script>
+        </h1>
+        <div id="league-switcher-mount">
+            <div class="league-switcher">
+                <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li><a href="/admin/dashboard.html">Admin Dashboard</a></li>
+                <li><a href="/admin/manage-games.html">Manage Games</a></li>
+                <li><a href="/admin/manage-players.html">Manage Players</a></li>
+                <li><a href="/admin/manage-teams.html">Manage Teams</a></li>
+                <li><a href="/admin/manage-transactions.html">Manage Transactions</a></li>
+                <li><a href="/admin/manage-reports.html">Reports & Tools</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <section class="report-section">
+            <div class="section-heading">
+                <div class="section-title-block">
+                    <p class="eyebrow">Styling Control</p>
+                    <h2>Site Styling Rollout</h2>
+                </div>
+                <p class="section-description">Toggle the refreshed admin/commish styling across public pages without forcing it everywhere.</p>
+            </div>
+
+            <div class="form-grid" style="margin-bottom: 1.25rem; gap: 0.75rem;">
+                <div class="form-group-admin">
+                    <label for="new-page-path">Page Path</label>
+                    <input type="text" id="new-page-path" placeholder="e.g., /S9/standings.html" />
+                </div>
+                <div class="form-group-admin">
+                    <label for="new-page-label">Display Name</label>
+                    <input type="text" id="new-page-label" placeholder="Optional label" />
+                </div>
+                <div class="form-group-admin" style="align-self: flex-end;">
+                    <button id="add-page-btn" class="btn-primary">Add to Controls</button>
+                </div>
+            </div>
+
+            <div class="table-wrapper" id="style-rollout-table">
+                <div class="loading">Loading style rollout settings...</div>
+            </div>
+        </section>
+    </main>
+
+    <div id="loading-container" class="loading">Checking admin access...</div>
+
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/main.js" type="module"></script>
+    <script src="/admin/manage-style-rollout.js" type="module"></script>
+</body>
+</html>

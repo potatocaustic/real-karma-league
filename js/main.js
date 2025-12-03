@@ -1,18 +1,21 @@
 // /js/main.js
 
-import { 
-    auth, 
-    db, 
-    onAuthStateChanged, 
-    signOut, 
-    collection, 
-    doc, 
-    getDoc, 
-    where, 
-    query, 
-    limit, 
-    getDocs 
+import {
+    auth,
+    db,
+    onAuthStateChanged,
+    signOut,
+    collection,
+    doc,
+    getDoc,
+    where,
+    query,
+    limit,
+    getDocs
 } from './firebase-init.js';
+import { applyPageStyleRollout } from './style-rollout.js';
+
+applyPageStyleRollout();
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Authentication State Manager ---
