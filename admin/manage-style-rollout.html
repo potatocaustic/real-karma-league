@@ -74,10 +74,14 @@
         </button>
         <h1>
             <script>
-                document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\\'none\\'" loading="eager">');
+                const leaguePrefix = window.__currentLeague === 'minor' ? 'RKML' : 'RKL';
+                document.write(
+                    `<img src="../icons/${leaguePrefix}.webp" alt="${leaguePrefix} Logo" class="header-logo" onerror="this.style.display='none'" loading="eager">`
+                );
             </script>
             <script>
-                document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+                const leagueLabel = window.__currentLeague === 'minor' ? 'Minor ' : '';
+                document.write(`<span class="header-text"> Real Karma ${leagueLabel}League</span>`);
             </script>
         </h1>
         <div id="league-switcher-mount">
