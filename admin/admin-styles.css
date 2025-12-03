@@ -3101,3 +3101,350 @@ header .league-switcher .league-toggle-btn svg {
     font-style: italic;
     padding: 2rem;
 }
+
+/* Footer */
+footer {
+    background: var(--admin-surface);
+    border-top: 1px solid var(--admin-border);
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--admin-text);
+    opacity: 0.8;
+    margin-top: 3rem;
+}
+
+footer p {
+    margin: 0.5rem 0;
+}
+
+footer a {
+    color: #2563eb;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+footer a:hover {
+    color: #1d4ed8;
+}
+
+.dark-mode footer {
+    background: #0b1220;
+    border-top-color: #1f2937;
+}
+
+.dark-mode footer a {
+    color: #90caf9;
+}
+
+.dark-mode footer a:hover {
+    color: #bbdefb;
+}
+
+/* Transactions Page */
+.filter-controls {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.filter-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-group label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--admin-text);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.filter-group select {
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    font-size: 1rem;
+    min-width: 150px;
+    background: var(--admin-surface);
+    color: var(--admin-text);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-group select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    outline: none;
+}
+
+.filter-group select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.transactions-container {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.transactions-header {
+    background: linear-gradient(135deg, var(--admin-text), #111d35);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.transactions-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.transactions-list {
+    max-height: 800px;
+    overflow-y: auto;
+}
+
+.transaction-item {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--admin-border);
+    transition: background-color 0.2s ease;
+}
+
+.transaction-item:hover {
+    background: var(--admin-surface-subtle);
+}
+
+.transaction-item:last-child {
+    border-bottom: none;
+}
+
+.transaction-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.transaction-type {
+    padding: 0.4rem 0.9rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.transaction-type.trade { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; }
+.transaction-type.rescission { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+.transaction-type.retirement { background: linear-gradient(135deg, #7c3aed, #6d28d9); color: white; }
+.transaction-type.unretirement { background: linear-gradient(135deg, #16a34a, #15803d); color: white; }
+.transaction-type.drop { background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; }
+.transaction-type.gm-resignation { background: linear-gradient(135deg, #6b7280, #4b5563); color: white; }
+.transaction-type.gm-hired { background: linear-gradient(135deg, #06b6d4, #0891b2); color: white; }
+.transaction-type.gm-fired { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+.transaction-type.waiver-claim { background: linear-gradient(135deg, #f97316, #ea580c); color: white; }
+.transaction-type.sign { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+.transaction-type.cut { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+
+.transaction-date {
+    font-size: 0.9rem;
+    color: var(--admin-text);
+    opacity: 0.7;
+    font-weight: 600;
+}
+
+.transaction-details {
+    line-height: 1.8;
+    color: var(--admin-text);
+}
+
+.transaction-details img.team-logo-inline,
+.trade-team img.team-logo-inline {
+    width: 36px;
+    height: 36px;
+    vertical-align: middle;
+    margin-right: 8px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-name-link,
+.team-name-link {
+    font-weight: 600;
+    color: #2563eb;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.player-name-link:hover,
+.team-name-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+.player-stats-inline {
+    font-size: 0.85em;
+    color: var(--admin-text);
+    opacity: 0.7;
+}
+
+.gm-name {
+    font-weight: 700;
+    color: #06b6d4;
+}
+
+.draft-pick {
+    font-size: 0.9rem;
+}
+
+.multi-transaction {
+    border-left: 4px solid #2563eb;
+}
+
+.multi-rescission {
+    border-left: 4px solid #dc2626;
+}
+
+.trade-parts {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 1rem;
+    align-items: flex-start;
+    margin-top: 1rem;
+}
+
+.trade-parts.three-team-grid {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.trade-parts.four-team-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.trade-side {
+    background: var(--admin-surface-subtle);
+    padding: 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--admin-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.trade-arrow {
+    font-size: 1.5rem;
+    color: #2563eb;
+    font-weight: 700;
+    text-align: center;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50px;
+}
+
+.trade-team {
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    color: var(--admin-text);
+}
+
+.trade-team .team-name-link {
+    color: #1d4ed8;
+}
+
+.trade-assets {
+    list-style: none;
+    padding: 0;
+}
+
+.trade-assets li {
+    padding: 0.4rem 0;
+    color: var(--admin-text);
+}
+
+/* Dark mode - Transactions Page */
+.dark-mode .filter-controls {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+}
+
+.dark-mode .transactions-header {
+    background: linear-gradient(135deg, #1e3a8a, #1e40af);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.dark-mode .transactions-container {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+}
+
+.dark-mode .transaction-item {
+    border-bottom-color: #2d3748;
+}
+
+.dark-mode .transaction-item:hover {
+    background: linear-gradient(145deg, #0f1419, #111827);
+}
+
+.dark-mode .trade-side {
+    background: linear-gradient(135deg, #1f2937, #243244);
+    border-color: #3d4d6a;
+}
+
+.dark-mode .trade-arrow {
+    color: #90caf9;
+}
+
+.dark-mode .player-name-link,
+.dark-mode .team-name-link {
+    color: #90caf9;
+}
+
+.dark-mode .player-name-link:hover,
+.dark-mode .team-name-link:hover {
+    color: #bbdefb;
+}
+
+.dark-mode .gm-name {
+    color: #22d3ee;
+}
+
+@media (max-width: 768px) {
+    .trade-parts {
+        grid-template-columns: 1fr;
+    }
+
+    .trade-arrow {
+        transform: rotate(90deg);
+        margin: 0.5rem 0;
+    }
+
+    .trade-parts.three-team-grid,
+    .trade-parts.four-team-grid {
+        grid-template-columns: 1fr;
+    }
+}
