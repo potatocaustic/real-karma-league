@@ -1,0 +1,134 @@
+/* /css/s9-refresh.css */
+
+body.s9-page main {
+    background: var(--surface);
+    border-radius: var(--card-radius);
+    box-shadow: var(--shadow);
+}
+
+body.s9-page main > section,
+body.s9-page main > div,
+body.s9-page main .card,
+body.s9-page main .panel,
+body.s9-page main .season-card,
+body.s9-page main .nav-card,
+body.s9-page main .table-wrapper,
+body.s9-page main .season-grid-item,
+body.s9-page main .comparison-container,
+body.s9-page main .season-info,
+body.s9-page main .standings-preview,
+body.s9-page main .page-section,
+body.s9-page main .table-container,
+body.s9-page main .filters-bar,
+body.s9-page main .content-card,
+body.s9-page main .chart-card,
+body.s9-page main .grid-card,
+body.s9-page main .modal-content,
+body.s9-page main .summary-card,
+body.s9-page main .tab-content,
+body.s9-page main .leaderboard-section,
+body.s9-page main .transactions-container {
+    background: var(--surface-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+body.s9-page .page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+body.s9-page .page-header h2,
+body.s9-page .page-header h1 {
+    letter-spacing: 0.01em;
+    color: var(--text);
+}
+
+body.s9-page .type-selector .btn-group,
+body.s9-page .filters-bar,
+body.s9-page .tab-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+body.s9-page .type-selector button,
+body.s9-page .tab-list button,
+body.s9-page .filters-bar button,
+body.s9-page .filters-bar select,
+body.s9-page input,
+body.s9-page select,
+body.s9-page textarea {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.65rem 0.9rem;
+}
+
+body.s9-page .type-selector button.active,
+body.s9-page .tab-list button.active,
+body.s9-page .filters-bar button.primary,
+body.s9-page .filters-bar .cta-button,
+body.s9-page .filters-bar .apply-button {
+    background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 10px 24px rgba(79, 70, 229, 0.32);
+}
+
+body.s9-page table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+body.s9-page table th,
+body.s9-page table td {
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 0.65rem;
+}
+
+body.s9-page table th {
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.9rem;
+}
+
+body.s9-page a {
+    color: var(--accent-strong);
+}
+
+body.s9-page a:hover {
+    color: var(--accent);
+}
+
+@media (max-width: 768px) {
+    body.s9-page main > section,
+    body.s9-page main > div,
+    body.s9-page main .card,
+    body.s9-page main .panel,
+    body.s9-page main .season-card,
+    body.s9-page main .nav-card,
+    body.s9-page main .table-wrapper,
+    body.s9-page main .season-grid-item,
+    body.s9-page main .comparison-container,
+    body.s9-page main .season-info,
+    body.s9-page main .standings-preview,
+    body.s9-page main .page-section,
+    body.s9-page main .table-container,
+    body.s9-page main .filters-bar,
+    body.s9-page main .content-card,
+    body.s9-page main .chart-card,
+    body.s9-page main .grid-card,
+    body.s9-page main .modal-content,
+    body.s9-page main .summary-card,
+    body.s9-page main .tab-content,
+    body.s9-page main .leaderboard-section,
+    body.s9-page main .transactions-container {
+        padding: 1.1rem;
+    }
+}
