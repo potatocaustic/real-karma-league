@@ -61,7 +61,7 @@ async function authorizeAndLoadForm(user, teamId) {
         const playersQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const picksQuery = query(collection(db, collectionNames.draftPicks), where("current_owner", "==", teamId));
         // MODIFIED: Removed the inefficient 'allTeamsQuery'
-        const blockRef = doc(db, "tradeblocks", teamId);
+        const blockRef = doc(db, collectionNames.tradeblocks, teamId);
 
         // MODIFIED: Removed 'getDocs(allTeamsQuery)' and 'allTeamsSnap' to make the data fetch more efficient
         const [teamDoc, teamRecordDoc, adminDoc, playersSnap, picksSnap, blockDoc] = await Promise.all([
@@ -218,7 +218,7 @@ function addSaveHandler(gmUid) {
             saveButton.disabled = true;
 
             try {
-                const tradeBlockRef = doc(db, "tradeblocks", teamId);
+                const tradeBlockRef = doc(db, collectionNames.tradeblocks, teamId);
                 
                 const existingBlockDoc = await getDoc(tradeBlockRef);
                 const oldBlockData = existingBlockDoc.exists() ? existingBlockDoc.data() : { on_the_block: [], picks_available_ids: [], recently_removed: [] };
