@@ -4131,6 +4131,7 @@ footer a:hover {
     border: 1px solid var(--admin-border);
     border-radius: 14px;
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
 }
 
 .team-breakdown.winner {
@@ -4148,9 +4149,11 @@ footer a:hover {
 }
 
 .modal-team-header .team-logo {
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-radius: 50% !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+    background: transparent !important;
+    overflow: hidden;
 }
 
 .team-total {
@@ -4159,8 +4162,12 @@ footer a:hover {
     border-bottom: 2px solid var(--admin-border);
 }
 
-.lineup-table th {
+.lineup-table thead {
     background: var(--admin-surface-subtle);
+}
+
+.lineup-table th {
+    background: transparent;
     border-bottom-color: var(--admin-border);
 }
 
@@ -4178,12 +4185,7 @@ footer a:hover {
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
-/* Game Card Size - Desktop Only */
-@media (min-width: 769px) {
-    .game-card {
-        max-width: 400px;
-    }
-}
+/* Game card sizing removed - keep original dimensions */
 
 /* Fix dropdown triangles (remove background-image) */
 .week-dropdown,
@@ -4298,8 +4300,12 @@ footer a:hover {
     border-bottom-color: #2d3748;
 }
 
-.dark-mode .lineup-table th {
+.dark-mode .lineup-table thead {
     background: linear-gradient(135deg, #1f2937, #243244);
+}
+
+.dark-mode .lineup-table th {
+    background: transparent;
     border-bottom-color: #2d3748;
 }
 
