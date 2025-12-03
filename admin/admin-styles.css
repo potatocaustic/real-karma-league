@@ -2670,3 +2670,384 @@ header .league-switcher .league-toggle-btn svg {
     height: 18px;
     stroke-width: 2.2;
 }
+
+/* ====================================================================== */
+/* S9-SPECIFIC COMPONENT STYLING (for rollout to S9 pages)               */
+/* ====================================================================== */
+
+/* Teams Page */
+.conference-section {
+    margin-bottom: 3rem;
+}
+
+.conference-header {
+    background: linear-gradient(135deg, var(--admin-text), #111d35);
+    color: white;
+    padding: 1.5rem;
+    text-align: center;
+    border-radius: 14px 14px 0 0;
+    margin-bottom: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.conference-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.teams-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    background: var(--admin-surface);
+    padding: 2rem;
+    border-radius: 0 0 14px 14px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    border: 1px solid var(--admin-border);
+    border-top: none;
+}
+
+.team-card {
+    background: var(--admin-surface-subtle);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+}
+
+.team-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.16);
+    border-color: var(--admin-border);
+    text-decoration: none;
+    color: inherit;
+}
+
+.team-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.team-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid var(--admin-border);
+    object-fit: cover;
+    transition: border-color 0.3s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.team-info {
+    flex: 1;
+}
+
+.team-name {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--admin-text);
+    margin-bottom: 0.2rem;
+    letter-spacing: 0.01em;
+}
+
+.team-id {
+    font-size: 0.9rem;
+    color: var(--admin-text);
+    opacity: 0.6;
+    font-family: 'SFMono-Regular', Consolas, monospace;
+}
+
+.gm-name {
+    font-size: 0.9rem;
+    color: #2563eb;
+    font-weight: 600;
+}
+
+.dark-mode .gm-name {
+    color: #90caf9;
+}
+
+.team-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 0.75rem;
+    background: var(--admin-surface);
+    border-radius: 10px;
+    border: 1px solid var(--admin-border);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--admin-text);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--admin-text);
+    opacity: 0.7;
+    margin-top: 0.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.record-positive { color: #16a34a; }
+.record-negative { color: #dc2626; }
+.pam-positive { color: #16a34a; }
+.pam-negative { color: #dc2626; }
+
+.dark-mode .record-positive { color: #4ade80; }
+.dark-mode .record-negative { color: #f87171; }
+.dark-mode .pam-positive { color: #4ade80; }
+.dark-mode .pam-negative { color: #f87171; }
+
+.playoff-position {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.playoff-seed { background: linear-gradient(135deg, #16a34a, #15803d); }
+.playin-seed { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+.eliminated { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+
+.team-card.eliminated-from-playoffs {
+    opacity: 0.7;
+}
+
+.team-card.eliminated-from-playoffs .playoff-position {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+/* Standings Page */
+.standings-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+    .standings-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.page-buttons-container {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.view-toggle-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    cursor: pointer;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    margin: 0 0.35rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+}
+
+.view-toggle-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px rgba(37, 99, 235, 0.35);
+}
+
+.view-toggle-button:active {
+    transform: translateY(0);
+}
+
+.pr-version-selector-container {
+    margin-top: 1rem;
+    text-align: center;
+    color: #e0e0e0;
+}
+
+.pr-version-select {
+    padding: 0.65rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid var(--admin-border);
+    background: var(--admin-surface);
+    color: var(--admin-text);
+    font-size: 0.9rem;
+    margin-left: 0.5rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pr-version-select:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+    outline: none;
+}
+
+/* Leaderboards Page */
+.category-selector {
+    background: var(--admin-surface-subtle);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+}
+
+.selector-title {
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--admin-text);
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.leaderboard-container {
+    background: var(--admin-surface-subtle);
+    border: 1px solid var(--admin-border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+}
+
+.leaderboard-header h3 {
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--admin-text);
+    margin-bottom: 1rem;
+}
+
+.table-controls {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+}
+
+.control-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.control-item label {
+    color: var(--admin-text);
+    font-weight: 600;
+}
+
+.control-item select,
+.control-item input {
+    background: var(--admin-surface);
+    color: var(--admin-text);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+}
+
+.dropdown-team-filter {
+    position: relative;
+}
+
+.dropdown-toggle-btn {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--admin-text);
+    transition: border-color 0.2s ease;
+}
+
+.dropdown-toggle-btn:hover {
+    border-color: #2563eb;
+}
+
+.team-checklist-container {
+    background: var(--admin-surface);
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+    padding: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.leaderboard-table,
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-table th,
+.leaderboard-table td,
+.standings-table th,
+.standings-table td {
+    border-bottom: 1px solid var(--admin-border);
+    padding: 0.85rem 0.75rem;
+}
+
+.leaderboard-table th,
+.standings-table th {
+    background: var(--admin-surface-subtle);
+    color: var(--admin-text);
+    opacity: 0.8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.9rem;
+    font-weight: 700;
+    transition: background-color 0.2s ease;
+}
+
+.leaderboard-table th:hover,
+.standings-table th:hover {
+    background: var(--admin-surface);
+}
+
+.leaderboard-table tbody tr:hover,
+.standings-table tbody tr:hover {
+    background: var(--admin-surface);
+}
+
+.loading {
+    text-align: center;
+    color: var(--admin-text);
+    opacity: 0.6;
+    font-style: italic;
+    padding: 2rem;
+}
