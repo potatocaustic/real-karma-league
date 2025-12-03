@@ -2882,6 +2882,18 @@ header .league-switcher .league-toggle-btn svg {
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
+/* Dark mode - Standings Page conference sections */
+.dark-mode .conference-section {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode .power-rankings-summary {
+    background: linear-gradient(135deg, #1f2937, #243244);
+    border-bottom-color: #2d3748;
+}
+
 /* Mobile - Teams Page */
 @media (max-width: 768px) {
     .teams-grid {
