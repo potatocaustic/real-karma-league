@@ -9,7 +9,8 @@ import {
     getDocs,
     collection,
     setDoc,
-    serverTimestamp
+    serverTimestamp,
+    collectionNames
 } from '/js/firebase-init.js';
 import { STYLE_ROLLOUT_COLLECTION, getPageStyleKey } from '/js/style-rollout.js';
 
@@ -41,7 +42,7 @@ onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    const userRef = doc(db, 'users', user.uid);
+    const userRef = doc(db, collectionNames.users, user.uid);
     const userDoc = await getDoc(userRef);
 
     if (userDoc.exists() && userDoc.data().role === 'admin') {
