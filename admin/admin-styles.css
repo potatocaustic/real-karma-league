@@ -2894,6 +2894,19 @@ header .league-switcher .league-toggle-btn svg {
     border-bottom-color: #2d3748;
 }
 
+.dark-mode .standings-table th {
+    background: linear-gradient(135deg, #1f2937, #243244);
+    border-bottom-color: #2d3748;
+}
+
+.dark-mode .standings-table td {
+    border-bottom-color: #2d3748;
+}
+
+.dark-mode .standings-table tr:hover {
+    background: linear-gradient(145deg, #0f1419, #111827);
+}
+
 /* Mobile - Teams Page */
 @media (max-width: 768px) {
     .teams-grid {
