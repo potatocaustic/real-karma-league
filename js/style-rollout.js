@@ -24,17 +24,8 @@ function injectStylesheet({ id, href }) {
     document.head.appendChild(link);
 }
 
-function injectModernStylesheet() {
-    injectStylesheet({ id: 'modern-style-link', href: '/css/site-refresh.css' });
-}
-
-function injectS9Stylesheet(pathname) {
-    const isS9Page = pathname.startsWith('/S9/');
-    if (!isS9Page) {
-        return;
-    }
-
-    injectStylesheet({ id: 's9-style-link', href: '/css/s9-refresh.css' });
+function injectAdminStylesheet() {
+    injectStylesheet({ id: 'modern-style-link', href: '/admin/admin-styles.css' });
 }
 
 export async function applyPageStyleRollout() {
@@ -51,8 +42,7 @@ export async function applyPageStyleRollout() {
         const isEnabled = rolloutSnap.exists() && rolloutSnap.data().enabled === true;
 
         if (isEnabled) {
-            injectModernStylesheet();
-            injectS9Stylesheet(path);
+            injectAdminStylesheet();
             document.documentElement.dataset.styleRollout = 'modern';
         } else {
             document.documentElement.dataset.styleRollout = 'legacy';
