@@ -113,7 +113,7 @@ export function getLeagueCollectionName(baseName, league = null) {
     const targetLeague = league || currentLeague;
 
     // Shared collections (no prefix)
-    const sharedCollections = ['users', 'notifications', 'scorekeeper_activity_log', 'settings', 'tradeblocks'];
+    const sharedCollections = ['users', 'notifications', 'scorekeeper_activity_log', 'settings', 'tradeblocks', 'style_rollout'];
     if (sharedCollections.includes(baseName)) {
         return IS_DEVELOPMENT ? `${baseName}_dev` : baseName;
     }

@@ -1,7 +1,7 @@
 // /js/style-rollout.js
-import { db, doc, getDoc } from './firebase-init.js';
+import { db, doc, getDoc, getLeagueCollectionName } from './firebase-init.js';
 
-export const STYLE_ROLLOUT_COLLECTION = 'style_rollout';
+export const STYLE_ROLLOUT_COLLECTION = getLeagueCollectionName('style_rollout');
 
 function sanitizePath(pathname) {
     const normalized = pathname.replace(/\/+$/, '') || '/';
