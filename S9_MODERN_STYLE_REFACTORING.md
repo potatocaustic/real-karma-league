@@ -344,6 +344,15 @@ For each refactored page, verify:
   - The global modern styles already cover the login shell; rollout now visibly affects the page alongside the updated home/activation styling.
 - [x] /index.html (homepage) and /activate.html (account activation page) still need the new color schemes applied.
   - Added modern gradients and shadows for homepage hero, navigation, and season cards; activation continues to inherit the modern global login treatments.
+     
+## Debugging Items Round 2
+- [ ] /S9/team.html - dark theme: despite first debugging attempt, the current roster section is still white after switching to dark mode. hovering over a particular player turns that row to a good color temporarily but needs to be dark theme optimized by default. Also, the draft pick overview container (showing number of total picks, own picks, acquired picks) is still old washed-out gray color in dark theme. 
+- [ ] /S9/trophy-case.html - generally: something seems to be conflicting with the intended layout, as there are still just two cards per row.
+- [ ] /S9/draft-prospects.html - generally: I still see no change when activating modern style from the admin portal. Something going wrong here, look for conflicting stylesheets.
+- [ ] /common/changelog.html - generally: I still see no change when activating modern style from the admin portal. Something going wrong here, look for conflicting stylesheets. Also, please add the league icon to the header like in all other site pages.
+- [ ] /activate.html - dark theme: the text "Activate Your {Major/Minor} League GM Account" is invisible in dark mode because of dark text on dark background. generally: give this page the same nav menu as exists on all other /S9/ pages, the current one is incomplete.
+- [ ] /login.html - generally: I still see no change when activating modern style from the admin portal. Something going wrong here, look for conflicting stylesheets.
+  
 
 ## References
 
