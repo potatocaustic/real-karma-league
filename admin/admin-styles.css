@@ -329,7 +329,7 @@ main:hover {
     border-radius: 14px;
     border: 1px solid #e5e7eb;
     box-shadow: 0 16px 35px rgba(0, 0, 0, 0.08);
-    padding: 1.4rem 1.6rem;
+    padding: 1.5rem;
     text-align: left;
     text-decoration: none;
     color: #0f172a;
@@ -338,7 +338,6 @@ main:hover {
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    min-height: 190px;
     gap: 0.35rem;
 }
 
@@ -3613,7 +3612,7 @@ footer a:hover {
 .games-header {
     background: linear-gradient(135deg, var(--admin-text), #111d35);
     color: white;
-    padding: 1.5rem;
+    padding: 1rem;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -3665,7 +3664,7 @@ footer a:hover {
 }
 
 .games-list {
-    padding: 1.5rem;
+    padding: 0;
 }
 
 .view-full {
