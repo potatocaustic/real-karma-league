@@ -3,7 +3,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { admin, db } = require('../utils/firebase-admin');
 const { FieldValue } = require("firebase-admin/firestore");
-const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-helpers');
+const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/firebase-helpers');
 const { calculateMedian, calculateMean, calculateGeometricMean } = require('../utils/calculations');
 const { performPlayerRankingUpdate } = require('../utils/ranking-helpers');
 
@@ -295,7 +295,9 @@ exports.gm_updatePlayerHandle = onCall({ region: "us-central1" }, async (request
         throw new HttpsError('invalid-argument', 'Missing required player data for update.');
     }
 
-    const gmTeamId = userDoc.data().team_id;
+    const gmTeamId = league === LEAGUES.MINOR
+        ? userDoc.data().minor_team_id
+        : (userDoc.data().major_team_id || userDoc.data().team_id);
     if (!gmTeamId && userDoc.data().role !== 'admin') {
         throw new HttpsError('permission-denied', 'GM team not assigned.');
     }
