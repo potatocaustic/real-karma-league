@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Activate GM Account - RKL</title>
     <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css" />
     <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
         window.firebasePageConfig = {
@@ -35,6 +36,19 @@
 </head>
 <body>
     <header>
+        <div id="auth-status"></div>
+        <div id="league-switcher-mount">
+            <div class="league-switcher">
+                <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
         <button id="theme-toggle-btn" aria-label="Toggle Theme">
             <span class="sun-icon">☀️</span>
             <span class="moon-icon">🌙</span>
@@ -60,9 +74,28 @@
                         <a href="/S7/RKL-S7.html">S7 Home</a>
                     </div>
                 </li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S9/leaderboards.html">Season Leaderboards</a>
+                        <a href="/S9/historical-daily-leaderboards.html">Daily Leaderboards</a>
+                        <a href="/S9/compare.html">Comparison Tool</a>
+                    </div>
+                </li>
                 <li><a href="/S9/standings.html">Standings & Rankings</a></li>
                 <li><a href="/S9/schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S9/draft-capital.html">Draft Capital</a>
+                        <a href="/S9/draft-results.html">Draft Results</a>
+                        <a href="/S9/draft-lottery.html">Draft Lottery</a>
+                        <a href="/S9/draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="/S9/transactions.html">Transactions</a></li>
                 <li><a href="/S9/teams.html">Teams</a></li>
+                <li><a href="/S9/trophy-case.html">Trophy Case</a></li>
                 <li><a href="/common/changelog.html">Changelog</a></li>
             </ul>
         </nav>
@@ -117,6 +150,16 @@
 
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/init-league-switcher.js"></script>
     <script type="module" src="/js/activate.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const activationTitle = document.getElementById('activation-title');
+            if (activationTitle) {
+                const leagueLabel = window.__currentLeague === 'minor' ? 'Minor' : 'Major';
+                activationTitle.textContent = `Activate Your ${leagueLabel} League GM Account`;
+            }
+        });
+    </script>
 </body>
 </html>

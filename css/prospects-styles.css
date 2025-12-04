@@ -242,6 +242,62 @@
     background: linear-gradient(145deg, #0b1220, #111827);
 }
 
+[data-style-rollout="modern"] body.s9-page .table-container,
+html[data-style-rollout="modern"] body.s9-page .table-container {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] body.s9-page .page-header,
+html[data-style-rollout="modern"] body.s9-page .page-header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border: 1px solid #1f2937;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] body.s9-page .prospects-table th,
+html[data-style-rollout="modern"] body.s9-page .prospects-table th {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    color: #111827;
+    border-bottom-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] body.s9-page .prospects-table td,
+html[data-style-rollout="modern"] body.s9-page .prospects-table td {
+    border-bottom-color: #e5e7eb;
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"].dark-mode body.s9-page .table-container,
+html[data-style-rollout="modern"].dark-mode body.s9-page .table-container {
+    background: linear-gradient(145deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode body.s9-page .page-header,
+html[data-style-rollout="modern"].dark-mode body.s9-page .page-header {
+    background: linear-gradient(135deg, #111827, #1b2435);
+    border: 1px solid #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.38);
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode body.s9-page .prospects-table th,
+html[data-style-rollout="modern"].dark-mode body.s9-page .prospects-table th {
+    background: linear-gradient(145deg, #111827, #0f172a);
+    color: #e5e7eb;
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode body.s9-page .prospects-table td,
+html[data-style-rollout="modern"].dark-mode body.s9-page .prospects-table td {
+    border-bottom-color: #2d3748;
+    color: #e5e7eb;
+}
+
 [data-style-rollout="modern"].dark-mode footer {
     background: linear-gradient(135deg, #1a1f2e, #1e2433);
     border-top: 1px solid #2d3748;

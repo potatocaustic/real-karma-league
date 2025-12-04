@@ -613,6 +613,12 @@
     box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
 }
 
+[data-style-rollout="modern"].dark-mode .roster-list,
+[data-style-rollout="modern"].dark-mode .roster-content,
+[data-style-rollout="modern"].dark-mode .player-item {
+    background: linear-gradient(145deg, #111827, #0f172a);
+}
+
 [data-style-rollout="modern"].dark-mode .section-header {
     background: linear-gradient(135deg, #111827, #1b2435);
     border-bottom-color: #2d3748;
@@ -681,6 +687,16 @@
     background: linear-gradient(145deg, #1a1f2e, #1e2433);
     border-color: #2d3748;
     box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"] .draft-summary {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    border-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .draft-summary {
+    background: linear-gradient(145deg, #111827, #0f172a);
+    border-color: #2d3748;
 }
 
 [data-style-rollout="modern"].dark-mode .draft-capital .season-group .season-header {
