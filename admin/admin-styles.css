@@ -25,14 +25,14 @@
     --admin-ghost-bg-hover: rgba(255, 255, 255, 0.1);
 }
 
-body {
+body:not(.s9-page) {
     background: var(--admin-surface-subtle);
     color: var(--admin-text);
     min-height: 100vh;
     overflow-x: hidden;
 }
 
-header {
+body:not(.s9-page) header {
     background: linear-gradient(135deg, #0f172a, #111d35);
     border-bottom: 1px solid #1f2937;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
@@ -41,12 +41,12 @@ header {
     z-index: 20;
 }
 
-header h1 {
+body:not(.s9-page) header h1 {
     font-weight: 700;
     letter-spacing: 0.01em;
 }
 
-header nav {
+body:not(.s9-page) header nav {
     width: 100%;
 }
 
@@ -182,8 +182,7 @@ header nav {
     }
 }
 
-main#admin-container,
-main {
+main#admin-container {
     width: min(1200px, 100% - 2.5rem);
     margin: 1.5rem auto 2.5rem;
     padding: 2rem;
@@ -298,13 +297,11 @@ main {
     box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
 }
 
-main#admin-container,
-main {
+main#admin-container {
     line-height: 1.65;
 }
 
-main#admin-container:hover,
-main:hover {
+main#admin-container:hover {
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
 }
 
@@ -3227,7 +3224,7 @@ header .league-switcher .league-toggle-btn svg {
 }
 
 /* Footer */
-footer {
+body:not(.s9-page) footer {
     background: var(--admin-surface);
     border-top: 1px solid var(--admin-border);
     padding: 2rem 1rem;
@@ -3237,31 +3234,31 @@ footer {
     margin-top: 3rem;
 }
 
-footer p {
+body:not(.s9-page) footer p {
     margin: 0.5rem 0;
 }
 
-footer a {
+body:not(.s9-page) footer a {
     color: #2563eb;
     text-decoration: none;
     font-weight: 600;
     transition: color 0.2s ease;
 }
 
-footer a:hover {
+body:not(.s9-page) footer a:hover {
     color: #1d4ed8;
 }
 
-.dark-mode footer {
+body.dark-mode:not(.s9-page) footer {
     background: #0b1220;
     border-top-color: #1f2937;
 }
 
-.dark-mode footer a {
+body.dark-mode:not(.s9-page) footer a {
     color: #90caf9;
 }
 
-.dark-mode footer a:hover {
+body.dark-mode:not(.s9-page) footer a:hover {
     color: #bbdefb;
 }
 
