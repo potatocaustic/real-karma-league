@@ -340,3 +340,168 @@
         padding: 1rem;
     }
 }
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] .lottery-container {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .lottery-header {
+    background: linear-gradient(145deg, #eef2ff, #e0f2fe);
+    border-bottom: 1px solid #e5e7eb;
+}
+
+[data-style-rollout="modern"] .lottery-card-title {
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .quick-link-btn {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border-color: #e5e7eb;
+    color: #111827;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+[data-style-rollout="modern"] .quick-link-btn:hover {
+    background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+    border-color: #d1d5db;
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .action-button {
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+
+[data-style-rollout="modern"] #simulateBtn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+[data-style-rollout="modern"] #simulateAgainBtn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+[data-style-rollout="modern"] #resetBtn {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+[data-style-rollout="modern"] .lottery-table th {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    color: #1f2937;
+    border-bottom-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .lottery-table td {
+    border-bottom-color: #e5e7eb;
+    color: #111827;
+}
+
+[data-style-rollout="modern"] .lottery-table tr:hover {
+    background: linear-gradient(145deg, #f8fafc, #edf2ff);
+}
+
+[data-style-rollout="modern"] .team-cell {
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .team-cell:hover {
+    color: #2563eb;
+}
+
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode .lottery-container {
+    background: linear-gradient(145deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .lottery-header {
+    background: linear-gradient(145deg, #0f172a, #111827);
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .lottery-card-title {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .quick-link-btn {
+    background: linear-gradient(145deg, #1f2937, #111827);
+    border-color: #2d3748;
+    color: #e5e7eb;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+}
+
+[data-style-rollout="modern"].dark-mode .quick-link-btn:hover {
+    background: linear-gradient(145deg, #111827, #0b1220);
+    border-color: #374151;
+}
+
+[data-style-rollout="modern"].dark-mode #simulateBtn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+[data-style-rollout="modern"].dark-mode #simulateAgainBtn {
+    background: linear-gradient(135deg, #4ade80, #22c55e);
+}
+
+[data-style-rollout="modern"].dark-mode #resetBtn {
+    background: linear-gradient(135deg, #9ca3af, #6b7280);
+}
+
+[data-style-rollout="modern"].dark-mode .lottery-table th {
+    background: linear-gradient(145deg, #111827, #0f172a);
+    color: #e5e7eb;
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .lottery-table td {
+    border-bottom-color: #2d3748;
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .lottery-table tr:hover {
+    background: linear-gradient(145deg, #111827, #1a2333);
+}
+
+[data-style-rollout="modern"].dark-mode .team-cell {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .team-cell:hover {
+    color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
+}

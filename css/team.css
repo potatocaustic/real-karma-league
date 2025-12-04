@@ -466,3 +466,194 @@
     .player-item { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
     .player-rel { align-self: flex-end; }
 }
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] .team-header-content,
+[data-style-rollout="modern"] .roster-section,
+[data-style-rollout="modern"] .schedule-section {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .team-logo-large {
+    border-color: #e5e7eb;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+[data-style-rollout="modern"] .team-subtitle,
+[data-style-rollout="modern"] .player-stats,
+[data-style-rollout="modern"] .stat-label {
+    color: #1f2937;
+}
+
+[data-style-rollout="modern"] .gm-info,
+[data-style-rollout="modern"] .stat-rank,
+[data-style-rollout="modern"] .player-name {
+    color: #2563eb;
+}
+
+[data-style-rollout="modern"] .stat-card {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    border-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .stat-value {
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .content-grid .section-header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: inset 0 -4px 12px rgba(0, 0, 0, 0.12);
+}
+
+[data-style-rollout="modern"] .roster-header {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    border-bottom-color: #e5e7eb;
+    color: #111827;
+}
+
+[data-style-rollout="modern"] .player-item {
+    border-bottom-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .player-item:hover {
+    background: linear-gradient(145deg, #f8fafc, #edf2ff);
+}
+
+[data-style-rollout="modern"] .player-rel,
+[data-style-rollout="modern"] .player-war {
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .player-stats .stat-divider {
+    background-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .draft-capital .season-group {
+    border-color: #e5e7eb;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+}
+
+[data-style-rollout="modern"] .draft-capital .season-group .season-header {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    border-bottom-color: #e5e7eb;
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .draft-capital .season-group .pick-item {
+    border-bottom-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode .team-header-content,
+[data-style-rollout="modern"].dark-mode .roster-section,
+[data-style-rollout="modern"].dark-mode .schedule-section {
+    background: linear-gradient(145deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .team-logo-large {
+    border-color: #2d3748;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+[data-style-rollout="modern"].dark-mode .team-subtitle,
+[data-style-rollout="modern"].dark-mode .player-stats,
+[data-style-rollout="modern"].dark-mode .stat-label {
+    color: #cbd5e1;
+}
+
+[data-style-rollout="modern"].dark-mode .gm-info,
+[data-style-rollout="modern"].dark-mode .stat-rank,
+[data-style-rollout="modern"].dark-mode .player-name {
+    color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode .stat-card {
+    background: linear-gradient(145deg, #111827, #0f172a);
+    border-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .stat-value {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .content-grid .section-header {
+    background: linear-gradient(135deg, #111827, #1b2435);
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .roster-header {
+    background: linear-gradient(145deg, #111827, #0f172a);
+    border-bottom-color: #2d3748;
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .player-item {
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .player-item:hover {
+    background: linear-gradient(145deg, #0b1220, #111827);
+}
+
+[data-style-rollout="modern"].dark-mode .player-rel,
+[data-style-rollout="modern"].dark-mode .player-war {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .player-stats .stat-divider {
+    background-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .draft-capital .season-group {
+    border-color: #2d3748;
+    background: linear-gradient(145deg, #1a1f2e, #1e2433);
+}
+
+[data-style-rollout="modern"].dark-mode .draft-capital .season-group .season-header {
+    background: linear-gradient(145deg, #111827, #0f172a);
+    border-bottom-color: #2d3748;
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .draft-capital .season-group .pick-item {
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
+}
