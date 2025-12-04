@@ -149,6 +149,21 @@
     box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
 }
 
+[data-style-rollout="modern"] .page-header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border: 1px solid #1f2937;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .page-header h2 {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .page-header p {
+    color: #cbd5e1;
+}
+
 [data-style-rollout="modern"] .prospects-table th {
     background: linear-gradient(145deg, #f8fafc, #e2e8f0);
     color: #111827;
@@ -191,6 +206,21 @@
     background: linear-gradient(145deg, #1a1f2e, #1e2433);
     border-color: #2d3748;
     box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .page-header {
+    background: linear-gradient(135deg, #111827, #1b2435);
+    border: 1px solid #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.38);
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .page-header h2 {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .page-header p {
+    color: #cbd5e1;
 }
 
 [data-style-rollout="modern"].dark-mode .prospects-table th {

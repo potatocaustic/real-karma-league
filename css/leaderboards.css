@@ -606,11 +606,14 @@ main {
 }
 
 [data-style-rollout="modern"] .selector-title,
-[data-style-rollout="modern"] .leaderboard-header h3,
 [data-style-rollout="modern"] .control-item label,
 [data-style-rollout="modern"] .dropdown-toggle-btn,
 [data-style-rollout="modern"] .dropdown-toggle-btn .dropdown-arrow {
     color: #0f172a;
+}
+
+[data-style-rollout="modern"] .leaderboard-header h3 {
+    color: #e5e7eb;
 }
 
 [data-style-rollout="modern"] #category-select,
@@ -687,7 +690,8 @@ main {
 
 [data-style-rollout="modern"].dark-mode .selector-title,
 [data-style-rollout="modern"].dark-mode .control-item label,
-[data-style-rollout="modern"].dark-mode .dropdown-toggle-btn .dropdown-arrow {
+[data-style-rollout="modern"].dark-mode .dropdown-toggle-btn .dropdown-arrow,
+[data-style-rollout="modern"].dark-mode .leaderboard-header h3 {
     color: #e5e7eb;
 }
 

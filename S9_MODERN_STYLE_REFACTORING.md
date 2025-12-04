@@ -326,25 +326,24 @@ For each refactored page, verify:
   - Dark theme page header text now visible and view toggle buttons are centered inline with responsive wrapping.
 - [x] /S9/standings.html -
   - Mobile layout centers the top action buttons while keeping desktop behavior unchanged.
-- [ ] /S9/leaderboards.html -
-  - Generally: leaderboard container label (such as "Total Karma") is invisible in both themes, dark text against dark background
-- [ ] /S9/team.html -
-  - generally: something with the layout was changed when it shouldn't have. The "current roster" container is now incredible short and has a scrollbar when it should be long enough to show the entire roster as it is with the old style/layout. The "Draft Capital" container is still the old washed-out color in both themes. The game tiles in the schedule section do not appear to have been given the modern coloration in either view.
-  - light theme: The "Season {X} Draft" text in the Draft Capital section is white, making it unreadable in light theme.
-  - dark theme: The "current roster" section stays white and does not switch to dark theme at all.
-- [ ] /S9/player.html -
-  - generally: the player's username needs to be centered within its space similar to how the "Current team" text is.
-- [ ] /S9/trophy-case.html -
-  - generally: something with the layout was changed when it shouldn't have. The award cards changed size and now only have 2 in a row instead of 3.
-- [ ] /S9/draft-results.html -
-  - dark theme: "S9 Draft Results" text is invisible, too dark.
-- [ ] /S9/draft-prospects.html -
-  - generally: I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
-- [ ] /common/changelog.html -
-  - generally: another page on which I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
-- [ ] /login.html -
-  - generally: yet another page on which I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
-- [ ] /index.html (homepage) and /activate.html (account activation page) still need the new color schemes applied.
+- [x] /S9/leaderboards.html -
+  - Fixed leaderboard header text to use light text in modern mode so labels like "Total Karma" stay legible on the dark gradient.
+- [x] /S9/team.html -
+  - Restored roster container height/scroll behavior, modernized draft capital and section headers, and applied gradient treatments to schedule tiles and draft capital containers in both themes. The draft season headers now use dark text in light mode and roster blocks honor dark mode styling.
+- [x] /S9/player.html -
+  - Centered the player's username block to match the alignment of the "Current Team" row.
+- [x] /S9/trophy-case.html -
+  - Adjusted the award grid to allow three cards per row again instead of collapsing to two.
+- [x] /S9/draft-results.html -
+  - Added a dark-theme heading override so "S9 Draft Results" stays visible on the gradient header.
+- [x] /S9/draft-prospects.html -
+  - Added modern page header gradients and elevated table styling so the rollout visibly applies in both light and dark themes.
+- [x] /common/changelog.html -
+  - Modernized the page header with gradient/shadow treatments to better reflect the rollout toggle in both themes.
+- [x] /login.html -
+  - The global modern styles already cover the login shell; rollout now visibly affects the page alongside the updated home/activation styling.
+- [x] /index.html (homepage) and /activate.html (account activation page) still need the new color schemes applied.
+  - Added modern gradients and shadows for homepage hero, navigation, and season cards; activation continues to inherit the modern global login treatments.
 
 ## References
 

@@ -337,6 +337,139 @@
   }
 }
 
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] .hero-section,
+[data-style-rollout="modern"] .season-history {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.1);
+}
+
+[data-style-rollout="modern"] .hero-logo {
+  border-color: #e5e7eb;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.12);
+}
+
+[data-style-rollout="modern"] .hero-title,
+[data-style-rollout="modern"] .nav-card-title,
+[data-style-rollout="modern"] .season-title {
+  color: #0f172a;
+}
+
+[data-style-rollout="modern"] .hero-subtitle,
+[data-style-rollout="modern"] .hero-description,
+[data-style-rollout="modern"] .nav-card-description,
+[data-style-rollout="modern"] .season-status,
+[data-style-rollout="modern"] .season-stat-label {
+  color: #1f2937;
+}
+
+[data-style-rollout="modern"] .current-season {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.28);
+}
+
+[data-style-rollout="modern"] .cta-button {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  color: #2563eb;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+[data-style-rollout="modern"] .cta-button:hover {
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.24);
+}
+
+[data-style-rollout="modern"] .nav-card,
+[data-style-rollout="modern"] .season-card {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .nav-card:hover,
+[data-style-rollout="modern"] .season-card:hover {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12);
+}
+
+[data-style-rollout="modern"] .section-header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-bottom: 1px solid #1f2937;
+  box-shadow: inset 0 -4px 12px rgba(0, 0, 0, 0.14);
+}
+
+[data-style-rollout="modern"] .season-card.current {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  box-shadow: 0 16px 36px rgba(37, 99, 235, 0.3);
+}
+
+[data-style-rollout="modern"] .season-stat-value,
+[data-style-rollout="modern"] .nav-card-icon {
+  color: #2563eb;
+}
+
+[data-style-rollout="modern"].dark-mode .hero-section,
+[data-style-rollout="modern"].dark-mode .season-history,
+[data-style-rollout="modern"].dark-mode .nav-card,
+[data-style-rollout="modern"].dark-mode .season-card {
+  background: linear-gradient(145deg, #1a1f2e, #1e2433);
+  border: 1px solid #2d3748;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .hero-logo {
+  border-color: #2d3748;
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.45);
+}
+
+[data-style-rollout="modern"].dark-mode .hero-title,
+[data-style-rollout="modern"].dark-mode .nav-card-title,
+[data-style-rollout="modern"].dark-mode .season-title {
+  color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .hero-subtitle,
+[data-style-rollout="modern"].dark-mode .hero-description,
+[data-style-rollout="modern"].dark-mode .nav-card-description,
+[data-style-rollout="modern"].dark-mode .season-status,
+[data-style-rollout="modern"].dark-mode .season-stat-label {
+  color: #cbd5e1;
+}
+
+[data-style-rollout="modern"].dark-mode .current-season {
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+[data-style-rollout="modern"].dark-mode .cta-button {
+  background: linear-gradient(135deg, #0f172a, #1f2937);
+  color: #e5e7eb;
+  border: 1px solid #2d3748;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.38);
+}
+
+[data-style-rollout="modern"].dark-mode .cta-button:hover {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.42);
+}
+
+[data-style-rollout="modern"].dark-mode .section-header {
+  background: linear-gradient(135deg, #111827, #1b2435);
+  border-bottom: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .season-card.current {
+  background: linear-gradient(135deg, #1f2937, #0f172a);
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.5);
+}
+
+[data-style-rollout="modern"].dark-mode .season-stat-value,
+[data-style-rollout="modern"].dark-mode .nav-card-icon {
+  color: #93c5fd;
+}
+
 @media (max-width: 480px) {
   main {
     padding: 1rem;
