@@ -1,5 +1,5 @@
 // /js/style-rollout.js
-import { db, doc, getDoc, getLeagueCollectionName } from './firebase-init.js';
+import { getLeagueCollectionName } from './firebase-init.js';
 
 export const STYLE_ROLLOUT_COLLECTION = getLeagueCollectionName('style_rollout');
 
@@ -28,27 +28,16 @@ function injectAdminStylesheet() {
     injectStylesheet({ id: 'modern-style-link', href: '/admin/admin-styles.css' });
 }
 
-export async function applyPageStyleRollout() {
+function enableModernStyles() {
+    injectAdminStylesheet();
+    document.documentElement.dataset.styleRollout = 'modern';
+}
+
+export function applyPageStyleRollout() {
     const path = window.location.pathname;
     if (path.startsWith('/admin') || path.startsWith('/commish')) {
         return;
     }
 
-    const pageKey = getPageStyleKey(path);
-
-    try {
-        const rolloutRef = doc(db, STYLE_ROLLOUT_COLLECTION, pageKey);
-        const rolloutSnap = await getDoc(rolloutRef);
-        const isEnabled = rolloutSnap.exists() && rolloutSnap.data().enabled === true;
-
-        if (isEnabled) {
-            injectAdminStylesheet();
-            document.documentElement.dataset.styleRollout = 'modern';
-        } else {
-            document.documentElement.dataset.styleRollout = 'legacy';
-        }
-    } catch (error) {
-        console.error('Unable to determine style rollout state for this page.', error);
-        document.documentElement.dataset.styleRollout = 'legacy';
-    }
+    enableModernStyles();
 }
