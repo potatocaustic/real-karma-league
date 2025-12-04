@@ -3189,9 +3189,16 @@ body:not(.s9-page).dark-mode .back-link:hover {
 /* Collapsible Content */
 .collapsible-content {
     position: relative;
-    max-height: 110px;
-    overflow: hidden;
     transition: max-height 0.3s ease-out;
+}
+
+.collapsible-content[hidden] {
+    display: none;
+}
+
+.collapsible-content:not([hidden]) {
+    max-height: none;
+    overflow: visible;
 }
 
 .collapsible-content.expanded {
