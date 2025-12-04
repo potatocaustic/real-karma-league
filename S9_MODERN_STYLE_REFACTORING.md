@@ -189,7 +189,7 @@ Add these sections to each page's CSS file:
 
 ### Priority Order (by complexity)
 
-**Status:** All items below have been completed with modern overrides.
+**Status:** All items below have been completed with modern overrides; debugging will be handled in a follow-up pass.
 
 1. **draft-capital.html** - Draft picks tables
 2. **draft-results.html** - Draft picks, player cards
@@ -212,8 +212,10 @@ Add these sections to each page's CSS file:
 - [x] team.html - Added modern gradients and borders in `/css/team.css` for team header, roster/schedule sections, draft capital tiles, and header/footer.
 - [x] player.html — Added modern rollout treatments in `/css/player.css` covering player header, stat cards, performance tables, and header/footer.
 - [x] playoff-bracket.html — Moved inline styles to `/css/playoff-bracket.css` and added modern gradients for play-in panels, teams, rounds, and header/footer.
-- [ ] /login.html - pending - pending
-- [ ] /common/changelog.html - pending
+- [x] /login.html — Added modern rollout gradients and borders in `/css/global-styles.css` for header/footer, login card, OAuth buttons, and form inputs.
+- [x] /common/changelog.html — Moved inline styles to `/css/changelog.css`, added modern gradients for changelog entries/tags, and updated header/footer overrides.
+
+**Next step:** Run a dedicated debugging pass in the next conversation to verify layouts and interactions under both legacy and modern styles.
 
 ## Common Issues to Fix on Every Page
 

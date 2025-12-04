@@ -1,0 +1,124 @@
+/* /css/changelog.css */
+
+/* Page-specific styles for changelog.html */
+.page-header { text-align: center; margin-bottom: 2.5rem; }
+.page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
+
+.changelog-timeline { position: relative; padding: 1rem 0; }
+.changelog-entry { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.08); padding: 1.5rem 2rem; margin-bottom: 2rem; transition: background-color 0.3s, box-shadow 0.3s; }
+.changelog-entry h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #333; }
+.changelog-entry ul { list-style-type: none; padding-left: 0; }
+.changelog-entry li { margin-bottom: 0.75rem; display: flex; align-items: flex-start; }
+.changelog-tag { display: inline-block; width: 85px; text-align: center; font-size: 0.75rem; font-weight: bold; padding: 0.2rem 0.5rem; border-radius: 12px; color: #fff; margin-right: 0.75rem; flex-shrink: 0; }
+.tag-new { background-color: #28a745; } /* Green */
+.tag-improved { background-color: #007bff; } /* Blue */
+.tag-fixed { background-color: #dc3545; } /* Red */
+
+/* Dark Mode Overrides for page-specific styles */
+.dark-mode .changelog-entry { background-color: #1e1e1e; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+.dark-mode .changelog-entry h3 { color: #f8f9fa; } /* Light gray/white for dark mode */
+
+@media (max-width: 600px) {
+  .changelog-entry li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .changelog-tag {
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+  .changelog-entry {
+    padding: 1.5rem;
+  }
+}
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] .changelog-entry {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.1);
+}
+
+[data-style-rollout="modern"] .changelog-entry h3 {
+  color: #0f172a;
+}
+
+[data-style-rollout="modern"] .changelog-tag {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+[data-style-rollout="modern"] .tag-new {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+[data-style-rollout="modern"] .tag-improved {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+[data-style-rollout="modern"] .tag-fixed {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+}
+
+[data-style-rollout="modern"] header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-bottom: 1px solid #1f2937;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+[data-style-rollout="modern"] footer {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-top: 1px solid #1f2937;
+  color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+  color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode .changelog-entry {
+  background: linear-gradient(145deg, #0f1419, #111827);
+  border-color: #2d3748;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .changelog-entry h3 {
+  color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .tag-new {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+[data-style-rollout="modern"].dark-mode .tag-improved {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+}
+
+[data-style-rollout="modern"].dark-mode .tag-fixed {
+  background: linear-gradient(135deg, #f87171, #ef4444);
+}
+
+[data-style-rollout="modern"].dark-mode header {
+  background: linear-gradient(135deg, #111827, #1b2435);
+  border-bottom-color: #2d3748;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+[data-style-rollout="modern"].dark-mode footer {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+  color: #93c5fd;
+}

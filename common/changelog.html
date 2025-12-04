@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Changelog</title>
     <link rel="stylesheet" href="../css/global-styles.css">
+    <link rel="stylesheet" href="../css/changelog.css">
     <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
     <script>
       // Apply theme from local storage before page loads to prevent flashing
@@ -19,39 +20,6 @@
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
-    <style>
-      /* Page-specific styles for changelog.html */
-      .page-header { text-align: center; margin-bottom: 2.5rem; }
-      .page-header h2 { font-size: 2.5rem; margin-bottom: 1rem; }
-      
-      .changelog-timeline { position: relative; padding: 1rem 0; }
-      .changelog-entry { background-color: #fff; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.08); padding: 1.5rem 2rem; margin-bottom: 2rem; transition: background-color 0.3s, box-shadow 0.3s; }
-      .changelog-entry h3 { font-size: 1.5rem; margin-bottom: 1rem; color: #333; }
-      .changelog-entry ul { list-style-type: none; padding-left: 0; }
-      .changelog-entry li { margin-bottom: 0.75rem; display: flex; align-items: flex-start; }
-      .changelog-tag { display: inline-block; width: 85px; text-align: center; font-size: 0.75rem; font-weight: bold; padding: 0.2rem 0.5rem; border-radius: 12px; color: #fff; margin-right: 0.75rem; flex-shrink: 0; }
-      .tag-new { background-color: #28a745; } /* Green */
-      .tag-improved { background-color: #007bff; } /* Blue */
-      .tag-fixed { background-color: #dc3545; } /* Red */
-      
-      /* Dark Mode Overrides for page-specific styles */
-      .dark-mode .changelog-entry { background-color: #1e1e1e; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
-      .dark-mode .changelog-entry h3 { color: #f8f9fa; } /* Light gray/white for dark mode */
-
-      @media (max-width: 600px) {
-        .changelog-entry li {
-          flex-direction: column; 
-          align-items: flex-start;
-        }
-        .changelog-tag {
-          margin-right: 0;
-          margin-bottom: 0.5rem; 
-        }
-        .changelog-entry {
-          padding: 1.5rem;
-        }
-      }
-    </style>
   </head>
   <body>
     <header>
