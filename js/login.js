@@ -1,6 +1,6 @@
 // /js/login.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collectionNames, getCurrentLeague, setDoc, serverTimestamp } from './firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collectionNames, getCurrentLeague } from './firebase-init.js';
 import {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
@@ -24,21 +24,7 @@ async function handleOAuthSignIn(user, targetPortal = 'gm') {
 
     try {
         const userDocRef = doc(db, collectionNames.users, user.uid);
-        let userDoc = await getDoc(userDocRef);
-
-        // Ensure the user document exists for brand new accounts (e.g., Google sign-up)
-        if (!userDoc.exists()) {
-            await setDoc(userDocRef, {
-                uid: user.uid,
-                role: 'gm',
-                email: user.email || user.uid,
-                auth_provider: user.providerData?.[0]?.providerId || 'unknown',
-                signup_league: league,
-                created_at: serverTimestamp()
-            }, { merge: true });
-
-            userDoc = await getDoc(userDocRef);
-        }
+        const userDoc = await getDoc(userDocRef);
 
         if (userDoc.exists()) {
             const userData = userDoc.data();
