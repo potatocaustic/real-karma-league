@@ -93,6 +93,27 @@
     <script>
       window.firebasePageConfig = { useProdCollections: true };
     </script>
+    <script type="module">
+        // Update header for league-specific branding
+        import { getCurrentLeague } from '../js/firebase-init.js';
+
+        function updateLeagueHeader() {
+            const currentLeague = getCurrentLeague();
+            const headerTextElement = document.querySelector('.header-text');
+            const headerLogoElement = document.querySelector('.header-logo');
+
+            if (currentLeague === 'minor') {
+                if (headerTextElement) headerTextElement.textContent = ' Real Karma Minor League';
+                if (headerLogoElement) {
+                    headerLogoElement.src = '../icons/RKML.webp';
+                    headerLogoElement.alt = 'RKML Logo';
+                }
+            }
+        }
+
+        // Run on page load
+        updateLeagueHeader();
+    </script>
     <script type="module" src="../js/firebase-init.js"></script>
     <script type="module" src="../js/main.js"></script>
     <script type="module" src="../js/trade-block.js"></script>
