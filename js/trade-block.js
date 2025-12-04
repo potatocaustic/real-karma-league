@@ -169,7 +169,7 @@ async function displayAllTradeBlocks(currentUserId) {
             return;
         }
 
-        const tradeBlocksQuery = query(collection(db, "tradeblocks"), orderBy("last_updated", "desc"));
+        const tradeBlocksQuery = query(collection(db, collectionNames.tradeblocks), orderBy("last_updated", "desc"));
 
         const tradeBlocksSnap = await getDocs(tradeBlocksQuery);
 
