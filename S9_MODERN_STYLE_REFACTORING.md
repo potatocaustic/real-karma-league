@@ -1,0 +1,269 @@
+# S9 Pages Modern Style Refactoring Guide
+
+## Project Overview
+
+Refactoring S9 pages to use their original CSS files with modern color/gradient overrides instead of having styles in `admin-styles.css`. This ensures pages maintain their perfect original layout while allowing modern styling when the rollout is enabled.
+
+## The Problem
+
+When `admin-styles.css` is injected for modern style rollout, it was:
+1. Overriding S9 page layouts with admin-specific styles
+2. Changing spacing, padding, and structure (not just colors)
+3. Causing layout issues that were hard to debug
+
+## The Solution Pattern
+
+### Step 1: Remove S9-Specific Styles from admin-styles.css
+
+For each S9 page, remove ALL page-specific selectors from `admin-styles.css`:
+- Main component selectors (`.week-selector`, `.game-card`, etc.)
+- Dark mode variants (`.dark-mode .week-selector`, etc.)
+- Media query overrides
+- Any layout-related styles
+
+**Important:** Also scope broad selectors to exclude S9 pages:
+- `body` → `body:not(.s9-page)`
+- `header` → `body:not(.s9-page) header`
+- `footer` → `body:not(.s9-page) footer`
+- `main` → Keep only `main#admin-container` (remove fallback `, main`)
+
+### Step 2: Create/Update Page-Specific CSS File
+
+For pages with inline `<style>` blocks:
+1. Create `/css/[pagename].css` with the inline styles
+2. Add modern overrides using `[data-style-rollout="modern"]` selectors
+3. Update HTML to link to new CSS file
+
+For pages with existing CSS files:
+1. Keep all original styles as-is
+2. Add modern overrides at the end using `[data-style-rollout="modern"]` selectors
+
+### Step 3: Add Modern Color Overrides
+
+Add these sections to each page's CSS file:
+
+```css
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+/* Light theme modern colors */
+[data-style-rollout="modern"] .component {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+/* Header/Nav bar - Light theme */
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+/* Footer - Light theme */
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #93c5fd;
+}
+
+/* Dark mode modern overrides */
+[data-style-rollout="modern"].dark-mode .component {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+}
+
+/* Footer - Dark theme */
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
+}
+```
+
+## Modern Color Palette
+
+### Light Theme
+- **Backgrounds**: `linear-gradient(135deg, #ffffff, #f8f9fa)`
+- **Borders**: `#e5e7eb`
+- **Headers**: `linear-gradient(135deg, #0f172a, #111d35)`
+- **Cards**: `linear-gradient(145deg, #ffffff, #f8f9fa)`
+- **Shadows**: `0 10px 26px rgba(0, 0, 0, 0.08)`
+- **Links**: `#2563eb` (hover: `#1d4ed8`)
+- **Accent Blue**: `#2563eb`
+- **Success Green**: `#4ade80`
+- **Error Red**: `#f87171`
+
+### Dark Theme
+- **Backgrounds**: `linear-gradient(135deg, #1a1f2e, #1e2433)`
+- **Borders**: `#2d3748`
+- **Headers**: `linear-gradient(135deg, #111827, #1b2435)`
+- **Cards**: `linear-gradient(145deg, #0f1419, #111827)`
+- **Shadows**: `0 16px 35px rgba(0, 0, 0, 0.35)`
+- **Links**: `#60a5fa` (hover: `#93c5fd`)
+- **Accent Blue**: `#60a5fa`
+- **Success Green**: `#4ade80`
+- **Error Red**: `#f87171`
+
+## Completed Pages
+
+### ✅ /S9/RKL-S9.html
+- **CSS File**: `/css/RKL-S9.css` (already existed)
+- **Removed from admin-styles.css**: `.season-info`, `.quick-nav`, `.nav-card`, `.standings-preview`, `.recent-games`, `.games-header`, `.conference-title`, `.games-list`, `.view-full`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Team icon sizes increased to offset shadow effect
+
+### ✅ /S9/schedule.html
+- **CSS File**: `/css/schedule.css` (created from inline styles)
+- **Removed from admin-styles.css**: `.week-selector`, `.week-btn`, `.week-dropdown`, `.week-standouts-section`, `.standout-item`, `.games-container`, `.game-card`, `.date-header`, `.filter-container`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Fixed completed week button text to be white (was invisible)
+
+## Remaining Pages to Refactor
+
+### Priority Order (by complexity)
+
+1. **teams.html** - Team cards, conference sections
+2. **transactions.html** - Transaction items, type badges
+3. **standings.html** - Standings tables, playoff legend
+4. **compare.html** - Type selector, selectors grid, compare button
+5. **leaderboards.html** - Stat categories, player cards
+6. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
+7. **draft-capital.html** - Draft picks tables
+8. **draft-results.html** - Draft picks, player cards
+9. **draft-lottery.html** - Lottery results
+10. **draft-prospects.html** - Prospect cards
+11. **trophy-case.html** - Trophy displays
+12. **player.html** - Player details, stats tables
+13. **playoff-bracket.html** - Bracket visualization
+
+## Common Issues to Fix on Every Page
+
+### Issue 1: Nav Bar Color (Light Theme)
+**Problem**: Nav bar has old washed-out gray color instead of modern blue gradient
+
+**Fix**:
+```css
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+```
+
+### Issue 2: Footer Color (Both Themes)
+**Problem**: Footer has old colors instead of modern palette
+
+**Fix** (always add both):
+```css
+/* Footer - Light theme */
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #93c5fd;
+}
+
+/* Footer - Dark theme */
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
+}
+```
+
+## Workflow for Each Page
+
+1. **Identify the page's CSS**
+   - Check if page has inline `<style>` block or references external CSS
+   - Note all unique selectors used by the page
+
+2. **Remove from admin-styles.css**
+   - Search for page-specific selectors
+   - Remove light mode styles
+   - Remove dark mode styles (`.dark-mode .selector`)
+   - Remove media query overrides
+   - Test that nothing breaks on admin pages
+
+3. **Create/Update page CSS file**
+   - If inline styles: Create `/css/[pagename].css` and move them
+   - If external CSS: Keep file as-is
+   - Add link in HTML if needed
+
+4. **Add modern overrides**
+   - Copy pattern from RKL-S9.css or schedule.css
+   - Update selectors for this page's components
+   - **Always include header and footer overrides**
+   - Test in both light and dark themes
+
+5. **Commit and test**
+   - Commit changes with clear message
+   - Test page with modern rollout enabled
+   - Test page with modern rollout disabled
+   - Verify no layout changes, only colors/gradients
+
+## Testing Checklist
+
+For each refactored page, verify:
+
+- [ ] Page loads without errors
+- [ ] Layout identical to original (no spacing/padding changes)
+- [ ] Modern colors apply when rollout enabled
+- [ ] Old colors remain when rollout disabled
+- [ ] Header has modern blue gradient (light theme)
+- [ ] Footer has modern colors (both themes)
+- [ ] All interactive elements (buttons, links) visible
+- [ ] Dark mode works correctly
+- [ ] Mobile responsive layout unchanged
+- [ ] No admin pages broken
+
+## Key Principles
+
+1. **Only change colors, gradients, shadows** - Never change layout, spacing, or structure
+2. **Use `[data-style-rollout="modern"]` for all overrides** - Ensures they only apply when enabled
+3. **Always fix header and footer** - These are missed on every page by default
+4. **Test both themes** - Light and dark mode must both work
+5. **Keep original CSS intact** - Modern overrides should be additive only
+6. **Scope admin-styles.css properly** - Use `:not(.s9-page)` to exclude S9 pages
+
+## Branch
+
+All work is being done on: `claude/fix-nav-card-height-01BCttnT4fz6YMMHEMJm27PW`
+
+## References
+
+- Main documentation: `/home/user/real-karma-league/MODERN_STYLE_ROLLOUT_STATUS.md`
+- Admin styles: `/home/user/real-karma-league/admin/admin-styles.css`
+- Example CSS files:
+  - `/home/user/real-karma-league/css/RKL-S9.css` (lines 1001-1184)
+  - `/home/user/real-karma-league/css/schedule.css` (lines 168-362)
