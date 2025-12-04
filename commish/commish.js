@@ -41,7 +41,7 @@ export async function initCommishAuth(onSuccess) {
                 // If the user is anonymous, sign them out and redirect to login
                 if (user.isAnonymous) {
                     await signOut(auth);
-                    window.location.href = '/login.html';
+                    window.location.href = '/login.html?target=commish';
                     return;
                 }
 
@@ -72,7 +72,7 @@ export async function initCommishAuth(onSuccess) {
                     addLogoutListener();
                 }
             } else {
-                window.location.href = '/login.html';
+                window.location.href = '/login.html?target=commish';
             }
         } catch (error) {
             console.error("Fatal Error during Authentication/Initialization:", error);
@@ -87,7 +87,7 @@ function addLogoutListener() {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
             auth.signOut().then(() => {
-                window.location.href = '/login.html';
+                window.location.href = '/login.html?target=commish';
             });
         });
     }

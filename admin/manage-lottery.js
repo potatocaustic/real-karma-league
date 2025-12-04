@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingContainer.innerHTML = '<div class="error">Access Denied.</div>';
             }
         } else {
-            window.location.href = '/login.html';
+            window.location.href = '/login.html?target=admin';
         }
     });
 });

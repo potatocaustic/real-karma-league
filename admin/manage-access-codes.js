@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Auth check
     onAuthStateChanged(auth, async (user) => {
         if (!user) {
-            window.location.href = '/login.html?reason=unauthorized';
+            window.location.href = '/login.html?reason=unauthorized&target=admin';
             return;
         }
 
