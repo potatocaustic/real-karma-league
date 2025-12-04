@@ -150,13 +150,19 @@ Add these sections to each page's CSS file:
 - **Header/Footer Fixed**: ✅
 - **Special Notes**: Transaction badges use gradients, trade visualizations support 2-4 team trades
 
+### ✅ /S9/standings.html
+- **CSS File**: `/css/standings.css` (created from inline styles)
+- **Removed from admin-styles.css**: `.standings-container`, `.page-buttons-container`, `.view-toggle-button`, `.pr-version-selector-container`, `.pr-version-select`, `.power-rankings-summary`, `.standings-table`, `.playoff-legend`, `.clinch-legend`, `.legend-title`, `.legend-items`, `.legend-color`, `.playoff-color`, `.playin-color`, `.eliminated-color`, `.clinch-badge`, `.clinch-playoff`, `.clinch-playin`, `.clinch-eliminated`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Supports conference, full league, and power rankings views with sortable tables and responsive layouts
+
 ## Remaining Pages to Refactor
 
 ### Priority Order (by complexity)
 
-1. **standings.html** - Standings tables, playoff legend
-2. **compare.html** - Type selector, selectors grid, compare button
-3. **leaderboards.html** - Stat categories, player cards
+1. **compare.html** - Type selector, selectors grid, compare button
+2. **leaderboards.html** - Stat categories, player cards
 4. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
 5. **draft-capital.html** - Draft picks tables
 6. **draft-results.html** - Draft picks, player cards
