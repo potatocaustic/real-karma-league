@@ -891,6 +891,19 @@ body:not(.s9-page) main#admin-container:hover {
     color: #0f172a;
 }
 
+@media (max-width: 640px) {
+    .deadline-management-card {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    #current-deadline-display {
+        order: -1;
+        width: 100%;
+    }
+}
+
 .inline-control-row {
     display: flex;
     gap: 1rem;
