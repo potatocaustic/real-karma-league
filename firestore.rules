@@ -132,6 +132,11 @@ service cloud.firestore {
       allow write: if request.auth.uid == request.resource.data.gm_uid || isUserAdmin();
     }
 
+    match /tradeblocks_dev/{teamId} {
+      allow read: if true;
+      allow write: if request.auth.uid == request.resource.data.gm_uid || isUserAdmin();
+    }
+
     // --- Production Rules ---
 
     match /seasons/{seasonId} {
@@ -254,6 +259,11 @@ service cloud.firestore {
     // =======================================================
     // MINOR LEAGUE RULES
     // =======================================================
+
+    match /minor_tradeblocks/{teamId} {
+      allow read: if true;
+      allow write: if request.auth.uid == request.resource.data.gm_uid || isUserAdmin();
+    }
 
     match /minor_lineup_deadlines/{deadlineId} {
       allow read: if request.auth != null;
@@ -522,6 +532,11 @@ service cloud.firestore {
     // =======================================================
     // MINOR LEAGUE DEVELOPMENT RULES
     // =======================================================
+
+    match /minor_tradeblocks_dev/{teamId} {
+      allow read: if true;
+      allow write: if request.auth.uid == request.resource.data.gm_uid || isUserAdmin();
+    }
 
     match /minor_lineup_deadlines_dev/{deadlineId} {
       allow read: if request.auth != null;
