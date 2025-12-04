@@ -320,30 +320,29 @@ For each refactored page, verify:
 6. **Scope admin-styles.css properly** - Use `:not(.s9-page)` to exclude S9 pages
 
 ## Debugging Items
-1. /S9/leaderboards.html - 
-dark theme: text like "Select Leaderboard Category" "Show" "Team" etc is nearly invisible, too dark. Leaderboard category and "show" dropdowns still have old washed-out gray color.
-2. /S9/draft-capital.html - 
-dark theme: "draft capital tracker" text is invisible, too dark.
-generally: the "table view" and "by team" buttons should be inline with each other and horizontally centered on the page. Currently, they are vertically stacked and left-justified.
-3. /S9/standings.html - 
-generally: in mobile view only, the "show full league" and "show power rankings" buttons need to be horizontally centered on the page. They already are on desktop.
-4. /S9/team.html - 
-generally: something with the layout was changed when it shouldn't have. The "current roster" container is now incredible short and has a scrollbar when it should be long enough to show the entire roster as it is with the old style/layout. The "Draft Capital" container is still the old washed-out color in both themes. The game tiles in the schedule section do not appear to have been given the modern coloration in either view.
-light theme: The "Season {X} Draft" text in the Draft Capital section is white, making it unreadable in light theme.
-dark theme: The "current roster" section stays white and does not switch to dark theme at all.
-5. /S9/player.html - 
-generally: the player's username needs to be centered within its space similar to how the "Current team" text is.
-6. /S9/trophy-case.html - 
-generally: something with the layout was changed when it shouldn't have. The award cards changed size and now only have 2 in a row instead of 3.
-7. /S9/draft-results.html - 
-dark theme: "S9 Draft Results" text is invisible, too dark.
-8. /S9/draft-prospects.html - 
-generally: I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
-9. /common/changelog.html - 
-generally: another page on which I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
-10. /login.html - 
-generally: yet another page on which I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
-11. /index.html (homepage) and /activate.html (account activation page) still need the new color schemes applied.
+- [x] /S9/leaderboards.html -
+  - Dark theme text and dropdown styling updated so selector labels and inputs use modern light text on darker gradients instead of washed-out gray.
+- [x] /S9/draft-capital.html -
+  - Dark theme page header text now visible and view toggle buttons are centered inline with responsive wrapping.
+- [x] /S9/standings.html -
+  - Mobile layout centers the top action buttons while keeping desktop behavior unchanged.
+- [ ] /S9/team.html -
+  - generally: something with the layout was changed when it shouldn't have. The "current roster" container is now incredible short and has a scrollbar when it should be long enough to show the entire roster as it is with the old style/layout. The "Draft Capital" container is still the old washed-out color in both themes. The game tiles in the schedule section do not appear to have been given the modern coloration in either view.
+  - light theme: The "Season {X} Draft" text in the Draft Capital section is white, making it unreadable in light theme.
+  - dark theme: The "current roster" section stays white and does not switch to dark theme at all.
+- [ ] /S9/player.html -
+  - generally: the player's username needs to be centered within its space similar to how the "Current team" text is.
+- [ ] /S9/trophy-case.html -
+  - generally: something with the layout was changed when it shouldn't have. The award cards changed size and now only have 2 in a row instead of 3.
+- [ ] /S9/draft-results.html -
+  - dark theme: "S9 Draft Results" text is invisible, too dark.
+- [ ] /S9/draft-prospects.html -
+  - generally: I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
+- [ ] /common/changelog.html -
+  - generally: another page on which I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
+- [ ] /login.html -
+  - generally: yet another page on which I don't think the new color scheme took at all. I don't notice a difference in either theme after clicking "apply modern style" for the page from /admin/manage-style-rollout.
+- [ ] /index.html (homepage) and /activate.html (account activation page) still need the new color schemes applied.
 
 ## References
 
