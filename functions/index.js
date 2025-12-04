@@ -198,6 +198,7 @@ exports.syncSheetsToFirestore = sheetsSync.syncSheetsToFirestore;
 
 // Re-export auth functions from extracted modules
 exports.generateActivationCode = activation.generateActivationCode;
+exports.ensureUserDocument = activation.ensureUserDocument;
 exports.activateUserWithCode = activation.activateUserWithCode;
 exports.revokeActivationCode = activation.revokeActivationCode;
 exports.listActivationCodes = activation.listActivationCodes;

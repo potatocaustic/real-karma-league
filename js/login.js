@@ -1,11 +1,14 @@
 // /js/login.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collectionNames, getCurrentLeague } from './firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, doc, getDoc, collectionNames, getCurrentLeague } from './firebase-init.js';
 import {
     signInWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+
+const ensureUserDocument = httpsCallable(functions, 'ensureUserDocument');
 
 function userHasCommishAccess(userData, league) {
     if (!userData) return false;
@@ -58,7 +61,12 @@ async function handleOAuthSignIn(user, targetPortal = 'gm') {
                 window.location.href = `/activate.html?league=${league}`;
             }
         } else {
-            // Brand new user - needs activation
+            // Brand new user - create placeholder user doc then send to activation
+            try {
+                await ensureUserDocument();
+            } catch (ensureError) {
+                console.error('Failed to create user document:', ensureError);
+            }
             window.location.href = `/activate.html?league=${league}`;
         }
     } catch (error) {
