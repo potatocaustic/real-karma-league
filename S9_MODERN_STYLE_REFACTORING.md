@@ -143,22 +143,28 @@ Add these sections to each page's CSS file:
 - **Header/Footer Fixed**: ✅
 - **Special Notes**: Conference section and header styles work for both teams and standings pages
 
+### ✅ /S9/transactions.html
+- **CSS File**: `/css/transactions.css` (created from inline styles)
+- **Removed from admin-styles.css**: `.filter-controls`, `.filter-row`, `.filter-group`, `.transactions-container`, `.transactions-header`, `.transactions-list`, `.transaction-item`, `.transaction-header`, `.transaction-type`, `.transaction-date`, `.transaction-details`, `.player-name-link`, `.team-name-link`, `.player-stats-inline`, `.gm-name`, `.draft-pick`, `.multi-transaction`, `.multi-rescission`, `.trade-parts`, `.trade-side`, `.trade-arrow`, `.trade-team`, `.trade-assets`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Transaction badges use gradients, trade visualizations support 2-4 team trades
+
 ## Remaining Pages to Refactor
 
 ### Priority Order (by complexity)
 
-1. **transactions.html** - Transaction items, type badges
-2. **standings.html** - Standings tables, playoff legend
-3. **compare.html** - Type selector, selectors grid, compare button
-4. **leaderboards.html** - Stat categories, player cards
-5. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
-6. **draft-capital.html** - Draft picks tables
-7. **draft-results.html** - Draft picks, player cards
-8. **draft-lottery.html** - Lottery results
-9. **draft-prospects.html** - Prospect cards
-10. **trophy-case.html** - Trophy displays
-11. **player.html** - Player details, stats tables
-12. **playoff-bracket.html** - Bracket visualization
+1. **standings.html** - Standings tables, playoff legend
+2. **compare.html** - Type selector, selectors grid, compare button
+3. **leaderboards.html** - Stat categories, player cards
+4. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
+5. **draft-capital.html** - Draft picks tables
+6. **draft-results.html** - Draft picks, player cards
+7. **draft-lottery.html** - Lottery results
+8. **draft-prospects.html** - Prospect cards
+9. **trophy-case.html** - Trophy displays
+10. **player.html** - Player details, stats tables
+11. **playoff-bracket.html** - Bracket visualization
 
 ## Common Issues to Fix on Every Page
 
