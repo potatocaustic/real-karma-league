@@ -26,7 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const userDoc = await getDoc(userRef);
 
             if (userDoc.exists() && (userDoc.data().role === 'gm' || userDoc.data().role === 'admin')) {
-                gmTeamId = userDoc.data().team_id;
+                const userData = userDoc.data();
+                const currentLeague = getCurrentLeague();
+                const teamIdField = currentLeague === 'minor' ? 'minor_team_id' : 'major_team_id';
+                gmTeamId = userData[teamIdField] || (currentLeague === 'major' ? userData.team_id : null); // Backward compat
 
                 if (!gmTeamId) {
                     loadingContainer.innerHTML = '<div class="error">Error: GM team not assigned.</div>';
