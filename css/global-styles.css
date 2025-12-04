@@ -428,3 +428,181 @@ footer a { color: #fff; text-decoration: underline; display: inline-block; margi
 .dark-mode .privacy-note {
     color: #999;
 }
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] body {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+[data-style-rollout="modern"] nav ul li a,
+[data-style-rollout="modern"] .dropdown .dropbtn {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] nav ul li a:hover,
+[data-style-rollout="modern"] .dropdown .dropbtn:hover,
+[data-style-rollout="modern"] .dropdown:hover .dropbtn {
+    color: #bfdbfe;
+}
+
+[data-style-rollout="modern"] .dropdown-content {
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.96));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.2);
+}
+
+[data-style-rollout="modern"] .dropdown-content a {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .dropdown-content a:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+[data-style-rollout="modern"] .login-container {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.1);
+}
+
+[data-style-rollout="modern"] .login-container h2,
+[data-style-rollout="modern"] .form-group label,
+[data-style-rollout="modern"] .login-divider {
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .form-group input {
+    border-color: #e5e7eb;
+    background: #fff;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+[data-style-rollout="modern"] .login-btn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #f8fafc;
+    border: 1px solid #1e40af;
+    box-shadow: 0 12px 24px rgba(37, 99, 235, 0.28);
+}
+
+[data-style-rollout="modern"] .login-btn:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+}
+
+[data-style-rollout="modern"] .oauth-btn {
+    background: linear-gradient(135deg, #ffffff, #f3f6fb);
+    border-color: #e5e7eb;
+    color: #0f172a;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+[data-style-rollout="modern"] .oauth-btn:hover {
+    background: linear-gradient(135deg, #f8fbff, #eef2ff);
+    border-color: #bfdbfe;
+}
+
+[data-style-rollout="modern"] .oauth-btn.google-btn:hover {
+    border-color: #60a5fa;
+}
+
+[data-style-rollout="modern"] .login-divider::before,
+[data-style-rollout="modern"] .login-divider::after {
+    border-bottom-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-top: 1px solid #1f2937;
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode body {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode header {
+    background: linear-gradient(135deg, #111827, #1b2435);
+    border-bottom-color: #2d3748;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+
+[data-style-rollout="modern"].dark-mode nav ul li a,
+[data-style-rollout="modern"].dark-mode .dropdown .dropbtn {
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .dropdown-content {
+    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.05), rgba(17, 24, 39, 0.98));
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+}
+
+[data-style-rollout="modern"].dark-mode .login-container {
+    background: linear-gradient(145deg, #0f1419, #111827);
+    border-color: #2d3748;
+    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .form-group input {
+    background: #0b1015;
+    border-color: #2d3748;
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .login-btn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-color: #1d4ed8;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
+}
+
+[data-style-rollout="modern"].dark-mode .oauth-btn {
+    background: linear-gradient(135deg, #0f172a, #1f2937);
+    border-color: #2d3748;
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .oauth-btn:hover {
+    background: linear-gradient(135deg, #111827, #1f2937);
+    border-color: #3b4a61;
+}
+
+[data-style-rollout="modern"].dark-mode .login-divider,
+[data-style-rollout="modern"].dark-mode .login-divider span {
+    color: #cbd5e1;
+}
+
+[data-style-rollout="modern"].dark-mode .login-divider::before,
+[data-style-rollout="modern"].dark-mode .login-divider::after {
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
+}
