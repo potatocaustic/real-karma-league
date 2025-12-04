@@ -118,6 +118,10 @@
 
 /* --- Mobile Optimization --- */
 @media (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+    }
+
     .mobile-hide {
         display: none;
     }
@@ -133,4 +137,90 @@
     .sortable .sort-arrow::after {
         right: 0.5rem; /* Adjust arrow position */
     }
+}
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] .table-container {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .prospects-table th {
+    background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+    color: #111827;
+    border-bottom-color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .prospects-table td {
+    border-bottom-color: #e5e7eb;
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .prospects-table tbody tr:hover {
+    background: linear-gradient(145deg, #f8fafc, #edf2ff);
+}
+
+[data-style-rollout="modern"] .sortable:hover {
+    background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+}
+
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode .table-container {
+    background: linear-gradient(145deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .prospects-table th {
+    background: linear-gradient(145deg, #111827, #0f172a);
+    color: #e5e7eb;
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .prospects-table td {
+    border-bottom-color: #2d3748;
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .prospects-table tbody tr:hover {
+    background: linear-gradient(145deg, #111827, #1a2333);
+}
+
+[data-style-rollout="modern"].dark-mode .sortable:hover {
+    background: linear-gradient(145deg, #0b1220, #111827);
+}
+
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
 }

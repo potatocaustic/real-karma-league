@@ -189,6 +189,8 @@ Add these sections to each page's CSS file:
 
 ### Priority Order (by complexity)
 
+**Status:** All items below have been completed with modern overrides.
+
 1. **draft-capital.html** - Draft picks tables
 2. **draft-results.html** - Draft picks, player cards
 3. **draft-lottery.html** - Lottery results
@@ -202,12 +204,12 @@ Add these sections to each page's CSS file:
 
 - [x] draft-capital.html — Added modern rollout overrides to `/css/draft-capital.css`, including header/footer gradients and light/dark component treatments.
 - [x] draft-results.html — Moved inline styles to `/css/draft-results.css` and added modern gradients for quick links, tables, header, and footer.
-- [ ] draft-lottery.html — Pending modern overrides.
-- [ ] draft-prospects.html — Pending modern overrides.
-- [ ] trophy-case.html — Pending modern overrides.
-- [ ] team.html - Pending modern overrides.
-- [ ] player.html — Pending modern overrides.
-- [ ] playoff-bracket.html — Pending modern overrides.
+- [x] draft-lottery.html — Added modern rollout gradients to `/css/draft-lottery.css` for cards, buttons, tables, and header/footer.
+- [x] draft-prospects.html — Moved responsive inline styles into `/css/prospects-styles.css` and layered modern table/header/footer overrides.
+- [x] trophy-case.html — Enhanced `/css/trophy-case.css` with modern gradients for award/all-star cards, modal, and header/footer colors.
+- [x] team.html - Added modern gradients and borders in `/css/team.css` for team header, roster/schedule sections, draft capital tiles, and header/footer.
+- [x] player.html — Added modern rollout treatments in `/css/player.css` covering player header, stat cards, performance tables, and header/footer.
+- [x] playoff-bracket.html — Moved inline styles to `/css/playoff-bracket.css` and added modern gradients for play-in panels, teams, rounds, and header/footer.
 
 ## Common Issues to Fix on Every Page
 
