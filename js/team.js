@@ -344,11 +344,13 @@ function loadDraftCapital() {
         const picks = picksBySeason[season];
         const picksHTML = picks.map(pick => generatePickItemHTML(pick)).join('');
         const seasonColor = getSeasonColor(parseInt(season));
-        
+        const seasonTextColor = getContrastingTextColor(seasonColor);
+        const badgeBackground = seasonTextColor === '#0f172a' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
+
         return `<div class="season-group" style="margin-bottom: 1.5rem;">
-            <div class="season-header" style="background-color: ${seasonColor}; color: white; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+            <div class="season-header" style="background-color: ${seasonColor}; color: ${seasonTextColor}; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
                 <span>Season ${season} Draft</span>
-                <span class="season-pick-count-badge" style="background-color: rgba(255,255,255,0.2); padding: 0.3rem 0.6rem; border-radius: 12px;">
+                <span class="season-pick-count-badge" style="background-color: ${badgeBackground}; padding: 0.3rem 0.6rem; border-radius: 12px;">
                     ${picks.length} pick${picks.length !== 1 ? "s" : ""}
                 </span>
             </div>
@@ -1499,6 +1501,24 @@ function getOrdinal(num) {
 function getSeasonColor(season) {
     const colors = { 8: '#0d6efd', 9: '#198754', 10: '#ffc107', 11: '#dc3545', 12: '#6c757d' };
     return colors[season] || '#6c757d';
+}
+
+function getContrastingTextColor(hexColor) {
+    if (!hexColor) return '#fff';
+
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+    const [R, G, B] = [r, g, b].map(channel => {
+        return channel <= 0.03928
+            ? channel / 12.92
+            : Math.pow((channel + 0.055) / 1.055, 2.4);
+    });
+
+    const luminance = 0.2126 * R + 0.7152 * G + 0.0722 * B;
+    return luminance > 0.6 ? '#0f172a' : '#fff';
 }
 
 
