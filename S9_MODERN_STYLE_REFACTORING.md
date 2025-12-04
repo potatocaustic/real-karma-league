@@ -164,19 +164,32 @@ Add these sections to each page's CSS file:
 - **Header/Footer Fixed**: ✅
 - **Special Notes**: Interactive comparison tool with autocomplete dropdowns, supports both player and team comparisons with winner highlighting
 
+### ✅ /S9/leaderboards.html
+- **CSS File**: `/css/leaderboards.css` (already existed)
+- **Removed from admin-styles.css**: Scoped admin loading/shell styles away from S9 pages
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Added gradient/card/button overrides for stat category tables while preserving original spacing
+
+### ✅ /S9/postseason-leaderboards.html
+- **CSS File**: `/css/postseason-leaderboards.css` (already existed)
+- **Removed from admin-styles.css**: Scoped admin loading/shell styles away from S9 pages
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Mirrors regular-season leaderboard theming for postseason stat views
+
 ## Remaining Pages to Refactor
 
 ### Priority Order (by complexity)
 
-1. **leaderboards.html** - Stat categories, player cards
-2. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
-3. **draft-capital.html** - Draft picks tables
-4. **draft-results.html** - Draft picks, player cards
-5. **draft-lottery.html** - Lottery results
-6. **draft-prospects.html** - Prospect cards
-7. **trophy-case.html** - Trophy displays
-8. **player.html** - Player details, stats tables
-9. **playoff-bracket.html** - Bracket visualization
+1. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
+2. **draft-capital.html** - Draft picks tables
+3. **draft-results.html** - Draft picks, player cards
+4. **draft-lottery.html** - Lottery results
+5. **draft-prospects.html** - Prospect cards
+6. **trophy-case.html** - Trophy displays
+7. **player.html** - Player details, stats tables
+8. **playoff-bracket.html** - Bracket visualization
 
 ## Common Issues to Fix on Every Page
 
