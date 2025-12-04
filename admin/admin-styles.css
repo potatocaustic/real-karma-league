@@ -4356,6 +4356,13 @@ footer a:hover {
     }
 }
 
+/* Desktop - Extend score bars on RKL-S9.html */
+@media (min-width: 769px) {
+    .games-list .team {
+        grid-template-columns: 48px 70px 20px 1fr 45px;
+    }
+}
+
 /* ======================================= */
 /* Trade Block Pages - Modern Styling     */
 /* ======================================= */
