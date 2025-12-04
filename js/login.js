@@ -45,12 +45,16 @@ async function handleOAuthSignIn(user) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const targetPortal = params.get('target') === 'commish' ? 'commish' : 'gm';
     const league = getCurrentLeague();
 
     // Update login title based on league
     const loginTitle = document.getElementById('login-title');
     if (loginTitle) {
-        loginTitle.textContent = league === 'minor' ? 'Minor League GM Login' : 'GM Login';
+        const titlePrefix = league === 'minor' ? 'Minor League ' : '';
+        const roleTitle = targetPortal === 'commish' ? 'Commish Login' : 'GM Login';
+        loginTitle.textContent = `${titlePrefix}${roleTitle}`;
     }
 
     // Redirect if user is already logged in
