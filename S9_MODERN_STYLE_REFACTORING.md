@@ -326,6 +326,8 @@ For each refactored page, verify:
   - Dark theme page header text now visible and view toggle buttons are centered inline with responsive wrapping.
 - [x] /S9/standings.html -
   - Mobile layout centers the top action buttons while keeping desktop behavior unchanged.
+- [ ] /S9/leaderboards.html -
+  - Generally: leaderboard container label (such as "Total Karma") is invisible in both themes, dark text against dark background
 - [ ] /S9/team.html -
   - generally: something with the layout was changed when it shouldn't have. The "current roster" container is now incredible short and has a scrollbar when it should be long enough to show the entire roster as it is with the old style/layout. The "Draft Capital" container is still the old washed-out color in both themes. The game tiles in the schedule section do not appear to have been given the modern coloration in either view.
   - light theme: The "Season {X} Draft" text in the Draft Capital section is white, making it unreadable in light theme.
