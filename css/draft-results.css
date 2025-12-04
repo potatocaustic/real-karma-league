@@ -1,0 +1,383 @@
+/* /css/draft-results.css */
+
+/* Page-specific styles for draft-results.html */
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h2 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Quick Links */
+.quick-links-container {
+  text-align: center;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.quick-link-btn {
+  background-color: #fff;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.quick-link-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #ccc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.results-container {
+  overflow-x: auto;
+}
+
+.results-header {
+  background-color: #333;
+  color: white;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.results-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.results-table {
+  width: auto;
+  margin: 0 auto;
+  border-collapse: collapse;
+  table-layout: auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.results-table th {
+  background-color: #f8f9fa;
+  padding: 1rem 1rem;
+  text-align: center;
+  font-weight: bold;
+  border-bottom: 2px solid #ddd;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.results-table th.sortable {
+  cursor: pointer;
+}
+
+.results-table th.sortable:hover {
+  background-color: #e9ecef;
+}
+
+.results-table th .sort-indicator {
+  font-size: 0.8em;
+  margin-left: 5px;
+}
+
+.results-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  vertical-align: middle;
+  text-align: center;
+  transition: border-color 0.3s;
+}
+
+.results-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.results-table td.team-cell,
+.results-table td.player-cell {
+  text-align: left;
+}
+
+.team-cell-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.team-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.player-link,
+.team-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.player-link:hover,
+.team-link:hover {
+  text-decoration: underline;
+}
+
+.mobile-only {
+  display: none;
+}
+
+.desktop-only {
+  display: table-cell;
+}
+
+/* Dark Mode Styles */
+.dark-mode .quick-link-btn {
+  background-color: #2c2c2c;
+  color: #e0e0e0;
+  border-color: #444;
+}
+
+.dark-mode .quick-link-btn:hover {
+  background-color: #383838;
+  border-color: #666;
+}
+
+.dark-mode .results-table {
+  background-color: #1e1e1e;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .results-table th {
+  background-color: #2c2c2c;
+  border-bottom-color: #444;
+}
+
+.dark-mode .results-table th.sortable:hover {
+  background-color: #383838;
+}
+
+.dark-mode .results-table td {
+  border-bottom-color: #333;
+}
+
+.dark-mode .results-table tr:hover {
+  background-color: #2c2c2c;
+}
+
+.dark-mode .player-link,
+.dark-mode .team-link {
+  color: #8ab4f8;
+}
+
+.dark-mode .player-link:hover,
+.dark-mode .team-link:hover {
+  color: #a7c7fa;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .results-table th,
+  .results-table td {
+    font-size: 0.85rem;
+    padding: 0.6rem 0.5rem;
+  }
+
+  .team-cell-content {
+    gap: 0.5rem;
+  }
+
+  .team-logo {
+    width: 28px;
+    height: 28px;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: table-cell;
+  }
+
+  .results-table .team-link,
+  .results-table .player-link {
+    display: inline-block;
+    max-width: 90px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+}
+
+@media (max-width: 600px) {
+  main {
+    padding: 1rem;
+  }
+}
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] .page-header h2 {
+  color: #0f172a;
+  text-shadow: 0 2px 12px rgba(37, 99, 235, 0.18);
+}
+
+[data-style-rollout="modern"] .quick-link-btn {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  color: #0f172a;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .quick-link-btn:hover {
+  border-color: #2563eb;
+  box-shadow: 0 14px 30px rgba(37, 99, 235, 0.18);
+}
+
+[data-style-rollout="modern"] .results-header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+[data-style-rollout="modern"] .results-header h3 {
+  color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .results-table {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .results-table th {
+  background: linear-gradient(135deg, #f8fafc, #eef2ff);
+  color: #0f172a;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+[data-style-rollout="modern"] .results-table td {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+[data-style-rollout="modern"] .results-table tr:hover {
+  background: linear-gradient(135deg, #f8f9fa, #eef2ff);
+}
+
+[data-style-rollout="modern"] .player-link,
+[data-style-rollout="modern"] .team-link {
+  color: #2563eb;
+}
+
+[data-style-rollout="modern"] .player-link:hover,
+[data-style-rollout="modern"] .team-link:hover {
+  color: #1d4ed8;
+}
+
+[data-style-rollout="modern"] .results-table th.sortable:hover {
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+}
+
+/* Header/Nav bar - Light theme */
+[data-style-rollout="modern"] header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-bottom: 1px solid #1f2937;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+/* Footer - Light theme */
+[data-style-rollout="modern"] footer {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+  color: #93c5fd;
+}
+
+/* Dark mode modern overrides */
+[data-style-rollout="modern"].dark-mode .quick-link-btn {
+  background: linear-gradient(135deg, #1f2937, #0f172a);
+  border: 1px solid #2d3748;
+  color: #e5e7eb;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .quick-link-btn:hover {
+  border-color: #60a5fa;
+  box-shadow: 0 14px 30px rgba(96, 165, 250, 0.3);
+}
+
+[data-style-rollout="modern"].dark-mode .results-header {
+  background: linear-gradient(135deg, #111827, #1b2435);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .results-table {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border: 1px solid #2d3748;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .results-table th {
+  background: linear-gradient(135deg, #1f2937, #111827);
+  border-bottom: 2px solid #2d3748;
+  color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .results-table td {
+  border-bottom: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .results-table tr:hover {
+  background: linear-gradient(135deg, #0f172a, #111827);
+}
+
+[data-style-rollout="modern"].dark-mode .player-link,
+[data-style-rollout="modern"].dark-mode .team-link {
+  color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode .player-link:hover,
+[data-style-rollout="modern"].dark-mode .team-link:hover {
+  color: #bfdbfe;
+}
+
+[data-style-rollout="modern"].dark-mode .results-table th.sortable:hover {
+  background: linear-gradient(135deg, #111827, #0f172a);
+}
+
+/* Footer - Dark theme */
+[data-style-rollout="modern"].dark-mode footer {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+  color: #93c5fd;
+}
