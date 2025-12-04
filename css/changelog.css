@@ -50,6 +50,17 @@
   box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
 }
 
+[data-style-rollout="modern"] .page-header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border: 1px solid #1f2937;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  color: #e5e7eb;
+}
+
+[data-style-rollout="modern"] .page-header h2 {
+  color: #e5e7eb;
+}
+
 [data-style-rollout="modern"] .tag-new {
   background: linear-gradient(135deg, #22c55e, #16a34a);
 }
@@ -86,6 +97,13 @@
   background: linear-gradient(145deg, #0f1419, #111827);
   border-color: #2d3748;
   box-shadow: 0 16px 38px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .page-header {
+  background: linear-gradient(135deg, #111827, #1b2435);
+  border: 1px solid #2d3748;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.38);
+  color: #e5e7eb;
 }
 
 [data-style-rollout="modern"].dark-mode .changelog-entry h3 {
