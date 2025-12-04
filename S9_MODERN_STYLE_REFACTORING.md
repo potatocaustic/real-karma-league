@@ -194,8 +194,9 @@ Add these sections to each page's CSS file:
 3. **draft-lottery.html** - Lottery results
 4. **draft-prospects.html** - Prospect cards
 5. **trophy-case.html** - Trophy displays
-6. **player.html** - Player details, stats tables
-7. **playoff-bracket.html** - Bracket visualization
+6. **team.html** - Team details, stats tables
+7. **player.html** - Player details, stats tables
+8. **playoff-bracket.html** - Bracket visualization
 
 ## Progress Tracker
 
@@ -204,6 +205,7 @@ Add these sections to each page's CSS file:
 - [ ] draft-lottery.html — Pending modern overrides.
 - [ ] draft-prospects.html — Pending modern overrides.
 - [ ] trophy-case.html — Pending modern overrides.
+- [ ] team.html - Pending modern overrides.
 - [ ] player.html — Pending modern overrides.
 - [ ] playoff-bracket.html — Pending modern overrides.
 
