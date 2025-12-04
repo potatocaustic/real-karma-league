@@ -157,11 +157,18 @@ Add these sections to each page's CSS file:
 - **Header/Footer Fixed**: ✅
 - **Special Notes**: Supports conference, full league, and power rankings views with sortable tables and responsive layouts
 
+### ✅ /S9/compare.html
+- **CSS File**: `/css/compare.css` (created from inline styles)
+- **Removed from admin-styles.css**: `.type-selector`, `.selectors-grid`, `.selector-box`, `.options-container`, `.option`, `.option-icon`, `.vs-separator`, `.compare-btn-container`, `.compare-btn`, `.results-container`, `.comparison-container`, `.comparison-grid`, `.comparison-row`, `.metric-value`, `.metric-label`, `.entity-header`, `.entity-icon`, `.rookie-badge-compare`, `.all-star-badge-compare`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Interactive comparison tool with autocomplete dropdowns, supports both player and team comparisons with winner highlighting
+
 ## Remaining Pages to Refactor
 
 ### Priority Order (by complexity)
 
-1. **compare.html** - Type selector, selectors grid, compare button
+1. **leaderboards.html** - Stat categories, player cards
 2. **leaderboards.html** - Stat categories, player cards
 3. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
 4. **draft-capital.html** - Draft picks tables
