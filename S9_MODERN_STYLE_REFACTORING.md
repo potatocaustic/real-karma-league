@@ -199,6 +199,8 @@ Add these sections to each page's CSS file:
 6. **team.html** - Team details, stats tables
 7. **player.html** - Player details, stats tables
 8. **playoff-bracket.html** - Bracket visualization
+9. **/login.html** - Auth page (found in root directory, NOT /S9/)
+10. **/common/changelog.html** - Changelog (found in /common/ directory, NOT /S9/)
 
 ## Progress Tracker
 
@@ -210,6 +212,8 @@ Add these sections to each page's CSS file:
 - [x] team.html - Added modern gradients and borders in `/css/team.css` for team header, roster/schedule sections, draft capital tiles, and header/footer.
 - [x] player.html — Added modern rollout treatments in `/css/player.css` covering player header, stat cards, performance tables, and header/footer.
 - [x] playoff-bracket.html — Moved inline styles to `/css/playoff-bracket.css` and added modern gradients for play-in panels, teams, rounds, and header/footer.
+- [ ] /login.html - pending - pending
+- [ ] /common/changelog.html - pending
 
 ## Common Issues to Fix on Every Page
 
