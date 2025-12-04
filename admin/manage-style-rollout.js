@@ -23,7 +23,7 @@ const labelInput = document.getElementById('new-page-label');
 
 const defaultPages = [
     { path: '/', label: 'Homepage' },
-    { path: '/login.html', label: 'Login' },
+    { path: '/login.html?target=admin', label: 'Login' },
     { path: '/activate.html', label: 'Activate Account' },
     { path: '/S9/RKL-S9.html', label: 'S9 Home' },
     { path: '/S9/standings.html', label: 'S9 Standings' },
@@ -38,7 +38,7 @@ const pageState = new Map();
 
 onAuthStateChanged(auth, async (user) => {
     if (!user) {
-        window.location.href = '/login.html';
+        window.location.href = '/login.html?target=admin';
         return;
     }
 
@@ -63,7 +63,7 @@ function addLogoutListener() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            signOut(auth).then(() => window.location.href = '/login.html');
+            signOut(auth).then(() => window.location.href = '/login.html?target=admin');
         });
     }
 }

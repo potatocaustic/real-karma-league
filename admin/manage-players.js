@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingContainer.innerHTML = '<div class="error">Access Denied.</div>';
             }
         } else {
-            window.location.href = '/login.html';
+            window.location.href = '/login.html?target=admin';
         }
     });
 });
@@ -396,7 +396,7 @@ function addLogoutListener() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            auth.signOut().then(() => { window.location.href = '/login.html'; });
+            auth.signOut().then(() => { window.location.href = '/login.html?target=admin'; });
         });
     }
 }

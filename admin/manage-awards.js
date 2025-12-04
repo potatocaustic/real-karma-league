@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             if (user.isAnonymous) {
                 await signOut(auth);
-                window.location.href = '/login.html';
+                window.location.href = '/login.html?target=admin';
                 return;
             }
 
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadingContainer.innerHTML = '<div class="error">Access Denied.</div>';
             }
         } else {
-            window.location.href = '/login.html';
+            window.location.href = '/login.html?target=admin';
         }
     });
 });

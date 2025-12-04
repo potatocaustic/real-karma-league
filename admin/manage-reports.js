@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayAccessDenied(authStatusDiv);
             }
         } else {
-            window.location.href = '/login.html';
+            window.location.href = '/login.html?target=admin';
         }
     });
 
@@ -619,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
             logoutBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 signOut(auth).then(() => {
-                    window.location.href = '/login.html';
+                    window.location.href = '/login.html?target=admin';
                 });
             });
         }

@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (user) {
             if (user.isAnonymous) {
                 await signOut(auth);
-                window.location.href = '/login.html';
+                window.location.href = '/login.html?target=admin';
                 return;
             }
 
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addLogoutListener();
             }
         } else {
-            window.location.href = '/login.html';
+            window.location.href = '/login.html?target=admin';
         }
     });
 
@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             logoutBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 auth.signOut().then(() => {
-                    window.location.href = '/login.html';
+                    window.location.href = '/login.html?target=admin';
                 });
             });
         }
