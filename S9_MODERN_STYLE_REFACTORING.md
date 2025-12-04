@@ -163,14 +163,14 @@ Add these sections to each page's CSS file:
 
 1. **compare.html** - Type selector, selectors grid, compare button
 2. **leaderboards.html** - Stat categories, player cards
-4. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
-5. **draft-capital.html** - Draft picks tables
-6. **draft-results.html** - Draft picks, player cards
-7. **draft-lottery.html** - Lottery results
-8. **draft-prospects.html** - Prospect cards
-9. **trophy-case.html** - Trophy displays
-10. **player.html** - Player details, stats tables
-11. **playoff-bracket.html** - Bracket visualization
+3. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
+4. **draft-capital.html** - Draft picks tables
+5. **draft-results.html** - Draft picks, player cards
+6. **draft-lottery.html** - Lottery results
+7. **draft-prospects.html** - Prospect cards
+8. **trophy-case.html** - Trophy displays
+9. **player.html** - Player details, stats tables
+10. **playoff-bracket.html** - Bracket visualization
 
 ## Common Issues to Fix on Every Page
 
