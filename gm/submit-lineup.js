@@ -75,13 +75,31 @@ async function initializePage(userId) {
 }
 
 async function cacheCoreData(seasonId) {
-    const [playersSnap, teamsSnap, statsSnap] = await Promise.all([
+    const [playersSnap, teamsSnap] = await Promise.all([
         getDocs(collection(db, collectionNames.players)),
-        getDocs(collection(db, collectionNames.teams)),
-        getDocs(query(collectionGroup(db, collectionNames.seasonalStats), where('seasonId', '==', seasonId)))
+        getDocs(collection(db, collectionNames.teams))
     ]);
 
-    playerSeasonStats = new Map(statsSnap.docs.map(statDoc => [statDoc.ref.parent.parent.id, statDoc.data()]));
+    // Fetch seasonal stats for all players
+    const playerIds = playersSnap.docs.map(doc => doc.id);
+    const playerStatsPaths = playerIds.map(id => `${collectionNames.players}/${id}/${collectionNames.seasonalStats}/${seasonId}`);
+
+    // Fetch stats in chunks of 30 (Firestore 'in' query limit)
+    const CHUNK_SIZE = 30;
+    const statsPromises = [];
+    for (let i = 0; i < playerStatsPaths.length; i += CHUNK_SIZE) {
+        const chunk = playerStatsPaths.slice(i, i + CHUNK_SIZE);
+        const statsQuery = query(collectionGroup(db, collectionNames.seasonalStats), where(documentId(), 'in', chunk));
+        statsPromises.push(getDocs(statsQuery));
+    }
+    const statsSnapshots = await Promise.all(statsPromises);
+
+    // Build stats map from all chunks
+    statsSnapshots.forEach(statsSnap => {
+        statsSnap.docs.forEach(statDoc => {
+            playerSeasonStats.set(statDoc.ref.parent.parent.id, statDoc.data());
+        });
+    });
 
     playersSnap.docs.forEach(doc => {
         const stats = playerSeasonStats.get(doc.id) || {};
