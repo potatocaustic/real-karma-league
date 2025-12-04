@@ -2848,9 +2848,9 @@ header .league-switcher .league-toggle-btn svg {
 
 /* Dark mode - Teams Page */
 .dark-mode .conference-header {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
+    background: linear-gradient(135deg, #111827, #1b2435);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
-    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    border-bottom: 1px solid #243047;
 }
 
 .dark-mode .teams-grid {
@@ -3518,8 +3518,8 @@ footer a:hover {
 }
 
 .dark-mode .transactions-header {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
-    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    background: linear-gradient(135deg, #111827, #1b2435);
+    border-bottom: 1px solid #243047;
 }
 
 .dark-mode .transactions-container {
@@ -4206,8 +4206,8 @@ footer a:hover {
 
 .dark-mode .standings-header,
 .dark-mode .games-header {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
-    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    background: linear-gradient(135deg, #111827, #1b2435);
+    border-bottom: 1px solid #243047;
 }
 
 .dark-mode .week-standouts-section {
@@ -4274,7 +4274,7 @@ footer a:hover {
 }
 
 .dark-mode .modal-header {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
+    background: linear-gradient(135deg, #111827, #1b2435);
 }
 
 .dark-mode .team-breakdown {
@@ -4506,7 +4506,7 @@ footer a:hover {
 }
 
 .dark-mode .trade-block-header {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
+    background: linear-gradient(135deg, #111827, #1b2435);
     border-bottom-color: #2d3748;
 }
 
