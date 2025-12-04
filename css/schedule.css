@@ -190,6 +190,39 @@
     border-color: transparent;
 }
 
+[data-style-rollout="modern"] .week-btn.completed {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: white;
+    border-color: transparent;
+}
+
+[data-style-rollout="modern"] .week-btn.completed.active {
+    background: linear-gradient(135deg, #15803d, #166534);
+    color: white;
+    border-color: transparent;
+}
+
+/* Header/Nav bar - Light theme */
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+/* Footer - Light theme */
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #93c5fd;
+}
+
 [data-style-rollout="modern"] .week-standouts-section {
     background: linear-gradient(135deg, #dbeafe, #eff6ff);
     border: 1px solid #93c5fd;
@@ -305,4 +338,25 @@
 
 [data-style-rollout="modern"].dark-mode .winner-indicator {
     border-left-color: #4ade80;
+}
+
+/* Footer - Dark theme */
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
+}
+
+/* Filter dropdown - Dark theme */
+[data-style-rollout="modern"].dark-mode .filter-dropdown {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+    color: #e0e0e0;
 }
