@@ -271,7 +271,11 @@ main {
 .pick-origin { font-size: 0.8rem; color: #666; margin-left: 1rem; transition: color 0.3s; }
 
 .view-toggle {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
   margin-bottom: 2rem;
 }
 
@@ -524,6 +528,11 @@ main {
     border: 1px solid #2d3748;
     color: #e5e7eb;
     box-shadow: 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .page-header h2 {
+    color: #e5e7eb;
+    text-shadow: 0 2px 12px rgba(96, 165, 250, 0.28);
 }
 
 [data-style-rollout="modern"].dark-mode .quick-link-btn:hover {

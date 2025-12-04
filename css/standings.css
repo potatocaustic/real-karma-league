@@ -359,7 +359,7 @@
   #fullLeagueViewContainer .conference-section,
   #powerRankingsViewContainer .conference-section { max-width: 100%; }
   .standings-table th .sort-indicator { display: none; }
-  .page-buttons-container { display: flex; flex-direction: column; gap: 0.5rem; }
+  .page-buttons-container { display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
   .view-toggle-button { width: 80%; margin: 0 auto; }
   .prev-rank-col { display: none; }
 
