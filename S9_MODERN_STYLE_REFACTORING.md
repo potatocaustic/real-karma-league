@@ -197,6 +197,16 @@ Add these sections to each page's CSS file:
 6. **player.html** - Player details, stats tables
 7. **playoff-bracket.html** - Bracket visualization
 
+## Progress Tracker
+
+- [x] draft-capital.html — Added modern rollout overrides to `/css/draft-capital.css`, including header/footer gradients and light/dark component treatments.
+- [ ] draft-results.html — Pending modern overrides.
+- [ ] draft-lottery.html — Pending modern overrides.
+- [ ] draft-prospects.html — Pending modern overrides.
+- [ ] trophy-case.html — Pending modern overrides.
+- [ ] player.html — Pending modern overrides.
+- [ ] playoff-bracket.html — Pending modern overrides.
+
 ## Common Issues to Fix on Every Page
 
 ### Issue 1: Nav Bar Color (Light Theme)
