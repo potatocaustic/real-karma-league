@@ -1,0 +1,688 @@
+/* ====================================================================== */
+/* COMPARE PAGE - ORIGINAL STYLES                                        */
+/* ====================================================================== */
+
+.comparison-container {
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.dark-mode .comparison-container {
+  background-color: #1e1e1e;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+/* Type Selector */
+.type-selector {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.type-selector .btn-group {
+  display: inline-flex;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
+
+.dark-mode .type-selector .btn-group {
+  border-color: #444;
+}
+
+.type-selector button {
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  background-color: #f8f9fa;
+  border: none;
+  color: #333;
+  transition: background-color 0.3s, color 0.3s;
+  border-right: 1px solid #ddd;
+}
+
+.dark-mode .type-selector button {
+  background-color: #2c2c2c;
+  color: #e0e0e0;
+  border-right: 1px solid #444;
+}
+
+.type-selector button:last-child {
+  border-right: none;
+}
+
+.type-selector button.active {
+  background-color: #007bff;
+  color: white;
+}
+
+.dark-mode .type-selector button.active {
+  background-color: #3b82f6;
+}
+
+/* Selectors Grid */
+.selectors-grid {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.selector-box {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.selector-box label {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.selector-box input[type="text"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.dark-mode .selector-box input[type="text"] {
+  background-color: #2c2c2c;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+/* Options Dropdown */
+.options-container {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.dark-mode .options-container {
+  background-color: #2c2c2c;
+  border-color: #444;
+}
+
+.options-container.visible {
+  display: block;
+}
+
+.option {
+  padding: 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.option:hover, .option.highlighted {
+  background-color: #f0f0f0;
+}
+
+.dark-mode .option:hover, .dark-mode .option.highlighted {
+  background-color: #3a3a3a;
+}
+
+.option-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* VS Separator */
+.vs-separator {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #6c757d;
+  padding-top: 1.5rem;
+}
+
+.dark-mode .vs-separator {
+  color: #aaa;
+}
+
+/* Compare Button */
+.compare-btn-container {
+  text-align: center;
+}
+
+.compare-btn {
+  background-color: #28a745;
+  color: white;
+  padding: 0.8rem 2rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.compare-btn:hover {
+  background-color: #218838;
+}
+
+.compare-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Results Container */
+.results-container {
+  margin-top: 2rem;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+  border-top: 1px solid #eee;
+  padding-top: 2rem;
+}
+
+.dark-mode .results-container {
+  border-top-color: #333;
+}
+
+.results-container.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Results Header */
+.results-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.entity-header {
+  width: 40%;
+}
+
+.entity-header a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.3s;
+}
+
+.entity-header a:hover {
+  color: #007bff;
+}
+
+.dark-mode .entity-header a:hover {
+  color: #8ab4f8;
+}
+
+.entity-header.entity1 a { align-items: flex-start; text-align: left;}
+.entity-header.entity2 a { align-items: flex-end; text-align: right;}
+
+.entity-header .icon-name-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.entity-header.entity2 .icon-name-wrapper {
+  flex-direction: row-reverse;
+}
+
+.entity-name-text {
+  display: inline;
+}
+
+.badge-container {
+  display: inline;
+}
+
+.entity-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #ddd;
+}
+
+.dark-mode .entity-icon {
+  border-color: #444;
+}
+
+.results-vs-separator {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #6c757d;
+}
+
+.dark-mode .results-vs-separator {
+  color: #aaa;
+}
+
+/* Comparison Grid */
+.comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.comparison-row {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr 1fr;
+  align-items: center;
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+  border: 1px solid #eee;
+}
+
+.dark-mode .comparison-row {
+  background-color: #2c2c2c;
+  border-color: #333;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.metric-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+}
+
+.dark-mode .metric-label {
+  color: #aaa;
+}
+
+.metric-value.winner {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.dark-mode .metric-value.winner {
+  background-color: #2e7d32;
+  color: #e8f5e9;
+}
+
+.metric-value.tie {
+  background-color: #fff3cd;
+}
+
+.dark-mode .metric-value.tie {
+  background-color: #4a4100;
+}
+
+/* Badges */
+.rookie-badge-compare {
+  background-color: #6c757d;
+  color: white;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.all-star-badge-compare {
+  color: gold;
+  text-shadow: 0 0 3px #a18000;
+  font-size: 1rem;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.dark-mode .rookie-badge-compare {
+  background-color: #9e9e9e;
+  color: #121212;
+}
+
+/* ====================================================================== */
+/* MOBILE RESPONSIVE                                                     */
+/* ====================================================================== */
+
+@media (max-width: 600px) {
+  .selectors-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .vs-separator, .results-vs-separator {
+    display: none;
+  }
+  .results-header-flex {
+    justify-content: space-between;
+    gap: 4%;
+  }
+  .entity-header {
+    width: 48%;
+  }
+  .entity-header a {
+    font-size: 1rem;
+  }
+  .entity-header .entity-name-text {
+    display: block;
+    white-space: normal;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .entity-header .badge-container {
+    display: none;
+  }
+  .entity-icon {
+    width: 40px;
+    height: 40px;
+  }
+  .entity-header .icon-name-wrapper {
+    gap: 0.5rem;
+  }
+  .comparison-row {
+    grid-template-columns: 1fr 1.2fr 1fr;
+    padding: 0.5rem;
+  }
+  .metric-value {
+    font-size: 1.1rem;
+  }
+  .metric-label {
+    font-size: 0.8rem;
+  }
+}
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+/* Comparison Container - Light theme */
+[data-style-rollout="modern"] .comparison-container {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+/* Type Selector - Light theme */
+[data-style-rollout="modern"] .type-selector .btn-group {
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-style-rollout="modern"] .type-selector button {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  color: #0f172a;
+  border-right: 1px solid #e5e7eb;
+  font-weight: 600;
+}
+
+[data-style-rollout="modern"] .type-selector button.active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* Selector Boxes - Light theme */
+[data-style-rollout="modern"] .selector-box label {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+[data-style-rollout="modern"] .selector-box input[type="text"] {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  color: #0f172a;
+}
+
+/* Options Dropdown - Light theme */
+[data-style-rollout="modern"] .options-container {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  border-radius: 0 0 10px 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+[data-style-rollout="modern"] .option {
+  color: #0f172a;
+}
+
+[data-style-rollout="modern"] .option:hover,
+[data-style-rollout="modern"] .option.highlighted {
+  background: linear-gradient(145deg, #f8f9fa, #ffffff);
+}
+
+/* VS Separator - Light theme */
+[data-style-rollout="modern"] .vs-separator,
+[data-style-rollout="modern"] .results-vs-separator {
+  color: #64748b;
+  font-weight: 700;
+}
+
+/* Compare Button - Light theme */
+[data-style-rollout="modern"] .compare-btn {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border-radius: 10px;
+  font-weight: 700;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.25);
+}
+
+[data-style-rollout="modern"] .compare-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.35);
+}
+
+[data-style-rollout="modern"] .compare-btn:disabled {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  transform: none;
+  box-shadow: none;
+}
+
+/* Results Container - Light theme */
+[data-style-rollout="modern"] .results-container {
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Entity Headers - Light theme */
+[data-style-rollout="modern"] .entity-header a:hover {
+  color: #2563eb;
+}
+
+[data-style-rollout="modern"] .entity-icon {
+  border-color: #e5e7eb;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Comparison Rows - Light theme */
+[data-style-rollout="modern"] .comparison-row {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+[data-style-rollout="modern"] .metric-label {
+  color: #64748b;
+  font-weight: 600;
+}
+
+[data-style-rollout="modern"] .metric-value {
+  color: #0f172a;
+}
+
+[data-style-rollout="modern"] .metric-value.winner {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+[data-style-rollout="modern"] .metric-value.tie {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #78350f;
+}
+
+/* Badges - Light theme */
+[data-style-rollout="modern"] .rookie-badge-compare {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Header - Light theme */
+[data-style-rollout="modern"] header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-bottom: 1px solid #1f2937;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+/* Footer - Light theme */
+[data-style-rollout="modern"] footer {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+  color: #93c5fd;
+}
+
+/* ====================================================================== */
+/* DARK MODE MODERN OVERRIDES                                            */
+/* ====================================================================== */
+
+/* Comparison Container - Dark theme */
+[data-style-rollout="modern"].dark-mode .comparison-container {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border-color: #2d3748;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+/* Type Selector - Dark theme */
+[data-style-rollout="modern"].dark-mode .type-selector .btn-group {
+  border-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .type-selector button {
+  background: linear-gradient(135deg, #1f2937, #243244);
+  color: #f1f5f9;
+  border-right-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .type-selector button.active {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+/* Selector Boxes - Dark theme */
+[data-style-rollout="modern"].dark-mode .selector-box label {
+  color: #f1f5f9;
+}
+
+[data-style-rollout="modern"].dark-mode .selector-box input[type="text"] {
+  background: linear-gradient(135deg, #1f2937, #243244);
+  border-color: #3d4d6a;
+  color: #f1f5f9;
+}
+
+/* Options Dropdown - Dark theme */
+[data-style-rollout="modern"].dark-mode .options-container {
+  background: linear-gradient(135deg, #1f2937, #243244);
+  border-color: #3d4d6a;
+}
+
+[data-style-rollout="modern"].dark-mode .option {
+  color: #f1f5f9;
+}
+
+[data-style-rollout="modern"].dark-mode .option:hover,
+[data-style-rollout="modern"].dark-mode .option.highlighted {
+  background: linear-gradient(145deg, #111827, #1a2332);
+}
+
+/* VS Separator - Dark theme */
+[data-style-rollout="modern"].dark-mode .vs-separator,
+[data-style-rollout="modern"].dark-mode .results-vs-separator {
+  color: #94a3b8;
+}
+
+/* Results Container - Dark theme */
+[data-style-rollout="modern"].dark-mode .results-container {
+  border-top-color: #2d3748;
+}
+
+/* Entity Headers - Dark theme */
+[data-style-rollout="modern"].dark-mode .entity-header a:hover {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode .entity-icon {
+  border-color: #3d4d6a;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Comparison Rows - Dark theme */
+[data-style-rollout="modern"].dark-mode .comparison-row {
+  background: linear-gradient(145deg, #0f1419, #111827);
+  border-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .metric-label {
+  color: #94a3b8;
+}
+
+[data-style-rollout="modern"].dark-mode .metric-value {
+  color: #f1f5f9;
+}
+
+[data-style-rollout="modern"].dark-mode .metric-value.winner {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: #d1fae5;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+[data-style-rollout="modern"].dark-mode .metric-value.tie {
+  background: linear-gradient(135deg, #78350f, #92400e);
+  color: #fef3c7;
+}
+
+/* Badges - Dark theme */
+[data-style-rollout="modern"].dark-mode .rookie-badge-compare {
+  background: linear-gradient(135deg, #9e9e9e, #757575);
+  color: #121212;
+}
+
+/* Footer - Dark theme */
+[data-style-rollout="modern"].dark-mode footer {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+  color: #93c5fd;
+}
