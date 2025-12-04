@@ -997,3 +997,98 @@ main {
         padding: 1rem;
     }
 }
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+[data-style-rollout="modern"] .season-info {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .nav-card {
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .nav-card:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.14);
+    border-color: #d1d5db;
+}
+
+[data-style-rollout="modern"] .standings-preview,
+[data-style-rollout="modern"] .recent-games {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+}
+
+[data-style-rollout="modern"] .standings-header,
+[data-style-rollout="modern"] .games-header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-style-rollout="modern"] .conference-title {
+    color: #0f172a;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+[data-style-rollout="modern"] .view-full {
+    border-top: 1px solid #e5e7eb;
+}
+
+[data-style-rollout="modern"] .view-full a {
+    color: #2563eb;
+}
+
+[data-style-rollout="modern"] .view-full a:hover {
+    color: #1d4ed8;
+}
+
+/* Dark mode modern overrides */
+[data-style-rollout="modern"].dark-mode .season-info,
+[data-style-rollout="modern"].dark-mode .standings-preview,
+[data-style-rollout="modern"].dark-mode .recent-games {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .nav-card {
+    background: linear-gradient(145deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+    box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .nav-card:hover {
+    border-color: #334155;
+    box-shadow: 0 22px 45px rgba(0, 0, 0, 0.45);
+}
+
+[data-style-rollout="modern"].dark-mode .standings-header,
+[data-style-rollout="modern"].dark-mode .games-header {
+    background: linear-gradient(135deg, #111827, #1b2435);
+    border-bottom: 1px solid #243047;
+}
+
+[data-style-rollout="modern"].dark-mode .conference-title {
+    color: #f5f5f5;
+    border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .view-full {
+    border-top-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .view-full a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode .view-full a:hover {
+    color: #93c5fd;
+}
