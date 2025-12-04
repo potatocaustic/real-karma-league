@@ -94,6 +94,34 @@ exports.generateActivationCode = onCall({ region: "us-central1" }, async (reques
 });
 
 /**
+ * Ensure a user document exists for the authenticated user
+ * Creates a minimal profile so new OAuth sign-ins don't hit missing document errors
+ */
+exports.ensureUserDocument = onCall({ region: "us-central1" }, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError('permission-denied', 'Must be authenticated');
+    }
+
+    const usersCollectionName = getCollectionName('users');
+    const userRef = db.collection(usersCollectionName).doc(request.auth.uid);
+    const snapshot = await userRef.get();
+
+    if (snapshot.exists) {
+        return { created: false };
+    }
+
+    await userRef.set({
+        uid: request.auth.uid,
+        role: 'gm',
+        auth_provider: request.auth.token.firebase.sign_in_provider,
+        email: request.auth.token.email || request.auth.token.phone_number || request.auth.uid,
+        created_at: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { created: true };
+});
+
+/**
  * Activate user account with activation code
  * Links user to a team in the specified league
  */
