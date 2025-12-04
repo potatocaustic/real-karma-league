@@ -1,0 +1,595 @@
+/* ====================================================================== */
+/* TRANSACTIONS PAGE - ORIGINAL STYLES                                   */
+/* ====================================================================== */
+
+.filter-controls {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.filter-group select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  min-width: 150px;
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s;
+}
+
+.filter-group select:disabled {
+  background-color: #e9ecef;
+  opacity: 0.7;
+}
+
+.transactions-container {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.transactions-header {
+  background-color: #333;
+  color: white;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.transactions-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.transactions-list {
+  max-height: 800px;
+  overflow-y: auto;
+}
+
+.transaction-item {
+  padding: 1.5rem;
+  border-bottom: 1px solid #eee;
+  transition: background-color 0.2s, border-bottom-color 0.3s;
+}
+
+.transaction-item:hover {
+  background-color: #f8f9fa;
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.transaction-type {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.transaction-type.trade { background-color: #007bff; color: white; }
+.transaction-type.rescission { background-color: #dc3545; color: white; }
+.transaction-type.retirement { background-color: #6a5acd; color: white; }
+.transaction-type.unretirement { background-color: #28a745; color: white; }
+.transaction-type.drop { background-color: #ffc107; color: #333; }
+.transaction-type.gm-resignation { background-color: #6c757d; color: white; }
+.transaction-type.gm-hired { background-color: #17a2b8; color: white; }
+.transaction-type.gm-fired { background-color: #dc3545; color: white; }
+.transaction-type.waiver-claim { background-color: #fd7e14; color: white; }
+.transaction-type.sign { background-color: #20c997; color: white; }
+.transaction-type.cut { background-color: #dc3545; color: white; }
+
+.transaction-date {
+  font-size: 0.9rem;
+  color: #666;
+  transition: color 0.3s;
+}
+
+.transaction-details {
+  line-height: 1.8;
+}
+
+.transaction-details img.team-logo-inline,
+.trade-team img.team-logo-inline {
+  width: 36px;
+  height: 36px;
+  vertical-align: middle;
+  margin-right: 8px;
+  border-radius: 5px;
+}
+
+.player-name-link, .team-name-link {
+  font-weight: bold;
+  color: #007bff;
+  text-decoration: none;
+}
+
+.player-name-link:hover, .team-name-link:hover {
+  text-decoration: underline;
+}
+
+.team-name-link {
+  font-weight: 500;
+}
+
+.player-stats-inline { font-size: 0.85em; color: #555; transition: color 0.3s; }
+.gm-name { font-weight: bold; color: #17a2b8; }
+
+.draft-pick {
+  font-size: 0.9rem;
+}
+
+.multi-transaction {
+  border-left: 4px solid #007bff;
+}
+
+.multi-rescission {
+  border-left: 4px solid #dc3545;
+}
+
+.trade-parts {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 1rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+.trade-parts.three-team-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.trade-parts.four-team-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.trade-side {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+.trade-arrow {
+  font-size: 1.5rem;
+  color: #007bff;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  transition: color 0.3s;
+}
+
+.trade-team {
+  font-weight: bold;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+}
+
+.trade-team .team-name-link {
+  color: #0056b3;
+}
+
+.trade-assets {
+  list-style: none;
+  padding: 0;
+}
+
+.trade-assets li {
+  padding: 0.3rem 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.9rem;
+  transition: border-color 0.3s;
+}
+
+.trade-assets li:last-child {
+  border-bottom: none;
+}
+
+.no-transactions { text-align: center; padding: 3rem; color: #666; font-style: italic; }
+
+/* ====================================================================== */
+/* DARK MODE - ORIGINAL STYLES                                           */
+/* ====================================================================== */
+
+.dark-mode .filter-controls, .dark-mode .transactions-container {
+  background-color: #1e1e1e;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.dark-mode .filter-group select {
+  background-color: #2c2c2c;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+.dark-mode .transaction-item {
+  border-bottom-color: #333;
+}
+
+.dark-mode .transaction-item:hover {
+  background-color: #2c2c2c;
+}
+
+.dark-mode .player-name-link, .dark-mode .team-name-link {
+  color: #8ab4f8;
+}
+
+.dark-mode .player-name-link:hover, .dark-mode .team-name-link:hover {
+  color: #a7c7fa;
+}
+
+.dark-mode .player-stats-inline {
+  color: #aaa;
+}
+
+.dark-mode .gm-name {
+  color: #4dd0e1;
+}
+
+.dark-mode .trade-side {
+  background-color: #2c2c2c;
+  border-color: #444;
+}
+
+.dark-mode .trade-assets li {
+  border-bottom-color: #383838;
+}
+
+.dark-mode .trade-arrow {
+  color: #8ab4f8;
+}
+
+.dark-mode .transaction-date {
+  color: #aaa;
+}
+
+/* ====================================================================== */
+/* MOBILE RESPONSIVE                                                     */
+/* ====================================================================== */
+
+@media (max-width: 768px) {
+  .filter-row { flex-direction: column; align-items: stretch; }
+  .filter-group { width: 100%; }
+  .filter-group select { min-width: auto; width: 100%; }
+  .transaction-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .trade-parts { grid-template-columns: 1fr; gap: 1rem; }
+
+  .trade-parts.three-team-grid,
+  .trade-parts.four-team-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-arrow {
+    text-align: center;
+    transform: rotate(90deg);
+    margin-top: 0; margin-bottom: 0.5rem;
+    min-height: auto;
+  }
+}
+
+/* ====================================================================== */
+/* MODERN STYLE OVERRIDES (only apply when data-style-rollout="modern") */
+/* ====================================================================== */
+
+/* Filter Controls - Light theme */
+[data-style-rollout="modern"] .filter-controls {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+[data-style-rollout="modern"] .filter-group label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+[data-style-rollout="modern"] .filter-group select {
+  padding: 0.65rem 0.9rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  color: #0f172a;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-style-rollout="modern"] .filter-group select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.16);
+  outline: none;
+}
+
+[data-style-rollout="modern"] .filter-group select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Transactions Container - Light theme */
+[data-style-rollout="modern"] .transactions-container {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+[data-style-rollout="modern"] .transactions-header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  color: white;
+  padding: 1.5rem;
+  text-align: center;
+  border-bottom: 1px solid #1f2937;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+[data-style-rollout="modern"] .transactions-header h3 {
+  color: white;
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+[data-style-rollout="modern"] .transaction-item {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+[data-style-rollout="modern"] .transaction-item:hover {
+  background: linear-gradient(145deg, #f8f9fa, #ffffff);
+}
+
+[data-style-rollout="modern"] .transaction-type {
+  padding: 0.4rem 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-style-rollout="modern"] .transaction-type.trade { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+[data-style-rollout="modern"] .transaction-type.rescission { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+[data-style-rollout="modern"] .transaction-type.retirement { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+[data-style-rollout="modern"] .transaction-type.unretirement { background: linear-gradient(135deg, #16a34a, #15803d); }
+[data-style-rollout="modern"] .transaction-type.drop { background: linear-gradient(135deg, #f59e0b, #d97706); color: #0f172a; }
+[data-style-rollout="modern"] .transaction-type.gm-resignation { background: linear-gradient(135deg, #6b7280, #4b5563); }
+[data-style-rollout="modern"] .transaction-type.gm-hired { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+[data-style-rollout="modern"] .transaction-type.gm-fired { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+[data-style-rollout="modern"] .transaction-type.waiver-claim { background: linear-gradient(135deg, #f97316, #ea580c); }
+[data-style-rollout="modern"] .transaction-type.sign { background: linear-gradient(135deg, #10b981, #059669); }
+[data-style-rollout="modern"] .transaction-type.cut { background: linear-gradient(135deg, #dc2626, #b91c1c); }
+
+[data-style-rollout="modern"] .transaction-date {
+  color: #64748b;
+  font-weight: 600;
+}
+
+[data-style-rollout="modern"] .transaction-details {
+  color: #0f172a;
+}
+
+[data-style-rollout="modern"] .transaction-details img.team-logo-inline,
+[data-style-rollout="modern"] .trade-team img.team-logo-inline {
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+[data-style-rollout="modern"] .player-name-link,
+[data-style-rollout="modern"] .team-name-link {
+  font-weight: 600;
+  color: #2563eb;
+}
+
+[data-style-rollout="modern"] .player-name-link:hover,
+[data-style-rollout="modern"] .team-name-link:hover {
+  color: #1d4ed8;
+}
+
+[data-style-rollout="modern"] .player-stats-inline {
+  color: #64748b;
+}
+
+[data-style-rollout="modern"] .gm-name {
+  font-weight: 700;
+  color: #06b6d4;
+}
+
+[data-style-rollout="modern"] .multi-transaction {
+  border-left: 4px solid #2563eb;
+}
+
+[data-style-rollout="modern"] .multi-rescission {
+  border-left: 4px solid #dc2626;
+}
+
+[data-style-rollout="modern"] .trade-side {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+[data-style-rollout="modern"] .trade-arrow {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+[data-style-rollout="modern"] .trade-team {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+[data-style-rollout="modern"] .trade-team .team-name-link {
+  color: #1d4ed8;
+}
+
+[data-style-rollout="modern"] .trade-assets li {
+  color: #0f172a;
+  border-bottom-color: #e5e7eb;
+}
+
+/* Header - Light theme */
+[data-style-rollout="modern"] header {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-bottom: 1px solid #1f2937;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+/* Footer - Light theme */
+[data-style-rollout="modern"] footer {
+  background: linear-gradient(135deg, #0f172a, #111d35);
+  border-top: 1px solid #1f2937;
+}
+
+[data-style-rollout="modern"] footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+  color: #93c5fd;
+}
+
+/* ====================================================================== */
+/* DARK MODE MODERN OVERRIDES                                            */
+/* ====================================================================== */
+
+/* Filter Controls - Dark theme */
+[data-style-rollout="modern"].dark-mode .filter-controls {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border-color: #2d3748;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .filter-group label {
+  color: #f1f5f9;
+}
+
+[data-style-rollout="modern"].dark-mode .filter-group select {
+  background: linear-gradient(135deg, #1f2937, #243244);
+  border-color: #3d4d6a;
+  color: #f1f5f9;
+}
+
+/* Transactions Container - Dark theme */
+[data-style-rollout="modern"].dark-mode .transactions-container {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border-color: #2d3748;
+  box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .transactions-header {
+  background: linear-gradient(135deg, #111827, #1b2435);
+  border-bottom: 1px solid #243047;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+[data-style-rollout="modern"].dark-mode .transaction-item {
+  border-bottom-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .transaction-item:hover {
+  background: linear-gradient(145deg, #0f1419, #111827);
+}
+
+[data-style-rollout="modern"].dark-mode .transaction-date {
+  color: #94a3b8;
+}
+
+[data-style-rollout="modern"].dark-mode .transaction-details {
+  color: #f1f5f9;
+}
+
+[data-style-rollout="modern"].dark-mode .player-name-link,
+[data-style-rollout="modern"].dark-mode .team-name-link {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode .player-name-link:hover,
+[data-style-rollout="modern"].dark-mode .team-name-link:hover {
+  color: #93c5fd;
+}
+
+[data-style-rollout="modern"].dark-mode .player-stats-inline {
+  color: #94a3b8;
+}
+
+[data-style-rollout="modern"].dark-mode .gm-name {
+  color: #22d3ee;
+}
+
+[data-style-rollout="modern"].dark-mode .trade-side {
+  background: linear-gradient(135deg, #1f2937, #243244);
+  border-color: #3d4d6a;
+}
+
+[data-style-rollout="modern"].dark-mode .trade-arrow {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode .trade-team {
+  color: #f1f5f9;
+}
+
+[data-style-rollout="modern"].dark-mode .trade-team .team-name-link {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode .trade-assets li {
+  color: #f1f5f9;
+  border-bottom-color: #2d3748;
+}
+
+/* Footer - Dark theme */
+[data-style-rollout="modern"].dark-mode footer {
+  background: linear-gradient(135deg, #1a1f2e, #1e2433);
+  border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+  color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+  color: #93c5fd;
+}
