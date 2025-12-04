@@ -106,88 +106,6 @@ This file now contains ~2000+ lines including:
 4. ✅ Reduced game card max-width to 400px on desktop
 5. ✅ Dark mode support for modals
 
-### 🔧 Current Issues (Need Fixing)
-
-#### Game Detail Modal Issues:
-1. **Square outline around circular team logos** - Still visible, needs better fix
-2. **Team container outlines don't contour properly** - Awkward whitespace, containers should match shape
-3. **Line graph emoji needs replacement** - Replace with professional line graph icon for gameflow chart button
-4. **Dark mode table header choppy gradient** - Column lines visible in header row (player/points/rank) because gradient resets, making it look choppy
-
-#### Schedule Page Issue:
-5. **Game tile spacing on desktop** - Tiles were made smaller (max-width: 400px) but container space didn't shrink, leaving awkward gaps. **User wants to revert size change** - keep original size but only update coloration/presentation, not dimensions.
-
-### Modal Component Location
-**File**: `/home/user/real-karma-league/common/game-modal-component.html`
-- Shared component used across multiple pages
-- Contains modal HTML structure, team breakdowns, lineup tables, game flow chart area
-
-### Relevant CSS Sections in admin-styles.css
-
-**Modal styling (lines ~1850-2000):**
-```css
-.modal-content {
-    background: var(--admin-surface);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-    background: linear-gradient(135deg, var(--admin-text), #111d35);
-    border-radius: 14px 14px 0 0;
-}
-
-.modal-team-header .team-logo {
-    border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.team-breakdown {
-    background: var(--admin-surface-subtle);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
-}
-
-.dark-mode .modal-content {
-    background: linear-gradient(135deg, #1a1f2e, #1e2433);
-    border-color: #2d3748;
-}
-
-.dark-mode .modal-header {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
-}
-
-.dark-mode .lineup-table th {
-    background: linear-gradient(135deg, #1f2937, #243244);
-    border-bottom-color: #2d3748;
-}
-
-.dark-mode #game-flow-chart-area {
-    background: linear-gradient(135deg, #1f2937, #243244);
-}
-```
-
-**Game card sizing (needs removal/revision):**
-```css
-@media (min-width: 769px) {
-    .game-card {
-        max-width: 400px; /* REMOVE THIS - causing spacing issues */
-    }
-}
-```
-
-## Next Steps
-
-1. **Fix circular logo outline** - Investigate why border-radius: 50% not working, may need to target parent container or use `overflow: hidden`
-2. **Fix team container shape** - Ensure border matches content shape, check padding/margin
-3. **Replace line graph emoji** - Find SVG or icon font for professional line graph icon
-4. **Fix choppy table header gradient** - Apply gradient to entire `<tr>` or use `background-attachment` to prevent reset per cell
-5. **Remove game card max-width** - Delete the desktop media query that limits game-card width
-6. **Test all changes** - Verify on both mobile and desktop, light and dark modes
-7. **Commit and push** - Once all issues resolved
 
 ## Important Files Reference
 
@@ -211,12 +129,6 @@ Before considering complete:
 - [ ] Test on mobile viewport (<769px)
 - [ ] Test on desktop viewport (≥769px)
 - [ ] Verify no regressions on previously fixed pages
-
-## Git Status
-
-**Last commit**: `a8b77f2` - "Fix schedule page modals and game cards styling"
-
-**Current state**: Working on modal and schedule page refinements
 
 ## User Preferences
 
