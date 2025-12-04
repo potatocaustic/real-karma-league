@@ -33,6 +33,14 @@ let allTransactions = [];
 let allTeams = [];
 let allDraftPicks = {};
 let allPlayerStats = {};
+let availableWeeks = new Set();
+
+// --- Filter State ---
+const currentFilters = {
+    week: 'all',
+    type: 'all',
+    team: 'all'
+};
 
 // --- Pagination State ---
 const TRANSACTIONS_PER_PAGE = 50; // Load 100 transactions at a time
@@ -51,28 +59,11 @@ async function loadData() {
     transactionsListEl.innerHTML = '<div class="loading">Loading transactions...</div>';
 
     try {
-        const transactionsQuery = query(
-            collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
-            orderBy('date', 'desc'),
-            limit(TRANSACTIONS_PER_PAGE)
-        );
-
-        const [transactionsSnap, allTeamsSnap, draftPicksSnap] = await Promise.all([
-            getDocs(transactionsQuery),
+        const [allTeamsSnap, draftPicksSnap] = await Promise.all([
             getDocs(collection(db, collectionNames.teams)),
             getDocs(collection(db, collectionNames.draftPicks)),
         ]);
 
-        allTransactions = transactionsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Track pagination state
-        if (transactionsSnap.docs.length < TRANSACTIONS_PER_PAGE) {
-            hasMoreTransactions = false;
-        } else {
-            lastTransactionDoc = transactionsSnap.docs[transactionsSnap.docs.length - 1];
-            hasMoreTransactions = true;
-        }
-        
         const teamPromises = allTeamsSnap.docs.map(async (teamDoc) => {
             const teamId = teamDoc.id;
             const seasonalRecordRef = doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID);
@@ -89,78 +80,158 @@ async function loadData() {
             allDraftPicks[doc.id] = doc.data()?.pick_description;
         });
 
-        await fetchAllPlayerStats();
-
+        await fetchAvailableWeeks();
         populateFilters();
-        displayTransactions();
 
-        // **NEW**: Check URL params after data load to disable filters if needed
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('id')) {
             weekFilterEl.disabled = true;
             typeFilterEl.disabled = true;
             teamFilterEl.disabled = true;
             transactionsTitleEl.textContent = 'Viewing Specific Transaction';
+            await loadSpecificTransaction(urlParams.get('id'));
+            return;
         }
 
-
+        await fetchTransactionsPage({ reset: true });
     } catch (error) {
         console.error("Error loading data:", error);
         transactionsListEl.innerHTML = '<div class="error">Error loading transaction data. Please try again.</div>';
     }
 }
 
-async function loadMoreTransactions() {
-    if (!hasMoreTransactions || isLoadingMore || !lastTransactionDoc) {
+async function fetchAvailableWeeks() {
+    try {
+        const weeksQuery = query(
+            collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
+            orderBy('week')
+        );
+
+        const weeksSnap = await getDocs(weeksQuery);
+        weeksSnap.docs.forEach(doc => {
+            const weekValue = doc.data()?.week;
+            if (weekValue) {
+                availableWeeks.add(weekValue);
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching weeks:', error);
+    }
+}
+
+async function loadSpecificTransaction(transactionId) {
+    try {
+        const transactionRef = doc(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID, transactionId);
+        const transactionSnap = await getDoc(transactionRef);
+
+        if (!transactionSnap.exists()) {
+            transactionsListEl.innerHTML = '<div class="error">Transaction not found.</div>';
+            return;
+        }
+
+        const normalizedTransaction = normalizeTransactionDoc(transactionSnap);
+        allTransactions = [normalizedTransaction];
+        hasMoreTransactions = false;
+        lastTransactionDoc = null;
+        await fetchAllPlayerStats();
+        displayTransactions();
+    } catch (error) {
+        console.error('Error loading specific transaction:', error);
+        transactionsListEl.innerHTML = '<div class="error">Unable to load the requested transaction.</div>';
+    }
+}
+
+async function fetchTransactionsPage({ reset = false } = {}) {
+    if (reset) {
+        lastTransactionDoc = null;
+        hasMoreTransactions = true;
+        allTransactions = [];
+        transactionsListEl.innerHTML = '<div class="loading">Loading transactions...</div>';
+    }
+
+    if (!hasMoreTransactions || isLoadingMore) {
         return;
     }
 
     isLoadingMore = true;
+
+    const constraints = [
+        collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
+        orderBy('date', 'desc')
+    ];
+
+    if (currentFilters.week !== 'all') {
+        constraints.push(where('week', '==', currentFilters.week));
+    }
+
+    if (currentFilters.type !== 'all') {
+        constraints.push(where('type', '==', currentFilters.type));
+    }
+
+    if (currentFilters.team !== 'all') {
+        constraints.push(where('involved_teams', 'array-contains', currentFilters.team));
+    }
+
+    if (lastTransactionDoc) {
+        constraints.push(startAfter(lastTransactionDoc));
+    }
+
+    constraints.push(limit(TRANSACTIONS_PER_PAGE));
+
+    const transactionsQuery = query(...constraints);
+
+    try {
+        const snap = await getDocs(transactionsQuery);
+        const newTransactions = snap.docs.map(normalizeTransactionDoc);
+
+        allTransactions = reset ? newTransactions : [...allTransactions, ...newTransactions];
+
+        if (snap.docs.length < TRANSACTIONS_PER_PAGE) {
+            hasMoreTransactions = false;
+        } else {
+            lastTransactionDoc = snap.docs[snap.docs.length - 1];
+        }
+
+        await fetchPlayerStatsForTransactions(newTransactions);
+        displayTransactions();
+    } catch (error) {
+        console.error('Error loading transactions:', error);
+        transactionsListEl.innerHTML = '<div class="error">Error loading transaction data. Please try again.</div>';
+    } finally {
+        isLoadingMore = false;
+    }
+}
+
+async function loadMoreTransactions() {
     const loadMoreBtn = document.getElementById('load-more-btn');
     if (loadMoreBtn) {
         loadMoreBtn.textContent = 'Loading...';
         loadMoreBtn.disabled = true;
     }
 
-    try {
-        const nextQuery = query(
-            collection(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID),
-            orderBy('date', 'desc'),
-            startAfter(lastTransactionDoc),
-            limit(TRANSACTIONS_PER_PAGE)
-        );
+    await fetchTransactionsPage({ reset: false });
 
-        const nextSnap = await getDocs(nextQuery);
-        const newTransactions = nextSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Append new transactions
-        allTransactions = [...allTransactions, ...newTransactions];
-
-        // Update pagination state
-        if (nextSnap.docs.length < TRANSACTIONS_PER_PAGE) {
-            hasMoreTransactions = false;
-        } else {
-            lastTransactionDoc = nextSnap.docs[nextSnap.docs.length - 1];
-        }
-
-        // Fetch stats for new players
-        await fetchPlayerStatsForTransactions(newTransactions);
-
-        // Re-display with new transactions
-        displayTransactions();
-
-    } catch (error) {
-        console.error('Error loading more transactions:', error);
-        if (loadMoreBtn) {
-            loadMoreBtn.textContent = 'Error loading more';
-        }
-    } finally {
-        isLoadingMore = false;
-        if (loadMoreBtn) {
-            loadMoreBtn.textContent = 'Load More Transactions';
-            loadMoreBtn.disabled = false;
-        }
+    if (loadMoreBtn) {
+        loadMoreBtn.textContent = 'Load More Transactions';
+        loadMoreBtn.disabled = false;
     }
+}
+
+function normalizeTransactionDoc(docSnap) {
+    const data = docSnap.data() || {};
+    const rawTeams = data.involved_teams || [];
+    const normalizedTeams = rawTeams.map(teamEntry => {
+        if (typeof teamEntry === 'string') {
+            return { id: teamEntry, team_name: teamEntry };
+        }
+        return teamEntry;
+    });
+
+    return {
+        id: docSnap.id,
+        ...data,
+        involved_teams: normalizedTeams
+    };
 }
 
 async function fetchPlayerStatsForTransactions(transactions) {
@@ -190,13 +261,13 @@ async function fetchAllPlayerStats() {
 
 // --- Filter and Display Logic ---
 function populateFilters() {
-    const weekValues = [...new Set(allTransactions.map(t => t.week))].filter(Boolean).sort();
+    const weekValues = Array.from(availableWeeks).filter(Boolean).sort();
     const weekOptions = weekValues.map(week => `<option value="${week}">${week}</option>`).join('');
     weekFilterEl.innerHTML = '<option value="all">All Weeks</option>' + weekOptions;
-    
+
     const validTeams = allTeams.filter(team => team.id !== 'FA' && team.team_name && typeof team.team_name === 'string' && team.conference);
     const sortedTeams = validTeams.sort((a, b) => a.team_name.localeCompare(b.team_name));
-    
+
     const teamOptions = sortedTeams
         .map(team => `<option value="${team.id}">${team.team_name}</option>`)
         .join('');
@@ -204,9 +275,16 @@ function populateFilters() {
 }
 
 function setupEventListeners() {
-    weekFilterEl.addEventListener('change', displayTransactions);
-    typeFilterEl.addEventListener('change', displayTransactions);
-    teamFilterEl.addEventListener('change', displayTransactions);
+    weekFilterEl.addEventListener('change', handleFilterChange);
+    typeFilterEl.addEventListener('change', handleFilterChange);
+    teamFilterEl.addEventListener('change', handleFilterChange);
+}
+
+function handleFilterChange() {
+    currentFilters.week = weekFilterEl.value;
+    currentFilters.type = typeFilterEl.value;
+    currentFilters.team = teamFilterEl.value;
+    fetchTransactionsPage({ reset: true });
 }
 
 function getFilteredTransactions() {
@@ -217,28 +295,9 @@ function getFilteredTransactions() {
     if (transactionIdFromUrl) {
         return allTransactions.filter(transaction => transaction.id === transactionIdFromUrl);
     }
-    
-    // Original filter logic for dropdowns
-    const weekFilterValue = weekFilterEl.value;
-    const typeFilterValue = typeFilterEl.value;
-    const teamFilterValue = teamFilterEl.value;
-    
-    return allTransactions.filter(transaction => {
-        if (weekFilterValue !== 'all' && transaction.week !== weekFilterValue) {
-            return false;
-        }
-        if (typeFilterValue !== 'all' && transaction.type !== typeFilterValue) {
-            return false;
-        }
-        if (teamFilterValue !== 'all') {
-            const involvedTeamIds = transaction.involved_teams.map(t => t.id);
-            if (!involvedTeamIds.includes(teamFilterValue)) {
-                return false;
-            }
-        }
-        
-        return true;
-    });
+
+    // Data is already filtered via Firestore queries based on dropdown selections
+    return allTransactions;
 }
 
 function displayTransactions() {
