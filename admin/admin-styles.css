@@ -2930,7 +2930,7 @@ body.dark-mode:not(.s9-page) footer a:hover {
 /* ======================================= */
 
 /* Page Header */
-.page-header {
+body:not(.s9-page) .page-header {
     text-align: center;
     margin-bottom: 2rem;
     padding: 1.5rem;
@@ -2940,26 +2940,26 @@ body.dark-mode:not(.s9-page) footer a:hover {
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
 }
 
-.page-header h2 {
+body:not(.s9-page) .page-header h2 {
     font-size: 2rem;
     margin-bottom: 0.5rem;
     color: var(--admin-text);
     font-weight: 700;
 }
 
-.page-header p {
+body:not(.s9-page) .page-header p {
     color: var(--admin-text);
     opacity: 0.8;
     font-size: 1rem;
 }
 
-.dark-mode .page-header {
+body:not(.s9-page).dark-mode .page-header {
     background: linear-gradient(135deg, #1a1f2e, #1e2433);
     border-color: #2d3748;
 }
 
 /* Back Link */
-.back-link {
+body:not(.s9-page) .back-link {
     display: inline-block;
     margin-bottom: 1.5rem;
     color: #3b82f6;
@@ -2968,16 +2968,16 @@ body.dark-mode:not(.s9-page) footer a:hover {
     transition: color 0.2s ease;
 }
 
-.back-link:hover {
+body:not(.s9-page) .back-link:hover {
     color: #2563eb;
     text-decoration: underline;
 }
 
-.dark-mode .back-link {
+body:not(.s9-page).dark-mode .back-link {
     color: #60a5fa;
 }
 
-.dark-mode .back-link:hover {
+body:not(.s9-page).dark-mode .back-link:hover {
     color: #93c5fd;
 }
 
