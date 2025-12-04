@@ -201,7 +201,7 @@ Add these sections to each page's CSS file:
 ## Progress Tracker
 
 - [x] draft-capital.html — Added modern rollout overrides to `/css/draft-capital.css`, including header/footer gradients and light/dark component treatments.
-- [ ] draft-results.html — Pending modern overrides.
+- [x] draft-results.html — Moved inline styles to `/css/draft-results.css` and added modern gradients for quick links, tables, header, and footer.
 - [ ] draft-lottery.html — Pending modern overrides.
 - [ ] draft-prospects.html — Pending modern overrides.
 - [ ] trophy-case.html — Pending modern overrides.
