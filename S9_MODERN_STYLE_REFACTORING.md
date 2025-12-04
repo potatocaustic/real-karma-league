@@ -150,21 +150,33 @@ Add these sections to each page's CSS file:
 - **Header/Footer Fixed**: ✅
 - **Special Notes**: Transaction badges use gradients, trade visualizations support 2-4 team trades
 
+### ✅ /S9/standings.html
+- **CSS File**: `/css/standings.css` (created from inline styles)
+- **Removed from admin-styles.css**: `.standings-container`, `.page-buttons-container`, `.view-toggle-button`, `.pr-version-selector-container`, `.pr-version-select`, `.power-rankings-summary`, `.standings-table`, `.playoff-legend`, `.clinch-legend`, `.legend-title`, `.legend-items`, `.legend-color`, `.playoff-color`, `.playin-color`, `.eliminated-color`, `.clinch-badge`, `.clinch-playoff`, `.clinch-playin`, `.clinch-eliminated`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Supports conference, full league, and power rankings views with sortable tables and responsive layouts
+
+### ✅ /S9/compare.html
+- **CSS File**: `/css/compare.css` (created from inline styles)
+- **Removed from admin-styles.css**: `.type-selector`, `.selectors-grid`, `.selector-box`, `.options-container`, `.option`, `.option-icon`, `.vs-separator`, `.compare-btn-container`, `.compare-btn`, `.results-container`, `.comparison-container`, `.comparison-grid`, `.comparison-row`, `.metric-value`, `.metric-label`, `.entity-header`, `.entity-icon`, `.rookie-badge-compare`, `.all-star-badge-compare`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Interactive comparison tool with autocomplete dropdowns, supports both player and team comparisons with winner highlighting
+
 ## Remaining Pages to Refactor
 
 ### Priority Order (by complexity)
 
-1. **standings.html** - Standings tables, playoff legend
-2. **compare.html** - Type selector, selectors grid, compare button
-3. **leaderboards.html** - Stat categories, player cards
-4. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
-5. **draft-capital.html** - Draft picks tables
-6. **draft-results.html** - Draft picks, player cards
-7. **draft-lottery.html** - Lottery results
-8. **draft-prospects.html** - Prospect cards
-9. **trophy-case.html** - Trophy displays
-10. **player.html** - Player details, stats tables
-11. **playoff-bracket.html** - Bracket visualization
+1. **leaderboards.html** - Stat categories, player cards
+2. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
+3. **draft-capital.html** - Draft picks tables
+4. **draft-results.html** - Draft picks, player cards
+5. **draft-lottery.html** - Lottery results
+6. **draft-prospects.html** - Prospect cards
+7. **trophy-case.html** - Trophy displays
+8. **player.html** - Player details, stats tables
+9. **playoff-bracket.html** - Bracket visualization
 
 ## Common Issues to Fix on Every Page
 
