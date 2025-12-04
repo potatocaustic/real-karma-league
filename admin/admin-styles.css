@@ -117,8 +117,7 @@ body:not(.s9-page) header nav {
         width: calc(100% - 1.5rem);
     }
 
-    main#admin-container,
-    main {
+    body:not(.s9-page) main#admin-container {
         width: calc(100% - 2rem);
     }
 }
@@ -175,14 +174,13 @@ body:not(.s9-page) header nav {
         margin-top: 0.35rem;
     }
 
-    main#admin-container,
-    main {
+    body:not(.s9-page) main#admin-container {
         width: calc(100% - 1.25rem);
         padding: 1.5rem 1.25rem;
     }
 }
 
-main#admin-container {
+body:not(.s9-page) main#admin-container {
     width: min(1200px, 100% - 2.5rem);
     margin: 1.5rem auto 2.5rem;
     padding: 2rem;
@@ -297,11 +295,11 @@ main#admin-container {
     box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
 }
 
-main#admin-container {
+body:not(.s9-page) main#admin-container {
     line-height: 1.65;
 }
 
-main#admin-container:hover {
+body:not(.s9-page) main#admin-container:hover {
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.16);
 }
 
@@ -2011,8 +2009,7 @@ main#admin-container:hover {
     background: rgba(255, 255, 255, 0.12);
 }
 
-.dark-mode main#admin-container,
-.dark-mode main {
+body.dark-mode:not(.s9-page) main#admin-container {
     background: #111827;
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.4);
 }
@@ -2350,7 +2347,7 @@ main#admin-container:hover {
 }
 
 @media (max-width: 600px) {
-    main {
+    body:not(.s9-page) main#admin-container {
         padding: 1rem; /* Reduce padding on main content */
     }
 
@@ -2672,117 +2669,19 @@ header .league-switcher .league-toggle-btn svg {
 /* ====================================================================== */
 
 /* Teams Page */
-/* Leaderboards Page */
-.category-selector {
-    background: var(--admin-surface-subtle);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    padding: 1.5rem;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
-    margin-bottom: 1.5rem;
-}
 
-.selector-title {
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    color: var(--admin-text);
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-}
-
-.leaderboard-container {
-    background: var(--admin-surface-subtle);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    padding: 1.5rem;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
-    margin-bottom: 1.5rem;
-}
-
-.leaderboard-header h3 {
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    color: var(--admin-text);
-    margin-bottom: 1rem;
-}
-
-.table-controls {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.5rem;
-    padding: 1rem;
-    background: var(--admin-surface);
-    border: 1px solid var(--admin-border);
-    border-radius: 10px;
-}
-
-.control-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.control-item label {
-    color: var(--admin-text);
-    font-weight: 600;
-}
-
-.control-item select,
-.control-item input {
-    background: var(--admin-surface);
-    color: var(--admin-text);
-    border: 1px solid var(--admin-border);
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
-}
-
-.dropdown-team-filter {
-    position: relative;
-}
-
-.dropdown-toggle-btn {
-    background: var(--admin-surface);
-    border: 1px solid var(--admin-border);
-    border-radius: 8px;
-    padding: 0.5rem 0.75rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--admin-text);
-    transition: border-color 0.2s ease;
-}
-
-.dropdown-toggle-btn:hover {
-    border-color: #2563eb;
-}
-
-.team-checklist-container {
-    background: var(--admin-surface);
-    border: 1px solid var(--admin-border);
-    border-radius: 10px;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
-    padding: 0.75rem;
-    max-height: 300px;
-    overflow-y: auto;
-}
-
-.leaderboard-table,
+/* Standings Table */
 .standings-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.leaderboard-table th,
-.leaderboard-table td,
 .standings-table th,
 .standings-table td {
     border-bottom: 1px solid var(--admin-border);
     padding: 0.85rem 0.75rem;
 }
 
-.leaderboard-table th,
 .standings-table th {
     background: var(--admin-surface-subtle);
     color: var(--admin-text);
@@ -2794,17 +2693,15 @@ header .league-switcher .league-toggle-btn svg {
     transition: background-color 0.2s ease;
 }
 
-.leaderboard-table th:hover,
 .standings-table th:hover {
     background: var(--admin-surface);
 }
 
-.leaderboard-table tbody tr:hover,
 .standings-table tbody tr:hover {
     background: var(--admin-surface);
 }
 
-.loading {
+body:not(.s9-page) .loading {
     text-align: center;
     color: var(--admin-text);
     opacity: 0.6;
