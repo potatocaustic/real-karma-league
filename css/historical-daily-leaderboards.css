@@ -465,6 +465,10 @@
     border-bottom-color: #1f2937;
 }
 
+[data-style-rollout="modern"] .modal-header h3 {
+    color: #e5e7eb;
+}
+
 [data-style-rollout="modern"] .stat-item {
     background: linear-gradient(145deg, #ffffff, #f8f9fa);
     border: 1px solid #e5e7eb;
