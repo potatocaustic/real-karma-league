@@ -169,15 +169,14 @@ Add these sections to each page's CSS file:
 ### Priority Order (by complexity)
 
 1. **leaderboards.html** - Stat categories, player cards
-2. **leaderboards.html** - Stat categories, player cards
-3. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
-4. **draft-capital.html** - Draft picks tables
-5. **draft-results.html** - Draft picks, player cards
-6. **draft-lottery.html** - Lottery results
-7. **draft-prospects.html** - Prospect cards
-8. **trophy-case.html** - Trophy displays
-9. **player.html** - Player details, stats tables
-10. **playoff-bracket.html** - Bracket visualization
+2. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
+3. **draft-capital.html** - Draft picks tables
+4. **draft-results.html** - Draft picks, player cards
+5. **draft-lottery.html** - Lottery results
+6. **draft-prospects.html** - Prospect cards
+7. **trophy-case.html** - Trophy displays
+8. **player.html** - Player details, stats tables
+9. **playoff-bracket.html** - Bracket visualization
 
 ## Common Issues to Fix on Every Page
 
