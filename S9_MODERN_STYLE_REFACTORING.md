@@ -178,18 +178,24 @@ Add these sections to each page's CSS file:
 - **Header/Footer Fixed**: ✅
 - **Special Notes**: Mirrors regular-season leaderboard theming for postseason stat views
 
+### ✅ /S9/historical-daily-leaderboards.html
+- **CSS File**: `/css/historical-daily-leaderboards.css` (already existed)
+- **Removed from admin-styles.css**: Scoped shared `.page-header` and `.back-link` styles to `body:not(.s9-page)`
+- **Modern Overrides Added**: ✅
+- **Header/Footer Fixed**: ✅
+- **Special Notes**: Modern gradients cover date selector, navigation buttons, modal, and stat tiles while keeping layout intact
+
 ## Remaining Pages to Refactor
 
 ### Priority Order (by complexity)
 
-1. **historical-daily-leaderboards.html** - Date selector, leaderboard tables
-2. **draft-capital.html** - Draft picks tables
-3. **draft-results.html** - Draft picks, player cards
-4. **draft-lottery.html** - Lottery results
-5. **draft-prospects.html** - Prospect cards
-6. **trophy-case.html** - Trophy displays
-7. **player.html** - Player details, stats tables
-8. **playoff-bracket.html** - Bracket visualization
+1. **draft-capital.html** - Draft picks tables
+2. **draft-results.html** - Draft picks, player cards
+3. **draft-lottery.html** - Lottery results
+4. **draft-prospects.html** - Prospect cards
+5. **trophy-case.html** - Trophy displays
+6. **player.html** - Player details, stats tables
+7. **playoff-bracket.html** - Bracket visualization
 
 ## Common Issues to Fix on Every Page
 
