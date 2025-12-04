@@ -4806,9 +4806,14 @@ footer a:hover {
 }
 
 .checklist-table .col-stat-gp,
-.checklist-table .col-stat-small,
-.checklist-table .col-record {
+.checklist-table .col-stat-small {
     text-align: center;
+    color: var(--admin-text);
+    opacity: 0.9;
+}
+
+.checklist-table .col-record {
+    text-align: left;
     color: var(--admin-text);
     opacity: 0.9;
 }
