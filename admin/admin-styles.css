@@ -3574,115 +3574,8 @@ footer a:hover {
 }
 
 /* ====================================================================== */
-/* COMMON S9 COMPONENTS (RKL-S9, Schedule, Compare, etc.)                */
+/* COMMON S9 COMPONENTS (Schedule, Compare, etc.)                        */
 /* ====================================================================== */
-
-/* Season Info & Quick Nav (RKL-S9.html) */
-.season-info {
-    background: var(--admin-surface);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
-}
-
-.season-info p {
-    color: var(--admin-text);
-    line-height: 1.8;
-}
-
-.quick-nav {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.standings-preview,
-.recent-games {
-    background: var(--admin-surface);
-    border: 1px solid var(--admin-border);
-    border-radius: 14px;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
-    overflow: hidden;
-}
-
-.standings-header,
-.games-header {
-    background: linear-gradient(135deg, var(--admin-text), #111d35);
-    color: white;
-    padding: 1rem;
-    text-align: center;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.standings-header h3,
-.games-header h3 {
-    color: white;
-    margin: 0;
-    font-size: 1.4rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-}
-
-.games-header-left {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.header-icon-btn {
-    background: transparent;
-    border: none;
-    color: white;
-    cursor: pointer;
-    padding: 0.5rem;
-    border-radius: 8px;
-    transition: background-color 0.2s ease;
-}
-
-.header-icon-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.conference-standings {
-    padding: 1.5rem;
-}
-
-.conference-title {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--admin-text);
-    margin: 1.5rem 0 1rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--admin-border);
-}
-
-.conference-title:first-child {
-    margin-top: 0;
-}
-
-.games-list {
-    padding: 0;
-}
-
-.view-full {
-    text-align: center;
-    padding: 1rem;
-    border-top: 1px solid var(--admin-border);
-}
-
-.view-full a {
-    color: #2563eb;
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.2s ease;
-}
-
-.view-full a:hover {
-    color: #1d4ed8;
-}
 
 /* Schedule Page Components */
 .week-selector {
@@ -4193,20 +4086,11 @@ footer a:hover {
 }
 
 /* Dark mode - Common S9 Components */
-.dark-mode .season-info,
-.dark-mode .standings-preview,
-.dark-mode .recent-games,
 .dark-mode .week-selector,
 .dark-mode .games-container,
 .dark-mode .filter-container {
     background: linear-gradient(135deg, #1a1f2e, #1e2433);
     border-color: #2d3748;
-}
-
-.dark-mode .standings-header,
-.dark-mode .games-header {
-    background: linear-gradient(135deg, #111827, #1b2435);
-    border-bottom: 1px solid #243047;
 }
 
 .dark-mode .week-standouts-section {
@@ -4351,16 +4235,6 @@ footer a:hover {
         padding: 1rem 0;
     }
 
-    .quick-nav {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* Desktop - Extend score bars on RKL-S9.html */
-@media (min-width: 769px) {
-    .games-list .team {
-        grid-template-columns: 48px 70px 20px 1fr 45px;
-    }
 }
 
 /* ======================================= */
