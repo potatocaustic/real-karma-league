@@ -1051,6 +1051,27 @@ main {
     color: #1d4ed8;
 }
 
+/* Header/Nav bar - Light theme */
+[data-style-rollout="modern"] header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+    border-bottom: 1px solid #1f2937;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+}
+
+/* Footer - Light theme */
+[data-style-rollout="modern"] footer {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border-top: 1px solid #e5e7eb;
+}
+
+[data-style-rollout="modern"] footer a {
+    color: #2563eb;
+}
+
+[data-style-rollout="modern"] footer a:hover {
+    color: #1d4ed8;
+}
+
 /* Dark mode modern overrides */
 [data-style-rollout="modern"].dark-mode .season-info,
 [data-style-rollout="modern"].dark-mode .standings-preview,
@@ -1091,4 +1112,38 @@ main {
 
 [data-style-rollout="modern"].dark-mode .view-full a:hover {
     color: #93c5fd;
+}
+
+/* Footer - Dark theme */
+[data-style-rollout="modern"].dark-mode footer {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-top: 1px solid #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode footer a {
+    color: #60a5fa;
+}
+
+[data-style-rollout="modern"].dark-mode footer a:hover {
+    color: #93c5fd;
+}
+
+/* Daily Leaderboard - Dark theme */
+[data-style-rollout="modern"].dark-mode #daily-leaderboard-view {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+}
+
+[data-style-rollout="modern"].dark-mode .leaderboard-stat {
+    background: linear-gradient(145deg, #0f1419, #111827);
+    border: 1px solid #2d3a50;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+[data-style-rollout="modern"].dark-mode .leaderboard-stat:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+[data-style-rollout="modern"].dark-mode .leaderboard-section h4 {
+    color: #60a5fa;
+    border-bottom-color: #2d3748;
 }
