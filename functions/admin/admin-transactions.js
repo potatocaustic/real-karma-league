@@ -9,7 +9,7 @@ const { getCollectionName, getLeagueFromRequest } = require('../utils/firebase-h
  * Processes a transaction, checking if any involved players are in live games.
  * If players are in live games, the transaction is held in pending status until the games complete.
  * Otherwise, the transaction is processed immediately.
- * Admin-only function.
+ * Requires admin or commissioner role for the specific league.
  */
 exports.admin_processTransaction = onCall({ region: "us-central1" }, async (request) => {
     const league = getLeagueFromRequest(request.data);
@@ -17,8 +17,9 @@ exports.admin_processTransaction = onCall({ region: "us-central1" }, async (requ
         throw new HttpsError('unauthenticated', 'The function must be called while authenticated.');
     }
     const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new HttpsError('permission-denied', 'Must be an admin to process transactions.');
+    const roleField = `role_${league}`;
+    if (!userDoc.exists || !(userDoc.data().role === 'admin' || userDoc.data()[roleField] === 'commish')) {
+        throw new HttpsError('permission-denied', 'Must be an admin or commissioner to process transactions.');
     }
 
     const transactionData = request.data;
