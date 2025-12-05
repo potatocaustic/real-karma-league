@@ -218,22 +218,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const data = await callGetReportData('deadline', { date: firestoreDate });
 
         if (data && data.games && data.games.length > 0) {
-            const dashes = '—'.repeat(12);
-            // 1b & 1c: Check for seeds and format accordingly
-            const gameLines = data.games.map(g => {
-                const team1Name = g.team1_seed ? `(${g.team1_seed}) ${g.team1_name}` : g.team1_name;
-                const team2Name = g.team2_seed ? `(${g.team2_seed}) ${g.team2_name}` : g.team2_name;
-                return `${team1Name} vs ${team2Name}`;
-            }).join('\n');
-
-            // 1a: Update final verbiage and link
             const league = getCurrentLeague();
-            const recipient = league === 'minor' ? '@det' : 'me';
-            const finalVerbiage = `Submit your lineup to ${recipient} OR through the website by ${timeInput} https://www.realkarmaleague.com/gm/dashboard.html?league=${league}`;
 
-            // Add the colored dot before the day name
-            const output = `${colorDot} ${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\n${finalVerbiage}`;
-            displayReport(output, { reportType: 'deadline' });
+            // Different format for minor league
+            if (league === 'minor') {
+                const shortDate = `${date.getMonth() + 1}/${String(date.getDate()).padStart(2, '0')}`;
+                const gameLines = data.games.map(g => {
+                    const team1Name = g.team1_seed ? `(${g.team1_seed}) ${g.team1_name}` : g.team1_name;
+                    const team2Name = g.team2_seed ? `(${g.team2_seed}) ${g.team2_name}` : g.team2_name;
+                    return `${team1Name} vs ${team2Name}`;
+                }).join('\n');
+
+                const finalVerbiage = `Send to @det OR through the website https://www.realapp.com/qKcQFNorFQpP/176490926346400001 by ${timeInput}`;
+                const output = `${shortDate} games\n-\n${gameLines}\n-\n${finalVerbiage}`;
+                displayReport(output, { reportType: 'deadline' });
+            } else {
+                // Original format for major league
+                const dashes = '—'.repeat(12);
+                const gameLines = data.games.map(g => {
+                    const team1Name = g.team1_seed ? `(${g.team1_seed}) ${g.team1_name}` : g.team1_name;
+                    const team2Name = g.team2_seed ? `(${g.team2_seed}) ${g.team2_name}` : g.team2_name;
+                    return `${team1Name} vs ${team2Name}`;
+                }).join('\n');
+
+                const recipient = 'me';
+                const finalVerbiage = `Submit your lineup to ${recipient} OR through the website by ${timeInput} https://www.realkarmaleague.com/gm/dashboard.html?league=${league}`;
+
+                // Add the colored dot before the day name
+                const output = `${colorDot} ${formattedDate}\n${dashes}\n${gameLines}\n${dashes}\n${finalVerbiage}`;
+                displayReport(output, { reportType: 'deadline' });
+            }
         } else {
              displayReport(`${colorDot} No games found for ${formattedDate}.`, { reportType: 'deadline' });
         }
@@ -373,11 +387,12 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Please select a Game of the Day.");
             return;
         }
-        
+
         const gotdId = isNoGotd ? null : selectedGame.dataset.gameId;
         const today = new Date();
         const formattedDate = `${today.getMonth() + 1}/${today.getDate()}`;
-        
+        const league = getCurrentLeague();
+
         const reportContainer = document.createDocumentFragment();
         const headerTitle = `Lineups ${formattedDate}`;
         const header = buildReportHeader(headerTitle, {
@@ -435,17 +450,36 @@ document.addEventListener('DOMContentLoaded', () => {
             // 2b: Check for postseason game and format accordingly
             if (game.collectionName === getCollectionName('post_games')) {
                 const seriesLabel = getPostseasonGameLabel(game.series_name);
-                const separator = '~'.repeat(14);
                 const team1Record = `(${game.team1_wins || 0}-${game.team2_wins || 0})`;
                 const team2Record = `(${game.team2_wins || 0}-${game.team1_wins || 0})`;
-                gameBlockText = `${seriesLabel}\n${separator}\n(${game.team1_seed}) ${team1Name} ${team1Record}\n ${team1Lineup}\n---------- \nvs.\n---------- \n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
+
+                if (league === 'minor') {
+                    // Minor league: no special characters
+                    gameBlockText = `${seriesLabel}\n(${game.team1_seed}) ${team1Name} ${team1Record}\n ${team1Lineup}\nvs.\n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
+                } else {
+                    // Major league: keep original format
+                    const separator = '~'.repeat(14);
+                    gameBlockText = `${seriesLabel}\n${separator}\n(${game.team1_seed}) ${team1Name} ${team1Record}\n ${team1Lineup}\n---------- \nvs.\n---------- \n(${game.team2_seed}) ${team2Name} ${team2Record}\n ${team2Lineup}`;
+                }
             } else {
-                gameBlockText = `${team1Name} (${game.team1_record})\n ${team1Lineup}\n---------- \nvs.\n----------\n${team2Name} (${game.team2_record})\n ${team2Lineup}`;
+                if (league === 'minor') {
+                    // Minor league: no dashes
+                    gameBlockText = `${team1Name} (${game.team1_record})\n ${team1Lineup}\nvs.\n${team2Name} (${game.team2_record})\n ${team2Lineup}`;
+                } else {
+                    // Major league: keep original format
+                    gameBlockText = `${team1Name} (${game.team1_record})\n ${team1Lineup}\n---------- \nvs.\n----------\n${team2Name} (${game.team2_record})\n ${team2Lineup}`;
+                }
             }
 
             // If this is the GOTD, prepend the GOTD header
             if (isGotd) {
-                gameBlockText = `💠GOTD ${formattedDate}💠\n~~~~~~~~~~~~\n${gameBlockText}`;
+                if (league === 'minor') {
+                    // Minor league: no special characters
+                    gameBlockText = `GOTD ${formattedDate}\n${gameBlockText}`;
+                } else {
+                    // Major league: keep original format
+                    gameBlockText = `💠GOTD ${formattedDate}💠\n~~~~~~~~~~~~\n${gameBlockText}`;
+                }
             }
 
             const gameContainer = document.createElement('div');
