@@ -37,14 +37,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializePage(userId) {
     try {
-        const teamsQuery = query(collection(db, collectionNames.teams), where("gm_uid", "==", userId), limit(1));
-        const teamSnap = await getDocs(teamsQuery);
+        // Get user data to check if admin
+        const userRef = doc(db, collectionNames.users, userId);
+        const userDoc = await getDoc(userRef);
 
-        if (teamSnap.empty) {
-            loadingContainer.innerHTML = '<div class="error">You are not registered as a GM for any team.</div>';
+        if (!userDoc.exists()) {
+            loadingContainer.innerHTML = '<div class="error">User not found.</div>';
             return;
         }
-        myTeamId = teamSnap.docs[0].id;
+
+        const userData = userDoc.data();
+        const isAdmin = userData.role === 'admin';
+        const currentLeague = getCurrentLeague();
+
+        // Get team ID based on role
+        if (isAdmin) {
+            // For admins, get team from user document
+            const teamIdField = currentLeague === 'minor' ? 'minor_team_id' : 'major_team_id';
+            myTeamId = userData[teamIdField] || (currentLeague === 'major' ? userData.team_id : null);
+
+            if (!myTeamId) {
+                loadingContainer.innerHTML = '<div class="error">No team assigned for this league.</div>';
+                return;
+            }
+        } else {
+            // For GMs, verify they own a team
+            const teamsQuery = query(collection(db, collectionNames.teams), where("gm_uid", "==", userId), limit(1));
+            const teamSnap = await getDocs(teamsQuery);
+
+            if (teamSnap.empty) {
+                loadingContainer.innerHTML = '<div class="error">You are not registered as a GM for any team.</div>';
+                return;
+            }
+            myTeamId = teamSnap.docs[0].id;
+        }
 
         const seasonsQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
         const seasonSnap = await getDocs(seasonsQuery);
