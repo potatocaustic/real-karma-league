@@ -303,7 +303,16 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     modal.style.display = 'block';
     modalTitle.textContent = `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(normalizedDate)}`;
     modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
-    
+
+    // Track modal open event
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'modal_open', {
+            event_category: 'Game Modal',
+            event_label: `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(normalizedDate)}`,
+            game_date: gameDate
+        });
+    }
+
     try {
         const q = query(
             collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, 'post_lineups'), // Query post_lineups
@@ -358,11 +367,29 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     } catch(error) {
         console.error("Error fetching game details:", error);
         modalContentEl.innerHTML = `<div class="error">Could not load game details.</div>`;
+
+        // Track modal error event
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'modal_error', {
+                event_category: 'Game Modal',
+                event_label: `Error loading game for ${team1_id} vs ${team2_id}`,
+                game_date: gameDate,
+                error_message: error.message
+            });
+        }
     }
 }
 
 function closeGameModal() {
     document.getElementById('game-modal').style.display = 'none';
+
+    // Track modal close event
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'modal_close', {
+            event_category: 'Game Modal',
+            event_label: 'User closed modal'
+        });
+    }
 }
 
 function handleRosterSort(column) {

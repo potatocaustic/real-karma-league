@@ -508,11 +508,29 @@ function toggleGameFlowChart() {
         contentArea.style.display = 'block';
         chartArea.style.display = 'none';
         chartBtn.classList.remove('active');
+
+        // Track switch to traditional view
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'toggle_view', {
+                event_category: 'Game Modal',
+                event_label: 'Switched to traditional view',
+                view_type: 'traditional'
+            });
+        }
     } else {
         // Switch to chart view
         contentArea.style.display = 'none';
         chartArea.style.display = 'block';
         chartBtn.classList.add('active');
+
+        // Track switch to chart view
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'toggle_view', {
+                event_category: 'Game Modal',
+                event_label: 'Switched to chart view',
+                view_type: 'chart'
+            });
+        }
     }
 }
 
@@ -816,6 +834,16 @@ function addChartControls(snapshots, team1, team2, colors) {
 
 function toggleChartType() {
     currentChartType = currentChartType === 'cumulative' ? 'differential' : 'cumulative';
+
+    // Track chart type switch
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'chart_type_switch', {
+            event_category: 'Game Modal',
+            event_label: `Switched to ${currentChartType} view`,
+            chart_type: currentChartType
+        });
+    }
+
     if (currentGameFlowData && currentTeam1 && currentTeam2) {
         renderGameFlowChart(currentGameFlowData, currentTeam1, currentTeam2);
     }
@@ -1071,7 +1099,16 @@ async function showGameDetails(gameId) {
     modal.style.display = 'block';
     modalTitle.textContent = 'Game Details';
     modalContentArea.innerHTML = '<div class="loading">Loading game details...</div>';
-    
+
+    // Track modal open event
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'modal_open', {
+            event_category: 'Game Modal',
+            event_label: `Game ID: ${gameId}`,
+            game_id: gameId
+        });
+    }
+
     try {
         const game = allGamesData.get(gameId);
         if (!game) throw new Error("Game data not found.");
@@ -1139,6 +1176,16 @@ async function showGameDetails(gameId) {
     } catch (error) {
         console.error("Error showing game details:", error);
         modalContentArea.innerHTML = '<div class="error">Could not load game details.</div>';
+
+        // Track modal error event
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'modal_error', {
+                event_category: 'Game Modal',
+                event_label: `Error loading game ${gameId}`,
+                game_id: gameId,
+                error_message: error.message
+            });
+        }
     }
 }
 
@@ -1146,6 +1193,14 @@ function closeModal() {
     const modal = document.getElementById('game-modal');
     if (modal) {
         modal.style.display = 'none';
+
+        // Track modal close event
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'modal_close', {
+                event_category: 'Game Modal',
+                event_label: 'User closed modal'
+            });
+        }
     }
 
     // Clean up chart
