@@ -276,7 +276,16 @@ async function showGameDetails(gameId) {
     modal.style.display = 'block';
     modalTitle.textContent = 'Game Details';
     modalContentArea.innerHTML = '<div class="loading">Loading game details...</div>';
-    
+
+    // Track modal open event
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'modal_open', {
+            event_category: 'Game Modal',
+            event_label: `Game ID: ${gameId}`,
+            game_id: gameId
+        });
+    }
+
     try {
         const game = allGamesData.get(gameId);
         if (!game) throw new Error("Game data not found.");
@@ -313,6 +322,16 @@ async function showGameDetails(gameId) {
     } catch (error) {
         console.error("Error showing game details:", error);
         modalContentArea.innerHTML = '<div class="error">Could not load game details.</div>';
+
+        // Track modal error event
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'modal_error', {
+                event_category: 'Game Modal',
+                event_label: `Error loading game ${gameId}`,
+                game_id: gameId,
+                error_message: error.message
+            });
+        }
     }
 }
 
@@ -322,7 +341,16 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', (event) => {
         const modal = document.getElementById('game-modal');
         if (event.target.matches('#close-modal-btn') || event.target === modal) {
-            if(modal) modal.style.display = 'none';
+            if(modal) {
+                modal.style.display = 'none';
+                // Track modal close event
+                if (typeof gtag !== 'undefined') {
+                    gtag('event', 'modal_close', {
+                        event_category: 'Game Modal',
+                        event_label: 'User closed modal'
+                    });
+                }
+            }
         }
         const clickableRow = event.target.closest('.clickable-row, .game-item');
         if (clickableRow && clickableRow.dataset.gameid) {

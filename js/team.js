@@ -553,11 +553,29 @@ function toggleGameFlowChart() {
         contentArea.style.display = 'block';
         chartArea.style.display = 'none';
         chartBtn.classList.remove('active');
+
+        // Track switch to traditional view
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'toggle_view', {
+                event_category: 'Game Modal',
+                event_label: 'Switched to traditional view',
+                view_type: 'traditional'
+            });
+        }
     } else {
         // Switch to chart view
         contentArea.style.display = 'none';
         chartArea.style.display = 'block';
         chartBtn.classList.add('active');
+
+        // Track switch to chart view
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'toggle_view', {
+                event_category: 'Game Modal',
+                event_label: 'Switched to chart view',
+                view_type: 'chart'
+            });
+        }
     }
 }
 
@@ -861,6 +879,16 @@ function addChartControls(snapshots, team1, team2, colors) {
 
 function toggleChartType() {
     currentChartType = currentChartType === 'cumulative' ? 'differential' : 'cumulative';
+
+    // Track chart type switch
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'chart_type_switch', {
+            event_category: 'Game Modal',
+            event_label: `Switched to ${currentChartType} view`,
+            chart_type: currentChartType
+        });
+    }
+
     if (currentGameFlowData && currentTeam1 && currentTeam2) {
         renderGameFlowChart(currentGameFlowData, currentTeam1, currentTeam2);
     }
@@ -1109,7 +1137,16 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     modal.style.display = 'block';
     modalTitle.textContent = `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(normalizedDate)}`;
     modalContentEl.innerHTML = '<div class="loading">Loading game details...</div>';
-    
+
+    // Track modal open event
+    if (typeof gtag !== 'undefined') {
+        gtag('event', 'modal_open', {
+            event_category: 'Game Modal',
+            event_label: `${getTeamName(team1_id)} vs ${getTeamName(team2_id)} - ${formatDateShort(normalizedDate)}`,
+            game_date: gameDate
+        });
+    }
+
     try {
         const q = query(
             collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, "lineups"),
@@ -1185,6 +1222,16 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
     } catch(error) {
         console.error("Error fetching game details:", error);
         modalContentEl.innerHTML = `<div class="error">Could not load game details.</div>`;
+
+        // Track modal error event
+        if (typeof gtag !== 'undefined') {
+            gtag('event', 'modal_error', {
+                event_category: 'Game Modal',
+                event_label: `Error loading game for ${team1_id} vs ${team2_id}`,
+                game_date: gameDate,
+                error_message: error.message
+            });
+        }
     }
 }
 
