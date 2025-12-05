@@ -24,8 +24,9 @@ exports.setLineupDeadline = onCall({ region: "us-central1" }, async (request) =>
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
     const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    const roleField = `role_${league}`;
+    if (!userDoc.exists || !(userDoc.data().role === 'admin' || userDoc.data()[roleField] === 'commish')) {
+        throw new HttpsError('permission-denied', 'Must be an admin or commissioner to set deadline.');
     }
 
     const { date, time, timeZone } = request.data;
@@ -107,8 +108,9 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
     const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    const roleField = `role_${league}`;
+    if (!userDoc.exists || !(userDoc.data().role === 'admin' || userDoc.data()[roleField] === 'commish')) {
+        throw new HttpsError('permission-denied', 'Must be an admin or commissioner to run this function.');
     }
 
     const projectId = process.env.GCLOUD_PROJECT;
@@ -171,13 +173,14 @@ exports.getScheduledJobTimes = onCall({ region: "us-central1" }, async (request)
  */
 exports.updateScheduledJobTimes = onCall({ region: "us-central1" }, async (request) => {
     const league = getLeagueFromRequest(request.data);
-    // 1. Security: Ensure the user is an admin
+    // 1. Security: Ensure the user is an admin or commissioner
     if (!request.auth) {
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
     const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    const roleField = `role_${league}`;
+    if (!userDoc.exists || !(userDoc.data().role === 'admin' || userDoc.data()[roleField] === 'commish')) {
+        throw new HttpsError('permission-denied', 'Must be an admin or commissioner to run this function.');
     }
 
     // 2. Get and validate the times from the frontend
