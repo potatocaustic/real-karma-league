@@ -13,6 +13,17 @@
       "firestore.rules",
       "functions/",
       "**/node_modules/**"
+    ],
+    "headers": [
+      {
+        "source": "/icons/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400, immutable"
+          }
+        ]
+      }
     ]
   }
 }
