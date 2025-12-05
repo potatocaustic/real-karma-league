@@ -44,16 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const userData = userDoc.data();
-
-        // Check if admin
-        if (userData.role === 'admin') {
-            loadingContainer.innerHTML = `
-                <div class="error" style="text-align: center;">
-                    Welcome, Admin. <br/>
-                    <a href="/admin/dashboard.html?league=${currentLeague}">Proceed to Admin Dashboard</a>
-                </div>`;
-            return;
-        }
+        const isAdmin = userData.role === 'admin';
 
         // Check for team in current league
         const teamIdField = currentLeague === 'minor' ? 'minor_team_id' : 'major_team_id';
@@ -81,15 +72,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Verify team exists in current league
-        const teamsQuery = query(
-            collection(db, collectionNames.teams),
-            where("gm_uid", "==", user.uid),
-            limit(1)
-        );
-        const teamSnap = await getDocs(teamsQuery);
+        // Admins can access any team they have assigned, GMs must own the team
+        let teamExists = false;
 
-        if (!teamSnap.empty) {
-            const teamData = teamSnap.docs[0].data();
+        if (isAdmin) {
+            // For admins, just verify the team exists
+            const teamRef = doc(db, collectionNames.teams, teamId);
+            const teamDoc = await getDoc(teamRef);
+            teamExists = teamDoc.exists();
+        } else {
+            // For GMs, verify they own the team
+            const teamsQuery = query(
+                collection(db, collectionNames.teams),
+                where("gm_uid", "==", user.uid),
+                limit(1)
+            );
+            const teamSnap = await getDocs(teamsQuery);
+            teamExists = !teamSnap.empty;
+        }
+
+        if (teamExists) {
             const leagueLabel = currentLeague === 'minor' ? 'Minor League' : 'Major League';
             document.getElementById('welcome-message').textContent =
                 `Welcome to the ${leagueLabel} GM Portal! Select a management task below.`;
