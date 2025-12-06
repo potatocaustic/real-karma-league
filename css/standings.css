@@ -385,9 +385,9 @@
   #conferenceViewContainer .standings-table thead th:nth-child(2),
   #fullLeagueViewContainer .standings-table thead th:nth-child(2) { width: 42%; }
   #conferenceViewContainer .standings-table thead th:nth-child(3),
-  #fullLeagueViewContainer .standings-table thead th:nth-child(3) { width: 20%; }
+  #fullLeagueViewContainer .standings-table thead th:nth-child(3) { width: 17%; }
   #conferenceViewContainer .standings-table thead th:nth-child(4),
-  #fullLeagueViewContainer .standings-table thead th:nth-child(4) { width: 18%; }
+  #fullLeagueViewContainer .standings-table thead th:nth-child(4) { width: 21%; }
   #eastern-standings td:nth-child(1),
   #western-standings td:nth-child(1),
   #full-league-standings td:nth-child(1) { width: 20%; }
@@ -396,10 +396,10 @@
   #full-league-standings td:nth-child(2) { width: 42%; }
   #eastern-standings td:nth-child(3),
   #western-standings td:nth-child(3),
-  #full-league-standings td:nth-child(3) { width: 20%; }
+  #full-league-standings td:nth-child(3) { width: 17%; }
   #eastern-standings td:nth-child(4),
   #western-standings td:nth-child(4),
-  #full-league-standings td:nth-child(4) { width: 18%; }
+  #full-league-standings td:nth-child(4) { width: 21%; }
 
   #powerRankingsViewContainer .standings-table th:nth-child(1),
   #powerRankingsViewContainer .standings-table td:nth-child(1) { width: 15%; }
