@@ -418,6 +418,10 @@
     min-width: 0;
   }
 
+  .power-rankings-summary {
+    font-size: 0.75em;
+  }
+
   #powerRankingsViewContainer .conference-header h3 {
     font-size: 1.1rem;
   }
