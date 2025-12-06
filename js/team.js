@@ -340,21 +340,39 @@ function loadDraftCapital() {
         return acc;
     }, {});
 
+    // Check if modern style rollout is enabled
+    const isModernStyle = document.documentElement.getAttribute('data-style-rollout') === 'modern';
+
     const seasonsHTML = Object.keys(picksBySeason).sort((a,b) => a-b).map(season => {
         const picks = picksBySeason[season];
         const picksHTML = picks.map(pick => generatePickItemHTML(pick)).join('');
-        const seasonColor = getSeasonColor(parseInt(season));
-        const seasonTextColor = getContrastingTextColor(seasonColor);
-        const badgeBackground = seasonTextColor === '#0f172a' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
+
+        // Only apply legacy color styles if not using modern theme
+        let headerStyles, badgeStyles, picksStyles;
+        if (isModernStyle) {
+            // Let CSS handle all styling in modern mode
+            headerStyles = 'padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;';
+            badgeStyles = 'padding: 0.3rem 0.6rem; border-radius: 12px;';
+            picksStyles = 'border-top: none; border-radius: 0 0 6px 6px;';
+        } else {
+            // Apply legacy inline color styles
+            const seasonColor = getSeasonColor(parseInt(season));
+            const seasonTextColor = getContrastingTextColor(seasonColor);
+            const badgeBackground = seasonTextColor === '#0f172a' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
+
+            headerStyles = `background-color: ${seasonColor}; color: ${seasonTextColor}; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;`;
+            badgeStyles = `background-color: ${badgeBackground}; padding: 0.3rem 0.6rem; border-radius: 12px;`;
+            picksStyles = `border: 1px solid ${seasonColor}; border-top: none; border-radius: 0 0 6px 6px;`;
+        }
 
         return `<div class="season-group" style="margin-bottom: 1.5rem;">
-            <div class="season-header" style="background-color: ${seasonColor}; color: ${seasonTextColor}; padding: 1rem; border-radius: 6px 6px 0 0; font-weight: bold; display: flex; justify-content: space-between; align-items: center;">
+            <div class="season-header" style="${headerStyles}">
                 <span>Season ${season} Draft</span>
-                <span class="season-pick-count-badge" style="background-color: ${badgeBackground}; padding: 0.3rem 0.6rem; border-radius: 12px;">
+                <span class="season-pick-count-badge" style="${badgeStyles}">
                     ${picks.length} pick${picks.length !== 1 ? "s" : ""}
                 </span>
             </div>
-            <div class="season-picks" style="border: 1px solid ${seasonColor}; border-top: none; border-radius: 0 0 6px 6px;">${picksHTML}</div>
+            <div class="season-picks" style="${picksStyles}">${picksHTML}</div>
         </div>`;
     }).join('');
     
