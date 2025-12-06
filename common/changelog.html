@@ -116,6 +116,443 @@
             <p>Recent updates and improvements to the RKL website.</p>
         </div>
         <div class="changelog-entry">
+            <h3>December 6, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Transactions deep links:</strong> Loading transactions from a team profile now applies the team, week, and type filters straight from the URL parameters so the list opens pre-filtered.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>League-aware refresh:</strong> Switching between major and minor leagues automatically reloads the draft lottery and transactions pages, clearing cached pagination data for a clean view.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Draft lottery accuracy:</strong> Conference lookups and draft pick queries now respect league-specific data types so minor league draft ownership displays correctly.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>December 1, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Seeding script stability:</strong> Resolved duplicate Firebase app initialization in the seed workflow to keep scripts from crashing on startup.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Game detail modals:</strong> Minor league games once again populate in admin modals, and the admin navigation dropdown styling has been refreshed for clarity.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Manage games controls:</strong> Adjusted control layout and interactions in admin tools to make scorekeeping actions more reliable.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>November 24, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Minor league draft setup:</strong> Added compensatory round configuration and resiliency checks so the minor league draft mirrors major league flexibility.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Draft admin UX:</strong> Introduced dark theme support and cached configuration loading to speed up draft configuration screens.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Draft submission hygiene:</strong> Cleanup scripts and row-count fixes ensure compensatory picks and uploaded data are counted accurately, plus a round-calculation bug now counts non-comp picks correctly.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>November 17, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Game flow charts:</strong> Schedule modals now include toggles to show play-by-play flow charts alongside box scores.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Standings and rosters:</strong> Team standings sort correctly again, and GM tools now manage player handles and rosters consistently with the admin experience.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Admin/GM sync:</strong> Player handle changes propagate between GM and admin views to keep roster data aligned.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>November 10, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Postseason dashboards:</strong> Player, team, and leaderboard postseason pages received refreshed layouts and data wiring for the latest playoffs.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Live coverage page:</strong> A dedicated live.html for 2v2 action now matches site styling and provides a consistent real-time experience.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Postseason polish:</strong> Additional formatting tweaks bring the postseason pages in line with the main site’s visual system.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>November 6, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Season 9 rollout:</strong> Updated site-wide references from Season 8 to Season 9 and added navigation links to previous seasons for easier jumping between eras.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Season duplication guardrails:</strong> Safeguards prevent accidental season duplication while refreshing the RKL-S8 data set.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Manual scoring:</strong> Addressed manual score entry issues to keep late-season stat corrections accurate.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>October 15, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Draft lottery tools:</strong> Updated manage-lottery and postseason leaderboard logic to better handle bracket updates and lottery simulations.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Postseason data integrity:</strong> Bracket logic and Firestore rules were tightened to keep playoff results in sync across views.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Reporting updates:</strong> Admin reporting tools now reflect postseason stat corrections and leaderboard tweaks more reliably.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>October 10, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Playoff bracket bug:</strong> Patched an issue that kept bracket updates from displaying correctly during the playoffs.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>UI polish:</strong> Cleaned up lingering test controls and refreshed mobile button layout on playoff and trophy pages.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Trophy case styling:</strong> Adjusted typography and spacing for a more consistent hall-of-fame presentation.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>September 29, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Draft prospects resiliency:</strong> Prospect data now survives reloads and intermittent network hiccups, reducing admin rework.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>GM lineup tooling:</strong> Added lineup submission scaffolding for GMs, including timezone handling fixes to avoid late submissions.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Reports cleanup:</strong> Admin report management received usability updates following the draft and schedule changes.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>September 22, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Stats hub refresh:</strong> Updated glossary and leaderboard pages with clarified definitions and links for the latest metrics.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Stat corrections:</strong> Added tooling to apply stat fixes and async lineup submissions without blocking other admin tasks.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Import safeguards:</strong> Added import limits and manage-games updates to prevent accidental duplicate data during corrections.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>September 15, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Awards admin:</strong> Manage-awards tools were expanded with new controls for postseason recognition.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Game management:</strong> Live scoring, admin modals, and game updates received multiple fixes for reliability during all-star events.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>All-star scoring:</strong> Addressed live scoring discrepancies to keep special event stats accurate.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>September 9, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Draft results:</strong> Draft results scripts now pull the correct player IDs and present cleaner verbiage throughout the page.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Leaderboards refresh:</strong> Leaderboard calculations and presentation were tightened to keep rankings accurate during early season shifts.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Data sourcing:</strong> Corrected player ID sourcing in draft utilities to prevent mismatched selections.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>September 6, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Reports module:</strong> Added lineup reporting tools with custom team emoji support for richer submissions.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Branding:</strong> Updated site logos and emojis across reports and lineups to match new team assets.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Report handling:</strong> Follow-up fixes ensure report functions execute without runtime errors.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>August 30, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Scorekeeper tools:</strong> Added scorekeeper functionality and admin dashboard controls to streamline in-game updates.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Homepage reliability:</strong> Fixed multiple index page regressions to keep schedules and headlines loading correctly.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Admin workflow:</strong> Adjusted file paths and dashboard behaviors to reduce errors during late-season updates.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>August 18, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Player retirements:</strong> Added retirement tracking and surfaced updates across player profiles.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Transactions experience:</strong> Transactions pages received layout and filtering updates for easier browsing.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Player pages:</strong> Enhanced player detail pages with additional data points and cleaner presentation.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>August 11, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Schedule loading:</strong> Schedule scripts were optimized and de-duplicated to lower load times.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Week detection:</strong> Corrected current-week detection to keep scoreboard data aligned with the calendar.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Postseason karma totals:</strong> Fixed postseason karma calculations so totals reflect all rounds accurately.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>August 5, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Scoring engine:</strong> Refactored score updates and Firestore queries to reduce load and speed up results.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Auto-finalization:</strong> Added automated game finalization to cut down on manual closing tasks.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-fixed">Fixed</span>
+                    <div class="change-description">
+                        <strong>Query stability:</strong> Multiple debug passes resolved failing score queries to keep live updates flowing.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>August 3, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Worker links:</strong> Updated worker URLs and environment toggles to keep deployments pointing at the correct data sources.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Environment switch:</strong> Simplified switching between live and test environments for faster debugging.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-new">New</span>
+                    <div class="change-description">
+                        <strong>Admin visibility:</strong> Added a quick ls shell utility entry to aid troubleshooting directly from the dashboard.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
+            <h3>July 22, 2025</h3>
+            <ul>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Draft lottery clarity:</strong> Renamed lottery scripts and refreshed results presentation to match latest drawings.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Trophy case:</strong> Updated trophy case visuals and content for midseason awards.
+                    </div>
+                </li>
+                <li>
+                    <span class="changelog-tag tag-improved">Improved</span>
+                    <div class="change-description">
+                        <strong>Season homepage:</strong> Refreshed homepages with the latest schedule links and graphics.
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="changelog-entry">
             <h3>July 16, 2025</h3>
             <ul>
                 <li>
