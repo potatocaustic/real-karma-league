@@ -102,15 +102,21 @@ async function initializePage() {
                 }
             }
 
-            // For completed games, also manage live scoring controls
-            if (currentGameData?.completed === 'TRUE' && liveScoringControls) {
+            // Always show/hide the live scoring controls container when toggling adjustments
+            if (liveScoringControls) {
                 if (isShowingAdjustments) {
                     liveScoringControls.classList.add('force-visible');
-                    toggleCompletedGameActions(true);
+                    // For completed games, also hide the live action buttons
+                    if (currentGameData?.completed === 'TRUE') {
+                        toggleCompletedGameActions(true);
+                    }
                 } else {
                     liveScoringControls.classList.remove('force-visible');
                     liveScoringControls.style.display = liveScoringDefaultDisplay;
-                    toggleCompletedGameActions(false);
+                    // For completed games, restore the live action buttons
+                    if (currentGameData?.completed === 'TRUE') {
+                        toggleCompletedGameActions(false);
+                    }
                 }
             }
         });
