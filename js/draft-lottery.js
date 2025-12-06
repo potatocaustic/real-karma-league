@@ -227,11 +227,11 @@ async function initializeApp() {
         const conferences = getConferenceNames();
         const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', [conferences.primary, conferences.secondary]));
 
-        // ***** FIX: Query for draft picks using strings for season and round *****
+        // Query for draft picks using numbers for season and round
         const draftPicksQuery = query(
             collection(db, collectionNames.draftPicks),
-            where('season', '==', DRAFT_SEASON_ID.replace('S','')),
-            where('round', '==', '1')
+            where('season', '==', parseInt(DRAFT_SEASON_ID.replace('S',''))),
+            where('round', '==', 1)
         );
 
         const postGamesQuery = collection(db, collectionNames.seasons, PREVIOUS_SEASON_ID, 'post_games');
