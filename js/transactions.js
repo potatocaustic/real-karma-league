@@ -93,6 +93,23 @@ async function loadData() {
             return;
         }
 
+        // Initialize filters from URL parameters
+        if (urlParams.has('teamFilter')) {
+            const teamId = urlParams.get('teamFilter');
+            currentFilters.team = teamId;
+            teamFilterEl.value = teamId;
+        }
+        if (urlParams.has('weekFilter')) {
+            const week = urlParams.get('weekFilter');
+            currentFilters.week = week;
+            weekFilterEl.value = week;
+        }
+        if (urlParams.has('typeFilter')) {
+            const type = urlParams.get('typeFilter');
+            currentFilters.type = type;
+            typeFilterEl.value = type;
+        }
+
         await fetchTransactionsPage({ reset: true });
     } catch (error) {
         console.error("Error loading data:", error);
