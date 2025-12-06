@@ -169,7 +169,18 @@ async function fetchTransactionsPage({ reset = false } = {}) {
     }
 
     if (currentFilters.team !== 'all') {
-        constraints.push(where('involved_teams', 'array-contains', currentFilters.team));
+        const selectedTeam = allTeams.find(team => team.id === currentFilters.team);
+
+        // Transactions store involved_teams as objects ({ id, team_name }), so we need to match the full object
+        if (selectedTeam) {
+            constraints.push(where('involved_teams', 'array-contains', {
+                id: selectedTeam.id,
+                team_name: selectedTeam.team_name || selectedTeam.id
+            }));
+        } else {
+            // Fallback to the raw ID if for some reason the team list isn't loaded
+            constraints.push(where('involved_teams', 'array-contains', currentFilters.team));
+        }
     }
 
     if (lastTransactionDoc) {
