@@ -168,8 +168,9 @@ async function fetchTransactionsPage({ reset = false } = {}) {
         constraints.push(where('type', '==', currentFilters.type));
     }
 
-    // Note: Team filtering is done client-side in getFilteredTransactions()
-    // to avoid Firestore composite index requirements with orderBy
+    if (currentFilters.team !== 'all') {
+        constraints.push(where('involved_teams', 'array-contains', currentFilters.team));
+    }
 
     if (lastTransactionDoc) {
         constraints.push(startAfter(lastTransactionDoc));
@@ -290,27 +291,13 @@ function getFilteredTransactions() {
     const urlParams = new URLSearchParams(window.location.search);
     const transactionIdFromUrl = urlParams.get('id');
 
-    // **NEW**: If an ID is in the URL, prioritize it and ignore other filters.
+    // If an ID is in the URL, prioritize it and ignore other filters
     if (transactionIdFromUrl) {
         return allTransactions.filter(transaction => transaction.id === transactionIdFromUrl);
     }
 
-    // Week and type are filtered server-side via Firestore queries
-    // Team filtering is done client-side to avoid composite index requirements
-    let filtered = allTransactions;
-
-    if (currentFilters.team !== 'all') {
-        filtered = filtered.filter(transaction => {
-            // Check if the team is in the involved_teams array
-            return transaction.involved_teams?.some(team => {
-                // Handle both string IDs and object format {id: ..., team_name: ...}
-                const teamId = typeof team === 'string' ? team : team.id;
-                return teamId === currentFilters.team;
-            });
-        });
-    }
-
-    return filtered;
+    // All filtering is done server-side via Firestore queries with composite indexes
+    return allTransactions;
 }
 
 function displayTransactions() {
