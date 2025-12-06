@@ -91,22 +91,26 @@ async function initializePage() {
             const isShowingAdjustments = lineupModal.classList.toggle('show-adjustments');
             adjustmentsToggleBtn.textContent = isShowingAdjustments ? 'Hide adjustments' : 'Adjust scores';
 
+            // Always show/hide the dropdown when toggling adjustments
+            if (actionDropdownMenu && actionDropdownToggle) {
+                if (isShowingAdjustments) {
+                    actionDropdownMenu.removeAttribute('hidden');
+                    actionDropdownToggle.setAttribute('aria-expanded', 'true');
+                } else {
+                    actionDropdownMenu.setAttribute('hidden', '');
+                    actionDropdownToggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+
+            // For completed games, also manage live scoring controls
             if (currentGameData?.completed === 'TRUE' && liveScoringControls) {
                 if (isShowingAdjustments) {
                     liveScoringControls.classList.add('force-visible');
                     toggleCompletedGameActions(true);
-                    if (actionDropdownMenu && actionDropdownToggle) {
-                        actionDropdownMenu.removeAttribute('hidden');
-                        actionDropdownToggle.setAttribute('aria-expanded', 'true');
-                    }
                 } else {
                     liveScoringControls.classList.remove('force-visible');
                     liveScoringControls.style.display = liveScoringDefaultDisplay;
                     toggleCompletedGameActions(false);
-                    if (actionDropdownMenu && actionDropdownToggle) {
-                        actionDropdownMenu.setAttribute('hidden', '');
-                        actionDropdownToggle.setAttribute('aria-expanded', 'false');
-                    }
                 }
             }
         });
