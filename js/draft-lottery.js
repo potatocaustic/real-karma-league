@@ -331,3 +331,9 @@ async function initializeApp() {
 }
 
 initializeApp();
+
+// Listen for league changes and refresh the page content
+window.addEventListener('leagueChanged', () => {
+    console.log('League changed, reinitializing draft lottery page...');
+    initializeApp();
+});
