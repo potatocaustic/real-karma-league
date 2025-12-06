@@ -559,6 +559,15 @@
     color: #0f172a;
 }
 
+[data-style-rollout="modern"] .draft-capital .season-group .season-header .season-pick-count-badge {
+    background-color: rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+}
+
+[data-style-rollout="modern"] .draft-capital .season-group .season-picks {
+    border: 1px solid #e5e7eb;
+}
+
 [data-style-rollout="modern"] .game-item {
     background: linear-gradient(145deg, #ffffff, #f8fafc);
     border-color: #e5e7eb;
@@ -703,6 +712,15 @@
     background: linear-gradient(145deg, #111827, #0f172a);
     border-bottom-color: #2d3748;
     color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .draft-capital .season-group .season-header .season-pick-count-badge {
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #e5e7eb;
+}
+
+[data-style-rollout="modern"].dark-mode .draft-capital .season-group .season-picks {
+    border: 1px solid #2d3748;
 }
 
 [data-style-rollout="modern"].dark-mode .game-item {
