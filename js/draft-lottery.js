@@ -1,7 +1,7 @@
 // /js/draft-lottery.js
 
 import './main.js'; // Import main.js to run it first
-import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName, getConferenceNames } from './firebase-init.js';
+import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName, getConferenceNames, getCurrentLeague } from './firebase-init.js';
 
 // Get season from path (/S8/ or /S9/), URL parameter, or default to S9
 const urlParams = new URLSearchParams(window.location.search);
@@ -227,11 +227,14 @@ async function initializeApp() {
         const conferences = getConferenceNames();
         const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', [conferences.primary, conferences.secondary]));
 
-        // Query for draft picks using numbers for season and round
+        // Query for draft picks - major league uses strings, minor league uses numbers
+        const currentLeague = getCurrentLeague();
+        const seasonValue = currentLeague === 'minor' ? parseInt(DRAFT_SEASON_ID.replace('S','')) : DRAFT_SEASON_ID.replace('S','');
+        const roundValue = currentLeague === 'minor' ? 1 : '1';
         const draftPicksQuery = query(
             collection(db, collectionNames.draftPicks),
-            where('season', '==', parseInt(DRAFT_SEASON_ID.replace('S',''))),
-            where('round', '==', 1)
+            where('season', '==', seasonValue),
+            where('round', '==', roundValue)
         );
 
         const postGamesQuery = collection(db, collectionNames.seasons, PREVIOUS_SEASON_ID, 'post_games');
