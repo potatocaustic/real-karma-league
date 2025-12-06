@@ -354,7 +354,13 @@
 /* MOBILE RESPONSIVE                                                     */
 /* ====================================================================== */
 
+/* Show/hide labels based on screen size */
+.mobile-label { display: none; }
+.full-label { display: inline; }
+
 @media (max-width: 768px) {
+  .mobile-label { display: inline; }
+  .full-label { display: none; }
   .standings-container { grid-template-columns: 1fr; gap: 1.5rem; }
   #fullLeagueViewContainer .conference-section,
   #powerRankingsViewContainer .conference-section { max-width: 100%; }
