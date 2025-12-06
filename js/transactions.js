@@ -513,3 +513,16 @@ function renderTransaction(transaction) {
       </div>
     `;
 }
+
+// Listen for league changes and refresh the page content
+window.addEventListener('leagueChanged', () => {
+    console.log('League changed, reloading transactions page...');
+    // Reset pagination state
+    lastTransactionDoc = null;
+    hasMoreTransactions = true;
+    allTransactions = [];
+    allPlayerStats = {};
+    availableWeeks.clear();
+    // Reload all data
+    loadData();
+});
