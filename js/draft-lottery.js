@@ -1,7 +1,7 @@
 // /js/draft-lottery.js
 
 import './main.js'; // Import main.js to run it first
-import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName } from './firebase-init.js';
+import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName, getConferenceNames } from './firebase-init.js';
 
 // Get season from path (/S8/ or /S9/), URL parameter, or default to S9
 const urlParams = new URLSearchParams(window.location.search);
@@ -224,7 +224,8 @@ async function initializeApp() {
         }
 
         // 2. Fetch all necessary data in parallel
-        const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', ['Eastern', 'Western']));
+        const conferences = getConferenceNames();
+        const teamsQuery = query(collection(db, collectionNames.teams), where('conference', 'in', [conferences.primary, conferences.secondary]));
 
         // ***** FIX: Query for draft picks using strings for season and round *****
         const draftPicksQuery = query(
