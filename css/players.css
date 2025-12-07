@@ -1,0 +1,254 @@
+/* /css/players.css */
+/* Styling for the Players search page */
+
+/* Page Header */
+.page-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.page-header h2 {
+    margin-bottom: 0.5rem;
+    font-size: 2rem;
+    color: var(--text-primary);
+}
+
+.page-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Search Container */
+.search-container {
+    max-width: 600px;
+    margin: 0 auto 2rem;
+}
+
+#player-search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-color);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#player-search-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.dark-mode #player-search-input:focus {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Players Container */
+#players-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Placeholder Text */
+.placeholder-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    padding: 2rem;
+}
+
+/* Loading State */
+.loading {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    padding: 2rem;
+}
+
+/* Error State */
+.error {
+    text-align: center;
+    color: #dc3545;
+    font-size: 1rem;
+    padding: 2rem;
+}
+
+/* Player Card */
+.player-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.player-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .player-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Player Card Main Content */
+.player-card-main {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    gap: 1rem;
+}
+
+/* Player Card Icon */
+.player-card-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+}
+
+.player-card-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+/* Player Card Info */
+.player-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.player-card-handle {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.player-card-team {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Player Card Arrow */
+.player-card-arrow {
+    flex-shrink: 0;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.player-card:hover .player-card-arrow {
+    color: var(--accent-color);
+}
+
+/* Player Dropdown */
+.player-dropdown {
+    border-top: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    background: var(--background-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.player-dropdown a {
+    display: block;
+    padding: 0.75rem 1rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.player-dropdown a:hover {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+    transform: translateX(4px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .page-header p {
+        font-size: 0.875rem;
+    }
+
+    #player-search-input {
+        font-size: 0.875rem;
+        padding: 0.625rem 0.875rem;
+    }
+
+    .player-card-main {
+        padding: 0.875rem;
+        gap: 0.75rem;
+    }
+
+    .player-card-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .player-card-handle {
+        font-size: 1rem;
+    }
+
+    .player-card-team {
+        font-size: 0.8125rem;
+    }
+
+    .player-dropdown {
+        padding: 0.625rem 0.875rem;
+    }
+
+    .player-dropdown a {
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .search-container {
+        margin-bottom: 1.5rem;
+    }
+
+    .player-card-main {
+        padding: 0.75rem;
+        gap: 0.625rem;
+    }
+
+    .player-card-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .player-card-handle {
+        font-size: 0.9375rem;
+    }
+
+    .player-card-team {
+        font-size: 0.75rem;
+    }
+}
