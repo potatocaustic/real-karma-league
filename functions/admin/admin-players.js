@@ -516,7 +516,7 @@ exports.gm_updatePlayerHandle = onCall({ region: "us-central1" }, async (request
 /**
  * Updates player details including handle, team, status, and accolades.
  * Propagates handle changes throughout all historical records.
- * Admin-only function.
+ * Admin and Commissioner function - allows admins and league-specific commissioners.
  */
 exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (request) => {
     const league = getLeagueFromRequest(request.data);
@@ -525,8 +525,17 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
         throw new HttpsError('unauthenticated', 'Authentication required.');
     }
     const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
-    if (!userDoc.exists || userDoc.data().role !== 'admin') {
-        throw new HttpsError('permission-denied', 'Must be an admin to run this function.');
+    if (!userDoc.exists) {
+        throw new HttpsError('permission-denied', 'User document not found.');
+    }
+
+    const userData = userDoc.data();
+    const isAdmin = userData.role === 'admin';
+    const roleField = `role_${league}`;
+    const isCommishForLeague = userData[roleField] === 'commish';
+
+    if (!isAdmin && !isCommishForLeague) {
+        throw new HttpsError('permission-denied', 'Must be an admin or commissioner for this league to run this function.');
     }
 
     const { playerId, newPlayerHandle, newTeamId, newStatus, isRookie, isAllStar, seasonId } = request.data;
