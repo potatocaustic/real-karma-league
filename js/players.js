@@ -186,7 +186,15 @@ function displayPlayers(players) {
 // --- Create Player Card HTML ---
 function createPlayerCard(player) {
     const team = allTeams.get(player.current_team_id);
-    const teamName = team?.team_name || 'Free Agent';
+
+    // Handle retired players
+    let teamName;
+    if (player.player_status === 'RETIRED') {
+        teamName = 'Retired';
+    } else {
+        teamName = team?.team_name || 'Free Agent';
+    }
+
     const teamIconPath = player.current_team_id === 'FREE_AGENT' || !team
         ? '/icons/RKL.webp'
         : `/icons/${team.id}.webp`;
