@@ -35,6 +35,10 @@ async function getActiveSeasonId() {
     return querySnapshot.docs[0].id;
 }
 
+function userMatchesTeam(teamData, userId) {
+    return teamData?.gm_uid === userId || teamData?.co_gm_uid === userId;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (!teamId) {
         formContainer.innerHTML = '<div class="error">No team specified.</div>';
@@ -81,7 +85,8 @@ async function authorizeAndLoadForm(user, teamId) {
         const teamData = teamDoc.data();
         const teamRecordData = teamRecordDoc.exists() ? teamRecordDoc.data() : {};
         const isAdmin = adminDoc.exists() && adminDoc.data().role === 'admin';
-        const hasPermission = isAdmin || teamData.gm_uid === user.uid;
+        const actingUserIsTeamStaff = userMatchesTeam(teamData, user.uid);
+        const hasPermission = isAdmin || actingUserIsTeamStaff;
 
         if (!hasPermission) {
             formContainer.innerHTML = '<div class="error">You do not have permission to edit this trade block.</div>';
@@ -125,7 +130,9 @@ async function authorizeAndLoadForm(user, teamId) {
             return roundA - roundB;
         });
 
-        renderForm(blockData, availablePlayers, availablePicks, teamsMap, teamData.gm_uid);
+        const gmUidForSave = actingUserIsTeamStaff ? user.uid : teamData.gm_uid;
+
+        renderForm(blockData, availablePlayers, availablePicks, teamsMap, gmUidForSave);
 
     } catch (error) {
         console.error("Authorization or loading error:", error);

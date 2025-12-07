@@ -35,6 +35,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+function userMatchesTeam(teamData, userId) {
+    return teamData?.gm_uid === userId || teamData?.co_gm_uid === userId;
+}
+
+async function findTeamByUser(userId) {
+    const gmQuery = query(collection(db, collectionNames.teams), where("gm_uid", "==", userId), limit(1));
+    let teamSnap = await getDocs(gmQuery);
+    if (!teamSnap.empty) return teamSnap.docs[0];
+
+    const coGmQuery = query(collection(db, collectionNames.teams), where("co_gm_uid", "==", userId), limit(1));
+    teamSnap = await getDocs(coGmQuery);
+    return teamSnap.empty ? null : teamSnap.docs[0];
+}
+
 async function initializePage(userId) {
     try {
         // Get user data to check if admin
@@ -61,15 +75,20 @@ async function initializePage(userId) {
                 return;
             }
         } else {
-            // For GMs, verify they own a team
-            const teamsQuery = query(collection(db, collectionNames.teams), where("gm_uid", "==", userId), limit(1));
-            const teamSnap = await getDocs(teamsQuery);
+            // For GMs, verify they own a team (primary GM or co-GM)
+            const teamDoc = await findTeamByUser(userId);
 
-            if (teamSnap.empty) {
+            if (!teamDoc) {
                 loadingContainer.innerHTML = '<div class="error">You are not registered as a GM for any team.</div>';
                 return;
             }
-            myTeamId = teamSnap.docs[0].id;
+
+            if (!userMatchesTeam(teamDoc.data(), userId)) {
+                loadingContainer.innerHTML = '<div class="error">You do not have permission to manage this team.</div>';
+                return;
+            }
+
+            myTeamId = teamDoc.id;
         }
 
         const seasonsQuery = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));

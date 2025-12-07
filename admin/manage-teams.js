@@ -187,6 +187,7 @@ function openTeamModal(team) {
     document.getElementById('team-conference-select').value = team.conference || conferences.primary;
     document.getElementById('team-gm-handle-input').value = team.current_gm_handle || '';
     document.getElementById('team-gm-uid-input').value = team.gm_uid || '';
+    document.getElementById('team-co-gm-uid-input').value = team.co_gm_uid || '';
     // *** MODIFIED LOGIC ***
     document.getElementById('team-gm-player-id-input').value = team.gm_player_id || '';
     document.getElementById('team-color-override-input').value = team.color_override || '#000000';
@@ -213,6 +214,7 @@ async function handleTeamFormSubmit(e) {
         conference: document.getElementById('team-conference-select').value,
         current_gm_handle: document.getElementById('team-gm-handle-input').value,
         gm_uid: document.getElementById('team-gm-uid-input').value,
+        co_gm_uid: document.getElementById('team-co-gm-uid-input').value,
         gm_player_id: document.getElementById('team-gm-player-id-input').value,
         color_override: colorOverride !== '#000000' ? colorOverride : null
     };
