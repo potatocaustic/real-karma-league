@@ -189,7 +189,7 @@ function createPlayerCard(player) {
     const teamName = team?.team_name || 'Free Agent';
     const teamIconPath = player.current_team_id === 'FREE_AGENT' || !team
         ? '/icons/RKL.webp'
-        : `/icons/${team.team_abbreviation}.webp`;
+        : `/icons/${team.id}.webp`;
 
     // Build profile links
     const profileLinks = [];
