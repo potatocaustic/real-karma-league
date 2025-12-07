@@ -1,6 +1,22 @@
 /* /css/players.css */
 /* Styling for the Players search page */
 
+:root {
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --accent-color: #2563eb;
+    --surface-color: #ffffff;
+    --border-color: #e2e8f0;
+}
+
+.dark-mode {
+    --text-primary: #e5e7eb;
+    --text-secondary: #cbd5e1;
+    --accent-color: #60a5fa;
+    --surface-color: #0f172a;
+    --border-color: #1f2937;
+}
+
 /* Page Header */
 .page-header {
     text-align: center;
