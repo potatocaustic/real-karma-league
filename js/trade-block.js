@@ -74,6 +74,10 @@ async function getActiveSeasonId() {
     return querySnapshot.docs[0].id;
 }
 
+function userMatchesTeam(teamData, userId) {
+    return teamData?.gm_uid === userId || teamData?.co_gm_uid === userId;
+}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
@@ -119,7 +123,7 @@ async function displayAllTradeBlocks(currentUserId) {
             }
             // Use the complete allTeamsMap to find the user's team
             for (const [teamId, teamData] of allTeamsMap.entries()) {
-                if (teamData.gm_uid === currentUserId) currentUserTeamId = teamId;
+                if (userMatchesTeam(teamData, currentUserId)) currentUserTeamId = teamId;
             }
         }
         
@@ -347,7 +351,7 @@ function handleExistingBlocks(tradeBlocksSnap, teamsMap, draftPicksMap, playersM
 
     teamsMap.forEach((teamData, teamId) => {
         const editButton = container.querySelector(`button[data-action='edit'][data-team-id='${teamId}']`);
-        if(editButton && (isAdmin || teamData.gm_uid === currentUserId)) {
+        if(editButton && (isAdmin || userMatchesTeam(teamData, currentUserId))) {
             editButton.style.display = 'inline-block';
         }
     });
