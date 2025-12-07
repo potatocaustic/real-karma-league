@@ -78,21 +78,27 @@
 /* Player Card */
 .player-card {
     background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
     margin-bottom: 0.75rem;
     cursor: pointer;
     transition: all 0.2s ease;
     overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.dark-mode .player-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .player-card:hover {
     border-color: var(--accent-color);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
 }
 
 .dark-mode .player-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 /* Player Card Main Content */
@@ -155,24 +161,33 @@
 
 /* Player Dropdown */
 .player-dropdown {
-    border-top: 1px solid var(--border-color);
-    padding: 0.75rem 1rem;
-    background: var(--background-color);
+    border-top: 2px solid var(--border-color);
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.02);
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+}
+
+.dark-mode .player-dropdown {
+    background: rgba(255, 255, 255, 0.03);
 }
 
 .player-dropdown a {
     display: block;
     padding: 0.75rem 1rem;
     background: var(--surface-color);
-    border: 1px solid var(--border-color);
+    border: 2px solid var(--border-color);
     border-radius: 6px;
     color: var(--text-primary);
     text-decoration: none;
     font-weight: 500;
     transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .player-dropdown a {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .player-dropdown a:hover {
@@ -180,6 +195,11 @@
     color: white;
     border-color: var(--accent-color);
     transform: translateX(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark-mode .player-dropdown a:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Responsive Design */
