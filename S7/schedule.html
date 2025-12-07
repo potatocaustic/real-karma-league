@@ -14,11 +14,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RKL Season 7 Schedule & Results</title>
-    <link rel="stylesheet" href="../css/global-styles.css" />
-    <link rel="icon" href="../rklfavicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="/css/global-styles.css" />
+    <link rel="stylesheet" href="/css/schedule.css" />
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
     <script>
         window.firebasePageConfig = {
-            useProdCollections: true 
+            useProdCollections: true
         };
     </script>
     <script>
@@ -34,171 +35,6 @@
         window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
-<style>
-    /* Page-specific styles for schedule.html */
-    .week-selector { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); padding: 1.5rem; margin-bottom: 2rem; text-align: center; transition: background-color 0.3s, box-shadow 0.3s; }
-    .week-buttons { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
-    .week-btn { background-color: #f8f9fa; border: 2px solid #ddd; border-radius: 6px; padding: 0.8rem 0.5rem; cursor: pointer; transition: all 0.3s ease; font-weight: 500; width: 100px; text-align: center; display: flex; align-items: center; justify-content: center; flex-shrink: 0; white-space: nowrap; }
-    .week-btn:hover { background-color: #e9ecef; border-color: #007bff; }
-    .week-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
-    .week-btn.completed { background-color: #28a745; color: white; border-color: #28a745; }
-    .week-btn.completed.active { background-color: #155724; border-color: #155724; }
-    
-    .week-standouts-section { background-color: #f0f8ff; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border: 1px solid #cfe2f3; transition: background-color 0.3s, border-color 0.3s; }
-    .week-standouts-section h4 { text-align: center; margin-bottom: 1.5rem; font-size: 1.4em; color: #0056b3; }
-    .standouts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-    .standout-item { background-color: #fff; padding: 1rem; border-radius: 6px; border: 1px solid #e0e0e0; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; flex-direction: column; }
-    .standout-item h5 { font-size: 1rem; color: #333; margin-bottom: 0.75rem; border-bottom: 1px solid #eee; padding-bottom: 0.75rem; }
-    .standout-item p { font-size: 0.9rem; color: #555; line-height: 1.5; flex-grow: 1; }
-    
-    .games-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); overflow: hidden; }
-    .games-header { background-color: #333; color: white; padding: 1.5rem; text-align: center; }
-    .games-header h3 { color: white; margin: 0; font-size: 1.4rem; }
-    .games-by-date { padding: 1rem; } /* Provides padding for the inner content */
-    .date-section { margin-bottom: 2rem; }
-    .date-header { background-color: #f8f9fa; padding: 1rem; border-left: 4px solid #007bff; margin-bottom: 1rem; font-weight: bold; font-size: 1.1rem; color: #333; }
-    .games-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem; }
-    .game-card { background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; }
-    .game-card.completed { border-left: 4px solid #28a745; cursor: pointer; }
-    .game-card.upcoming { border-left: 4px solid #ffc107; }
-    .game-card.live { border-left: 4px solid #dc3545; cursor: pointer; }
-    .game-teams { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
-    .team { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; }
-    .team.winner { font-weight: bold; color: #28a745; }
-    .team-left { display: flex; align-items: center; gap: 0.5rem; }
-
-    /* MODIFIED: Icon is larger, but text sizes are reverted */
-    .team-logo { width: 40px; height: 40px; }
-    .team-name { font-size: 1rem; font-weight: 500; }
-    .team-record { font-size: 0.8rem; color: #666; }
-    
-    .score-container { display: flex; align-items: center; gap: 0.75rem; }
-    .team-score { font-weight: bold; color: #333; font-size: 1.2rem; }
-    .team-score.winner { color: #28a745; }
-
-    .winner-indicator {
-        width: 0; height: 0;
-        border-top: 6px solid transparent;
-        border-bottom: 6px solid transparent;
-        border-left: 10px solid #28a745;
-    }
-    
-    .game-status { text-align: center; margin-top: 0.5rem; font-size: 0.9rem; color: #666; }
-    .game-status.completed { color: #28a745; font-weight: 500; }
-    .game-status.upcoming { color: #ffc107; font-weight: 500; }
-
-    .game-status.live { color: #dc3545; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-    .live-indicator {
-        width: 8px; height: 8px;
-        background-color: #dc3545;
-        border-radius: 50%;
-        margin-right: 6px;
-        animation: pulse-live 1.5s infinite;
-    }
-    @keyframes pulse-live {
-        0% { opacity: 1; }
-        50% { opacity: 0.4; }
-        100% { opacity: 1; }
-    }
-    .live-indicator-text::before {
-        content: '';
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        background-color: #dc3545;
-        border-radius: 50%;
-        margin-right: 8px; /* Adjusted for better spacing next to text */
-        animation: pulse-live 1.5s infinite;
-        vertical-align: middle; /* Aligns the dot with the text */
-    }
-    .no-games { text-align: center; padding: 3rem; color: #666; }
-
-    /* Dark Mode */
-    .dark-mode .week-selector, .dark-mode .games-container, .dark-mode .standout-item { background-color: #1e1e1e; }
-    .dark-mode .week-btn { background-color: #2c2c2c; border-color: #444; color: #e0e0e0; }
-    .dark-mode .week-btn:hover { border-color: #bb86fc; }
-    .dark-mode .week-btn.active { background-color: #bb86fc; color: #121212; }
-    .dark-mode .week-btn.completed { background-color: #2e7d32; }
-    .dark-mode .week-standouts-section { background-color: #1a2333; border-color: #2c3a56; }
-    .dark-mode .week-standouts-section h4 { color: #8ab4f8; }
-    .dark-mode .standout-item h5 { color: #e0e0e0; border-bottom-color: #333; }
-    .dark-mode .standout-item p { color: #ccc; }
-    .dark-mode .date-header { background-color: #2c2c2c; color: #f5f5f5; }
-    .dark-mode .game-card { background-color: #2c2c2c; border-color: #444; }
-    .dark-mode .game-card.completed { border-left-color: #66bb6a; }
-    .dark-mode .game-card.live { border-left-color: #ef5350; }
-    .dark-mode .team-score { color: #e0e0e0; }
-    .dark-mode .team.winner, .dark-mode .team-score.winner { color: #66bb6a; }
-    .dark-mode .winner-indicator { border-left-color: #66bb6a; }
-    .dark-mode .team-record { color: #aaa; }
-
-    @media (max-width: 768px) {
-        .games-grid, .standouts-grid { grid-template-columns: 1fr; }
-    }
-    
-    /*
-    ===================================================================
-    == MODAL STYLES (Self-Contained) ==
-    ===================================================================
-    */
-    .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5); overflow-y: auto; }
-    .modal-content { background-color: #fff; margin: 2rem auto; border-radius: 8px; width: 95%; max-width: 900px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); transition: background-color 0.3s; }
-    .modal-header { background-color: #333; color: white; padding: 1.5rem; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center; }
-    .modal-header h3 { color: white; margin: 0; font-size: 1.4rem; }
-    .close-btn { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; border-radius: 4px; transition: background-color 0.3s; }
-    .close-btn:hover { background-color: rgba(255, 255, 255, 0.1); }
-    .modal-body { padding: 2rem; }
-    .game-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-    .team-breakdown { background-color: #f8f9fa; border-radius: 8px; overflow: hidden; border: 1px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
-    .team-breakdown.winner { border-color: #28a745; border-width: 2px; }
-    .modal-team-header { background-color: #333; color: white; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: center; gap: 1rem; transition: background-color 0.3s; cursor: pointer; }
-    .modal-team-info-wrapper { display: inline-flex; align-items: center; gap: 0.75rem; }
-    .modal-team-header.winner { background-color: #28a745; }
-    .modal-team-header h4 { color: white; margin: 0; font-size: 1.3rem; }
-    .modal-team-record { font-size: 1rem; opacity: 0.8; }
-    .modal-team-header .team-logo { width: 40px; height: 40px; border-radius: 4px; }
-    .team-total { background-color: #e9ecef; padding: 1rem; text-align: center; font-weight: bold; font-size: 1.1rem; border-bottom: 2px solid #ddd; transition: background-color 0.3s, border-color 0.3s; }
-    .lineup-table { width: 100%; border-collapse: collapse; }
-    .lineup-table th { background-color: #f8f9fa; padding: 0.8rem 0.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #ddd; font-size: 0.9rem; transition: background-color 0.3s, border-color 0.3s; }
-    .lineup-table th:first-child { text-align: left; width: 50%; }
-    .lineup-table th:nth-child(2),
-    .lineup-table th:nth-child(3) { width: 25%; }
-    .lineup-table td { padding: 0.8rem 0.5rem; border-bottom: 1px solid #eee; font-size: 0.9rem; text-align: center; transition: border-color 0.3s; }
-    .lineup-table td:first-child { text-align: left; }
-    .lineup-table tr:hover { background-color: white; }
-    .captain-row { background-color: #fff3cd !important; font-weight: bold; }
-    .captain-badge { background-color: #ffc107; color: #333; padding: 0.2rem 0.5rem; border-radius: 12px; font-size: 0.7rem; font-weight: bold; margin-left: 0.5rem; }
-    .captain-bonus { font-size: 0.75rem; color: #ffc107; font-weight: 500; margin-top: 0.2rem; }
-    .player-name-cell { font-weight: 500; }
-    .player-link { color: #007bff; text-decoration: none; font-weight: 500; transition: color 0.3s ease; }
-    .player-link:hover { color: #0056b3; text-decoration: underline; }
-    .points-cell { text-align: center; font-weight: bold; }
-    .rank-cell { text-align: center; color: #666; }
-    .dark-mode .modal-content { background-color: #1e1e1e; }
-    .dark-mode .close-btn:hover { background-color: rgba(255, 255, 255, 0.2); }
-    .dark-mode .team-breakdown { background-color: #2c2c2c; border-color: #444; }
-    .dark-mode .team-breakdown.winner { border-color: #66bb6a; }
-    .dark-mode .modal-team-header.winner { background-color: #2e7d32; }
-    .dark-mode .team-total { background-color: #3a3a3a; border-top: 1px solid #4f4f4f; border-bottom: 2px solid #4f4f4f; }
-    .dark-mode .lineup-table th { background-color: #2c2c2c; border-bottom-color: #444; }
-    .dark-mode .lineup-table td { border-color: #333; }
-    .dark-mode .lineup-table tr:hover { background-color: #383838; }
-    .dark-mode .captain-row { background-color: #4a4100 !important; }
-    .dark-mode .captain-badge { background-color: #ffe082; color: #121212; }
-    .dark-mode .player-link { color: #8ab4f8; }
-    .dark-mode .player-link:hover { color: #a7c7fa; }
-    .dark-mode .rank-cell { color: #aaa; }
-
-    @media (max-width: 768px) {
-        .modal-content { margin: 1rem; width: calc(100% - 2rem); }
-        .game-details-grid { grid-template-columns: 1fr; gap: 1rem; }
-        .modal-body { padding: 1rem; }
-        .lineup-table th, .lineup-table td { padding: 0.5rem 0.3rem; font-size: 0.8rem; }
-        .modal-team-header .team-logo { width: 36px; height: 36px; }
-        .modal-header { padding: 1rem; }
-        .modal-header h3 { font-size: 1.1rem; line-height: 1.3; word-break: break-word; hyphens: auto; }
-    }
-</style>
 </head>
   <body>
     <header>
