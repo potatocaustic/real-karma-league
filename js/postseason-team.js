@@ -171,7 +171,7 @@ async function loadPageData() {
 
 function displayTeamHeader() {
     const teamName = teamSeasonalData.team_name || teamData.id;
-    document.getElementById('page-title').textContent = `${teamName} Postseason - RKL Season 8`;
+    document.getElementById('page-title').textContent = `${teamName} Postseason - RKL Season 9`;
 
     // Setup button to link back to regular season page
     const regularSeasonBtn = document.getElementById('regular-season-btn');
