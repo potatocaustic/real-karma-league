@@ -196,7 +196,7 @@ async function loadPageData() {
 
 function displayTeamHeader() {
     const teamName = teamSeasonalData.team_name || teamData.id;
-    document.getElementById('page-title').textContent = `${teamName} - RKL Season 8`;
+    document.getElementById('page-title').textContent = `${teamName} - RKL Season 9`;
 
     const { wins = 0, losses = 0, pam = 0, total_transactions = 0, postseed = 0, pam_rank = 0, med_starter_rank = 0, msr_rank = 0 } = teamSeasonalData;
 
