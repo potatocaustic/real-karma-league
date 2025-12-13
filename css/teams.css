@@ -463,3 +463,31 @@
 [data-style-rollout="modern"].dark-mode footer a:hover {
   color: #93c5fd;
 }
+
+/* ====================================================================== */
+/* MODERN MOBILE RESPONSIVE OVERRIDES (must come after modern styles)    */
+/* ====================================================================== */
+
+@media (max-width: 768px) {
+  [data-style-rollout="modern"] .teams-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    justify-items: center;
+  }
+
+  [data-style-rollout="modern"] .teams-grid .team-card {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  [data-style-rollout="modern"].dark-mode .teams-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    justify-items: center;
+  }
+
+  [data-style-rollout="modern"].dark-mode .teams-grid .team-card {
+    width: 100%;
+    max-width: 400px;
+  }
+}
