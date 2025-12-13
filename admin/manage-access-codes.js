@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
     const mainContainer = document.getElementById('main-container');
     const leagueSelect = document.getElementById('league-select');
+    const roleSelect = document.getElementById('role-select');
     const teamSelect = document.getElementById('team-select');
     const expiresDaysInput = document.getElementById('expires-days');
     const generateCodeBtn = document.getElementById('generate-code-btn');
@@ -121,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Generate code button handler
     generateCodeBtn.addEventListener('click', async () => {
         const league = leagueSelect.value;
+        const gmRole = roleSelect.value;
         const teamId = teamSelect.value;
         const expiresDays = expiresDaysInput.value;
 
@@ -135,7 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const params = {
                 team_id: teamId,
-                league: league
+                league: league,
+                gm_role: gmRole
             };
 
             if (expiresDays) {
@@ -146,10 +149,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const code = result.data.code;
             const teamName = teamSelect.options[teamSelect.selectedIndex].text;
+            const roleLabel = gmRole === 'co-gm' ? 'Co-GM' : 'GM';
 
             showMessage(
                 generateMessage,
-                `<strong>Success!</strong> Generated code for ${teamName} (${league} league):<br>
+                `<strong>Success!</strong> Generated ${roleLabel} code for ${teamName} (${league} league):<br>
                 <div style="margin-top: 12px; font-size: 1.5rem;">
                     <span class="code-badge" onclick="copyCode('${code}')" title="Click to copy">${code}</span>
                 </div>
@@ -226,6 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <tr>
                     <th>Code</th>
                     <th>League</th>
+                    <th>Role</th>
                     <th>Team</th>
                     <th>Status</th>
                     <th>Created</th>
@@ -261,6 +266,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const leagueBadge = `<span class="league-badge league-${code.league}">${code.league}</span>`;
+            const roleLabel = code.gm_role === 'co-gm' ? 'Co-GM' : (code.gm_role === 'gm' ? 'GM' : 'N/A');
 
             const createdDate = code.created_at ? new Date(code.created_at).toLocaleDateString() : 'N/A';
             const expiresDate = code.expires_at ? new Date(code.expires_at).toLocaleDateString() : 'Never';
@@ -273,6 +279,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </span>
                 </td>
                 <td>${leagueBadge}</td>
+                <td>${roleLabel}</td>
                 <td>${getTeamName(code.team_id, code.league)}</td>
                 <td>${statusBadge}</td>
                 <td>${createdDate}</td>

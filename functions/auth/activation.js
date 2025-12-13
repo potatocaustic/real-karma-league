@@ -41,7 +41,7 @@ exports.generateActivationCode = onCall({ region: "us-central1" }, async (reques
         throw new HttpsError('permission-denied', 'Admin access required');
     }
 
-    const { team_id, league, expires_in_days } = request.data;
+    const { team_id, league, expires_in_days, gm_role } = request.data;
 
     if (!team_id) {
         throw new HttpsError('invalid-argument', 'team_id required');
@@ -49,6 +49,10 @@ exports.generateActivationCode = onCall({ region: "us-central1" }, async (reques
 
     if (!league || (league !== 'major' && league !== 'minor')) {
         throw new HttpsError('invalid-argument', 'Valid league required (major or minor)');
+    }
+
+    if (!gm_role || (gm_role !== 'gm' && gm_role !== 'co-gm')) {
+        throw new HttpsError('invalid-argument', 'Valid gm_role required (gm or co-gm)');
     }
 
     // Verify team exists
@@ -75,6 +79,7 @@ exports.generateActivationCode = onCall({ region: "us-central1" }, async (reques
         code: code,
         team_id: team_id,
         league: league,
+        gm_role: gm_role,
         created_by: request.auth.uid,
         created_at: admin.firestore.FieldValue.serverTimestamp(),
         expires_at: expiresAt,
@@ -89,6 +94,7 @@ exports.generateActivationCode = onCall({ region: "us-central1" }, async (reques
         code,
         team_id,
         league,
+        gm_role,
         expires_at: expiresAt ? expiresAt.toDate().toISOString() : null
     };
 });
@@ -216,8 +222,10 @@ exports.activateUserWithCode = onCall({ region: "us-central1" }, async (request)
     batch.set(userRef, userUpdate, { merge: true });
 
     // Update team document in league-specific collection
+    // Write to gm_uid or co_gm_uid based on the code's role
+    const gmFieldName = codeData.gm_role === 'co-gm' ? 'co_gm_uid' : 'gm_uid';
     batch.update(teamRef, {
-        gm_uid: userId
+        [gmFieldName]: userId
     });
 
     // Mark code as used
