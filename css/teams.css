@@ -194,10 +194,26 @@
   .teams-grid {
     grid-template-columns: 1fr;
     padding: 1rem;
+    justify-items: center;
+  }
+  .teams-grid .team-card {
+    width: 100%;
+    max-width: 400px;
   }
   .team-stats { grid-template-columns: 1fr 1fr; }
   .stat-desktop-only {
     display: none;
+  }
+
+  /* Modern mobile overrides - ensure proper centering */
+  [data-style-rollout="modern"] .teams-grid {
+    grid-template-columns: 1fr;
+    padding: 1rem;
+    justify-items: center;
+  }
+  [data-style-rollout="modern"] .teams-grid .team-card {
+    width: 100%;
+    max-width: 400px;
   }
 }
 
