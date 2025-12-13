@@ -29,12 +29,14 @@ function getOrdinal(n) {
 
 function formatDate(dateString) {
     if (!dateString) return '';
-    const date = new Date(dateString + 'T00:00:00'); // Add time to ensure correct date parsing
+    // Use UTC to ensure correct date parsing regardless of browser timezone
+    const date = new Date(dateString + 'T12:00:00Z'); // Use noon UTC to avoid date boundary issues
     return date.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'UTC' // Display in UTC to match the parsed date
     });
 }
 
@@ -55,21 +57,23 @@ async function loadTeams() {
 
 function isDateCompleted(dateString) {
     // A date is considered completed after 7am ET the next day
-    // Convert the date string to a Date object
-    const gameDate = new Date(dateString + 'T00:00:00');
+    // Use UTC throughout for consistent timezone-agnostic calculation
 
-    // Get current time in ET (UTC-5 in standard time, UTC-4 in daylight time)
-    const now = new Date();
-    const etOffset = -5 * 60; // ET is UTC-5 (we'll use standard time)
-    const nowET = new Date(now.getTime() + (etOffset + now.getTimezoneOffset()) * 60000);
+    // Parse the date as UTC midnight
+    const gameDate = new Date(dateString + 'T00:00:00Z');
 
-    // Calculate when this date becomes "completed" (7am ET the next day)
+    // Calculate completion time: 7am ET the next day
+    // During EST (Nov-Mar): 7am EST = 12:00 UTC (UTC-5)
+    // During EDT (Mar-Nov): 7am EDT = 11:00 UTC (UTC-4)
+    // Use 12:00 UTC for EST (more conservative - waits longer)
     const completionTime = new Date(gameDate);
-    completionTime.setDate(completionTime.getDate() + 1); // Next day
-    completionTime.setHours(7, 0, 0, 0); // 7am
+    completionTime.setUTCDate(completionTime.getUTCDate() + 1);
+    completionTime.setUTCHours(12, 0, 0, 0); // 7am EST = 12:00 UTC
 
-    // Check if current ET time is past the completion time
-    return nowET >= completionTime;
+    // Compare against current UTC time
+    const nowUTC = new Date();
+
+    return nowUTC >= completionTime;
 }
 
 async function fetchAvailableDates() {

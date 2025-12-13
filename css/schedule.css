@@ -93,6 +93,118 @@
 }
 .no-games { text-align: center; padding: 3rem; color: #666; }
 
+/* ====================================================================== */
+/* MODAL STYLES (for S7 legacy schedule)                                  */
+/* ====================================================================== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background-color: #333;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header h3 {
+    color: white;
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.close-btn {
+    color: white;
+    font-size: 1.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+    line-height: 1;
+    padding: 0;
+}
+
+.close-btn:hover {
+    color: #ccc;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.game-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Dark mode modal styles */
+.dark-mode .modal-content {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .modal-header {
+    background-color: #2c2c2c;
+}
+
+.dark-mode .modal-body {
+    color: #e0e0e0;
+}
+
+/* Modern modal styles */
+[data-style-rollout="modern"] .modal-content {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+}
+
+[data-style-rollout="modern"] .modal-header {
+    background: linear-gradient(135deg, #0f172a, #111d35);
+}
+
+[data-style-rollout="modern"].dark-mode .modal-content {
+    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    border-color: #2d3748;
+}
+
+[data-style-rollout="modern"].dark-mode .modal-header {
+    background: linear-gradient(135deg, #111827, #1b2435);
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        margin: 2% auto;
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .game-details-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .dark-mode .week-selector, .dark-mode .games-container, .dark-mode .standout-item { background-color: #1e1e1e; }
 .dark-mode .week-btn { background-color: #2c2c2c; border-color: #444; color: #e0e0e0; }
 .dark-mode .week-btn:hover { border-color: #bb86fc; }
@@ -356,7 +468,22 @@
 
 /* Filter dropdown - Dark theme */
 [data-style-rollout="modern"].dark-mode .filter-dropdown {
-    background: linear-gradient(135deg, #1a1f2e, #1e2433);
+    background-color: #1a1f2e;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23e0e0e0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592c.859 0 1.32 1.013.753 1.658l-4.796 5.482a.5.5 0 0 1-.753 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1.2em;
+    border-color: #2d3748;
+    color: #e0e0e0;
+}
+
+/* Week dropdown - Dark theme (modern) */
+[data-style-rollout="modern"].dark-mode .week-dropdown {
+    background-color: #1a1f2e;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23e0e0e0' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592c.859 0 1.32 1.013.753 1.658l-4.796 5.482a.5.5 0 0 1-.753 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.7rem center;
+    background-size: 1.2em;
     border-color: #2d3748;
     color: #e0e0e0;
 }
