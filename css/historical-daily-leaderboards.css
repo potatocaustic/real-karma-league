@@ -513,6 +513,13 @@
     color: #e5e7eb;
 }
 
+[data-style-rollout="modern"].dark-mode .date-selector input[type="date"] {
+    background: linear-gradient(135deg, #1f2937, #243244);
+    border: 1px solid #3d4d6a;
+    color: #e5e7eb;
+    border-radius: 10px;
+}
+
 [data-style-rollout="modern"].dark-mode .primary-btn {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     border-color: #1d4ed8;
