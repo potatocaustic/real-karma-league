@@ -248,6 +248,11 @@
   background-size: 0.65em auto;
 }
 
+.dark-mode .filter-group select option {
+  background-color: #2c2c2c;
+  color: #e0e0e0;
+}
+
 .dark-mode .transaction-item {
   border-bottom-color: #333;
 }
@@ -525,6 +530,11 @@
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
   background-size: 0.65em auto;
+}
+
+[data-style-rollout="modern"].dark-mode .filter-group select option {
+  background-color: #1f2937;
+  color: #f1f5f9;
 }
 
 /* Transactions Container - Dark theme */

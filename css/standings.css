@@ -88,6 +88,11 @@
   background-size: 0.65em auto;
 }
 
+.dark-mode .pr-version-select option {
+  background-color: #333;
+  color: #fff;
+}
+
 .power-rankings-summary {
   padding: 0.8rem 1rem;
   text-align: center;
@@ -644,6 +649,11 @@
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
   background-size: 0.65em auto;
+}
+
+[data-style-rollout="modern"].dark-mode .pr-version-select option {
+  background-color: #1f2937;
+  color: #f1f5f9;
 }
 
 /* Power Rankings Summary - Dark theme */
