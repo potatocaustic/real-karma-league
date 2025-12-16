@@ -518,13 +518,16 @@ function renderPlayerHistoryChart(history, playerName) {
                 },
                 tooltip: {
                     callbacks: {
-                        afterLabel: function(context) {
+                        label: function(context) {
                             const index = context.dataIndex;
                             const historyItem = history[index];
-                            return [
-                                `Global Rank: ${getOrdinal(historyItem.global_rank)}`,
-                                `vs Median: ${historyItem.percent_vs_median >= 0 ? '+' : ''}${historyItem.percent_vs_median.toFixed(1)}%`
-                            ];
+                            if (context.dataset.label === '% vs Median') {
+                                const sign = historyItem.percent_vs_median >= 0 ? '+' : '';
+                                return `% vs Median: ${sign}${historyItem.percent_vs_median.toFixed(1)}%`;
+                            } else if (context.dataset.label === 'Global Rank') {
+                                return `Global Rank: ${getOrdinal(historyItem.global_rank)}`;
+                            }
+                            return context.dataset.label + ': ' + context.parsed.y;
                         }
                     }
                 }
@@ -601,7 +604,7 @@ function renderPlayerHistoryStats(history, container) {
     const worstGame = history.reduce((worst, h) => h.score < worst.score ? h : worst, history[0]);
     const bestRank = history.reduce((best, h) => h.global_rank < best.global_rank ? h : best, history[0]);
 
-    const top100Finishes = history.filter(h => h.rank <= 100).length;
+    const top100Finishes = history.filter(h => h.global_rank <= 100).length;
     const aboveMedian = history.filter(h => h.percent_vs_median >= 0).length;
 
     container.innerHTML = `
