@@ -1,6 +1,6 @@
 // /admin/manage-power-rankings.js
 
-import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, setDoc, collectionNames, getLeagueCollectionName } from '/js/firebase-init.js';
+import { auth, db, onAuthStateChanged, doc, getDoc, collection, getDocs, writeBatch, query, setDoc, collectionNames, getLeagueCollectionName, getCurrentLeague } from '/js/firebase-init.js';
 
 // --- Page Elements ---
 const loadingContainer = document.getElementById('loading-container');
@@ -106,9 +106,10 @@ async function populateSeasons() {
 }
 
 function populateVersions() {
+    const league = getCurrentLeague();
     let versionOptions = '';
     for (let i = 0; i <= 10; i++) {
-        const label = i === 0 ? 'v0 (Preseason)' : `v${i} (After Week ${i * 3})`;
+        const label = i === 0 ? 'v0 (Preseason)' : (league === 'minor' ? `v${i}` : `v${i} (After Week ${i * 3})`);
         versionOptions += `<option value="${i}">${label}</option>`;
     }
     versionSelect.innerHTML = versionOptions;

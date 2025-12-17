@@ -231,7 +231,8 @@ function renderPowerRankings(version) {
     }
 
     const versionNumber = parseInt(version.replace('v', ''), 10);
-    const label = versionNumber === 0 ? 'v0 (Preseason)' : `v${versionNumber} (Week ${versionNumber * 3})`;
+    const league = getCurrentLeague();
+    const label = versionNumber === 0 ? 'v0 (Preseason)' : (league === 'minor' ? `v${versionNumber}` : `v${versionNumber} (Week ${versionNumber * 3})`);
     const prHeader = document.querySelector('#powerRankingsViewContainer .conference-header h3');
     if (prHeader) {
         prHeader.textContent = `Power Rankings: ${label}`;
@@ -383,9 +384,10 @@ function setupPowerRankingsSelector() {
     }
 
     prVersionSelect.parentElement.style.display = 'block';
+    const league = getCurrentLeague();
     prVersionSelect.innerHTML = versions.map(v => {
         const versionNumber = parseInt(v.replace('v', ''), 10);
-        const label = versionNumber === 0 ? 'v0 (Preseason)' : `v${versionNumber} (Week ${versionNumber * 3})`;
+        const label = versionNumber === 0 ? 'v0 (Preseason)' : (league === 'minor' ? `v${versionNumber}` : `v${versionNumber} (Week ${versionNumber * 3})`);
         return `<option value="${v}">${label}</option>`;
     }).join('');
 
