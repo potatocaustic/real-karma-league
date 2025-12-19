@@ -382,7 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         reportContainer.appendChild(header);
 
-        const captainEmojis = { 'Penguins': ' 🐧', 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Empire': ' 💤', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮', 'Flames': ' 🔥', 'Piggies': ' 👮', 'Fruit': ' 🍑', 'Goats': ' 🐐', 'Eggheads': ' 🥚', 'Crows': ' 🐦‍⬛', 'Wizards': ' 🧙‍♂️', 'Knights': ' 🤺', 'Rams': ' 🐏', 'Horses': ' 🐴' };
+        const captainEmojis = { 'Penguins': ' 🐧', 'Hornets': ' 🐝', 'Vipers': ' 🐍', 'MLB': ' 👼', 'Aces': ' ♠️', 'Otters': ' 🦦', 'Demons': ' 😈', 'Hounds': ' 🐶', 'Kings': ' 👑', 'Donuts': ' 🍩', 'Tacos': ' 🌮', 'Flames': ' 🔥', 'Fruit': ' 🍑', 'Goats': ' 🐐', 'Eggheads': ' 🥚', 'Crows': ' 🐦‍⬛', 'Wizards': ' 🧙‍♂️', 'Knights': ' 🤺', 'Rams': ' 🐏', 'Horses': ' 🐴' };
         const usa_diabetics = ['PJPB7G3y', 'QvDP2zgv', 'k3LgQL4v', 'rnejGZ2J', 'V3yAQ6Y3', 'Anzoj9LJ', 'BJ0VQoY3', 'wJpX8ALJ', 'kJw08M1v', 'R3XWePMv', 'R3X72zzv'];
         const can_diabetics = ['BJ0r9gL3', 'AnzRoOpn', 'kJwL5b8v', 'jvbLzKrn'];
 
@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (player.is_captain) {
                 // 2c: Diabetics captain emoji rule
                 if (teamName === 'Diabetics') {
-                    line += ' 👑';
+                    line += ' c';
                 } else {
                     line += captainEmojis[teamName] || ' (c)';
                 }
