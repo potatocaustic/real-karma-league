@@ -345,8 +345,16 @@
         function renderAllStarTeam(title, players, isRisingStar = false) {
             if (!players || players.length === 0) return '';
             // Handle both major (Eastern/Western) and minor (Northern/Southern) conference names
+            const isMinorLeague = title.includes('Northern') || title.includes('Southern');
             const isPrimaryConference = title.includes('Eastern') || title.includes('Northern');
-            const iconName = isPrimaryConference ? (isRisingStar ? 'RSE' : 'EAST') : (isRisingStar ? 'RSW' : 'WEST');
+            let iconName;
+            if (isRisingStar) {
+                iconName = isPrimaryConference ? 'RSE' : 'RSW';
+            } else if (isMinorLeague) {
+                iconName = isPrimaryConference ? 'NAS' : 'SAS';
+            } else {
+                iconName = isPrimaryConference ? 'EAST' : 'WEST';
+            }
             
             const playerItems = players.map(p => {
                 const stats = getPlayerSeasonalStats(p.player_id);
