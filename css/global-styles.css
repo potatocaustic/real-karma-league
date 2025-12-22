@@ -23,6 +23,21 @@ h1 a.header-link, h1 a.header-link:hover {
     align-items: center;
     gap: 0.75rem;
 }
+
+/* Ensure logo imagery renders cleanly and remains circular with transparent backgrounds */
+img.header-logo,
+img.header-icon,
+img.team-logo,
+.team-logo {
+    background-color: transparent;
+}
+
+img.header-icon,
+img.team-logo,
+.team-logo {
+    border-radius: 50%;
+    overflow: hidden;
+}
 #auth-status { position: absolute; top: 0.5rem; left: 1rem; font-size: 0.9rem; color: #ccc; z-index: 103; }
 #auth-status a { color: #fff; text-decoration: underline; cursor: pointer; margin-left: 0.5rem; }
 #theme-toggle-btn { position: absolute; top: 1.2rem; right: 1rem; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; line-height: 1; z-index: 102; }
