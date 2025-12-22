@@ -49,6 +49,8 @@
 .team-left { display: flex; align-items: center; gap: 0.5rem; }
 
 .team-logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+/* Override s9-refresh.css which sets border-radius: 4px for body.s9-page .team-logo */
+body.s9-page .games-container .team-logo { border-radius: 50%; }
 .team-name { font-size: 1rem; font-weight: 500; }
 .team-record { font-size: 0.8rem; color: #666; }
 
@@ -261,6 +263,8 @@
     border-radius: 50%;
     object-fit: cover;
 }
+/* Override s9-refresh.css */
+body.s9-page .modal-team-header .team-logo { border-radius: 50%; }
 
 .team-total {
     background-color: #e9ecef;
