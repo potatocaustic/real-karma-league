@@ -348,14 +348,16 @@
             const isMinorLeague = title.includes('Northern') || title.includes('Southern');
             const isPrimaryConference = title.includes('Eastern') || title.includes('Northern');
             let iconName;
+            let iconExt = 'png';
             if (isRisingStar) {
                 iconName = isPrimaryConference ? 'RSE' : 'RSW';
             } else if (isMinorLeague) {
                 iconName = isPrimaryConference ? 'NAS' : 'SAS';
+                iconExt = 'webp';
             } else {
                 iconName = isPrimaryConference ? 'EAST' : 'WEST';
             }
-            
+
             const playerItems = players.map(p => {
                 const stats = getPlayerSeasonalStats(p.player_id);
                 const relMedian = stats?.rel_median?.toFixed(3) || 'N/A';
@@ -383,7 +385,7 @@
 
             return `
                 <div class="all-star-team">
-                    <div class="all-star-header"><h3><img src="../icons/${iconName}.png" alt="${title}" class="header-icon">${title}</h3></div>
+                    <div class="all-star-header"><h3><img src="../icons/${iconName}.${iconExt}" alt="${title}" class="header-icon">${title}</h3></div>
                     <div class="all-star-list-header">
                         <span class="player-col-header">Player</span>
                         <span class="stat-col-header">REL Med</span>
