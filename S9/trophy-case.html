@@ -243,10 +243,16 @@
                 });
 
                 const topAwardsHTML = await renderTopAwards(awardsMap);
+                // Use correct document IDs based on league (minor uses northern/southern, major uses eastern/western)
+                const isMinor = currentLeague === 'minor';
+                const primaryDocId = isMinor ? 'all-stars-northern' : 'all-stars-eastern';
+                const secondaryDocId = isMinor ? 'all-stars-southern' : 'all-stars-western';
+                const primaryLabel = isMinor ? 'Northern Conference All-Stars' : 'Eastern Conference All-Stars';
+                const secondaryLabel = isMinor ? 'Southern Conference All-Stars' : 'Western Conference All-Stars';
                 const allStarsHTML = `
                     <div class="all-stars-container">
-                        ${renderAllStarTeam('Eastern Conference All-Stars', awardsMap.get('all-stars-eastern')?.players)}
-                        ${renderAllStarTeam('Western Conference All-Stars', awardsMap.get('all-stars-western')?.players)}
+                        ${renderAllStarTeam(primaryLabel, awardsMap.get(primaryDocId)?.players)}
+                        ${renderAllStarTeam(secondaryLabel, awardsMap.get(secondaryDocId)?.players)}
                     </div>
                 `;
                 const risingStarsHTML = `

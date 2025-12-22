@@ -119,12 +119,53 @@ function updateConferenceLabels() {
     document.getElementById('rising-stars-secondary-header').textContent = `${conferences.secondary} Conference`;
 }
 
-function getListAwardIds() {
+// Returns element IDs used for DOM manipulation (always eastern/western)
+function getListAwardElementIds() {
     const baseAwards = ['all-stars-eastern', 'all-stars-western'];
     if (currentLeague === 'minor') {
         return baseAwards;
     }
     return [...baseAwards, 'rising-stars-eastern', 'rising-stars-western'];
+}
+
+// Returns Firestore document IDs (northern/southern for minor, eastern/western for major)
+function getListAwardFirestoreIds() {
+    if (currentLeague === 'minor') {
+        return ['all-stars-northern', 'all-stars-southern'];
+    }
+    return ['all-stars-eastern', 'all-stars-western', 'rising-stars-eastern', 'rising-stars-western'];
+}
+
+// Maps element IDs to Firestore document IDs
+function getElementToFirestoreIdMap() {
+    if (currentLeague === 'minor') {
+        return {
+            'all-stars-eastern': 'all-stars-northern',
+            'all-stars-western': 'all-stars-southern'
+        };
+    }
+    return {
+        'all-stars-eastern': 'all-stars-eastern',
+        'all-stars-western': 'all-stars-western',
+        'rising-stars-eastern': 'rising-stars-eastern',
+        'rising-stars-western': 'rising-stars-western'
+    };
+}
+
+// Maps Firestore document IDs to element IDs
+function getFirestoreToElementIdMap() {
+    if (currentLeague === 'minor') {
+        return {
+            'all-stars-northern': 'all-stars-eastern',
+            'all-stars-southern': 'all-stars-western'
+        };
+    }
+    return {
+        'all-stars-eastern': 'all-stars-eastern',
+        'all-stars-western': 'all-stars-western',
+        'rising-stars-eastern': 'rising-stars-eastern',
+        'rising-stars-western': 'rising-stars-western'
+    };
 }
 
 async function updateTeamCache(seasonId) {
@@ -251,11 +292,13 @@ async function loadExistingAwards() {
         if (element) element.value = award?.team_id || '';
     });
 
-    const listAwards = getListAwardIds();
-    listAwards.forEach(id => {
-        const award = awardsData.get(id);
+    const firestoreIds = getListAwardFirestoreIds();
+    const firestoreToElementMap = getFirestoreToElementIdMap();
+    firestoreIds.forEach(firestoreId => {
+        const award = awardsData.get(firestoreId);
         if (award && award.players) {
-            const inputs = document.getElementById(id).querySelectorAll('input');
+            const elementId = firestoreToElementMap[firestoreId];
+            const inputs = document.getElementById(elementId).querySelectorAll('input');
             award.players.forEach((player, i) => {
                 if (inputs[i]) inputs[i].value = player.player_handle;
             });
@@ -387,23 +430,25 @@ async function handleFormSubmit(e) {
             }
         }
 
-        const listAwards = getListAwardIds();
-        for (const id of listAwards) {
+        const elementIds = getListAwardElementIds();
+        const elementToFirestoreMap = getElementToFirestoreIdMap();
+        for (const elementId of elementIds) {
             const players = [];
-            const inputs = document.getElementById(id).querySelectorAll('input');
+            const inputs = document.getElementById(elementId).querySelectorAll('input');
+            const firestoreId = elementToFirestoreMap[elementId];
             inputs.forEach(input => {
                 const handle = input.value.trim();
                 if (handle && allPlayers.has(handle)) {
                     const player = allPlayers.get(handle);
                     players.push({ player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id });
-                    if (id.startsWith('all-star')) {
+                    if (firestoreId.startsWith('all-star')) {
                         allStarPlayerIds.add(player.id);
                     }
                 }
             });
-            const docRef = doc(awardsCollectionRef, id);
+            const docRef = doc(awardsCollectionRef, firestoreId);
             if (players.length > 0) {
-                batch.set(docRef, { award_name: id.replace(/-/g, ' '), players: players, ...leagueMetadata });
+                batch.set(docRef, { award_name: firestoreId.replace(/-/g, ' '), players: players, ...leagueMetadata });
             } else {
                 batch.delete(docRef);
             }

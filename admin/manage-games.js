@@ -564,10 +564,14 @@ function getRosterForTeam(teamId, week) {
             return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
         }
 
-        const eastPlayers = awardSelections.get('all-stars-eastern')?.players || [];
-        const westPlayers = awardSelections.get('all-stars-western')?.players || [];
-        if (teamId === 'EAST') return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-        if (teamId === 'WEST') return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        // Use correct document IDs based on league (minor uses northern/southern, major uses eastern/western)
+        const isMinor = getCurrentLeague() === 'minor';
+        const primaryDocId = isMinor ? 'all-stars-northern' : 'all-stars-eastern';
+        const secondaryDocId = isMinor ? 'all-stars-southern' : 'all-stars-western';
+        const primaryPlayers = awardSelections.get(primaryDocId)?.players || [];
+        const secondaryPlayers = awardSelections.get(secondaryDocId)?.players || [];
+        if (teamId === 'EAST') return primaryPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        if (teamId === 'WEST') return secondaryPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
     }
 
     return Array.from(allPlayers.values()).filter(p => p.current_team_id === teamId);
