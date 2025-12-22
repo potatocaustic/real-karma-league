@@ -342,7 +342,9 @@
 
         function renderAllStarTeam(title, players, isRisingStar = false) {
             if (!players || players.length === 0) return '';
-            const iconName = title.includes('Eastern') ? (isRisingStar ? 'RSE' : 'EAST') : (isRisingStar ? 'RSW' : 'WEST');
+            // Handle both major (Eastern/Western) and minor (Northern/Southern) conference names
+            const isPrimaryConference = title.includes('Eastern') || title.includes('Northern');
+            const iconName = isPrimaryConference ? (isRisingStar ? 'RSE' : 'EAST') : (isRisingStar ? 'RSW' : 'WEST');
             
             const playerItems = players.map(p => {
                 const stats = getPlayerSeasonalStats(p.player_id);
