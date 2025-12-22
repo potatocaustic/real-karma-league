@@ -567,6 +567,13 @@ function getRosterForTeam(teamId, week) {
         if (teamId === 'WEST') return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
     }
     else if (week === 'GM Game') {
+        const conferences = getConferenceNames();
+        if (teamId === 'EGM' || teamId === 'NGM') {
+            return Array.from(allGms.values()).filter(gm => gm.conference === conferences.primary);
+        }
+        if (teamId === 'WGM' || teamId === 'SGM') {
+            return Array.from(allGms.values()).filter(gm => gm.conference === conferences.secondary);
+        }
         return Array.from(allGms.values());
     }
 

@@ -146,7 +146,7 @@
 
     <script src="../js/main.js" type="module"></script>
     <script type="module">
-        import { db, doc, getDoc, getDocs, collection, query, where, limit, collectionGroup } from '../js/firebase-init.js';
+        import { db, doc, getDoc, getDocs, collection, query, where, limit, collectionGroup, getCurrentLeague, getLeagueCollectionName } from '../js/firebase-init.js';
         import { generateLineupTable } from '../js/main.js';
 
         const SEASON_ID = 'S9';
@@ -156,14 +156,14 @@
         let allTeamRecords = new Map();
         let playerStatsCache = new Map();
 
-        const getCollectionName = (baseName) => {
-            const devCollections = [
-                'awards', 'S9_awards', 'v2_players', 'seasonal_stats',
-                'v2_teams', 'seasonal_records', 'seasons', 'games',
-                'post_games', 'lineups', 'post_lineups', 'daily_scores',
-                `S${SEASON_NUMBER}_daily_scores`
-            ];
-            return (USE_DEV_COLLECTIONS && devCollections.includes(baseName)) ? `${baseName}_dev` : baseName;
+        let currentLeague = window.__currentLeague || getCurrentLeague();
+
+        const getCollectionName = (baseName, league = currentLeague) => {
+            const sharedCollections = ['awards', 'S9_awards'];
+            if (sharedCollections.includes(baseName)) {
+                return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+            }
+            return getLeagueCollectionName(baseName, league);
         };
 
         const getPlayerSeasonalStats = (playerId) => {
@@ -205,7 +205,10 @@
         // --- CORE LOGIC ---
         async function loadTrophyCase() {
             const awardsContainer = document.getElementById('awards-container');
+            allTeamRecords.clear();
+            playerStatsCache.clear();
             try {
+                currentLeague = getCurrentLeague();
                 const awardsCollectionRef = collection(db, getCollectionName('awards'), `season_${SEASON_NUMBER}`, getCollectionName(`S${SEASON_NUMBER}_awards`));
                 const teamRecordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')));
                 const playerStatsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
@@ -230,7 +233,14 @@
                     }
                 });
 
-                const awardsMap = new Map(awardsSnap.docs.map(doc => [doc.id, doc.data()]));
+                const awardsMap = new Map();
+                awardsSnap.docs.forEach(doc => {
+                    const data = doc.data();
+                    const awardLeague = data.league || 'major';
+                    if (awardLeague === currentLeague) {
+                        awardsMap.set(doc.id, data);
+                    }
+                });
 
                 const topAwardsHTML = await renderTopAwards(awardsMap);
                 const allStarsHTML = `
@@ -245,8 +255,11 @@
                         ${renderAllStarTeam('Rising Stars West', awardsMap.get('rising-stars-western')?.players, true)}
                     </div>
                 `;
-                
-                awardsContainer.innerHTML = topAwardsHTML + allStarsHTML + risingStarsHTML;
+
+                const shouldShowRisingStars = currentLeague !== 'minor';
+                awardsContainer.innerHTML = shouldShowRisingStars
+                    ? topAwardsHTML + allStarsHTML + risingStarsHTML
+                    : topAwardsHTML + allStarsHTML;
 
             } catch (error) {
                 console.error("Error loading trophy case:", error);
@@ -438,6 +451,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadTrophyCase();
             setupModalControls();
+            window.addEventListener('leagueChanged', () => {
+                loadTrophyCase();
+            });
         });
     </script>
 

@@ -1,12 +1,13 @@
 // /admin/manage-awards.js
 
-import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where, getCurrentLeague, getConferenceNames, getShortConferenceNames } from '/js/firebase-init.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, collection, getDocs, writeBatch, httpsCallable, query, where, getCurrentLeague, getConferenceNames, getShortConferenceNames, getLeagueCollectionName } from '/js/firebase-init.js';
 
 // --- DEV ENVIRONMENT CONFIG ---
 const USE_DEV_COLLECTIONS = false;
-const getCollectionName = (baseName) => {
+const getCollectionName = (baseName, league = getCurrentLeague()) => {
     // This logic is simplified as all relevant collections follow the same dev/prod pattern
-    return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
+    const baseCollection = getLeagueCollectionName(baseName, league);
+    return USE_DEV_COLLECTIONS ? `${baseCollection}_dev` : baseCollection;
 };
 
 
@@ -24,6 +25,9 @@ let allPlayers = new Map();
 let allGms = new Map();
 let allTeams = [];
 let currentSeasonId = null;
+let currentLeague = getCurrentLeague();
+let listenersInitialized = false;
+let leagueListenerAttached = false;
 
 // --- Helper Functions ---
 function calculateMedian(numbers) {
@@ -60,36 +64,46 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+async function cachePlayers() {
+    allPlayers.clear();
+    const playersQuery = query(
+        collection(db, getCollectionName("v2_players", currentLeague)),
+        where("player_status", "==", "ACTIVE")
+    );
+    const playersSnap = await getDocs(playersQuery);
+    playersSnap.docs.forEach(doc => {
+        allPlayers.set(doc.data().player_handle, { id: doc.id, ...doc.data() });
+    });
+}
+
 async function initializePage() {
     try {
-        // ✅ OPTIMIZED: Filter for ACTIVE players at database level instead of client-side
-        const playersQuery = query(
-            collection(db, getCollectionName("v2_players")),
-            where("player_status", "==", "ACTIVE")
-        );
-        const playersSnap = await getDocs(playersQuery);
-        playersSnap.docs.forEach(doc => {
-            allPlayers.set(doc.data().player_handle, { id: doc.id, ...doc.data() });
-        });
-
+        currentLeague = getCurrentLeague();
+        await cachePlayers();
         await populateSeasons();
 
-        seasonSelect.addEventListener('change', async () => {
-            currentSeasonId = seasonSelect.value;
-            await updateTeamCache(currentSeasonId);
-            populateDatalistAndSelects();
-            loadExistingAwards();
-        });
+        if (!listenersInitialized) {
+            seasonSelect.addEventListener('change', async () => {
+                currentSeasonId = seasonSelect.value;
+                await updateTeamCache(currentSeasonId);
+                populateDatalistAndSelects();
+                loadExistingAwards();
+            });
 
-        awardsForm.addEventListener('submit', handleFormSubmit);
-        calculateBtn.addEventListener('click', handleCalculationTrigger);
+            awardsForm.addEventListener('submit', handleFormSubmit);
+            calculateBtn.addEventListener('click', handleCalculationTrigger);
+            listenersInitialized = true;
+        }
 
-        // Listen for league changes and reload the page data
-        window.addEventListener('leagueChanged', async (event) => {
-            console.log('League changed to:', event.detail.league);
-            // Reload all data for the new league
-            await initializePage();
-        });
+        if (!leagueListenerAttached) {
+            window.addEventListener('leagueChanged', async (event) => {
+                console.log('League changed to:', event.detail.league);
+                currentLeague = event.detail.league;
+                await cachePlayers();
+                await populateSeasons();
+            });
+            leagueListenerAttached = true;
+        }
 
     } catch (error) {
         console.error("Error initializing awards page:", error);
@@ -105,13 +119,21 @@ function updateConferenceLabels() {
     document.getElementById('rising-stars-secondary-header').textContent = `${conferences.secondary} Conference`;
 }
 
+function getListAwardIds() {
+    const baseAwards = ['all-stars-eastern', 'all-stars-western'];
+    if (currentLeague === 'minor') {
+        return baseAwards;
+    }
+    return [...baseAwards, 'rising-stars-eastern', 'rising-stars-western'];
+}
+
 async function updateTeamCache(seasonId) {
-    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams")));
+    const teamsSnap = await getDocs(collection(db, getCollectionName("v2_teams", currentLeague)));
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) return null;
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, getCollectionName("v2_teams"), teamDoc.id, getCollectionName("seasonal_records"), seasonId);
+        const seasonRecordRef = doc(db, getCollectionName("v2_teams", currentLeague), teamDoc.id, getCollectionName("seasonal_records", currentLeague), seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         teamData.team_name = seasonRecordSnap.exists() ? seasonRecordSnap.data().team_name : "Name Not Found";
@@ -124,7 +146,7 @@ async function updateTeamCache(seasonId) {
 }
 
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons"))));
+    const seasonsSnap = await getDocs(query(collection(db, getCollectionName("seasons", currentLeague))));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -150,6 +172,7 @@ async function populateSeasons() {
 function populateDatalistAndSelects() {
     const conferences = getConferenceNames();
     const shortConferences = getShortConferenceNames();
+    const isMinorLeague = currentLeague === 'minor';
 
     playerDatalist.innerHTML = Array.from(allPlayers.keys()).map(handle => `<option value="${handle}"></option>`).join('');
 
@@ -173,11 +196,16 @@ function populateDatalistAndSelects() {
     document.getElementById('rising-stars-eastern').innerHTML = '';
     document.getElementById('rising-stars-western').innerHTML = '';
 
+    const risingStarsSection = document.getElementById('rising-stars-section');
+    risingStarsSection.style.display = isMinorLeague ? 'none' : 'block';
+
     for (let i = 1; i <= 8; i++) {
         document.getElementById('all-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.primary} All-Star #${i}" autocomplete="off">`;
         document.getElementById('all-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.secondary} All-Star #${i}" autocomplete="off">`;
-        document.getElementById('rising-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.primary} Rising Star #${i}" autocomplete="off">`;
-        document.getElementById('rising-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.secondary} Rising Star #${i}" autocomplete="off">`;
+        if (!isMinorLeague) {
+            document.getElementById('rising-stars-eastern').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.primary} Rising Star #${i}" autocomplete="off">`;
+            document.getElementById('rising-stars-western').innerHTML += `<input type="text" list="player-datalist" placeholder="${shortConferences.secondary} Rising Star #${i}" autocomplete="off">`;
+        }
     }
 }
 
@@ -186,7 +214,7 @@ async function loadExistingAwards() {
 
     if (!currentSeasonId) return;
     const seasonNumber = currentSeasonId.replace('S', '');
-    const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
+    const awardsCollectionRef = collection(db, `${getCollectionName('awards', currentLeague)}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`, currentLeague)}`);
     const awardsSnap = await getDocs(awardsCollectionRef);
 
     if (awardsSnap.empty) {
@@ -197,7 +225,13 @@ async function loadExistingAwards() {
     }
 
     const awardsData = new Map();
-    awardsSnap.forEach(doc => awardsData.set(doc.id, doc.data()));
+    awardsSnap.forEach(doc => {
+        const data = doc.data();
+        const awardLeague = data.league || 'major';
+        if (awardLeague === currentLeague) {
+            awardsData.set(doc.id, data);
+        }
+    });
 
     const singleAwards = ['finals-mvp', 'mvp', 'rookie-of-the-year', 'sixth-man', 'most-improved', 'lvp'];
     singleAwards.forEach(id => {
@@ -217,7 +251,7 @@ async function loadExistingAwards() {
         if (element) element.value = award?.team_id || '';
     });
 
-    const listAwards = ['all-stars-eastern', 'all-stars-western', 'rising-stars-eastern', 'rising-stars-western'];
+    const listAwards = getListAwardIds();
     listAwards.forEach(id => {
         const award = awardsData.get(id);
         if (award && award.players) {
@@ -254,13 +288,14 @@ async function handleFormSubmit(e) {
 
     try {
         const seasonNumber = currentSeasonId.replace('S', '');
-        const awardsCollectionRef = collection(db, `${getCollectionName('awards')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`)}`);
+        const awardsCollectionRef = collection(db, `${getCollectionName('awards', currentLeague)}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_awards`, currentLeague)}`);
+        const leagueMetadata = { league: currentLeague };
 
         // --- PRE-CALCULATIONS (READS) ---
         let championExtraStats = {};
         const championTeamId = document.getElementById('award-league-champion').value;
         if (championTeamId) {
-            const recordRef = doc(db, getCollectionName("v2_teams"), championTeamId, getCollectionName("seasonal_records"), currentSeasonId);
+            const recordRef = doc(db, getCollectionName("v2_teams", currentLeague), championTeamId, getCollectionName("seasonal_records", currentLeague), currentSeasonId);
             const recordSnap = await getDoc(recordRef);
             if (recordSnap.exists()) {
                 const rec = recordSnap.data();
@@ -269,8 +304,8 @@ async function handleFormSubmit(e) {
                 championExtraStats.champ_pam = (rec.pam || 0) + (rec.post_pam || 0);
             }
 
-            const lineupsRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("lineups"));
-            const postLineupsRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("post_lineups"));
+            const lineupsRef = collection(db, getCollectionName("seasons", currentLeague), currentSeasonId, getCollectionName("lineups", currentLeague));
+            const postLineupsRef = collection(db, getCollectionName("seasons", currentLeague), currentSeasonId, getCollectionName("post_lineups", currentLeague));
             const [regLineupsSnap, postLineupsSnap] = await Promise.all([
                 getDocs(query(lineupsRef, where("team_id", "==", championTeamId))),
                 getDocs(query(postLineupsRef, where("team_id", "==", championTeamId)))
@@ -283,19 +318,19 @@ async function handleFormSubmit(e) {
         const fmvpHandle = document.getElementById('award-finals-mvp').value;
         if (fmvpHandle && allPlayers.has(fmvpHandle)) {
             const player = allPlayers.get(fmvpHandle);
-            const postGamesRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("post_games"));
+            const postGamesRef = collection(db, getCollectionName("seasons", currentLeague), currentSeasonId, getCollectionName("post_games", currentLeague));
             const finalsGamesSnap = await getDocs(query(postGamesRef, where("series_id", "==", "Finals")));
             const finalsDates = finalsGamesSnap.docs.map(d => d.data().date);
 
             if (finalsDates.length > 0) {
-                const postLineupsRef = collection(db, getCollectionName("seasons"), currentSeasonId, getCollectionName("post_lineups"));
+                const postLineupsRef = collection(db, getCollectionName("seasons", currentLeague), currentSeasonId, getCollectionName("post_lineups", currentLeague));
                 const fmvpLineupsSnap = await getDocs(query(postLineupsRef, where("player_id", "==", player.id), where("date", "in", finalsDates)));
                 const fmvpLineups = fmvpLineupsSnap.docs.map(d => d.data());
                 const fmvpRanks = fmvpLineups.map(l => l.global_rank).filter(r => r > 0);
                 fmvpExtraStats.fmvp_medrank = calculateMedian(fmvpRanks);
 
                 const totalPoints = fmvpLineups.reduce((sum, l) => sum + (l.points_adjusted || 0), 0);
-                const dailyAveragesRef = collection(db, `${getCollectionName('post_daily_averages')}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_post_daily_averages`)}`);
+                const dailyAveragesRef = collection(db, `${getCollectionName('post_daily_averages', currentLeague)}/season_${seasonNumber}/${getCollectionName(`S${seasonNumber}_post_daily_averages`, currentLeague)}`);
                 let totalMedianScore = 0;
                 const dailyAvgPromises = finalsDates.map(date => {
                     const yyyymmdd = date.split('/').reverse().join('-').replace(/(\d{2})-(\d{2})-(\d{4})/, '$3-$1-$2');
@@ -317,7 +352,7 @@ async function handleFormSubmit(e) {
             const docRef = doc(awardsCollectionRef, id);
             if (handle && allPlayers.has(handle)) {
                 const player = allPlayers.get(handle);
-                let data = { award_name: id.replace(/-/g, ' '), player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id };
+                let data = { award_name: id.replace(/-/g, ' '), player_handle: player.player_handle, player_id: player.id, team_id: player.current_team_id, ...leagueMetadata };
                 if(id === 'finals-mvp') {
                     data = { ...data, ...fmvpExtraStats };
                 }
@@ -331,7 +366,7 @@ async function handleFormSubmit(e) {
         const gmDocRef = doc(awardsCollectionRef, 'gm-of-the-year');
         if (gmHandle && allGms.has(gmHandle)) {
             const gm = allGms.get(gmHandle);
-            batch.set(gmDocRef, { award_name: 'GM of the Year', gm_handle: gmHandle, team_id: gm.team_id });
+            batch.set(gmDocRef, { award_name: 'GM of the Year', gm_handle: gmHandle, team_id: gm.team_id, ...leagueMetadata });
         } else {
             batch.delete(gmDocRef);
         }
@@ -342,7 +377,7 @@ async function handleFormSubmit(e) {
             const docRef = doc(awardsCollectionRef, id);
             if (teamId) {
                 const team = allTeams.find(t => t.id === teamId);
-                let data = { award_name: id.replace(/-/g, ' '), team_id: team.id, team_name: team.team_name };
+                let data = { award_name: id.replace(/-/g, ' '), team_id: team.id, team_name: team.team_name, ...leagueMetadata };
                  if(id === 'league-champion') {
                     data = { ...data, ...championExtraStats };
                 }
@@ -352,7 +387,7 @@ async function handleFormSubmit(e) {
             }
         }
 
-        const listAwards = ['all-stars-eastern', 'all-stars-western', 'rising-stars-eastern', 'rising-stars-western'];
+        const listAwards = getListAwardIds();
         for (const id of listAwards) {
             const players = [];
             const inputs = document.getElementById(id).querySelectorAll('input');
@@ -368,14 +403,14 @@ async function handleFormSubmit(e) {
             });
             const docRef = doc(awardsCollectionRef, id);
             if (players.length > 0) {
-                batch.set(docRef, { award_name: id.replace(/-/g, ' '), players: players });
+                batch.set(docRef, { award_name: id.replace(/-/g, ' '), players: players, ...leagueMetadata });
             } else {
                 batch.delete(docRef);
             }
         }
 
         for (const playerId of allStarPlayerIds) {
-            const playerStatsRef = doc(db, getCollectionName("v2_players"), playerId, getCollectionName("seasonal_stats"), currentSeasonId);
+            const playerStatsRef = doc(db, getCollectionName("v2_players", currentLeague), playerId, getCollectionName("seasonal_stats", currentLeague), currentSeasonId);
             batch.set(playerStatsRef, { all_star: '1' }, { merge: true });
         }
 
