@@ -159,7 +159,9 @@
         let currentLeague = window.__currentLeague || getCurrentLeague();
 
         const getCollectionName = (baseName, league = currentLeague) => {
-            const sharedCollections = ['awards', 'S9_awards'];
+            // Only the top-level 'awards' collection is shared; sub-collections like 'S9_awards'
+            // are league-prefixed (e.g., 'minor_S9_awards' for minor league)
+            const sharedCollections = ['awards'];
             if (sharedCollections.includes(baseName)) {
                 return USE_DEV_COLLECTIONS ? `${baseName}_dev` : baseName;
             }
