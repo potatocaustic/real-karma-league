@@ -545,10 +545,13 @@ function getRosterForTeam(teamId, week) {
     if (week === 'All-Star') {
         const conferences = getConferenceNames();
 
-        if (teamId === 'EGM') {
+        const primaryConferenceGmTeams = ['EGM', 'NGM'];
+        const secondaryConferenceGmTeams = ['WGM', 'SGM'];
+
+        if (primaryConferenceGmTeams.includes(teamId)) {
             return Array.from(allGms.values()).filter(gm => gm.conference === conferences.primary);
         }
-        if (teamId === 'WGM') {
+        if (secondaryConferenceGmTeams.includes(teamId)) {
             return Array.from(allGms.values()).filter(gm => gm.conference === conferences.secondary);
         }
 
@@ -565,16 +568,6 @@ function getRosterForTeam(teamId, week) {
         const westPlayers = awardSelections.get('all-stars-western')?.players || [];
         if (teamId === 'EAST') return eastPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
         if (teamId === 'WEST') return westPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-    }
-    else if (week === 'GM Game') {
-        const conferences = getConferenceNames();
-        if (teamId === 'EGM' || teamId === 'NGM') {
-            return Array.from(allGms.values()).filter(gm => gm.conference === conferences.primary);
-        }
-        if (teamId === 'WGM' || teamId === 'SGM') {
-            return Array.from(allGms.values()).filter(gm => gm.conference === conferences.secondary);
-        }
-        return Array.from(allGms.values());
     }
 
     return Array.from(allPlayers.values()).filter(p => p.current_team_id === teamId);
