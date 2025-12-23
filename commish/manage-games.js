@@ -547,8 +547,9 @@ function getRosterForTeam(teamId, week) {
         const secondaryDocId = isMinor ? 'all-stars-southern' : 'all-stars-western';
         const primaryPlayers = awardSelections.get(primaryDocId)?.players || [];
         const secondaryPlayers = awardSelections.get(secondaryDocId)?.players || [];
-        if (teamId === 'EAST') return primaryPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
-        if (teamId === 'WEST') return secondaryPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        // Handle both major league (EAST/WEST) and minor league (NAS/SAS) all-star team IDs
+        if (teamId === 'EAST' || teamId === 'NAS') return primaryPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
+        if (teamId === 'WEST' || teamId === 'SAS') return secondaryPlayers.map(p => allPlayers.get(p.player_id)).filter(Boolean);
     }
     else if (week === 'GM Game') {
         return Array.from(allGms.values());
