@@ -34,6 +34,29 @@ const API_HEADERS = {
     'Accept': 'application/json, text/plain, */*',
 };
 
+/**
+ * Attempts to resolve a player's current handle by querying their cards.
+ * Uses the cards API which returns user info including the current username.
+ * @param {string} playerId The player's ID.
+ * @returns {Promise<string|null>} The resolved player handle or null if resolution failed.
+ */
+const resolvePlayerHandle = async (playerId) => {
+    try {
+        const cardsResponse = await axios.get(
+            `https://api.real.vg/collectingcards/nba/season/2026/entity/play/user/${playerId}/cards?rarity=1&view=rating`,
+            { headers: API_HEADERS }
+        );
+
+        const cards = cardsResponse.data?.cards;
+        if (cards && cards.length > 0 && cards[0].user?.userName) {
+            return cards[0].user.userName;
+        }
+        return null;
+    } catch (error) {
+        console.error(`Failed to resolve handle for player ID ${playerId}:`, error.message);
+        return null;
+    }
+};
 
 /**
  * Fetches user data from the Real.vg API for a given player handle.
@@ -180,20 +203,42 @@ exports.updateAllProspectsScheduled = onSchedule({
                 // IDs match, handle is correct. Update ranked_days.
                 updates.ranked_days = handleData.daysTopHundred || 0;
             } else {
-                // MISMATCH FOUND! Set ranked_days to null and create a notification.
-                updates.ranked_days = null;
+                // MISMATCH FOUND! Try to resolve the handle using cards API first.
+                const resolvedHandle = await resolvePlayerHandle(prospect.player_id);
 
-                const notification = {
-                    type: 'HANDLE_ID_MISMATCH',
-                    message: `Handle/ID mismatch for player '${prospect.player_handle}'. The handle may have changed.`,
-                    player_handle: prospect.player_handle,
-                    player_id: prospect.player_id,
-                    status: 'unread',
-                    module: 'manage-draft',
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                };
-                await db.collection('notifications').add(notification);
-                console.warn(`Mismatch detected for handle: ${prospect.player_handle} (ID: ${prospect.player_id}). Notification created.`);
+                if (resolvedHandle) {
+                    // Successfully resolved - update the handle and fetch ranked_days with new handle
+                    console.log(`Auto-resolved handle mismatch: '${prospect.player_handle}' -> '${resolvedHandle}' (ID: ${prospect.player_id})`);
+                    updates.player_handle = resolvedHandle;
+
+                    // Fetch ranked_days using the new resolved handle
+                    try {
+                        const resolvedHandleResponse = await axios.get(`https://api.real.vg/user/${resolvedHandle}`, { headers: API_HEADERS });
+                        const resolvedHandleData = resolvedHandleResponse.data?.user;
+                        if (resolvedHandleData && resolvedHandleData.id === prospect.player_id) {
+                            updates.ranked_days = resolvedHandleData.daysTopHundred || 0;
+                        } else {
+                            updates.ranked_days = null;
+                        }
+                    } catch {
+                        updates.ranked_days = null;
+                    }
+                } else {
+                    // Resolution failed - set ranked_days to null and create a notification.
+                    updates.ranked_days = null;
+
+                    const notification = {
+                        type: 'HANDLE_ID_MISMATCH',
+                        message: `Handle/ID mismatch for player '${prospect.player_handle}'. The handle may have changed.`,
+                        player_handle: prospect.player_handle,
+                        player_id: prospect.player_id,
+                        status: 'unread',
+                        module: 'manage-draft',
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    };
+                    await db.collection('notifications').add(notification);
+                    console.warn(`Mismatch detected for handle: ${prospect.player_handle} (ID: ${prospect.player_id}). Notification created.`);
+                }
             }
 
             // Commit all updates for this player
@@ -258,20 +303,42 @@ exports.minor_updateAllProspectsScheduled = onSchedule({
                 // IDs match, handle is correct. Update ranked_days.
                 updates.ranked_days = handleData.daysTopHundred || 0;
             } else {
-                // MISMATCH FOUND! Set ranked_days to null and create a notification.
-                updates.ranked_days = null;
+                // MISMATCH FOUND! Try to resolve the handle using cards API first.
+                const resolvedHandle = await resolvePlayerHandle(prospect.player_id);
 
-                const notification = {
-                    type: 'HANDLE_ID_MISMATCH',
-                    message: `[Minor League] Handle/ID mismatch for player '${prospect.player_handle}'. The handle may have changed.`,
-                    player_handle: prospect.player_handle,
-                    player_id: prospect.player_id,
-                    status: 'unread',
-                    module: 'manage-draft',
-                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                };
-                await db.collection('notifications').add(notification);
-                console.warn(`Mismatch detected for handle: ${prospect.player_handle} (ID: ${prospect.player_id}). Notification created.`);
+                if (resolvedHandle) {
+                    // Successfully resolved - update the handle and fetch ranked_days with new handle
+                    console.log(`[Minor] Auto-resolved handle mismatch: '${prospect.player_handle}' -> '${resolvedHandle}' (ID: ${prospect.player_id})`);
+                    updates.player_handle = resolvedHandle;
+
+                    // Fetch ranked_days using the new resolved handle
+                    try {
+                        const resolvedHandleResponse = await axios.get(`https://api.real.vg/user/${resolvedHandle}`, { headers: API_HEADERS });
+                        const resolvedHandleData = resolvedHandleResponse.data?.user;
+                        if (resolvedHandleData && resolvedHandleData.id === prospect.player_id) {
+                            updates.ranked_days = resolvedHandleData.daysTopHundred || 0;
+                        } else {
+                            updates.ranked_days = null;
+                        }
+                    } catch {
+                        updates.ranked_days = null;
+                    }
+                } else {
+                    // Resolution failed - set ranked_days to null and create a notification.
+                    updates.ranked_days = null;
+
+                    const notification = {
+                        type: 'HANDLE_ID_MISMATCH',
+                        message: `[Minor League] Handle/ID mismatch for player '${prospect.player_handle}'. The handle may have changed.`,
+                        player_handle: prospect.player_handle,
+                        player_id: prospect.player_id,
+                        status: 'unread',
+                        module: 'manage-draft',
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    };
+                    await db.collection('notifications').add(notification);
+                    console.warn(`Mismatch detected for handle: ${prospect.player_handle} (ID: ${prospect.player_id}). Notification created.`);
+                }
             }
 
             // Commit all updates for this player
