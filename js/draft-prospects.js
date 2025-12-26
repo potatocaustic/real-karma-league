@@ -22,9 +22,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             <tr>
                 <td>${index + 1}</td>
                 <td>${prospect.player_handle}</td>
-                <td>${prospect.monthly_rank !== null ? prospect.monthly_rank : 'N/A'}</td>
-                <td class="mobile-hide">${prospect.karma.toLocaleString()}</td>
-                <td>${prospect.ranked_days}</td>
+                <td>${prospect.monthly_rank != null ? prospect.monthly_rank : 'N/A'}</td>
+                <td class="mobile-hide">${prospect.karma != null ? prospect.karma.toLocaleString() : 'N/A'}</td>
+                <td>${prospect.ranked_days != null ? prospect.ranked_days : 'N/A'}</td>
             </tr>
         `).join('');
 
