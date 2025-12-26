@@ -1,4 +1,4 @@
-import { db, collection, getDocs } from '/js/firebase-init.js';
+import { db, collection, getDocs, collectionNames } from '/js/firebase-init.js';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const tableBody = document.getElementById('prospects-table-body');
@@ -57,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     try {
-        const prospectsCollectionRef = collection(db, 'seasons/S9/draft_prospects');
+        const prospectsCollectionRef = collection(db, `${collectionNames.seasons}/S9/draft_prospects`);
         const querySnapshot = await getDocs(prospectsCollectionRef);
 
         prospectsData = querySnapshot.docs.map(doc => doc.data());
