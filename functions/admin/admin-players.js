@@ -820,6 +820,7 @@ exports.admin_batchCreatePlayers = onCall({ region: "us-central1" }, async (requ
 
             // Create the player document
             await playerRef.set({
+                player_id: playerId,
                 player_handle: handle,
                 current_team_id: setAsFreeAgent ? 'FREE_AGENT' : null,
                 player_status: 'ACTIVE'
