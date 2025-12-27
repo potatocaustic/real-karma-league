@@ -36,6 +36,21 @@
             useProdCollections: true
         };
     </script>
+    <style>
+        .dark-mode .management-section {
+            background-color: #1e1e1e !important;
+        }
+        .dark-mode .management-section h3,
+        .dark-mode .management-section p,
+        .dark-mode .management-section label {
+            color: #e0e0e0;
+        }
+        .dark-mode #free-agents-handles {
+            background-color: #2c2c2c;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -117,6 +132,20 @@
 
         <div style="text-align: right; margin-bottom: 1rem;">
             <button id="create-player-btn" class="btn-admin-edit">Create New Player</button>
+        </div>
+
+        <div class="management-section" style="background-color: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 2rem;">
+            <h3 style="margin-top: 0;">Manage Free Agent Pool</h3>
+            <p>Add players to the free agent tracking pool by entering their Real.vg handles. This will fetch their karma stats and track them on the Free Agents page.</p>
+            <form id="free-agents-form" style="margin-top: 1rem;">
+                <label for="free-agents-handles">Player Handles (comma-separated):</label>
+                <textarea id="free-agents-handles" placeholder="e.g., playerone, playertwo, playerthree" style="width: 100%; min-height: 80px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; margin-bottom: 1rem;"></textarea>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button type="submit" class="btn-admin-save">Add to Free Agent Pool</button>
+                    <button type="button" id="initialize-free-agents-btn" class="btn-admin-secondary">Initialize from Database</button>
+                </div>
+            </form>
+            <p id="free-agents-status" style="margin-top: 1rem; font-weight: 500;"></p>
         </div>
 
         <div id="players-list-container">

@@ -4,6 +4,7 @@ const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { admin, db } = require("../utils/firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
 const { getCollectionName, LEAGUES } = require('../utils/firebase-helpers');
+const { addFreeAgentInternal, removeFreeAgentInternal } = require('../free-agents');
 
 /**
  * Major League: Handles transaction creation and processing
@@ -158,6 +159,23 @@ exports.onTransactionCreate_V2 = onDocumentCreated(`transactions/{transactionId}
         batch.delete(originalTransactionRef);
 
         await batch.commit();
+
+        // Handle free agent pool updates after batch commit
+        for (const playerMove of involvedPlayers) {
+            const playerHandle = playerHandlesMap.get(playerMove.id) || 'Unknown';
+
+            // If player is being cut (moved to FREE_AGENT), add to free_agents collection
+            if (playerMove.to === 'FREE_AGENT' && transaction.type === 'CUT') {
+                await addFreeAgentInternal(playerMove.id, playerHandle, LEAGUES.MAJOR);
+                console.log(`Added ${playerHandle} to free_agents collection after CUT transaction.`);
+            }
+
+            // If player is being signed (moved from FREE_AGENT to a team), remove from free_agents
+            if (transaction.type === 'SIGN' && playerMove.to !== 'FREE_AGENT' && playerMove.to !== 'RETIRED') {
+                await removeFreeAgentInternal(playerMove.id, LEAGUES.MAJOR);
+                console.log(`Removed ${playerHandle} from free_agents collection after SIGN transaction.`);
+            }
+        }
 
         console.log(`V2 Transaction ${transactionId} processed successfully and moved to season ${activeSeasonId}.`);
 
@@ -321,6 +339,23 @@ exports.minor_onTransactionCreate_V2 = onDocumentCreated(`minor_transactions/{tr
         batch.delete(originalTransactionRef);
 
         await batch.commit();
+
+        // Handle free agent pool updates after batch commit
+        for (const playerMove of involvedPlayers) {
+            const playerHandle = playerHandlesMap.get(playerMove.id) || 'Unknown';
+
+            // If player is being cut (moved to FREE_AGENT), add to free_agents collection
+            if (playerMove.to === 'FREE_AGENT' && transaction.type === 'CUT') {
+                await addFreeAgentInternal(playerMove.id, playerHandle, LEAGUES.MINOR);
+                console.log(`[Minor] Added ${playerHandle} to free_agents collection after CUT transaction.`);
+            }
+
+            // If player is being signed (moved from FREE_AGENT to a team), remove from free_agents
+            if (transaction.type === 'SIGN' && playerMove.to !== 'FREE_AGENT' && playerMove.to !== 'RETIRED') {
+                await removeFreeAgentInternal(playerMove.id, LEAGUES.MINOR);
+                console.log(`[Minor] Removed ${playerHandle} from free_agents collection after SIGN transaction.`);
+            }
+        }
 
         console.log(`Minor League V2 Transaction ${transactionId} processed successfully and moved to season ${activeSeasonId}.`);
 
