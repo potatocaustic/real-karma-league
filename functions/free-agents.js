@@ -202,10 +202,27 @@ exports.addFreeAgents = onCall(async (request) => {
     let successCount = 0;
     let failedHandles = [];
 
+    let playersCreated = 0;
+
     const processingPromises = handles.map(async (handle) => {
         const freeAgentData = await fetchFreeAgentData(handle);
         if (freeAgentData) {
             try {
+                // Ensure player exists in v2_players collection
+                const playerRef = db.collection(getCollectionName('v2_players', league)).doc(freeAgentData.player_id);
+                const playerDoc = await playerRef.get();
+
+                if (!playerDoc.exists) {
+                    await playerRef.set({
+                        player_handle: freeAgentData.player_handle,
+                        current_team_id: 'FREE_AGENT',
+                        player_status: 'ACTIVE'
+                    });
+                    playersCreated++;
+                    console.log(`Created new v2_players document for ${handle} (${freeAgentData.player_id}).`);
+                }
+
+                // Add to free_agents collection
                 await freeAgentsCollectionRef.doc(freeAgentData.player_id).set(freeAgentData);
                 successCount++;
             } catch (error) {
@@ -220,6 +237,9 @@ exports.addFreeAgents = onCall(async (request) => {
     await Promise.all(processingPromises);
 
     let message = `${successCount} of ${handles.length} free agents were successfully added.`;
+    if (playersCreated > 0) {
+        message += ` ${playersCreated} new player(s) created in v2_players.`;
+    }
     if (failedHandles.length > 0) {
         message += ` Failed handles: ${failedHandles.join(', ')}.`;
     }
