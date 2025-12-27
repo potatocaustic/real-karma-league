@@ -126,6 +126,10 @@
         display: none;
     }
 
+    .sort-arrow {
+        display: none !important;
+    }
+
     .prospects-table th,
     .prospects-table td {
         padding: 0.8rem 0.75rem; /* Reduce padding on mobile */
