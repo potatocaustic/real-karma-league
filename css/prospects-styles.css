@@ -44,6 +44,11 @@
 .col-handle { width: 40%; }
 .col-rank, .col-karma, .col-days { width: 20%; text-align: center; }
 
+/* Abbreviated text for mobile - hidden by default */
+.abbr-text {
+    display: none;
+}
+
 /* Truncate excessively long player handles */
 .prospects-table td:nth-child(2) {
     max-width: 200px;
@@ -136,6 +141,14 @@
 
     .sort-arrow {
         display: none !important;
+    }
+
+    .full-text {
+        display: none;
+    }
+
+    .abbr-text {
+        display: inline;
     }
 
     .prospects-table th,
