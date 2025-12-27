@@ -6,6 +6,12 @@ const { FieldValue } = require("firebase-admin/firestore");
 const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/firebase-helpers');
 const { calculateMedian, calculateMean, calculateGeometricMean } = require('../utils/calculations');
 const { performPlayerRankingUpdate } = require('../utils/ranking-helpers');
+const axios = require("axios");
+
+const API_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    'Accept': 'application/json, text/plain, */*',
+};
 
 /**
  * Recalculates all seasonal stats for a specific player in a specific season.
@@ -750,4 +756,93 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
         console.error(`CRITICAL ERROR during player handle update for ${playerId}:`, error);
         throw new HttpsError('internal', `Player update failed: ${error.message}`);
     }
+});
+
+/**
+ * Batch creates player documents from a list of Real.vg handles.
+ * Fetches player_id from the API and uses it as the document ID.
+ * Admin-only function.
+ */
+exports.admin_batchCreatePlayers = onCall({ region: "us-central1" }, async (request) => {
+    const league = getLeagueFromRequest(request.data);
+
+    // Security Check
+    if (!request.auth) {
+        throw new HttpsError('unauthenticated', 'You must be logged in to perform this action.');
+    }
+    const userDoc = await db.collection(getCollectionName('users')).doc(request.auth.uid).get();
+    if (!userDoc.exists || userDoc.data().role !== 'admin') {
+        throw new HttpsError('permission-denied', 'You must be an admin to batch create players.');
+    }
+
+    const handlesString = request.data.handles;
+    const setAsFreeAgent = request.data.setAsFreeAgent !== false; // Default to true
+
+    if (!handlesString || typeof handlesString !== 'string') {
+        throw new HttpsError('invalid-argument', 'The function must be called with a string of handles.');
+    }
+
+    const handles = handlesString.split(',').map(h => h.trim()).filter(Boolean);
+
+    if (handles.length === 0) {
+        throw new HttpsError('invalid-argument', 'No valid handles provided.');
+    }
+
+    console.log(`ADMIN ACTION: Batch creating ${handles.length} players for ${league} league.`);
+
+    let successCount = 0;
+    let skippedCount = 0;
+    let failedHandles = [];
+
+    const processingPromises = handles.map(async (handle) => {
+        try {
+            // Fetch player data from Real.vg API
+            const userResponse = await axios.get(`https://api.real.vg/user/${handle}`, { headers: API_HEADERS });
+            const userData = userResponse.data?.user;
+
+            if (!userData || !userData.id) {
+                console.error(`Could not find user or user ID for handle: ${handle}`);
+                failedHandles.push(handle);
+                return;
+            }
+
+            const playerId = userData.id;
+
+            // Check if player already exists
+            const playerRef = db.collection(getCollectionName('v2_players', league)).doc(playerId);
+            const playerDoc = await playerRef.get();
+
+            if (playerDoc.exists) {
+                console.log(`Player ${handle} (${playerId}) already exists. Skipping.`);
+                skippedCount++;
+                return;
+            }
+
+            // Create the player document
+            await playerRef.set({
+                player_handle: handle,
+                current_team_id: setAsFreeAgent ? 'FREE_AGENT' : null,
+                player_status: 'ACTIVE'
+            });
+
+            console.log(`Created player document for ${handle} (${playerId}).`);
+            successCount++;
+
+        } catch (error) {
+            console.error(`Error processing handle ${handle}:`, error.message);
+            failedHandles.push(handle);
+        }
+    });
+
+    await Promise.all(processingPromises);
+
+    let message = `${successCount} of ${handles.length} players were successfully created.`;
+    if (skippedCount > 0) {
+        message += ` ${skippedCount} already existed.`;
+    }
+    if (failedHandles.length > 0) {
+        message += ` Failed handles: ${failedHandles.join(', ')}.`;
+    }
+
+    return { success: true, league, message };
 });
