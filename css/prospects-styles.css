@@ -44,6 +44,14 @@
 .col-handle { width: 40%; }
 .col-rank, .col-karma, .col-days { width: 20%; text-align: center; }
 
+/* Truncate excessively long player handles */
+.prospects-table td:nth-child(2) {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .prospects-table td:not(:first-child) {
     font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
     font-size: 1rem;
