@@ -214,6 +214,7 @@ exports.addFreeAgents = onCall(async (request) => {
 
                 if (!playerDoc.exists) {
                     await playerRef.set({
+                        player_id: freeAgentData.player_id,
                         player_handle: freeAgentData.player_handle,
                         current_team_id: 'FREE_AGENT',
                         player_status: 'ACTIVE'
