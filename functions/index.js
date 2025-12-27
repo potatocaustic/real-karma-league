@@ -204,3 +204,4 @@ exports.revokeActivationCode = activation.revokeActivationCode;
 exports.listActivationCodes = activation.listActivationCodes;
 
 module.exports = { ...module.exports, ...require('./draft-prospects') };
+module.exports = { ...module.exports, ...require('./free-agents') };

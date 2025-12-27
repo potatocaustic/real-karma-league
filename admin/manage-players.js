@@ -13,6 +13,10 @@ const closeModalBtn = playerModal.querySelector('.close-btn-admin');
 const playerForm = document.getElementById('player-form');
 const createPlayerBtn = document.getElementById('create-player-btn');
 const seasonSelect = document.getElementById('player-season-select');
+const freeAgentsForm = document.getElementById('free-agents-form');
+const freeAgentsHandlesInput = document.getElementById('free-agents-handles');
+const initializeFreeAgentsBtn = document.getElementById('initialize-free-agents-btn');
+const freeAgentsStatus = document.getElementById('free-agents-status');
 
 let allTeams = new Map();
 let currentSeasonId = "";
@@ -400,3 +404,65 @@ function addLogoutListener() {
         });
     }
 }
+
+// --- Free Agents Management ---
+freeAgentsForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const handles = freeAgentsHandlesInput.value.trim();
+
+    if (!handles) {
+        freeAgentsStatus.textContent = 'Please enter at least one player handle.';
+        freeAgentsStatus.style.color = '#dc3545';
+        return;
+    }
+
+    const submitBtn = freeAgentsForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Adding...';
+    freeAgentsStatus.textContent = 'Processing...';
+    freeAgentsStatus.style.color = '#666';
+
+    try {
+        const addFreeAgents = httpsCallable(functions, 'addFreeAgents');
+        const result = await addFreeAgents({ handles, league: getCurrentLeague() });
+
+        freeAgentsStatus.textContent = result.data.message;
+        freeAgentsStatus.style.color = '#28a745';
+        freeAgentsHandlesInput.value = '';
+    } catch (error) {
+        console.error('Error adding free agents:', error);
+        freeAgentsStatus.textContent = `Error: ${error.message}`;
+        freeAgentsStatus.style.color = '#dc3545';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Add to Free Agent Pool';
+    }
+});
+
+initializeFreeAgentsBtn.addEventListener('click', async () => {
+    const confirmation = confirm(
+        'This will scan all players in the database with FREE_AGENT status and add them to the free agent tracking pool. Continue?'
+    );
+
+    if (!confirmation) return;
+
+    initializeFreeAgentsBtn.disabled = true;
+    initializeFreeAgentsBtn.textContent = 'Initializing...';
+    freeAgentsStatus.textContent = 'Scanning database for free agents...';
+    freeAgentsStatus.style.color = '#666';
+
+    try {
+        const initializeFreeAgents = httpsCallable(functions, 'initializeFreeAgents');
+        const result = await initializeFreeAgents({ league: getCurrentLeague() });
+
+        freeAgentsStatus.textContent = result.data.message;
+        freeAgentsStatus.style.color = '#28a745';
+    } catch (error) {
+        console.error('Error initializing free agents:', error);
+        freeAgentsStatus.textContent = `Error: ${error.message}`;
+        freeAgentsStatus.style.color = '#dc3545';
+    } finally {
+        initializeFreeAgentsBtn.disabled = false;
+        initializeFreeAgentsBtn.textContent = 'Initialize from Database';
+    }
+});
