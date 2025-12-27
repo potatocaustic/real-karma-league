@@ -17,6 +17,10 @@ const freeAgentsForm = document.getElementById('free-agents-form');
 const freeAgentsHandlesInput = document.getElementById('free-agents-handles');
 const initializeFreeAgentsBtn = document.getElementById('initialize-free-agents-btn');
 const freeAgentsStatus = document.getElementById('free-agents-status');
+const batchPlayersForm = document.getElementById('batch-players-form');
+const batchPlayersHandlesInput = document.getElementById('batch-players-handles');
+const batchPlayersFreeAgentCheckbox = document.getElementById('batch-players-free-agent');
+const batchPlayersStatus = document.getElementById('batch-players-status');
 
 let allTeams = new Map();
 let currentSeasonId = "";
@@ -464,5 +468,43 @@ initializeFreeAgentsBtn.addEventListener('click', async () => {
     } finally {
         initializeFreeAgentsBtn.disabled = false;
         initializeFreeAgentsBtn.textContent = 'Initialize from Database';
+    }
+});
+
+// --- Batch Players Creation ---
+batchPlayersForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const handles = batchPlayersHandlesInput.value.trim();
+
+    if (!handles) {
+        batchPlayersStatus.textContent = 'Please enter at least one player handle.';
+        batchPlayersStatus.style.color = '#dc3545';
+        return;
+    }
+
+    const submitBtn = batchPlayersForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating...';
+    batchPlayersStatus.textContent = 'Processing...';
+    batchPlayersStatus.style.color = '#666';
+
+    try {
+        const admin_batchCreatePlayers = httpsCallable(functions, 'admin_batchCreatePlayers');
+        const result = await admin_batchCreatePlayers({
+            handles,
+            setAsFreeAgent: batchPlayersFreeAgentCheckbox.checked,
+            league: getCurrentLeague()
+        });
+
+        batchPlayersStatus.textContent = result.data.message;
+        batchPlayersStatus.style.color = '#28a745';
+        batchPlayersHandlesInput.value = '';
+    } catch (error) {
+        console.error('Error batch creating players:', error);
+        batchPlayersStatus.textContent = `Error: ${error.message}`;
+        batchPlayersStatus.style.color = '#dc3545';
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Players';
     }
 });

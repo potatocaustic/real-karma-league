@@ -170,6 +170,7 @@ exports.minor_scheduledLiveScoringShutdown = scoringScheduler.minor_scheduledLiv
 exports.admin_recalculatePlayerStats = adminPlayers.admin_recalculatePlayerStats;
 exports.admin_updatePlayerId = adminPlayers.admin_updatePlayerId;
 exports.admin_updatePlayerDetails = adminPlayers.admin_updatePlayerDetails;
+exports.admin_batchCreatePlayers = adminPlayers.admin_batchCreatePlayers;
 exports.gm_updatePlayerHandle = adminPlayers.gm_updatePlayerHandle;
 
 exports.rebrandTeam = adminTeams.rebrandTeam;
