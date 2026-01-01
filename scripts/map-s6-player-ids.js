@@ -31,7 +31,11 @@ const fs = require("fs");
 const path = require("path");
 
 // Initialize Firebase Admin SDK
+const serviceAccountPath = path.join(__dirname, '..', 'functions', 'scripts', 'serviceAccountKey.json');
+const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+
 admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
     projectId: "real-karma-league",
 });
 
