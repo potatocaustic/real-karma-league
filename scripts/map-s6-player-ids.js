@@ -18,9 +18,16 @@
  *   - RKL History - S6 Averages.csv (root dir) - Player weekly rankings
  *
  * OUTPUT FILES (in scripts/output/):
- *   - s6-player-id-mapping.json - Full mapping with details, rankings, and report
+ *   - s6-games-enhanced.json - Game-by-game data with player IDs and weekly rankings
  *   - s6-handle-to-id.json - Simple handle -> player_id mapping
- *   - s6-handle-to-rankings.json - Player weekly rankings (handle -> { W1: rank, W2: rank, ... })
+ *
+ * OUTPUT FORMAT (s6-games-enhanced.json):
+ *   Each game object is enhanced with:
+ *   - week: The week number (1-15) based on game date
+ *   - roster_a/roster_b: Array of player objects with:
+ *     - handle: Original player handle
+ *     - player_id: Firestore player ID (or null if not found)
+ *     - ranking: Player's ranking for that week (or null if not available)
  *
  * REPORTS:
  *   The script will print to console:
@@ -382,29 +389,36 @@ async function mapPlayerIds() {
         });
     }
 
-    // Step 7: Build player rankings by week
-    console.log("\n[7] Building player rankings by week...");
-    const playerRankingsByWeek = {};
-    for (const handle of uniqueHandles) {
-        const gameDates = playerGameDates.get(handle);
-        if (!gameDates) continue;
+    // Step 7: Build enhanced game-by-game output
+    console.log("\n[7] Building enhanced game-by-game output...");
 
-        const rankings = {};
-        for (const date of gameDates) {
-            const week = dateToWeek.get(date);
-            if (week && !rankings[`W${week}`]) {
-                const ranking = getPlayerRanking(handle, week, rankingsMap, aliasMap, primaryToAliases);
-                if (ranking !== null) {
-                    rankings[`W${week}`] = ranking;
-                }
-            }
-        }
+    /**
+     * Enhance a player handle with ID and ranking for a specific week
+     */
+    function enhancePlayer(handle, weekNum) {
+        const lowerHandle = handle.toLowerCase().trim();
+        const player_id = handleToId.get(lowerHandle) || null;
+        const ranking = getPlayerRanking(lowerHandle, weekNum, rankingsMap, aliasMap, primaryToAliases);
 
-        if (Object.keys(rankings).length > 0) {
-            playerRankingsByWeek[handle] = rankings;
-        }
+        return {
+            handle,
+            player_id,
+            ranking
+        };
     }
-    console.log(`   Found rankings for ${Object.keys(playerRankingsByWeek).length} players`);
+
+    const enhancedGames = games.map(game => {
+        const weekNum = dateToWeek.get(game.game_date);
+
+        return {
+            ...game,
+            week: weekNum,
+            roster_a: (game.roster_a || []).map(h => enhancePlayer(h, weekNum)),
+            roster_b: (game.roster_b || []).map(h => enhancePlayer(h, weekNum))
+        };
+    });
+
+    console.log(`   Enhanced ${enhancedGames.length} games with player IDs and rankings`);
 
     // Step 8: Generate report
     console.log("\n" + "=".repeat(60));
@@ -416,7 +430,7 @@ async function mapPlayerIds() {
     console.log(`✗ Not found: ${results.notFound.length}`);
     console.log(`─────────────────────────`);
     console.log(`  Total handles: ${uniqueHandles.size}`);
-    console.log(`  Players with rankings: ${Object.keys(playerRankingsByWeek).length}`);
+    console.log(`  Total games: ${enhancedGames.length}`);
 
     // Report: Players found via alias
     if (results.aliasMatch.length > 0) {
@@ -452,48 +466,21 @@ async function mapPlayerIds() {
         fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    // Build date-to-week object for output
-    const dateToWeekObj = Object.fromEntries(dateToWeek);
+    // Save the enhanced games output (primary output)
+    const enhancedGamesPath = path.join(outputDir, 's6-games-enhanced.json');
+    fs.writeFileSync(enhancedGamesPath, JSON.stringify(enhancedGames, null, 2));
+    console.log(`\n✓ Enhanced games saved to: ${enhancedGamesPath}`);
 
-    // Save the mapping
-    const mappingOutput = {
-        generated: new Date().toISOString(),
-        stats: {
-            total_handles: uniqueHandles.size,
-            direct_matches: results.directMatch.length,
-            alias_matches: results.aliasMatch.length,
-            not_found: results.notFound.length,
-            players_with_rankings: Object.keys(playerRankingsByWeek).length
-        },
-        date_to_week: dateToWeekObj,
-        handle_to_id: Object.fromEntries(handleToId),
-        handle_to_rankings: playerRankingsByWeek,
-        details: {
-            direct_matches: results.directMatch,
-            alias_matches: results.aliasMatch,
-            not_found: results.notFound
-        }
-    };
-
-    const mappingPath = path.join(outputDir, 's6-player-id-mapping.json');
-    fs.writeFileSync(mappingPath, JSON.stringify(mappingOutput, null, 2));
-    console.log(`\n✓ Full mapping saved to: ${mappingPath}`);
-
-    // Also create a simple handle->id map file
+    // Also create a simple handle->id map file for reference
     const simpleMapPath = path.join(outputDir, 's6-handle-to-id.json');
     fs.writeFileSync(simpleMapPath, JSON.stringify(Object.fromEntries(handleToId), null, 2));
-    console.log(`✓ Simple mapping saved to: ${simpleMapPath}`);
-
-    // Create a rankings file
-    const rankingsPath = path.join(outputDir, 's6-handle-to-rankings.json');
-    fs.writeFileSync(rankingsPath, JSON.stringify(playerRankingsByWeek, null, 2));
-    console.log(`✓ Rankings mapping saved to: ${rankingsPath}`);
+    console.log(`✓ Handle-to-ID mapping saved to: ${simpleMapPath}`);
 
     console.log("\n" + "=".repeat(60));
     console.log("Script completed successfully!");
     console.log("=".repeat(60));
 
-    return mappingOutput;
+    return enhancedGames;
 }
 
 // Run the script
