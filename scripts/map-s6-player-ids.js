@@ -341,9 +341,11 @@ async function mapPlayerIds() {
             continue;
         }
 
-        // Try alias lookup (handle is an alias -> find primary in Firestore)
+        // Try alias lookup (handle is an alias -> find primary or sibling alias in Firestore)
         if (aliasMap.has(handle)) {
             const primaryHandle = aliasMap.get(handle);
+
+            // First check if primary is in Firestore
             if (firestorePlayers.has(primaryHandle)) {
                 const player = firestorePlayers.get(primaryHandle);
                 results.aliasMatch.push({
@@ -355,6 +357,28 @@ async function mapPlayerIds() {
                 });
                 handleToId.set(handle, player.player_id);
                 continue;
+            }
+
+            // Primary not in Firestore - check if any sibling aliases are in Firestore
+            if (primaryToAliases.has(primaryHandle)) {
+                const siblingAliases = primaryToAliases.get(primaryHandle);
+                let found = false;
+                for (const sibling of siblingAliases) {
+                    if (sibling !== handle && firestorePlayers.has(sibling)) {
+                        const player = firestorePlayers.get(sibling);
+                        results.aliasMatch.push({
+                            handle,
+                            alias_of: sibling,
+                            player_id: player.player_id,
+                            firestore_handle: player.player_handle,
+                            note: `Handle is alias of "${primaryHandle}", sibling alias in Firestore`
+                        });
+                        handleToId.set(handle, player.player_id);
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) continue;
             }
         }
 
