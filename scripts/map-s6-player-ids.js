@@ -8,7 +8,10 @@
  *   $ cd functions && node ../scripts/map-s6-player-ids.js
  *
  * PREREQUISITES:
- *   - Firebase Admin SDK credentials (Application Default Credentials or service account)
+ *   - Firebase Admin SDK credentials (service account key or Application Default Credentials)
+ *     - Set GOOGLE_APPLICATION_CREDENTIALS to a service account JSON file, or
+ *     - Place serviceAccountKey.json at functions/scripts/serviceAccountKey.json, or
+ *     - Configure Application Default Credentials via gcloud
  *   - npm install in the functions directory
  *
  * INPUT FILES:
@@ -31,11 +34,34 @@ const fs = require("fs");
 const path = require("path");
 
 // Initialize Firebase Admin SDK
-const serviceAccountPath = path.join(__dirname, '..', 'functions', 'scripts', 'serviceAccountKey.json');
-const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8'));
+const rootDir = path.join(__dirname, '..');
+const serviceAccountPath = path.join(rootDir, 'functions', 'scripts', 'serviceAccountKey.json');
+const googleApplicationCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+
+function resolveFirebaseCredential() {
+    if (googleApplicationCredentials && !fs.existsSync(googleApplicationCredentials)) {
+        throw new Error(
+            `GOOGLE_APPLICATION_CREDENTIALS points to a missing file: ${googleApplicationCredentials}`
+        );
+    }
+
+    if (googleApplicationCredentials) {
+        return admin.credential.cert(JSON.parse(fs.readFileSync(googleApplicationCredentials, 'utf-8')));
+    }
+
+    if (fs.existsSync(serviceAccountPath)) {
+        return admin.credential.cert(JSON.parse(fs.readFileSync(serviceAccountPath, 'utf-8')));
+    }
+
+    console.warn(
+        "No service account key found. Falling back to Application Default Credentials. " +
+            "Set GOOGLE_APPLICATION_CREDENTIALS or place a serviceAccountKey.json in functions/scripts."
+    );
+    return admin.credential.applicationDefault();
+}
 
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
+    credential: resolveFirebaseCredential(),
     projectId: "real-karma-league",
 });
 
@@ -143,7 +169,6 @@ async function fetchAllPlayers() {
  * Main function to map player handles to IDs
  */
 async function mapPlayerIds() {
-    const rootDir = path.join(__dirname, '..');
     const jsonPath = path.join(rootDir, 'manual_extract_simplified.json');
     const csvPath = path.join(rootDir, 'RKL History - Full Player Stats.csv');
 
