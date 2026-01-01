@@ -1,7 +1,8 @@
 /**
  * map-s6-player-ids.js
  *
- * Maps player handles from season 6 lineup data to their Firestore player IDs.
+ * Maps player handles from season 6 lineup data to their Firestore player IDs
+ * and weekly rankings.
  *
  * USAGE:
  *   Run from the functions directory (where node_modules are installed):
@@ -14,14 +15,17 @@
  * INPUT FILES:
  *   - manual_extract_simplified.json (root dir) - Season 6 lineup data
  *   - RKL History - Full Player Stats.csv (root dir) - Player aliases in parentheses
+ *   - RKL History - S6 Averages.csv (root dir) - Player weekly rankings
  *
  * OUTPUT FILES (in scripts/output/):
- *   - s6-player-id-mapping.json - Full mapping with details and report
+ *   - s6-player-id-mapping.json - Full mapping with details, rankings, and report
  *   - s6-handle-to-id.json - Simple handle -> player_id mapping
+ *   - s6-handle-to-rankings.json - Player weekly rankings (handle -> { W1: rank, W2: rank, ... })
  *
  * REPORTS:
  *   The script will print to console:
  *   - Summary of matches (direct, alias, not found)
+ *   - Date-to-week mapping (3 game dates per week)
  *   - List of players found via alias lookup
  *   - List of players not found in Firestore
  */
@@ -40,6 +44,85 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
+
+/**
+ * Parse the S6 Averages CSV to extract weekly rankings
+ * Format: #,PLAYER,AVERAGE,GEM,T100,T50,GP,W1,W2,...,W15
+ * Returns a Map: lowercase_handle -> { rank, weeklyRankings: { W1: rank, W2: rank, ... } }
+ */
+function parseWeeklyRankings(csvPath) {
+    const content = fs.readFileSync(csvPath, 'utf-8');
+    const lines = content.split('\n');
+
+    // Map from lowercase player handle -> { rank, weeklyRankings }
+    const rankingsMap = new Map();
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const columns = line.split(',');
+        if (columns.length < 7) continue;
+
+        const overallRank = parseInt(columns[0], 10);
+        // Player column may have aliases in parentheses, extract primary handle
+        const playerField = columns[1];
+        const primaryHandle = playerField.replace(/\s*\([^)]+\)/g, '').toLowerCase().trim();
+
+        // Also extract aliases from the player field
+        const aliases = [];
+        const aliasMatches = playerField.match(/\(([^)]+)\)/g);
+        if (aliasMatches) {
+            for (const match of aliasMatches) {
+                aliases.push(match.slice(1, -1).toLowerCase().trim());
+            }
+        }
+
+        // Weekly rankings are in columns 7-21 (W1-W15)
+        const weeklyRankings = {};
+        for (let w = 1; w <= 15; w++) {
+            const colIndex = 6 + w; // W1 is at index 7
+            if (colIndex < columns.length) {
+                const rankVal = columns[colIndex].trim();
+                if (rankVal !== '') {
+                    weeklyRankings[`W${w}`] = parseInt(rankVal, 10);
+                }
+            }
+        }
+
+        const playerData = { rank: overallRank, weeklyRankings };
+
+        // Store for primary handle
+        rankingsMap.set(primaryHandle, playerData);
+
+        // Also store for aliases so we can look them up
+        for (const alias of aliases) {
+            if (!rankingsMap.has(alias)) {
+                rankingsMap.set(alias, playerData);
+            }
+        }
+    }
+
+    return rankingsMap;
+}
+
+/**
+ * Build a mapping from game dates to week numbers
+ * Regular season: 3 unique game dates per week
+ */
+function buildDateToWeekMap(games) {
+    // Extract unique dates and sort them
+    const uniqueDates = [...new Set(games.map(g => g.game_date))].sort();
+
+    // Group by 3 dates per week
+    const dateToWeek = new Map();
+    for (let i = 0; i < uniqueDates.length; i++) {
+        const weekNum = Math.floor(i / 3) + 1;
+        dateToWeek.set(uniqueDates[i], weekNum);
+    }
+
+    return dateToWeek;
+}
 
 /**
  * Parse the CSV file to extract alias mappings
@@ -91,28 +174,36 @@ function parseAliasesFromCSV(csvPath) {
 }
 
 /**
- * Extract unique player handles from the lineup JSON
+ * Extract player handles and their game appearances from the lineup JSON
+ * Returns { games, uniqueHandles, playerGameDates }
  */
 function extractPlayerHandles(jsonPath) {
     const content = fs.readFileSync(jsonPath, 'utf-8');
     const games = JSON.parse(content);
 
     const handles = new Set();
+    // Map from handle -> Set of game dates they played
+    const playerGameDates = new Map();
 
     for (const game of games) {
-        if (game.roster_a && Array.isArray(game.roster_a)) {
-            for (const handle of game.roster_a) {
-                handles.add(handle.toLowerCase().trim());
+        const gameDate = game.game_date;
+        const allPlayers = [
+            ...(game.roster_a || []),
+            ...(game.roster_b || [])
+        ];
+
+        for (const handle of allPlayers) {
+            const lowerHandle = handle.toLowerCase().trim();
+            handles.add(lowerHandle);
+
+            if (!playerGameDates.has(lowerHandle)) {
+                playerGameDates.set(lowerHandle, new Set());
             }
-        }
-        if (game.roster_b && Array.isArray(game.roster_b)) {
-            for (const handle of game.roster_b) {
-                handles.add(handle.toLowerCase().trim());
-            }
+            playerGameDates.get(lowerHandle).add(gameDate);
         }
     }
 
-    return handles;
+    return { games, uniqueHandles: handles, playerGameDates };
 }
 
 /**
@@ -140,12 +231,47 @@ async function fetchAllPlayers() {
 }
 
 /**
+ * Look up a player's ranking for a specific week
+ */
+function getPlayerRanking(handle, weekNum, rankingsMap, aliasMap, primaryToAliases) {
+    const weekKey = `W${weekNum}`;
+
+    // Try direct lookup
+    if (rankingsMap.has(handle)) {
+        const data = rankingsMap.get(handle);
+        return data.weeklyRankings[weekKey] || null;
+    }
+
+    // Try via alias -> primary
+    if (aliasMap.has(handle)) {
+        const primaryHandle = aliasMap.get(handle);
+        if (rankingsMap.has(primaryHandle)) {
+            const data = rankingsMap.get(primaryHandle);
+            return data.weeklyRankings[weekKey] || null;
+        }
+    }
+
+    // Try via primary -> alias
+    if (primaryToAliases.has(handle)) {
+        for (const alias of primaryToAliases.get(handle)) {
+            if (rankingsMap.has(alias)) {
+                const data = rankingsMap.get(alias);
+                return data.weeklyRankings[weekKey] || null;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
  * Main function to map player handles to IDs
  */
 async function mapPlayerIds() {
     const rootDir = path.join(__dirname, '..');
     const jsonPath = path.join(rootDir, 'manual_extract_simplified.json');
     const csvPath = path.join(rootDir, 'RKL History - Full Player Stats.csv');
+    const rankingsCsvPath = path.join(rootDir, 'RKL History - S6 Averages.csv');
 
     console.log("=".repeat(60));
     console.log("Season 6 Player ID Mapping Script");
@@ -156,17 +282,36 @@ async function mapPlayerIds() {
     const { aliasMap, primaryToAliases } = parseAliasesFromCSV(csvPath);
     console.log(`   Found ${aliasMap.size} aliases mapping to ${primaryToAliases.size} primary handles`);
 
-    // Step 2: Extract player handles from JSON
-    console.log("\n[2] Extracting player handles from lineup data...");
-    const uniqueHandles = extractPlayerHandles(jsonPath);
-    console.log(`   Found ${uniqueHandles.size} unique player handles`);
+    // Step 2: Parse weekly rankings from S6 Averages CSV
+    console.log("\n[2] Parsing weekly rankings from S6 Averages CSV...");
+    const rankingsMap = parseWeeklyRankings(rankingsCsvPath);
+    console.log(`   Found rankings for ${rankingsMap.size} players`);
 
-    // Step 3: Fetch players from Firestore
-    console.log("\n[3] Fetching players from Firestore...");
+    // Step 3: Extract player handles from JSON
+    console.log("\n[3] Extracting player handles from lineup data...");
+    const { games, uniqueHandles, playerGameDates } = extractPlayerHandles(jsonPath);
+    console.log(`   Found ${uniqueHandles.size} unique player handles across ${games.length} games`);
+
+    // Step 4: Build date-to-week mapping
+    console.log("\n[4] Building date-to-week mapping...");
+    const dateToWeek = buildDateToWeekMap(games);
+    console.log(`   Mapped ${dateToWeek.size} unique dates to weeks`);
+    // Log the mapping for reference
+    const weekDates = new Map();
+    for (const [date, week] of dateToWeek) {
+        if (!weekDates.has(week)) weekDates.set(week, []);
+        weekDates.get(week).push(date);
+    }
+    for (const [week, dates] of [...weekDates.entries()].sort((a, b) => a[0] - b[0])) {
+        console.log(`   Week ${week}: ${dates.join(', ')}`);
+    }
+
+    // Step 5: Fetch players from Firestore
+    console.log("\n[5] Fetching players from Firestore...");
     const firestorePlayers = await fetchAllPlayers();
 
-    // Step 4: Map handles to IDs
-    console.log("\n[4] Mapping handles to player IDs...");
+    // Step 6: Map handles to IDs
+    console.log("\n[6] Mapping handles to player IDs...");
 
     const results = {
         directMatch: [],      // Found directly by handle
@@ -189,7 +334,7 @@ async function mapPlayerIds() {
             continue;
         }
 
-        // Try alias lookup
+        // Try alias lookup (handle is an alias -> find primary in Firestore)
         if (aliasMap.has(handle)) {
             const primaryHandle = aliasMap.get(handle);
             if (firestorePlayers.has(primaryHandle)) {
@@ -198,7 +343,8 @@ async function mapPlayerIds() {
                     handle,
                     alias_of: primaryHandle,
                     player_id: player.player_id,
-                    firestore_handle: player.player_handle
+                    firestore_handle: player.player_handle,
+                    note: "Handle is alias, primary found in Firestore"
                 });
                 handleToId.set(handle, player.player_id);
                 continue;
@@ -236,7 +382,31 @@ async function mapPlayerIds() {
         });
     }
 
-    // Step 5: Generate report
+    // Step 7: Build player rankings by week
+    console.log("\n[7] Building player rankings by week...");
+    const playerRankingsByWeek = {};
+    for (const handle of uniqueHandles) {
+        const gameDates = playerGameDates.get(handle);
+        if (!gameDates) continue;
+
+        const rankings = {};
+        for (const date of gameDates) {
+            const week = dateToWeek.get(date);
+            if (week && !rankings[`W${week}`]) {
+                const ranking = getPlayerRanking(handle, week, rankingsMap, aliasMap, primaryToAliases);
+                if (ranking !== null) {
+                    rankings[`W${week}`] = ranking;
+                }
+            }
+        }
+
+        if (Object.keys(rankings).length > 0) {
+            playerRankingsByWeek[handle] = rankings;
+        }
+    }
+    console.log(`   Found rankings for ${Object.keys(playerRankingsByWeek).length} players`);
+
+    // Step 8: Generate report
     console.log("\n" + "=".repeat(60));
     console.log("RESULTS SUMMARY");
     console.log("=".repeat(60));
@@ -246,6 +416,7 @@ async function mapPlayerIds() {
     console.log(`✗ Not found: ${results.notFound.length}`);
     console.log(`─────────────────────────`);
     console.log(`  Total handles: ${uniqueHandles.size}`);
+    console.log(`  Players with rankings: ${Object.keys(playerRankingsByWeek).length}`);
 
     // Report: Players found via alias
     if (results.aliasMatch.length > 0) {
@@ -281,6 +452,9 @@ async function mapPlayerIds() {
         fs.mkdirSync(outputDir, { recursive: true });
     }
 
+    // Build date-to-week object for output
+    const dateToWeekObj = Object.fromEntries(dateToWeek);
+
     // Save the mapping
     const mappingOutput = {
         generated: new Date().toISOString(),
@@ -288,9 +462,12 @@ async function mapPlayerIds() {
             total_handles: uniqueHandles.size,
             direct_matches: results.directMatch.length,
             alias_matches: results.aliasMatch.length,
-            not_found: results.notFound.length
+            not_found: results.notFound.length,
+            players_with_rankings: Object.keys(playerRankingsByWeek).length
         },
+        date_to_week: dateToWeekObj,
         handle_to_id: Object.fromEntries(handleToId),
+        handle_to_rankings: playerRankingsByWeek,
         details: {
             direct_matches: results.directMatch,
             alias_matches: results.aliasMatch,
@@ -306,6 +483,11 @@ async function mapPlayerIds() {
     const simpleMapPath = path.join(outputDir, 's6-handle-to-id.json');
     fs.writeFileSync(simpleMapPath, JSON.stringify(Object.fromEntries(handleToId), null, 2));
     console.log(`✓ Simple mapping saved to: ${simpleMapPath}`);
+
+    // Create a rankings file
+    const rankingsPath = path.join(outputDir, 's6-handle-to-rankings.json');
+    fs.writeFileSync(rankingsPath, JSON.stringify(playerRankingsByWeek, null, 2));
+    console.log(`✓ Rankings mapping saved to: ${rankingsPath}`);
 
     console.log("\n" + "=".repeat(60));
     console.log("Script completed successfully!");
