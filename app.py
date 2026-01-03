@@ -63,6 +63,12 @@ def _init_db(con: sqlite3.Connection):
         ("seed_a", "TEXT"),      # Postseason seed
         ("seed_b", "TEXT"),
         ("round_name", "TEXT"),  # e.g., "RKL Finals", "Round 1"
+        # Result-specific fields
+        ("score_a", "REAL"),     # Team A score
+        ("score_b", "REAL"),     # Team B score
+        ("winner", "TEXT"),      # "A", "B", or null
+        ("adjustment_a", "REAL"),  # Score adjustment for team A
+        ("adjustment_b", "REAL"),  # Score adjustment for team B
     ]
     for col_name, col_type in migrations:
         try:
@@ -106,9 +112,217 @@ REALAPP_EMOJI_RE = re.compile(r":[a-z_0-9]+")
 
 # Postseason patterns
 # Round names like "RKL Finals", "Round 1", "Semifinals", "Quarter Finals", etc.
-ROUND_NAME_RE = re.compile(r"^(RKL\s+Finals|Finals|Semi\s*-?\s*Finals?|Quarter\s*-?\s*Finals?|Round\s+\d+|Playoffs?\s+Round\s+\d+|Wild\s*Card)", re.IGNORECASE)
+ROUND_NAME_RE = re.compile(r"(RKL\s+Finals|Finals|Semi\s*-?\s*Finals?|Quarter\s*-?\s*Finals?|Round\s+\d+|Playoffs?\s+Round\s+\d+|Wild\s*Card|Game\s+\d+)", re.IGNORECASE)
 # Seed pattern: "1 TeamName" or "(1) TeamName" or "1. TeamName" at start of line
 SEED_TEAM_RE = re.compile(r"^\s*(?:\((\d+)\)|(\d+)\.?\s+)(.+?)(?:\s*\(\d+-\d+\))?\s*$")
+
+# ----------------------------
+# Result parsing patterns
+# ----------------------------
+# Win/loss indicators (including RealApp emoji)
+WIN_INDICATOR_RE = re.compile(r"(✅+|:check_mark_button|🏆)")
+LOSS_INDICATOR_RE = re.compile(r"(❌|:cross_mark)")
+
+# Score patterns - matches numbers with commas and optional decimals
+# Examples: 34,565 or 47,547.5 or 51458
+SCORE_EXTRACT_RE = re.compile(r"([\d,]+(?:\.\d+)?)")
+
+# Result line patterns - several variations seen in the data
+# Pattern 1: "(seed) TeamName (W-L) - 34,565 ✅" or "seed. TeamName (W-L): 51,458 ✅✅✅"
+RESULT_FULL_RE = re.compile(
+    r"^\s*(?:\((\d+)\)\s*|(\d+)\.\s*)?(.+?)\s*\((\d+)-(\d+)(?:-\d+)?\)\s*[-–:]\s*([\d,]+(?:\.\d+)?)\s*(.*)$",
+    re.UNICODE
+)
+
+# Pattern 2: Simple "TeamName - Score" without record (for adjustments)
+ADJUSTMENT_LINE_RE = re.compile(
+    r"^\s*([A-Za-z][A-Za-z0-9\s]+?)\s+([+-]?\d[\d,]*(?:\.\d+)?)\s*$"
+)
+
+# Adjustment header patterns
+ADJUSTMENT_HEADER_RE = re.compile(
+    r"(advent\s+deduction|deduction|adjustment|penalty|bonus)",
+    re.IGNORECASE
+)
+
+# Separator lines (dashes)
+SEPARATOR_RE = re.compile(r"^[-–—]{3,}$")
+
+def parse_score(score_str: str) -> float | None:
+    """Parse a score string like '34,565' or '47,547.5' to a float."""
+    if not score_str:
+        return None
+    try:
+        # Remove commas and parse
+        return float(score_str.replace(",", ""))
+    except ValueError:
+        return None
+
+def detect_winner(line: str) -> str | None:
+    """Detect if a line indicates a win or loss."""
+    if WIN_INDICATOR_RE.search(line):
+        return "win"
+    if LOSS_INDICATOR_RE.search(line):
+        return "loss"
+    return None
+
+def parse_result_line(line: str) -> dict | None:
+    """
+    Parse a single result line.
+    Returns: {team, record_w, record_l, score, seed, winner} or None
+    """
+    line = line.strip()
+    if not line:
+        return None
+
+    m = RESULT_FULL_RE.match(line)
+    if m:
+        seed = m.group(1) or m.group(2)  # (seed) or seed.
+        team = m.group(3).strip()
+        record_w = int(m.group(4))
+        record_l = int(m.group(5))
+        score_str = m.group(6)
+        trailing = m.group(7) or ""
+
+        # Clean team name (remove leading seed if duplicated)
+        team = re.sub(r"^\d+\.\s*", "", team).strip()
+
+        score = parse_score(score_str)
+        winner = detect_winner(trailing)
+
+        return {
+            "team": team,
+            "record_w": record_w,
+            "record_l": record_l,
+            "score": score,
+            "seed": seed,
+            "winner": winner,
+        }
+    return None
+
+def parse_adjustment_line(line: str) -> dict | None:
+    """
+    Parse an adjustment line like "Diabetics -1950".
+    Returns: {team, adjustment} or None
+    """
+    m = ADJUSTMENT_LINE_RE.match(line.strip())
+    if m:
+        team = m.group(1).strip()
+        adj_str = m.group(2).replace(",", "")
+        try:
+            adjustment = float(adj_str)
+            return {"team": team, "adjustment": adjustment}
+        except ValueError:
+            return None
+    return None
+
+def extract_game_result(text: str) -> dict | None:
+    """
+    Extract game result data from a results post.
+    Returns: {
+        team_a, team_b, score_a, score_b,
+        record_a_w, record_a_l, record_b_w, record_b_l,
+        seed_a, seed_b, winner,
+        adjustment_a, adjustment_b,
+        round_name
+    } or None
+    """
+    if not text:
+        return None
+
+    lines = text.splitlines()
+    result_lines = []
+    adjustments = []
+    in_adjustment_section = False
+    round_name = None
+
+    for ln in lines:
+        ln_stripped = ln.strip()
+
+        # Check for round name in first few lines
+        if len(result_lines) == 0 and not round_name:
+            m = ROUND_NAME_RE.search(ln_stripped)
+            if m:
+                # Take the whole line as round name (e.g., "👑 RKL FINALS GAME 5 👑")
+                round_name = ln_stripped
+                continue
+
+        # Skip separator lines
+        if SEPARATOR_RE.match(ln_stripped):
+            continue
+
+        # Check for adjustment section header
+        if ADJUSTMENT_HEADER_RE.search(ln_stripped):
+            in_adjustment_section = True
+            continue
+
+        # Parse result lines
+        parsed = parse_result_line(ln_stripped)
+        if parsed:
+            result_lines.append(parsed)
+            continue
+
+        # Parse adjustment lines (if in adjustment section or looks like one)
+        if in_adjustment_section or (len(result_lines) >= 2):
+            adj = parse_adjustment_line(ln_stripped)
+            if adj:
+                adjustments.append(adj)
+
+    # Need at least 2 result lines for a game
+    if len(result_lines) < 2:
+        return None
+
+    # Take the first two as the teams
+    team_a_data = result_lines[0]
+    team_b_data = result_lines[1]
+
+    # Determine winner
+    winner = None
+    if team_a_data.get("winner") == "win":
+        winner = "A"
+    elif team_b_data.get("winner") == "win":
+        winner = "B"
+    elif team_a_data.get("winner") == "loss":
+        winner = "B"
+    elif team_b_data.get("winner") == "loss":
+        winner = "A"
+    # Fallback: higher score wins
+    elif team_a_data.get("score") and team_b_data.get("score"):
+        if team_a_data["score"] > team_b_data["score"]:
+            winner = "A"
+        elif team_b_data["score"] > team_a_data["score"]:
+            winner = "B"
+
+    # Match adjustments to teams
+    adjustment_a = None
+    adjustment_b = None
+    team_a_lower = team_a_data["team"].lower()
+    team_b_lower = team_b_data["team"].lower()
+
+    for adj in adjustments:
+        adj_team_lower = adj["team"].lower()
+        # Fuzzy match team names
+        if adj_team_lower in team_a_lower or team_a_lower in adj_team_lower:
+            adjustment_a = adj["adjustment"]
+        elif adj_team_lower in team_b_lower or team_b_lower in adj_team_lower:
+            adjustment_b = adj["adjustment"]
+
+    return {
+        "team_a": team_a_data["team"],
+        "team_b": team_b_data["team"],
+        "score_a": team_a_data.get("score"),
+        "score_b": team_b_data.get("score"),
+        "record_a_w": team_a_data.get("record_w"),
+        "record_a_l": team_a_data.get("record_l"),
+        "record_b_w": team_b_data.get("record_w"),
+        "record_b_l": team_b_data.get("record_l"),
+        "seed_a": team_a_data.get("seed"),
+        "seed_b": team_b_data.get("seed"),
+        "winner": winner,
+        "adjustment_a": adjustment_a,
+        "adjustment_b": adjustment_b,
+        "round_name": round_name,
+    }
 
 def detect_postseason_info(text: str):
     """
@@ -475,7 +689,7 @@ def infer_game_date(thread_created_ts: str | None) -> str | None:
         return eastern_date.isoformat()
     return None
 
-def auto_extract_comment(thread_id: int, comment_id: int, source: str, 
+def auto_extract_comment(thread_id: int, comment_id: int, source: str,
                           text: str, thread_text: str, thread_created_ts: str) -> dict | None:
     """
     Automatically extract data from a comment.
@@ -483,40 +697,67 @@ def auto_extract_comment(thread_id: int, comment_id: int, source: str,
     """
     if not text:
         return None
-    
+
     combined_text = (thread_text or "") + "\n\n" + text
-    
+
     # Detect type
     kind = guess_kind(text)
-    
-    # Only auto-extract lineups (most reliable format)
-    # Skip results/leaderboards/other as they have different structures
+
+    # Get game date from thread
+    game_date = infer_game_date(thread_created_ts)
+
+    # Handle results
+    if kind == "result":
+        result = extract_game_result(text)
+        if result and result.get("team_a") and result.get("team_b"):
+            return {
+                "thread_id": thread_id,
+                "comment_id": comment_id,
+                "source": source,
+                "kind": kind,
+                "game_date": game_date,
+                "team_a": result["team_a"],
+                "team_b": result["team_b"],
+                "captain_a": None,
+                "captain_b": None,
+                "mentions_a": None,
+                "mentions_b": None,
+                "seed_a": result.get("seed_a"),
+                "seed_b": result.get("seed_b"),
+                "round_name": result.get("round_name"),
+                "score_a": result.get("score_a"),
+                "score_b": result.get("score_b"),
+                "winner": result.get("winner"),
+                "adjustment_a": result.get("adjustment_a"),
+                "adjustment_b": result.get("adjustment_b"),
+                "raw_text": text,
+            }
+        return None
+
+    # Handle lineups (original logic)
     if kind != "lineup":
         return None
-    
+
     # Get teams
     team_a, team_b = guess_teams(combined_text)
-    
+
     # Need at least one team to be a valid extraction
     if not team_a and not team_b:
         return None
-    
+
     # Get mentions by team
     mentions_a, mentions_b, all_mentions = extract_mentions_by_team(text)
-    
+
     # Need some mentions to be useful
     if not mentions_a and not mentions_b:
         return None
-    
+
     # Get captains
     captain_a, captain_b, _ = detect_captains(text)
-    
+
     # Get postseason info
     round_name, seed_a, seed_b = detect_postseason_info(text)
-    
-    # Get game date from thread
-    game_date = infer_game_date(thread_created_ts)
-    
+
     return {
         "thread_id": thread_id,
         "comment_id": comment_id,
@@ -532,6 +773,11 @@ def auto_extract_comment(thread_id: int, comment_id: int, source: str,
         "seed_a": seed_a,
         "seed_b": seed_b,
         "round_name": round_name,
+        "score_a": None,
+        "score_b": None,
+        "winner": None,
+        "adjustment_a": None,
+        "adjustment_b": None,
         "raw_text": text,
     }
 
@@ -572,15 +818,17 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
                   INSERT INTO manual_extract(
                     created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                     mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                    seed_a, seed_b, round_name
-                  ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
+                  ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     result["thread_id"], result["comment_id"], result["source"],
                     result["kind"], result["game_date"], result["team_a"], result["team_b"],
                     "", "auto-extracted", result["raw_text"],
                     result["captain_a"], result["captain_b"],
                     result["mentions_a"], result["mentions_b"],
-                    result["seed_a"], result["seed_b"], result["round_name"]
+                    result["seed_a"], result["seed_b"], result["round_name"],
+                    result.get("score_a"), result.get("score_b"), result.get("winner"),
+                    result.get("adjustment_a"), result.get("adjustment_b")
                 ))
                 extracted += 1
     else:
@@ -598,18 +846,20 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
               INSERT INTO manual_extract(
                 created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                 mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
+              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 result["thread_id"], result["comment_id"], result["source"],
                 result["kind"], result["game_date"], result["team_a"], result["team_b"],
                 "", "auto-extracted", result["raw_text"],
                 result["captain_a"], result["captain_b"],
                 result["mentions_a"], result["mentions_b"],
-                result["seed_a"], result["seed_b"], result["round_name"]
+                result["seed_a"], result["seed_b"], result["round_name"],
+                result.get("score_a"), result.get("score_b"), result.get("winner"),
+                result.get("adjustment_a"), result.get("adjustment_b")
             ))
             extracted += 1
-    
+
     # Get all replies
     replies = q(
         """SELECT comment_id, plain_text, source FROM rkl_comments 
@@ -643,20 +893,22 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
               INSERT INTO manual_extract(
                 created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                 mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
+              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 result["thread_id"], result["comment_id"], result["source"],
                 result["kind"], result["game_date"], result["team_a"], result["team_b"],
                 "", "auto-extracted", result["raw_text"],
                 result["captain_a"], result["captain_b"],
                 result["mentions_a"], result["mentions_b"],
-                result["seed_a"], result["seed_b"], result["round_name"]
+                result["seed_a"], result["seed_b"], result["round_name"],
+                result.get("score_a"), result.get("score_b"), result.get("winner"),
+                result.get("adjustment_a"), result.get("adjustment_b")
             ))
             extracted += 1
         else:
             skipped += 1
-    
+
     return (extracted, skipped)
 
 def run_auto_extract_bulk(thread_ids: list[int], skip_existing: bool = True) -> tuple[int, int, int]:
@@ -1012,14 +1264,36 @@ with colR:
                     cap_b = ext["captain_b"] if "captain_b" in ext.keys() else ""
                     mentions_a = ext["mentions_a"] if "mentions_a" in ext.keys() else ""
                     mentions_b = ext["mentions_b"] if "mentions_b" in ext.keys() else ""
+                    ext_score_a = ext["score_a"] if "score_a" in ext.keys() else None
+                    ext_score_b = ext["score_b"] if "score_b" in ext.keys() else None
+                    ext_winner = ext["winner"] if "winner" in ext.keys() else ""
+                    ext_adj_a = ext["adjustment_a"] if "adjustment_a" in ext.keys() else None
+                    ext_adj_b = ext["adjustment_b"] if "adjustment_b" in ext.keys() else None
                     is_auto = ext["notes"] == "auto-extracted"
                     auto_badge = " 🤖" if is_auto else ""
-                    
+
                     col_info, col_edit, col_del = st.columns([8, 1, 1])
                     with col_info:
-                        st.markdown(f"**#{ext_comment}**{auto_badge} · {ext_kind} · {ext_date} · {ext_team_a} vs {ext_team_b}")
+                        # Build display line
+                        display_line = f"**#{ext_comment}**{auto_badge} · {ext_kind} · {ext_date} · {ext_team_a} vs {ext_team_b}"
+                        if ext_score_a or ext_score_b:
+                            winner_mark = ""
+                            if ext_winner == "A":
+                                winner_mark = " ✅"
+                            elif ext_winner == "B":
+                                winner_mark = " ❌"
+                            display_line += f" | {ext_score_a or '?'}{winner_mark} - {ext_score_b or '?'}"
+                        st.markdown(display_line)
+                        # Second line with details
+                        detail_parts = []
                         if mentions_a or mentions_b:
-                            st.caption(f"A: {mentions_a or '-'} | B: {mentions_b or '-'} | Caps: {cap_a or '-'}, {cap_b or '-'}")
+                            detail_parts.append(f"A: {mentions_a or '-'} | B: {mentions_b or '-'}")
+                        if cap_a or cap_b:
+                            detail_parts.append(f"Caps: {cap_a or '-'}, {cap_b or '-'}")
+                        if ext_adj_a or ext_adj_b:
+                            detail_parts.append(f"Adj: {ext_adj_a or 0}, {ext_adj_b or 0}")
+                        if detail_parts:
+                            st.caption(" | ".join(detail_parts))
                     with col_edit:
                         if st.button("✏️", key=f"edit_{ext_id}", help="Edit this extract"):
                             st.session_state.editing_extract_id = ext_id
@@ -1027,7 +1301,7 @@ with colR:
                         if st.button("🗑️", key=f"del_{ext_id}", help="Delete this extract"):
                             x("DELETE FROM manual_extract WHERE id = ?", (ext_id,))
                             st.rerun()
-                    
+
                     # Inline edit form
                     if st.session_state.get("editing_extract_id") == ext_id:
                         with st.container():
@@ -1041,22 +1315,48 @@ with colR:
                                 new_cap_a = st.text_input("Cap A", value=cap_a, key=f"eca_{ext_id}")
                             with e4:
                                 new_cap_b = st.text_input("Cap B", value=cap_b, key=f"ecb_{ext_id}")
-                            
+
                             e5, e6 = st.columns(2)
                             with e5:
                                 new_mentions_a = st.text_input("Team A Players", value=mentions_a, key=f"ema_{ext_id}")
                             with e6:
                                 new_mentions_b = st.text_input("Team B Players", value=mentions_b, key=f"emb_{ext_id}")
-                            
+
+                            # Result fields for editing
+                            e_r1, e_r2, e_r3, e_r4, e_r5 = st.columns([1, 1, 0.5, 1, 1])
+                            with e_r1:
+                                new_score_a = st.text_input("Score A", value=str(ext_score_a) if ext_score_a else "", key=f"esa_{ext_id}")
+                            with e_r2:
+                                new_score_b = st.text_input("Score B", value=str(ext_score_b) if ext_score_b else "", key=f"esb_{ext_id}")
+                            with e_r3:
+                                winner_opts = ["", "A", "B"]
+                                new_winner = st.selectbox("Winner", options=winner_opts,
+                                    index=winner_opts.index(ext_winner) if ext_winner in winner_opts else 0, key=f"ew_{ext_id}")
+                            with e_r4:
+                                new_adj_a = st.text_input("Adj A", value=str(ext_adj_a) if ext_adj_a else "", key=f"eaa_{ext_id}")
+                            with e_r5:
+                                new_adj_b = st.text_input("Adj B", value=str(ext_adj_b) if ext_adj_b else "", key=f"eab_{ext_id}")
+
                             e7, e8, e9 = st.columns([1,1,2])
                             with e7:
                                 if st.button("💾 Save", key=f"save_{ext_id}"):
-                                    x("""UPDATE manual_extract SET 
-                                         team_a=?, team_b=?, captain_a=?, captain_b=?, 
-                                         mentions_a=?, mentions_b=?, notes=?
+                                    # Parse floats
+                                    def parse_edit_float(s):
+                                        if not s:
+                                            return None
+                                        try:
+                                            return float(s.replace(",", ""))
+                                        except ValueError:
+                                            return None
+                                    x("""UPDATE manual_extract SET
+                                         team_a=?, team_b=?, captain_a=?, captain_b=?,
+                                         mentions_a=?, mentions_b=?, score_a=?, score_b=?,
+                                         winner=?, adjustment_a=?, adjustment_b=?, notes=?
                                        WHERE id=?""",
                                       (new_team_a, new_team_b, new_cap_a, new_cap_b,
-                                       new_mentions_a, new_mentions_b, 
+                                       new_mentions_a, new_mentions_b,
+                                       parse_edit_float(new_score_a), parse_edit_float(new_score_b),
+                                       new_winner or None, parse_edit_float(new_adj_a), parse_edit_float(new_adj_b),
                                        "" if is_auto else ext["notes"],  # Clear auto-extracted note on edit
                                        ext_id))
                                     st.session_state.editing_extract_id = None
@@ -1151,16 +1451,41 @@ with colR:
         combined_text = (thread_text or "") + "\n\n" + (extract_text or "")
 
         kind_guess = guess_kind(extract_text)
-        team_a_guess, team_b_guess = guess_teams(combined_text)
-        
+
+        # Result-specific extraction
+        result_data = None
+        score_a_guess = None
+        score_b_guess = None
+        winner_guess = None
+        adjustment_a_guess = None
+        adjustment_b_guess = None
+
+        if kind_guess == "result":
+            result_data = extract_game_result(extract_text)
+            if result_data:
+                score_a_guess = result_data.get("score_a")
+                score_b_guess = result_data.get("score_b")
+                winner_guess = result_data.get("winner")
+                adjustment_a_guess = result_data.get("adjustment_a")
+                adjustment_b_guess = result_data.get("adjustment_b")
+
+        # Get teams - prefer result data if available
+        if result_data and result_data.get("team_a"):
+            team_a_guess = result_data["team_a"]
+            team_b_guess = result_data.get("team_b")
+            seed_a_guess = result_data.get("seed_a")
+            seed_b_guess = result_data.get("seed_b")
+            round_name_guess = result_data.get("round_name")
+        else:
+            team_a_guess, team_b_guess = guess_teams(combined_text)
+            # Postseason detection
+            round_name_guess, seed_a_guess, seed_b_guess = detect_postseason_info(extract_text)
+
         # Team-specific mentions
         mentions_a_guess, mentions_b_guess, all_mentions_guess = extract_mentions_by_team(extract_text)
-        
+
         # Captain detection
         captain_a_guess, captain_b_guess, captain_candidates = detect_captains(extract_text)
-        
-        # Postseason detection
-        round_name_guess, seed_a_guess, seed_b_guess = detect_postseason_info(extract_text)
 
         # date guess uses thread's posted date in Eastern time
         game_date_guess = infer_game_date(thread_created)
@@ -1204,13 +1529,43 @@ with colR:
             mentions_a = st.text_input("Team A Players", value=", ".join(mentions_a_guess), help="Comma-separated")
         with row3b:
             mentions_b = st.text_input("Team B Players", value=", ".join(mentions_b_guess), help="Comma-separated")
-        
+
+        # Result-specific fields (scores, winner, adjustments)
+        row4a, row4b, row4c, row4d, row4e = st.columns([1, 1, 0.5, 1, 1])
+        with row4a:
+            score_a_str = st.text_input("Score A", value=str(score_a_guess) if score_a_guess else "", placeholder="e.g., 34565")
+        with row4b:
+            score_b_str = st.text_input("Score B", value=str(score_b_guess) if score_b_guess else "", placeholder="e.g., 37201")
+        with row4c:
+            winner_options = ["", "A", "B"]
+            winner = st.selectbox("Winner", options=winner_options, index=winner_options.index(winner_guess) if winner_guess in winner_options else 0)
+        with row4d:
+            adj_a_str = st.text_input("Adj A", value=str(adjustment_a_guess) if adjustment_a_guess else "", placeholder="e.g., -1950")
+        with row4e:
+            adj_b_str = st.text_input("Adj B", value=str(adjustment_b_guess) if adjustment_b_guess else "", placeholder="e.g., -1500")
+
+        # Parse score/adjustment strings to floats
+        def parse_float(s):
+            if not s:
+                return None
+            try:
+                return float(s.replace(",", ""))
+            except ValueError:
+                return None
+
+        score_a = parse_float(score_a_str)
+        score_b = parse_float(score_b_str)
+        adjustment_a = parse_float(adj_a_str)
+        adjustment_b = parse_float(adj_b_str)
+
         # Show detection hints
         hints = []
         if captain_candidates:
             hints.append(f"🎖️ Captains: {', '.join(captain_candidates)}")
         if round_name_guess:
             hints.append(f"🏆 Postseason: {round_name_guess}")
+        if score_a_guess or score_b_guess:
+            hints.append(f"📊 Scores detected: {score_a_guess} vs {score_b_guess}")
         if hints:
             st.caption(" | ".join(hints))
 
@@ -1226,14 +1581,14 @@ with colR:
         def do_save():
             x("""
               INSERT INTO manual_extract(
-                created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b, 
+                created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                 mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (sel, extract_id, extract_source, kind, game_date, team_a, team_b, 
+                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
+              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (sel, extract_id, extract_source, kind, game_date, team_a, team_b,
                   "", notes, extract_text, captain_a or None, captain_b or None,
-                  mentions_a or None, mentions_b or None, seed_a or None, seed_b or None, 
-                  round_name or None))
+                  mentions_a or None, mentions_b or None, seed_a or None, seed_b or None,
+                  round_name or None, score_a, score_b, winner or None, adjustment_a, adjustment_b))
         
         with save1:
             if st.button("💾 Save", use_container_width=True):
@@ -1273,14 +1628,15 @@ with colR:
         w = csv.writer(buf)
         w.writerow(["id","created_at","thread_id","comment_id","source","kind","game_date",
                     "team_a","team_b","captain_a","captain_b","mentions_a","mentions_b",
-                    "seed_a","seed_b","round_name","notes"])
-        
+                    "seed_a","seed_b","round_name","score_a","score_b","winner",
+                    "adjustment_a","adjustment_b","notes"])
+
         def safe_get(row, col):
             try:
                 return row[col] if col in row.keys() else ""
             except:
                 return ""
-        
+
         for r in extracts:
             w.writerow([
                 r["id"], r["created_at"], r["thread_id"], r["comment_id"], r["source"],
@@ -1288,6 +1644,8 @@ with colR:
                 safe_get(r, "captain_a"), safe_get(r, "captain_b"),
                 safe_get(r, "mentions_a"), safe_get(r, "mentions_b"),
                 safe_get(r, "seed_a"), safe_get(r, "seed_b"), safe_get(r, "round_name"),
+                safe_get(r, "score_a"), safe_get(r, "score_b"), safe_get(r, "winner"),
+                safe_get(r, "adjustment_a"), safe_get(r, "adjustment_b"),
                 r["notes"]
             ])
 
