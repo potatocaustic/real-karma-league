@@ -1,20 +1,23 @@
 /**
  * S6 Season Reconstruction - Admin Module
  *
- * Runs in the browser to make API calls to real.vg and Supabase.
- * This avoids the CORS/origin issues that occur when running locally.
+ * Uses Cloud Functions to proxy API calls to real.vg (avoids CORS issues).
+ * Supabase calls are made directly from the browser.
  */
 
 import {
-    auth, db,
+    auth, db, functions,
     onAuthStateChanged,
     doc, getDoc,
+    httpsCallable,
     collectionNames
 } from '/js/firebase-init.js';
 
-// API endpoints
-const RANKED_DAYS_API = 'https://api.real.vg/rankeddays';
-const KARMA_RANKS_API = 'https://api.real.vg/userkarmaranks/day';
+// Cloud Functions for API proxy
+const fetchRankedDaysFn = httpsCallable(functions, 'admin_fetchRankedDays');
+const fetchAllRankedDaysFn = httpsCallable(functions, 'admin_fetchAllRankedDays');
+const fetchKarmaRankingsFn = httpsCallable(functions, 'admin_fetchKarmaRankings');
+const fetchKarmaRankingsBatchFn = httpsCallable(functions, 'admin_fetchKarmaRankingsBatch');
 
 // State
 let isRunning = false;
@@ -53,10 +56,11 @@ function initializeElements() {
     elements.adminContainer = document.getElementById('admin-container');
     elements.authStatus = document.getElementById('auth-status');
 
+    elements.karmaSource = document.getElementById('karma-source');
+    elements.supabaseConfig = document.getElementById('supabase-config');
     elements.supabaseUrl = document.getElementById('supabase-url');
     elements.supabaseKey = document.getElementById('supabase-key');
     elements.rankTolerance = document.getElementById('rank-tolerance');
-    elements.apiDelay = document.getElementById('api-delay');
 
     elements.gamesFile = document.getElementById('games-file');
     elements.handlesFile = document.getElementById('handles-file');
@@ -89,6 +93,12 @@ function initializeElements() {
 }
 
 function setupEventListeners() {
+    // Karma source selector
+    elements.karmaSource.addEventListener('change', () => {
+        const showSupabase = elements.karmaSource.value === 'supabase';
+        elements.supabaseConfig.style.display = showSupabase ? 'flex' : 'none';
+    });
+
     // File uploads
     elements.gamesUploadArea.addEventListener('click', () => elements.gamesFile.click());
     elements.handlesUploadArea.addEventListener('click', () => elements.handlesFile.click());
@@ -277,42 +287,116 @@ async function fetchRankedDays(userId, limitDate = '2025-03-01') {
         return rankedDaysCache[userId];
     }
 
-    const allData = [];
-    let oldest = null;
-    const delay = parseInt(elements.apiDelay.value) || 500;
+    try {
+        log(`Fetching ranked days for ${userId} via Cloud Function...`, 'info');
+        const result = await fetchAllRankedDaysFn({ userId, limitDate });
 
-    while (!shouldStop) {
-        let url = `${RANKED_DAYS_API}/${userId}?sort=latest`;
-        if (oldest) {
-            url += `&before=${oldest}`;
+        if (result.data.success) {
+            rankedDaysCache[userId] = result.data.days;
+            log(`Fetched ${result.data.days.length} days for ${userId}`, 'success');
+            return result.data.days;
+        } else {
+            log(`Failed to fetch ranked days for ${userId}`, 'warning');
+            return [];
         }
+    } catch (err) {
+        log(`Error fetching ranked days for ${userId}: ${err.message}`, 'warning');
+        return [];
+    }
+}
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-            const days = data.days || [];
-
-            if (days.length === 0) break;
-
-            allData.push(...days);
-            oldest = days[days.length - 1].day;
-
-            if (oldest < limitDate) break;
-
-            await sleep(delay);
-
-        } catch (err) {
-            log(`Error fetching ranked days for ${userId}: ${err.message}`, 'warning');
-            break;
-        }
+/**
+ * Fetch karma rankings for a date via Cloud Function (bypasses CORS).
+ * Use this if you don't have Supabase data.
+ */
+async function fetchKarmaViaCloudFunction(dateStr) {
+    if (karmaCache[dateStr]) {
+        return karmaCache[dateStr];
     }
 
-    rankedDaysCache[userId] = allData;
-    return allData;
+    try {
+        log(`Fetching karma for ${dateStr} via Cloud Function...`, 'info');
+        const result = await fetchKarmaRankingsFn({ date: dateStr });
+
+        if (result.data.success) {
+            const karmaMap = {};
+            for (const entry of result.data.entries) {
+                karmaMap[entry.user_id] = {
+                    amount: entry.amount,
+                    rank: entry.rank,
+                    username: entry.username || ''
+                };
+
+                // Build username index
+                const username = (entry.username || '').toLowerCase().trim();
+                if (username) {
+                    if (!usernameToId[username]) {
+                        usernameToId[username] = new Set();
+                    }
+                    usernameToId[username].add(entry.user_id);
+                }
+            }
+
+            karmaCache[dateStr] = karmaMap;
+            log(`Fetched ${result.data.entries.length} karma entries for ${dateStr}`, 'success');
+            return karmaMap;
+        } else {
+            log(`Failed to fetch karma for ${dateStr}`, 'warning');
+            return {};
+        }
+    } catch (err) {
+        log(`Error fetching karma for ${dateStr}: ${err.message}`, 'error');
+        return {};
+    }
+}
+
+/**
+ * Fetch karma for multiple dates in a batch via Cloud Function.
+ */
+async function fetchKarmaBatchViaCloudFunction(dates) {
+    const uncachedDates = dates.filter(d => !karmaCache[d]);
+    if (uncachedDates.length === 0) {
+        return;
+    }
+
+    // Process in batches of 10
+    for (let i = 0; i < uncachedDates.length; i += 10) {
+        if (shouldStop) break;
+
+        const batch = uncachedDates.slice(i, i + 10);
+        log(`Fetching karma batch ${Math.floor(i/10) + 1}/${Math.ceil(uncachedDates.length/10)} (${batch.length} dates)...`, 'info');
+
+        try {
+            const result = await fetchKarmaRankingsBatchFn({ dates: batch });
+
+            if (result.data.success) {
+                for (const [dateStr, dateResult] of Object.entries(result.data.results)) {
+                    if (dateResult.success) {
+                        const karmaMap = {};
+                        for (const entry of dateResult.entries) {
+                            karmaMap[entry.user_id] = {
+                                amount: entry.amount,
+                                rank: entry.rank,
+                                username: entry.username || ''
+                            };
+
+                            const username = (entry.username || '').toLowerCase().trim();
+                            if (username) {
+                                if (!usernameToId[username]) {
+                                    usernameToId[username] = new Set();
+                                }
+                                usernameToId[username].add(entry.user_id);
+                            }
+                        }
+                        karmaCache[dateStr] = karmaMap;
+                        log(`  ${dateStr}: ${dateResult.entries.length} entries`, 'info');
+                    }
+                }
+            }
+        } catch (err) {
+            log(`Error fetching karma batch: ${err.message}`, 'error');
+        }
+    }
 }
 
 function sleep(ms) {
@@ -440,7 +524,12 @@ async function runFullReconstruction() {
         usernameToId = {};
         discoveries = {};
 
-        await initSupabase();
+        // Only init Supabase if using it as data source
+        if (elements.karmaSource.value === 'supabase') {
+            await initSupabase();
+        } else {
+            log('Using Cloud Functions for API access (no Supabase required)', 'info');
+        }
 
         // Phase 1: Prefetch karma data
         log('=== PHASE 1: Fetching karma data ===', 'phase');
@@ -535,9 +624,12 @@ function validateInputs() {
         return false;
     }
 
-    if (!elements.supabaseUrl.value.trim() || !elements.supabaseKey.value.trim()) {
-        log('Please enter Supabase credentials', 'error');
-        return false;
+    // Only require Supabase credentials if using Supabase as data source
+    if (elements.karmaSource.value === 'supabase') {
+        if (!elements.supabaseUrl.value.trim() || !elements.supabaseKey.value.trim()) {
+            log('Please enter Supabase credentials', 'error');
+            return false;
+        }
     }
 
     return true;
@@ -560,16 +652,25 @@ function stopProcessing() {
 
 async function prefetchKarmaData() {
     const dates = [...new Set(gamesData.map(g => g.game_date))].sort();
-    log(`Fetching karma data for ${dates.length} unique dates...`, 'info');
+    const useCloudFunction = elements.karmaSource.value === 'cloud-function';
 
-    for (let i = 0; i < dates.length; i++) {
-        if (shouldStop) break;
+    log(`Fetching karma data for ${dates.length} unique dates via ${useCloudFunction ? 'Cloud Function' : 'Supabase'}...`, 'info');
 
-        const dateStr = dates[i];
-        const data = await fetchKarmaForDate(dateStr);
+    if (useCloudFunction) {
+        // Use batch Cloud Function for efficiency
+        await fetchKarmaBatchViaCloudFunction(dates);
+        updateProgress(25, 'Karma data fetched via Cloud Function');
+    } else {
+        // Use Supabase
+        for (let i = 0; i < dates.length; i++) {
+            if (shouldStop) break;
 
-        updateProgress((i + 1) / dates.length * 25, `Fetching karma: ${dateStr}`);
-        log(`${dateStr}: ${Object.keys(data).length} entries`, 'info');
+            const dateStr = dates[i];
+            const data = await fetchKarmaForDate(dateStr);
+
+            updateProgress((i + 1) / dates.length * 25, `Fetching karma: ${dateStr}`);
+            log(`${dateStr}: ${Object.keys(data).length} entries`, 'info');
+        }
     }
 }
 
