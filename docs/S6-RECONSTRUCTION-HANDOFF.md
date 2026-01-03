@@ -26,6 +26,13 @@ The admin module at `/admin/s6-reconstruction.html` + `/admin/s6-reconstruction.
    - Requiring 70%+ of dates to match within tolerance
    - On failure, searching for alternative candidates and trying them
 
+6. **Phase 6: CSV Weekly Pattern Matching** - ✅ IMPLEMENTED - For remaining unmatched handles:
+   - Uses weekly rankings from CSV (W1-W15) as a unique "fingerprint"
+   - Maps game dates to weeks (every 3 dates = 1 week)
+   - Finds candidates whose daily ranks match the weekly pattern
+   - Validates via ranked days API (70%+ weeks must match)
+   - Handles player aliases in CSV (e.g., "verse (reversethev)")
+
 ### Cloud Functions Created
 
 Located in `/functions/admin/admin-s6-reconstruction.js`:
@@ -38,8 +45,8 @@ Located in `/functions/admin/admin-s6-reconstruction.js`:
 
 | File | Purpose |
 |------|---------|
-| `/admin/s6-reconstruction.html` | Admin UI |
-| `/admin/s6-reconstruction.js` | Client-side reconstruction logic |
+| `/admin/s6-reconstruction.html` | Admin UI with file uploads for games JSON, handle mappings, and CSV |
+| `/admin/s6-reconstruction.js` | Client-side reconstruction logic (all 6 phases) |
 | `/functions/admin/admin-s6-reconstruction.js` | Cloud Functions for API proxy |
 | `/scripts/s6-games-enhanced.json` | Games with player handles, player_ids (some null), rankings |
 | `/scripts/s6-handle-to-id.json` | Existing handle→player_id mappings |
@@ -47,11 +54,13 @@ Located in `/functions/admin/admin-s6-reconstruction.js`:
 
 ---
 
-## Next Task: Phase 6 - CSV-Based Weekly Pattern Matching
+## Phase 6 Implementation Details
 
-### The Problem
+Phase 6 is now fully implemented. This section documents how it works for reference.
 
-After Phases 1-5, there will still be unmatched players - those who:
+### The Problem It Solves
+
+After Phases 1-5, there are still unmatched players - those who:
 - Don't have a username match in the karma data
 - Don't have enough dates within top 1000 for rank-based discovery
 - Failed validation and no alternatives were found
@@ -376,19 +385,23 @@ Very unlikely for two different players to have the same ranking pattern across 
 
 ---
 
-## Files to Modify
+## Files Modified for Phase 6
 
-1. **`/admin/s6-reconstruction.html`**
-   - Add CSV file upload input
-   - Add Phase 6 to action buttons (or auto-run after Phase 5)
+1. **`/admin/s6-reconstruction.html`** ✅
+   - Added CSV file upload input with drag-and-drop support
+   - Added "CSV Pattern" stat card
 
-2. **`/admin/s6-reconstruction.js`**
-   - Add CSV parsing function
-   - Add date-to-week mapping
-   - Add `findCandidatesByWeeklyPattern()`
-   - Add `validateCandidateAgainstWeeklyRankings()`
-   - Add `processPhase6CsvDiscovery()`
-   - Update `runFullReconstruction()` to include Phase 6
+2. **`/admin/s6-reconstruction.js`** ✅
+   - Added `parseWeeklyRankingsCSV()` - parses CSV with alias support
+   - Added `parseCSVLine()` - handles quoted CSV fields
+   - Added `extractHandles()` - extracts handles and aliases from player field
+   - Added `buildDateToWeekMap()` - maps dates to week numbers
+   - Added `getWeekDates()` - gets all dates for a week number
+   - Added `findCandidatesByWeeklyPattern()` - finds candidates by weekly ranking pattern
+   - Added `validateCandidateAgainstWeeklyRankings()` - validates via ranked days API
+   - Added `processPhase6CsvDiscovery()` - main Phase 6 processing function
+   - Updated `runFullReconstruction()` to include Phase 6 after Phase 5
+   - Added `csvDiscoveries` to stats tracking
 
 ---
 
@@ -417,10 +430,29 @@ Recent commits:
 
 ## Summary
 
-The reconstruction pipeline is 80% complete. The remaining work is:
+The reconstruction pipeline is now **100% complete** with all 6 phases implemented:
 
-1. **Implement Phase 6**: CSV-based weekly pattern matching for remaining unmatched handles
-2. **Test thoroughly**: Run on actual data, verify discoveries
-3. **Output final data**: Enhanced games JSON with all karma scores populated
+1. ✅ Phase 1: Fetch Karma Data (Supabase or Cloud Functions)
+2. ✅ Phase 2: Direct Matching (known player_ids)
+3. ✅ Phase 3: Username Discovery (fuzzy matching)
+4. ✅ Phase 4: Rank Discovery (rank-based candidate finding)
+5. ✅ Phase 5: API Verification (multi-date pattern validation)
+6. ✅ Phase 6: CSV Weekly Pattern Matching (weekly fingerprint matching)
+
+### Remaining Work
+
+1. **Test thoroughly**: Run on actual data, verify discoveries
+2. **Output final data**: Enhanced games JSON with all karma scores populated
+3. **Deploy Cloud Functions**: Ensure functions are deployed to production
+
+### How to Use
+
+1. Navigate to `/admin/s6-reconstruction.html`
+2. Upload the games JSON file
+3. Optionally upload handle mappings JSON
+4. Upload the CSV weekly averages file (for Phase 6)
+5. Select karma source (Cloud Function recommended)
+6. Click "Run Full Reconstruction"
+7. Download results when complete
 
 The weekly pattern matching approach is powerful because it uses an independent data source (CSV weekly averages) and matches on a multi-week "fingerprint" that's unique to each player.
