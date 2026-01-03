@@ -266,6 +266,16 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="config-row">
+                    <div class="config-field">
+                        <label>Weekly Averages CSV (RKL History - S6 Averages.csv) - For Phase 6</label>
+                        <div class="file-upload-area" id="csv-upload-area">
+                            <input type="file" id="csv-file" accept=".csv" style="display: none;">
+                            <span id="csv-file-status">Click or drop file here (optional)</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Actions -->
@@ -307,6 +317,10 @@
                     <div class="stat-card">
                         <div class="stat-value" id="stat-nomatch">0</div>
                         <div class="stat-label">No Match</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-csv">0</div>
+                        <div class="stat-label">CSV Pattern</div>
                     </div>
                 </div>
             </div>

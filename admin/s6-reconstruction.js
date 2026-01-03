@@ -31,6 +31,8 @@ let karmaCache = {};  // date -> user_id -> {amount, rank, username}
 let usernameToId = {};  // username -> Set of user_ids
 let rankedDaysCache = {};  // user_id -> [{day, karma, rank}]
 let discoveries = {};  // handle -> {user_id, confidence, method}
+let csvRankings = {};  // handle -> { W1: rank, W2: rank, ... W15: rank }
+let dateToWeekMap = {};  // date -> week number
 
 // Stats
 let stats = {
@@ -38,7 +40,8 @@ let stats = {
     usernameMatches: 0,
     rankDiscoveries: 0,
     outsideTop1000: 0,
-    noMatch: 0
+    noMatch: 0,
+    csvDiscoveries: 0
 };
 
 // DOM Elements
@@ -64,10 +67,13 @@ function initializeElements() {
 
     elements.gamesFile = document.getElementById('games-file');
     elements.handlesFile = document.getElementById('handles-file');
+    elements.csvFile = document.getElementById('csv-file');
     elements.gamesUploadArea = document.getElementById('games-upload-area');
     elements.handlesUploadArea = document.getElementById('handles-upload-area');
+    elements.csvUploadArea = document.getElementById('csv-upload-area');
     elements.gamesFileStatus = document.getElementById('games-file-status');
     elements.handlesFileStatus = document.getElementById('handles-file-status');
+    elements.csvFileStatus = document.getElementById('csv-file-status');
 
     elements.btnRunFull = document.getElementById('btn-run-full');
     elements.btnFetchKarma = document.getElementById('btn-fetch-karma');
@@ -84,6 +90,7 @@ function initializeElements() {
     elements.statRank = document.getElementById('stat-rank');
     elements.statOutside = document.getElementById('stat-outside');
     elements.statNomatch = document.getElementById('stat-nomatch');
+    elements.statCsv = document.getElementById('stat-csv');
 
     elements.resultsSection = document.getElementById('results-section');
     elements.resultsPreview = document.getElementById('results-preview');
@@ -102,13 +109,16 @@ function setupEventListeners() {
     // File uploads
     elements.gamesUploadArea.addEventListener('click', () => elements.gamesFile.click());
     elements.handlesUploadArea.addEventListener('click', () => elements.handlesFile.click());
+    elements.csvUploadArea.addEventListener('click', () => elements.csvFile.click());
 
     elements.gamesFile.addEventListener('change', (e) => handleFileUpload(e, 'games'));
     elements.handlesFile.addEventListener('change', (e) => handleFileUpload(e, 'handles'));
+    elements.csvFile.addEventListener('change', (e) => handleCsvUpload(e));
 
     // Drag and drop
     setupDragDrop(elements.gamesUploadArea, elements.gamesFile, 'games');
     setupDragDrop(elements.handlesUploadArea, elements.handlesFile, 'handles');
+    setupCsvDragDrop(elements.csvUploadArea, elements.csvFile);
 
     // Action buttons
     elements.btnRunFull.addEventListener('click', runFullReconstruction);
@@ -145,6 +155,29 @@ function setupDragDrop(area, input, type) {
     });
 }
 
+function setupCsvDragDrop(area, input) {
+    area.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        area.style.borderColor = '#3b82f6';
+    });
+
+    area.addEventListener('dragleave', () => {
+        area.style.borderColor = '';
+    });
+
+    area.addEventListener('drop', (e) => {
+        e.preventDefault();
+        area.style.borderColor = '';
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            input.files = dataTransfer.files;
+            handleCsvUpload({ target: input });
+        }
+    });
+}
+
 async function handleFileUpload(e, type) {
     const file = e.target.files[0];
     if (!file) return;
@@ -167,6 +200,139 @@ async function handleFileUpload(e, type) {
     } catch (err) {
         log(`Error loading ${type} file: ${err.message}`, 'error');
     }
+}
+
+async function handleCsvUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        csvRankings = parseWeeklyRankingsCSV(text);
+        const playerCount = Object.keys(csvRankings).length;
+        elements.csvFileStatus.textContent = `✓ ${file.name} (${playerCount} players)`;
+        elements.csvUploadArea.classList.add('has-file');
+        log(`Loaded weekly rankings for ${playerCount} players from ${file.name}`, 'success');
+    } catch (err) {
+        log(`Error loading CSV file: ${err.message}`, 'error');
+    }
+}
+
+/**
+ * Parse the weekly averages CSV into a map of handle -> weekly rankings.
+ * CSV format: #,PLAYER,AVERAGE,GEM,T100,T50,GP,W1,W2,...,W15
+ * Handle parsing: "verse (reversethev)" -> extracts both "verse" and "reversethev" as aliases
+ */
+function parseWeeklyRankingsCSV(csvText) {
+    const lines = csvText.trim().split('\n');
+    if (lines.length < 2) {
+        throw new Error('CSV appears to be empty');
+    }
+
+    const headers = lines[0].split(',').map(h => h.trim());
+    const playerIdx = headers.findIndex(h => h.toUpperCase() === 'PLAYER');
+    if (playerIdx === -1) {
+        throw new Error('Could not find PLAYER column in CSV');
+    }
+
+    // Find week columns (W1, W2, ..., W15)
+    const weekColumns = [];
+    for (let i = 0; i < headers.length; i++) {
+        const match = headers[i].match(/^W(\d+)$/i);
+        if (match) {
+            weekColumns.push({ index: i, week: parseInt(match[1]) });
+        }
+    }
+
+    if (weekColumns.length === 0) {
+        throw new Error('Could not find week columns (W1-W15) in CSV');
+    }
+
+    const rankings = {};
+
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Handle CSV with potential commas in quoted fields
+        const cols = parseCSVLine(line);
+        if (cols.length <= playerIdx) continue;
+
+        const playerField = cols[playerIdx].trim();
+        if (!playerField) continue;
+
+        // Extract handles - handle aliases in parentheses like "verse (reversethev)"
+        const handles = extractHandles(playerField);
+
+        // Get weekly rankings for this player
+        const weeklyRanks = {};
+        for (const { index, week } of weekColumns) {
+            if (index < cols.length) {
+                const val = parseInt(cols[index].trim());
+                if (!isNaN(val) && val > 0) {
+                    weeklyRanks[`W${week}`] = val;
+                }
+            }
+        }
+
+        // Skip players with no weekly data
+        if (Object.keys(weeklyRanks).length === 0) continue;
+
+        // Add rankings for each handle (including aliases)
+        for (const handle of handles) {
+            rankings[handle.toLowerCase()] = weeklyRanks;
+        }
+    }
+
+    return rankings;
+}
+
+/**
+ * Parse a CSV line, handling quoted fields.
+ */
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+            inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result;
+}
+
+/**
+ * Extract handles from a player field, including aliases in parentheses.
+ * "verse (reversethev)" -> ["verse", "reversethev"]
+ * "supa" -> ["supa"]
+ */
+function extractHandles(playerField) {
+    const handles = [];
+
+    // Main handle (before parentheses)
+    const mainMatch = playerField.match(/^([^(]+)/);
+    if (mainMatch) {
+        const main = mainMatch[1].trim();
+        if (main) handles.push(main);
+    }
+
+    // Aliases in parentheses
+    const aliasMatches = playerField.matchAll(/\(([^)]+)\)/g);
+    for (const match of aliasMatches) {
+        const alias = match[1].trim();
+        if (alias) handles.push(alias);
+    }
+
+    return handles;
 }
 
 function setupAuth() {
@@ -215,10 +381,11 @@ function updateStats() {
     elements.statRank.textContent = stats.rankDiscoveries;
     elements.statOutside.textContent = stats.outsideTop1000;
     elements.statNomatch.textContent = stats.noMatch;
+    elements.statCsv.textContent = stats.csvDiscoveries;
 }
 
 function resetStats() {
-    stats = { directMatches: 0, usernameMatches: 0, rankDiscoveries: 0, outsideTop1000: 0, noMatch: 0 };
+    stats = { directMatches: 0, usernameMatches: 0, rankDiscoveries: 0, outsideTop1000: 0, noMatch: 0, csvDiscoveries: 0 };
     updateStats();
 }
 
@@ -558,6 +725,12 @@ async function runFullReconstruction() {
         // Phase 5: API verification (optional, for uncertain matches)
         log('=== PHASE 5: API verification ===', 'phase');
         await processApiVerification();
+
+        if (shouldStop) return;
+
+        // Phase 6: CSV-based weekly pattern matching for remaining unmatched
+        log('=== PHASE 6: CSV weekly pattern matching ===', 'phase');
+        await processPhase6CsvDiscovery();
 
         showResults();
         log('=== RECONSTRUCTION COMPLETE ===', 'success');
@@ -998,6 +1171,14 @@ async function processApiVerification() {
     }
 
     log(`Verifying ALL ${discoveryHandles.length} discoveries via multi-date pattern matching...`, 'info');
+
+    // Log breakdown by method
+    const byMethod = {};
+    for (const handle of discoveryHandles) {
+        const method = discoveries[handle].method || 'unknown';
+        byMethod[method] = (byMethod[method] || 0) + 1;
+    }
+    log(`  Breakdown: ${Object.entries(byMethod).map(([m, c]) => `${m}: ${c}`).join(', ')}`, 'info');
     log(`(API delay: ${API_CALL_DELAY_MS}ms between calls)`, 'info');
 
     let verified = 0;
@@ -1025,7 +1206,8 @@ async function processApiVerification() {
         }
 
         // Fetch candidate's ranked days history
-        log(`  Checking ${handle} → ${player_id} (${validatableRankings.length} validatable dates)...`, 'info');
+        const method = discovery.method || 'unknown';
+        log(`  [${method}] Checking ${handle} → ${player_id} (${validatableRankings.length} validatable dates)...`, 'info');
         const rankedDays = await fetchRankedDays(player_id);
         await sleep(API_CALL_DELAY_MS);
 
@@ -1153,6 +1335,296 @@ async function tryAlternativeCandidates(handle, expectedRankings, excludeIds, to
 
     log(`      No valid replacement found`, 'warning');
     return false;
+}
+
+// ============================================================================
+// Phase 6: CSV-Based Weekly Pattern Matching
+// ============================================================================
+
+/**
+ * Build a map of date -> week number from the games data.
+ * Every 3 consecutive unique game dates = 1 week.
+ */
+function buildDateToWeekMap() {
+    const uniqueDates = [...new Set(gamesData.map(g => g.game_date))].sort();
+    const map = {};
+    for (let i = 0; i < uniqueDates.length; i++) {
+        map[uniqueDates[i]] = Math.floor(i / 3) + 1;  // Week 1, 2, 3...
+    }
+    return map;
+}
+
+/**
+ * Get all dates belonging to a specific week number.
+ */
+function getWeekDates(weekNum) {
+    return Object.entries(dateToWeekMap)
+        .filter(([_, w]) => w === weekNum)
+        .map(([d, _]) => d);
+}
+
+/**
+ * Find candidates by matching weekly ranking patterns from CSV to karma data.
+ * Returns array of { userId, username, weeksMatched, avgDeviation, datesMatched }
+ */
+function findCandidatesByWeeklyPattern(handle, tolerance) {
+    const weeklyRanks = csvRankings[handle];
+    if (!weeklyRanks) return [];
+
+    const candidateScores = {};  // user_id -> { weekMatches: Set, totalDev, datesMatched, username }
+
+    for (const [weekCol, expectedRank] of Object.entries(weeklyRanks)) {
+        // Skip rankings outside top 1000 (no data available)
+        if (expectedRank > 1000) continue;
+
+        const weekNum = parseInt(weekCol.slice(1));  // "W3" -> 3
+        const weekDates = getWeekDates(weekNum);
+
+        for (const date of weekDates) {
+            const karma = karmaCache[date];
+            if (!karma) continue;
+
+            for (const [userId, data] of Object.entries(karma)) {
+                const diff = Math.abs(data.rank - expectedRank);
+                if (diff <= tolerance) {
+                    if (!candidateScores[userId]) {
+                        candidateScores[userId] = {
+                            weekMatches: new Set(),
+                            totalDev: 0,
+                            datesMatched: 0,
+                            username: data.username
+                        };
+                    }
+                    candidateScores[userId].weekMatches.add(weekNum);
+                    candidateScores[userId].totalDev += diff;
+                    candidateScores[userId].datesMatched++;
+                }
+            }
+        }
+    }
+
+    // Convert and sort by weeks matched, then avg deviation
+    return Object.entries(candidateScores)
+        .map(([userId, s]) => ({
+            userId,
+            username: s.username,
+            weeksMatched: s.weekMatches.size,
+            avgDeviation: s.totalDev / s.datesMatched,
+            datesMatched: s.datesMatched
+        }))
+        .filter(c => c.weeksMatched >= 3)  // Require at least 3 weeks matched
+        .sort((a, b) => {
+            if (b.weeksMatched !== a.weeksMatched) return b.weeksMatched - a.weeksMatched;
+            return a.avgDeviation - b.avgDeviation;
+        });
+}
+
+/**
+ * Validate a candidate against weekly rankings from CSV using ranked days API.
+ * Returns { valid, matchedWeeks, totalWeeks, avgDeviation }
+ */
+function validateCandidateAgainstWeeklyRankings(rankedDaysHistory, weeklyRanks, tolerance) {
+    // Build date -> rank from history
+    const historyByDate = {};
+    for (const day of rankedDaysHistory) {
+        historyByDate[day.day] = day.rank;
+    }
+
+    let matchedWeeks = 0;
+    let totalWeeks = 0;
+    let totalDeviation = 0;
+
+    for (const [weekCol, expectedRank] of Object.entries(weeklyRanks)) {
+        // Skip if outside top 1000 (no data)
+        if (expectedRank > 1000) continue;
+
+        const weekNum = parseInt(weekCol.slice(1));
+        const weekDates = getWeekDates(weekNum);
+
+        // Check if any date in this week has a matching rank
+        let weekChecked = false;
+        let weekMatched = false;
+
+        for (const date of weekDates) {
+            if (historyByDate[date] !== undefined) {
+                if (!weekChecked) {
+                    totalWeeks++;
+                    weekChecked = true;
+                }
+                const dev = Math.abs(historyByDate[date] - expectedRank);
+                totalDeviation += dev;
+                if (dev <= tolerance) {
+                    weekMatched = true;
+                }
+            }
+        }
+
+        if (weekMatched) matchedWeeks++;
+    }
+
+    if (totalWeeks === 0) {
+        return {
+            valid: false,
+            matchedWeeks: 0,
+            totalWeeks: 0,
+            avgDeviation: Infinity,
+            skipped: true,
+            reason: 'No overlapping weeks in history'
+        };
+    }
+
+    return {
+        valid: (matchedWeeks / totalWeeks) >= 0.7,  // 70%+ weeks must match
+        matchedWeeks,
+        totalWeeks,
+        avgDeviation: totalDeviation / totalWeeks
+    };
+}
+
+/**
+ * Phase 6: Process CSV-based weekly pattern matching for remaining unmatched handles.
+ */
+async function processPhase6CsvDiscovery() {
+    // Check if CSV data is loaded
+    if (Object.keys(csvRankings).length === 0) {
+        log('No CSV data loaded, skipping Phase 6', 'info');
+        return;
+    }
+
+    // Build date-to-week mapping
+    dateToWeekMap = buildDateToWeekMap();
+    log(`Built date-to-week mapping (${Object.keys(dateToWeekMap).length} dates across ${Math.max(...Object.values(dateToWeekMap))} weeks)`, 'info');
+
+    const tolerance = parseInt(elements.rankTolerance.value) || 50;
+
+    // Get unmatched handles (no player_id AND no discovery)
+    const unmatchedHandles = new Set();
+    for (const game of gamesData) {
+        for (const rosterKey of ['roster_a', 'roster_b']) {
+            for (const player of game[rosterKey]) {
+                if (!player.player_id && !discoveries[player.handle.toLowerCase()]) {
+                    unmatchedHandles.add(player.handle.toLowerCase());
+                }
+            }
+        }
+    }
+
+    const uniqueUnmatched = [...unmatchedHandles];
+    log(`Phase 6: Attempting CSV-based discovery for ${uniqueUnmatched.length} unmatched handles...`, 'phase');
+
+    // Build handle-to-players map for updating player objects later
+    const handleToPlayers = {};
+    for (const game of gamesData) {
+        const gameDate = game.game_date;
+        for (const rosterKey of ['roster_a', 'roster_b']) {
+            for (const player of game[rosterKey]) {
+                const handle = player.handle.toLowerCase();
+                if (!handleToPlayers[handle]) {
+                    handleToPlayers[handle] = [];
+                }
+                handleToPlayers[handle].push({ player, gameDate });
+            }
+        }
+    }
+
+    let discovered = 0;
+    let notInCsv = 0;
+    let noCandidates = 0;
+    let failedValidation = 0;
+
+    for (let i = 0; i < uniqueUnmatched.length; i++) {
+        if (shouldStop) break;
+
+        const handle = uniqueUnmatched[i];
+
+        // Check if handle exists in CSV
+        if (!csvRankings[handle]) {
+            notInCsv++;
+            continue;
+        }
+
+        // Find candidates by weekly pattern
+        const candidates = findCandidatesByWeeklyPattern(handle, tolerance);
+
+        if (candidates.length === 0) {
+            log(`  ${handle}: No candidates found (0 matches with 3+ weeks)`, 'warning');
+            noCandidates++;
+            updateProgress(90 + ((i + 1) / uniqueUnmatched.length * 10), `Phase 6: ${i + 1}/${uniqueUnmatched.length}`);
+            continue;
+        }
+
+        log(`  ${handle}: Found ${candidates.length} candidate(s), validating...`, 'info');
+
+        // Try top 3 candidates
+        let matched = false;
+        for (const candidate of candidates.slice(0, 3)) {
+            log(`    Trying ${candidate.userId} (${candidate.username || 'unknown'}, ${candidate.weeksMatched} weeks, avgDev: ${candidate.avgDeviation.toFixed(1)})...`, 'info');
+
+            const rankedDays = await fetchRankedDays(candidate.userId);
+            await sleep(API_CALL_DELAY_MS);
+
+            if (rankedDays.length === 0) {
+                log(`      No history found`, 'info');
+                continue;
+            }
+
+            const result = validateCandidateAgainstWeeklyRankings(
+                rankedDays,
+                csvRankings[handle],
+                tolerance
+            );
+
+            if (result.skipped) {
+                log(`      Skipped: ${result.reason}`, 'info');
+                continue;
+            }
+
+            if (result.valid) {
+                log(`    ✓ MATCH: ${candidate.userId} (${result.matchedWeeks}/${result.totalWeeks} weeks, avgDev: ${result.avgDeviation.toFixed(1)})`, 'success');
+
+                // Update discoveries
+                discoveries[handle] = {
+                    user_id: candidate.userId,
+                    confidence: 'high',
+                    method: 'csv_weekly_pattern',
+                    verified: true,
+                    weeksMatched: result.matchedWeeks,
+                    totalWeeks: result.totalWeeks
+                };
+
+                // Update all player objects with this handle
+                const playerRefs = handleToPlayers[handle] || [];
+                for (const { player, gameDate } of playerRefs) {
+                    player.player_id = candidate.userId;
+                    player.match_method = 'csv_weekly_pattern';
+                    player.match_verified = true;
+
+                    // Update karma if available
+                    const karma = karmaCache[gameDate];
+                    if (karma && karma[candidate.userId]) {
+                        player.karma_amount = karma[candidate.userId].amount;
+                        player.karma_rank = karma[candidate.userId].rank;
+                    }
+                }
+
+                stats.csvDiscoveries++;
+                discovered++;
+                matched = true;
+                break;
+            } else {
+                log(`      Failed: ${result.matchedWeeks}/${result.totalWeeks} weeks matched`, 'info');
+            }
+        }
+
+        if (!matched) {
+            failedValidation++;
+        }
+
+        updateProgress(90 + ((i + 1) / uniqueUnmatched.length * 10), `Phase 6: ${i + 1}/${uniqueUnmatched.length}`);
+    }
+
+    updateStats();
+    log(`Phase 6 complete: ${discovered} new discoveries, ${notInCsv} not in CSV, ${noCandidates} no candidates, ${failedValidation} failed validation`, 'success');
 }
 
 function showResults() {
