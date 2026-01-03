@@ -57,6 +57,7 @@ const adminActivity = require('./admin/admin-activity');
 const adminAwards = require('./admin/admin-awards');
 const adminTradeblocks = require('./admin/admin-tradeblocks');
 const migrateAddSeasonIds = require('./admin/migrate-add-season-ids');
+const adminS6Reconstruction = require('./admin/admin-s6-reconstruction');
 
 // Import extracted reporting modules
 const writeups = require('./reporting/writeups');
@@ -186,6 +187,12 @@ exports.reopenTradeBlocks = adminTradeblocks.reopenTradeBlocks;
 
 exports.admin_migrateAddSeasonIds = migrateAddSeasonIds.admin_migrateAddSeasonIds;
 exports.admin_verifySeasonIdMigration = migrateAddSeasonIds.admin_verifySeasonIdMigration;
+
+// Re-export S6 reconstruction functions (API proxy for CORS bypass)
+exports.admin_fetchRankedDays = adminS6Reconstruction.admin_fetchRankedDays;
+exports.admin_fetchAllRankedDays = adminS6Reconstruction.admin_fetchAllRankedDays;
+exports.admin_fetchKarmaRankings = adminS6Reconstruction.admin_fetchKarmaRankings;
+exports.admin_fetchKarmaRankingsBatch = adminS6Reconstruction.admin_fetchKarmaRankingsBatch;
 
 // Re-export reporting functions from extracted modules
 exports.generateGameWriteup = writeups.generateGameWriteup;
