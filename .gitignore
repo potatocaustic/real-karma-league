@@ -6,3 +6,4 @@ serviceAccountKey.json
 Thumbs.db
 .vscode/
 scripts/migration-logs/migration-1764210019944.json
+__pycache__/
