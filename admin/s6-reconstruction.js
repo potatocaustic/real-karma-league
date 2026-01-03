@@ -282,21 +282,21 @@ async function fetchKarmaForDate(dateStr) {
     }
 }
 
-async function fetchRankedDays(userId, limitDate = '2025-03-01') {
+// S6 earliest date - no need to fetch history before this
+const S6_START_DATE = '2025-03-06';
+
+async function fetchRankedDays(userId) {
     if (rankedDaysCache[userId]) {
         return rankedDaysCache[userId];
     }
 
     try {
-        log(`Fetching ranked days for ${userId} via Cloud Function...`, 'info');
-        const result = await fetchAllRankedDaysFn({ userId, limitDate });
+        const result = await fetchAllRankedDaysFn({ userId, limitDate: S6_START_DATE });
 
         if (result.data.success) {
             rankedDaysCache[userId] = result.data.days;
-            log(`Fetched ${result.data.days.length} days for ${userId}`, 'success');
             return result.data.days;
         } else {
-            log(`Failed to fetch ranked days for ${userId}`, 'warning');
             return [];
         }
     } catch (err) {
@@ -819,50 +819,168 @@ async function processRankDiscovery(matchedPerDate) {
     log(`Rank discoveries: ${discovered}, No match: ${stats.noMatch}`, 'success');
 }
 
-async function processApiVerification() {
-    let verified = 0;
-    let checked = 0;
-    const uncertainPlayers = [];
+/**
+ * Build a map of handle -> [{date, ranking}] from all games.
+ * This gives us the expected rankings for each player across all their game dates.
+ */
+function buildHandleRankingsMap() {
+    const handleRankings = {};  // handle -> [{date, ranking}]
 
-    // Collect uncertain matches
     for (const game of gamesData) {
+        const gameDate = game.game_date;
+
         for (const rosterKey of ['roster_a', 'roster_b']) {
             for (const player of game[rosterKey]) {
-                if (player.match_uncertain && player.player_id) {
-                    uncertainPlayers.push({ player, gameDate: game.game_date });
+                const handle = player.handle.toLowerCase();
+                const ranking = player.ranking;
+
+                if (!ranking) continue;  // Skip players without ranking data
+
+                if (!handleRankings[handle]) {
+                    handleRankings[handle] = [];
+                }
+
+                // Avoid duplicates for same date
+                if (!handleRankings[handle].some(r => r.date === gameDate)) {
+                    handleRankings[handle].push({ date: gameDate, ranking });
                 }
             }
         }
     }
 
-    if (uncertainPlayers.length === 0) {
+    return handleRankings;
+}
+
+/**
+ * Validate a candidate user_id against expected rankings from the .json.
+ * Returns { valid: bool, matchedDates: n, totalDates: n, avgDeviation: n }
+ */
+function validateCandidateAgainstRankings(rankedDaysHistory, expectedRankings, tolerance) {
+    // Build a map of date -> rank from the candidate's history
+    const historyByDate = {};
+    for (const day of rankedDaysHistory) {
+        historyByDate[day.day] = day.rank;
+    }
+
+    let matchedDates = 0;
+    let totalDeviation = 0;
+    let datesWithHistory = 0;
+
+    for (const { date, ranking } of expectedRankings) {
+        if (historyByDate[date] !== undefined) {
+            datesWithHistory++;
+            const deviation = Math.abs(historyByDate[date] - ranking);
+            totalDeviation += deviation;
+
+            if (deviation <= tolerance) {
+                matchedDates++;
+            }
+        }
+    }
+
+    return {
+        valid: datesWithHistory > 0 && (matchedDates / datesWithHistory) >= 0.7,  // 70%+ dates must match
+        matchedDates,
+        totalDates: expectedRankings.length,
+        datesWithHistory,
+        avgDeviation: datesWithHistory > 0 ? totalDeviation / datesWithHistory : Infinity
+    };
+}
+
+async function processApiVerification() {
+    const tolerance = parseInt(elements.rankTolerance.value) || 50;
+
+    // Build map of handle -> expected rankings from .json
+    const handleRankings = buildHandleRankingsMap();
+
+    // Collect uncertain matches, grouped by handle
+    const uncertainByHandle = {};  // handle -> {player_id, players: [...]}
+
+    for (const game of gamesData) {
+        for (const rosterKey of ['roster_a', 'roster_b']) {
+            for (const player of game[rosterKey]) {
+                if (player.match_uncertain && player.player_id) {
+                    const handle = player.handle.toLowerCase();
+                    if (!uncertainByHandle[handle]) {
+                        uncertainByHandle[handle] = {
+                            player_id: player.player_id,
+                            players: []  // All player objects with this handle (to update)
+                        };
+                    }
+                    uncertainByHandle[handle].players.push(player);
+                }
+            }
+        }
+    }
+
+    const handles = Object.keys(uncertainByHandle);
+    if (handles.length === 0) {
         log('No uncertain matches to verify', 'info');
         updateProgress(100, 'Complete');
         return;
     }
 
-    log(`Verifying ${uncertainPlayers.length} uncertain matches via API...`, 'info');
+    log(`Verifying ${handles.length} uncertain handles via multi-date pattern matching...`, 'info');
 
-    for (const { player, gameDate } of uncertainPlayers) {
+    let verified = 0;
+    let rejected = 0;
+
+    for (let i = 0; i < handles.length; i++) {
         if (shouldStop) break;
 
-        const rankedDays = await fetchRankedDays(player.player_id);
+        const handle = handles[i];
+        const { player_id, players } = uncertainByHandle[handle];
+        const expectedRankings = handleRankings[handle] || [];
 
-        for (const day of rankedDays) {
-            if (day.day === gameDate) {
-                if (Math.abs(day.rank - (player.karma_rank || 0)) <= 5) {
-                    player.match_verified = true;
-                    verified++;
-                }
-                break;
-            }
+        if (expectedRankings.length < 2) {
+            // Not enough dates to do meaningful pattern matching
+            log(`  ${handle}: Only ${expectedRankings.length} date(s), skipping verification`, 'info');
+            continue;
         }
 
-        checked++;
-        updateProgress(90 + (checked / uncertainPlayers.length * 10), `Verifying: ${checked}/${uncertainPlayers.length}`);
+        // Fetch candidate's ranked days history
+        log(`  Checking ${handle} (${expectedRankings.length} dates)...`, 'info');
+        const rankedDays = await fetchRankedDays(player_id);
+
+        if (rankedDays.length === 0) {
+            log(`    No history found for ${player_id}`, 'warning');
+            continue;
+        }
+
+        // Validate against expected rankings
+        const result = validateCandidateAgainstRankings(rankedDays, expectedRankings, tolerance);
+
+        if (result.valid) {
+            log(`    ✓ VERIFIED: ${result.matchedDates}/${result.datesWithHistory} dates matched (avg deviation: ${result.avgDeviation.toFixed(1)})`, 'success');
+            // Mark all player objects for this handle as verified
+            for (const player of players) {
+                player.match_verified = true;
+                delete player.match_uncertain;
+            }
+            // Update discovery confidence
+            if (discoveries[handle]) {
+                discoveries[handle].confidence = 'high';
+                discoveries[handle].verified = true;
+            }
+            verified++;
+        } else {
+            log(`    ✗ REJECTED: Only ${result.matchedDates}/${result.datesWithHistory} dates matched (avg deviation: ${result.avgDeviation.toFixed(1)})`, 'warning');
+            // Mark as rejected - the player_id assignment was likely wrong
+            for (const player of players) {
+                player.match_rejected = true;
+                player.match_uncertain = true;
+            }
+            if (discoveries[handle]) {
+                discoveries[handle].confidence = 'rejected';
+                discoveries[handle].verified = false;
+            }
+            rejected++;
+        }
+
+        updateProgress(90 + ((i + 1) / handles.length * 10), `Verifying: ${i + 1}/${handles.length}`);
     }
 
-    log(`Verified: ${verified}/${checked}`, 'success');
+    log(`Verification complete: ${verified} verified, ${rejected} rejected`, 'success');
     updateProgress(100, 'Complete');
 }
 
