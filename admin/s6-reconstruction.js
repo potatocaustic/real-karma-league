@@ -1422,6 +1422,10 @@ function findCandidatesByWeeklyPattern(handle, tolerance) {
 /**
  * Validate a candidate against weekly rankings from CSV using ranked days API.
  * Returns { valid, matchedWeeks, totalWeeks, avgDeviation }
+ *
+ * Validation criteria:
+ * 1. At least 70% of weeks must have a date within tolerance
+ * 2. Average deviation across matched weeks must also be within tolerance
  */
 function validateCandidateAgainstWeeklyRankings(rankedDaysHistory, weeklyRanks, tolerance) {
     // Build date -> rank from history
@@ -1432,7 +1436,7 @@ function validateCandidateAgainstWeeklyRankings(rankedDaysHistory, weeklyRanks, 
 
     let matchedWeeks = 0;
     let totalWeeks = 0;
-    let totalDeviation = 0;
+    let matchedDeviation = 0;  // Sum of deviations for matched weeks only
 
     for (const [weekCol, expectedRank] of Object.entries(weeklyRanks)) {
         // Skip if outside top 1000 (no data)
@@ -1441,25 +1445,27 @@ function validateCandidateAgainstWeeklyRankings(rankedDaysHistory, weeklyRanks, 
         const weekNum = parseInt(weekCol.slice(1));
         const weekDates = getWeekDates(weekNum);
 
-        // Check if any date in this week has a matching rank
-        let weekChecked = false;
-        let weekMatched = false;
+        // Find the best (lowest deviation) date in this week with history
+        let bestDev = Infinity;
+        let hasData = false;
 
         for (const date of weekDates) {
             if (historyByDate[date] !== undefined) {
-                if (!weekChecked) {
-                    totalWeeks++;
-                    weekChecked = true;
-                }
+                hasData = true;
                 const dev = Math.abs(historyByDate[date] - expectedRank);
-                totalDeviation += dev;
-                if (dev <= tolerance) {
-                    weekMatched = true;
+                if (dev < bestDev) {
+                    bestDev = dev;
                 }
             }
         }
 
-        if (weekMatched) matchedWeeks++;
+        if (hasData) {
+            totalWeeks++;
+            if (bestDev <= tolerance) {
+                matchedWeeks++;
+                matchedDeviation += bestDev;
+            }
+        }
     }
 
     if (totalWeeks === 0) {
@@ -1473,16 +1479,30 @@ function validateCandidateAgainstWeeklyRankings(rankedDaysHistory, weeklyRanks, 
         };
     }
 
+    const matchRatio = matchedWeeks / totalWeeks;
+    const avgDeviation = matchedWeeks > 0 ? matchedDeviation / matchedWeeks : Infinity;
+
+    // Both criteria must pass:
+    // 1. At least 70% of weeks matched (within tolerance)
+    // 2. Average deviation of matched weeks is within tolerance
+    const valid = matchRatio >= 0.7 && avgDeviation <= tolerance;
+
     return {
-        valid: (matchedWeeks / totalWeeks) >= 0.7,  // 70%+ weeks must match
+        valid,
         matchedWeeks,
         totalWeeks,
-        avgDeviation: totalDeviation / totalWeeks
+        avgDeviation
     };
 }
 
 /**
- * Phase 6: Process CSV-based weekly pattern matching for remaining unmatched handles.
+ * Phase 6: CSV-based weekly pattern matching.
+ *
+ * This phase starts from the CSV data (not from unmatched handles):
+ * 1. Iterate through all players in the CSV
+ * 2. For each CSV player, check if we already have an ID (handleToId or discoveries)
+ * 3. If not, use the weekly ranking fingerprint to find candidates in karma data
+ * 4. Validate candidates via ranked days API
  */
 async function processPhase6CsvDiscovery() {
     // Check if CSV data is loaded
@@ -1496,21 +1516,6 @@ async function processPhase6CsvDiscovery() {
     log(`Built date-to-week mapping (${Object.keys(dateToWeekMap).length} dates across ${Math.max(...Object.values(dateToWeekMap))} weeks)`, 'info');
 
     const tolerance = parseInt(elements.rankTolerance.value) || 50;
-
-    // Get unmatched handles (no player_id AND no discovery)
-    const unmatchedHandles = new Set();
-    for (const game of gamesData) {
-        for (const rosterKey of ['roster_a', 'roster_b']) {
-            for (const player of game[rosterKey]) {
-                if (!player.player_id && !discoveries[player.handle.toLowerCase()]) {
-                    unmatchedHandles.add(player.handle.toLowerCase());
-                }
-            }
-        }
-    }
-
-    const uniqueUnmatched = [...unmatchedHandles];
-    log(`Phase 6: Attempting CSV-based discovery for ${uniqueUnmatched.length} unmatched handles...`, 'phase');
 
     // Build handle-to-players map for updating player objects later
     const handleToPlayers = {};
@@ -1527,33 +1532,53 @@ async function processPhase6CsvDiscovery() {
         }
     }
 
+    // Start from CSV data - get all handles in CSV that we don't have IDs for
+    const csvHandles = Object.keys(csvRankings);
+    const handlesToProcess = [];
+
+    for (const handle of csvHandles) {
+        // Skip if we already have an ID from handleToId mapping
+        if (handleToId[handle]) continue;
+
+        // Skip if we already discovered this handle in earlier phases
+        if (discoveries[handle]) continue;
+
+        // This handle is in CSV but we don't have an ID - process it
+        handlesToProcess.push(handle);
+    }
+
+    log(`Phase 6: Processing ${handlesToProcess.length} CSV players without IDs (of ${csvHandles.length} total in CSV)...`, 'phase');
+
     let discovered = 0;
-    let notInCsv = 0;
+    let notInGames = 0;
     let noCandidates = 0;
     let failedValidation = 0;
 
-    for (let i = 0; i < uniqueUnmatched.length; i++) {
+    for (let i = 0; i < handlesToProcess.length; i++) {
         if (shouldStop) break;
 
-        const handle = uniqueUnmatched[i];
+        const handle = handlesToProcess[i];
+        const weeklyRanks = csvRankings[handle];
 
-        // Check if handle exists in CSV
-        if (!csvRankings[handle]) {
-            notInCsv++;
+        // Count how many weeks have data within top 1000
+        const validWeeks = Object.entries(weeklyRanks).filter(([_, rank]) => rank <= 1000).length;
+        if (validWeeks < 3) {
+            log(`  ${handle}: Only ${validWeeks} weeks within top 1000, skipping`, 'info');
+            updateProgress(90 + ((i + 1) / handlesToProcess.length * 10), `Phase 6: ${i + 1}/${handlesToProcess.length}`);
             continue;
         }
 
-        // Find candidates by weekly pattern
+        // Find candidates by matching weekly pattern against karma data
         const candidates = findCandidatesByWeeklyPattern(handle, tolerance);
 
         if (candidates.length === 0) {
-            log(`  ${handle}: No candidates found (0 matches with 3+ weeks)`, 'warning');
+            log(`  ${handle}: No candidates found (0 matches with 3+ weeks in karma data)`, 'warning');
             noCandidates++;
-            updateProgress(90 + ((i + 1) / uniqueUnmatched.length * 10), `Phase 6: ${i + 1}/${uniqueUnmatched.length}`);
+            updateProgress(90 + ((i + 1) / handlesToProcess.length * 10), `Phase 6: ${i + 1}/${handlesToProcess.length}`);
             continue;
         }
 
-        log(`  ${handle}: Found ${candidates.length} candidate(s), validating...`, 'info');
+        log(`  ${handle}: Found ${candidates.length} candidate(s), validating via ranked days API...`, 'info');
 
         // Try top 3 candidates
         let matched = false;
@@ -1564,13 +1589,13 @@ async function processPhase6CsvDiscovery() {
             await sleep(API_CALL_DELAY_MS);
 
             if (rankedDays.length === 0) {
-                log(`      No history found`, 'info');
+                log(`      No ranked days history found`, 'info');
                 continue;
             }
 
             const result = validateCandidateAgainstWeeklyRankings(
                 rankedDays,
-                csvRankings[handle],
+                weeklyRanks,
                 tolerance
             );
 
@@ -1592,8 +1617,13 @@ async function processPhase6CsvDiscovery() {
                     totalWeeks: result.totalWeeks
                 };
 
-                // Update all player objects with this handle
+                // Update all player objects with this handle (if any exist in games)
                 const playerRefs = handleToPlayers[handle] || [];
+                if (playerRefs.length === 0) {
+                    notInGames++;
+                    log(`      Note: ${handle} found in CSV but not in games data`, 'info');
+                }
+
                 for (const { player, gameDate } of playerRefs) {
                     player.player_id = candidate.userId;
                     player.match_method = 'csv_weekly_pattern';
@@ -1612,7 +1642,7 @@ async function processPhase6CsvDiscovery() {
                 matched = true;
                 break;
             } else {
-                log(`      Failed: ${result.matchedWeeks}/${result.totalWeeks} weeks matched`, 'info');
+                log(`      Failed validation: ${result.matchedWeeks}/${result.totalWeeks} weeks matched, avgDev: ${result.avgDeviation.toFixed(1)} (tolerance: ${tolerance})`, 'info');
             }
         }
 
@@ -1620,11 +1650,11 @@ async function processPhase6CsvDiscovery() {
             failedValidation++;
         }
 
-        updateProgress(90 + ((i + 1) / uniqueUnmatched.length * 10), `Phase 6: ${i + 1}/${uniqueUnmatched.length}`);
+        updateProgress(90 + ((i + 1) / handlesToProcess.length * 10), `Phase 6: ${i + 1}/${handlesToProcess.length}`);
     }
 
     updateStats();
-    log(`Phase 6 complete: ${discovered} new discoveries, ${notInCsv} not in CSV, ${noCandidates} no candidates, ${failedValidation} failed validation`, 'success');
+    log(`Phase 6 complete: ${discovered} discoveries, ${noCandidates} no candidates, ${failedValidation} failed validation, ${notInGames} found but not in games`, 'success');
 }
 
 function showResults() {
