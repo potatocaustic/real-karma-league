@@ -97,28 +97,34 @@ Every 3 consecutive unique game dates = 1 week.
 ### Algorithm for Phase 6
 
 ```
-For each unmatched handle:
-  1. Look up their weekly rankings from CSV (W1-W15)
-  2. Filter to weeks where they have a ranking (skip blanks)
-  3. For each week, map to the 3 dates in that week
+For each player in CSV (not starting from unmatched handles):
+  1. Check if we already have an ID (from handleToId or earlier discoveries)
+     - If yes, skip this player
+  2. Look up their weekly rankings from CSV (W1-W15)
+  3. Filter to weeks within top 1000 (require at least 3 validatable weeks)
+  4. For each week, map to the 3 dates in that week
 
-  4. Build candidate scores:
+  5. Build candidate scores from karma data:
      For each user_id in karma data:
-       For each week with CSV ranking:
+       For each week with CSV ranking <= 1000:
          For each date in that week:
            If user's daily rank is within tolerance of weekly ranking:
              Add to candidate's score
 
-     Score = (dates matched, total deviation, weeks matched)
+     Score = (weeks matched, avg deviation for matched dates)
 
-  5. Take top candidates (those matching multiple weeks)
+  6. Take top candidates (those matching 3+ weeks, sorted by weeks then avg deviation)
 
-  6. Validate via ranked days API:
+  7. Validate via ranked days API:
      - Fetch candidate's full history
-     - Compare their daily ranks to expected weekly rankings
-     - Use same 70% threshold
+     - For each week in CSV, find best matching date in history
+     - Count weeks where best date is within tolerance
+     - Calculate avgDeviation only for matched weeks
+     - TWO criteria must pass:
+       a) 70%+ of weeks must match (within tolerance)
+       b) avgDeviation of matched weeks must be <= tolerance
 
-  7. If valid → assign player_id
+  8. If valid → assign player_id
      If not → try next candidate
 ```
 
@@ -245,7 +251,7 @@ Very unlikely for two different players to have the same ranking pattern across 
 
 5. **Validate Candidate Against Weekly Rankings**:
    ```javascript
-   function validateCandidateAgainstWeeklyRankings(rankedDays, csvRankings, dateToWeekMap, tolerance) {
+   function validateCandidateAgainstWeeklyRankings(rankedDays, csvRankings, tolerance) {
        // Build date -> rank from history
        const historyByDate = {};
        for (const day of rankedDays) {
@@ -254,73 +260,80 @@ Very unlikely for two different players to have the same ranking pattern across 
 
        let matchedWeeks = 0;
        let totalWeeks = 0;
-       let totalDeviation = 0;
+       let matchedDeviation = 0;  // Only sum deviations for matched weeks
 
        for (const [weekCol, expectedRank] of Object.entries(csvRankings)) {
            if (expectedRank > 1000) continue;  // Skip if outside top 1000
 
            const weekNum = parseInt(weekCol.slice(1));
-           const weekDates = getWeekDates(weekNum, dateToWeekMap);
+           const weekDates = getWeekDates(weekNum);
 
-           // Check if any date in this week has a matching rank
-           let weekMatched = false;
+           // Find best (lowest deviation) date in this week
+           let bestDev = Infinity;
+           let hasData = false;
+
            for (const date of weekDates) {
                if (historyByDate[date] !== undefined) {
-                   totalWeeks++;
+                   hasData = true;
                    const dev = Math.abs(historyByDate[date] - expectedRank);
-                   totalDeviation += dev;
-                   if (dev <= tolerance) {
-                       weekMatched = true;
-                   }
-                   break;  // Only count one date per week
+                   if (dev < bestDev) bestDev = dev;
                }
            }
-           if (weekMatched) matchedWeeks++;
+
+           if (hasData) {
+               totalWeeks++;
+               if (bestDev <= tolerance) {
+                   matchedWeeks++;
+                   matchedDeviation += bestDev;
+               }
+           }
        }
 
+       const avgDeviation = matchedWeeks > 0 ? matchedDeviation / matchedWeeks : Infinity;
+
+       // Both criteria must pass:
+       // 1. 70%+ weeks matched
+       // 2. avgDeviation within tolerance
        return {
-           valid: totalWeeks > 0 && (matchedWeeks / totalWeeks) >= 0.7,
+           valid: totalWeeks > 0 && (matchedWeeks / totalWeeks) >= 0.7 && avgDeviation <= tolerance,
            matchedWeeks,
            totalWeeks,
-           avgDeviation: totalWeeks > 0 ? totalDeviation / totalWeeks : Infinity
+           avgDeviation
        };
    }
    ```
 
 6. **Add Phase 6 to Main Flow**:
    ```javascript
-   async function processPhase6CsvDiscovery(csvRankings, dateToWeekMap) {
-       // Get unmatched handles
-       const unmatchedHandles = [];
-       for (const game of gamesData) {
-           for (const roster of ['roster_a', 'roster_b']) {
-               for (const player of game[roster]) {
-                   if (!player.player_id && !discoveries[player.handle.toLowerCase()]) {
-                       unmatchedHandles.push(player.handle.toLowerCase());
-                   }
-               }
-           }
-       }
-       const uniqueUnmatched = [...new Set(unmatchedHandles)];
+   async function processPhase6CsvDiscovery() {
+       // Start from CSV data - iterate through all players in CSV
+       const csvHandles = Object.keys(csvRankings);
+       const handlesToProcess = [];
 
-       log(`Phase 6: Attempting CSV-based discovery for ${uniqueUnmatched.length} unmatched handles...`, 'phase');
+       for (const handle of csvHandles) {
+           // Skip if we already have an ID
+           if (handleToId[handle]) continue;
+           if (discoveries[handle]) continue;
+
+           // This handle is in CSV but we don't have an ID - process it
+           handlesToProcess.push(handle);
+       }
+
+       log(`Phase 6: Processing ${handlesToProcess.length} CSV players without IDs...`, 'phase');
 
        let discovered = 0;
-       for (const handle of uniqueUnmatched) {
+       for (const handle of handlesToProcess) {
            if (shouldStop) break;
 
-           // Check if handle exists in CSV
-           if (!csvRankings[handle]) {
-               log(`  ${handle}: Not found in CSV`, 'info');
-               continue;
-           }
+           const weeklyRanks = csvRankings[handle];
 
-           const candidates = findCandidatesByWeeklyPattern(handle, csvRankings, dateToWeekMap, tolerance);
+           // Require at least 3 weeks within top 1000
+           const validWeeks = Object.values(weeklyRanks).filter(r => r <= 1000).length;
+           if (validWeeks < 3) continue;
 
-           if (candidates.length === 0) {
-               log(`  ${handle}: No candidates found`, 'warning');
-               continue;
-           }
+           // Find candidates by weekly pattern in karma data
+           const candidates = findCandidatesByWeeklyPattern(handle, tolerance);
+           if (candidates.length === 0) continue;
 
            log(`  ${handle}: Found ${candidates.length} candidates, validating...`, 'info');
 
@@ -331,15 +344,13 @@ Very unlikely for two different players to have the same ranking pattern across 
 
                const result = validateCandidateAgainstWeeklyRankings(
                    rankedDays,
-                   csvRankings[handle],
-                   dateToWeekMap,
+                   weeklyRanks,
                    tolerance
                );
 
                if (result.valid) {
-                   log(`    ✓ MATCH: ${candidate.userId} (${result.matchedWeeks}/${result.totalWeeks} weeks)`, 'success');
+                   log(`    ✓ MATCH: ${candidate.userId} (${result.matchedWeeks}/${result.totalWeeks} weeks, avgDev: ${result.avgDeviation.toFixed(1)})`, 'success');
 
-                   // Update discoveries and player objects
                    discoveries[handle] = {
                        user_id: candidate.userId,
                        confidence: 'high',
@@ -347,8 +358,8 @@ Very unlikely for two different players to have the same ranking pattern across 
                        verified: true
                    };
 
-                   // Update all player objects with this handle
-                   // ... (similar to existing code)
+                   // Update player objects if handle exists in games
+                   // ...
 
                    discovered++;
                    break;
@@ -380,8 +391,10 @@ Very unlikely for two different players to have the same ranking pattern across 
 - Players with very few weeks of data - require minimum 3 matching weeks
 
 ### Validation Criteria
-- Current: 70% of dates must match
-- For weekly: 70% of weeks should match (more lenient since weekly = aggregate)
+- For weekly: Both conditions must be satisfied:
+  1. 70%+ of weeks must have at least one date within tolerance
+  2. Average deviation across matched weeks must be <= tolerance
+- This prevents false positives where many weeks "match" but with high deviations
 
 ---
 
