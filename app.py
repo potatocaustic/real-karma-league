@@ -84,11 +84,15 @@ def _init_db(con: sqlite3.Connection):
 # ----------------------------
 VS_ANY_RE = re.compile(r"\bvs\.?\b", re.IGNORECASE)
 MENTION_RE = re.compile(r"@([A-Za-z0-9._]+)")
-SCORE_NUM_RE = re.compile(r"\b\d{1,3}(?:,\d{3})+\b")
+# Score patterns: matches "34,565" or "51458" or "47,547.5"
+SCORE_NUM_RE = re.compile(r"\b\d{1,3}(?:,\d{3})*(?:\.\d+)?\b|\b\d{4,6}(?:\.\d+)?\b")
 TOP_SCORES_RE = re.compile(r"top\s+team\s+scores", re.IGNORECASE)
 MEDIAN_RE = re.compile(r"\bmedian\b", re.IGNORECASE)
-WINLOSS_MARK_RE = re.compile(r"[✅❌]")
+# Win/loss markers including RealApp emojis
+WINLOSS_MARK_RE = re.compile(r"[✅❌🏆]|:check_mark_button|:cross_mark")
 LINEUPS_WORD_RE = re.compile(r"\blineups\b", re.IGNORECASE)
+# Result indicator: team record pattern like "(10-4)" or "(1-4)"
+RECORD_PATTERN_RE = re.compile(r"\(\d+-\d+(?:-\d+)?\)")
 
 INLINE_VS_SPLIT_RE = re.compile(r"\bvs\.?\b", re.IGNORECASE)
 
@@ -328,89 +332,62 @@ def extract_game_result(text: str) -> dict | None:
 
 def find_matching_lineup(team_a: str, team_b: str, result_date: str = None) -> dict | None:
     """
-    Find a matching lineup extract for a result based on team names.
-
-    Args:
-        team_a: First team name from result
-        team_b: Second team name from result
-        result_date: Date when result was posted (YYYY-MM-DD), used to limit search range
-
-    Returns:
-        Dict with lineup info {id, game_date, team_a, team_b, swapped} or None
-        'swapped' is True if teams are in reverse order in the lineup
+    Find the best matching lineup extract for a result based on team names.
+    Returns the highest-scoring match from find_all_matching_lineups.
     """
-    if not team_a or not team_b:
-        return None
+    matches = find_all_matching_lineups(team_a, team_b, result_date)
+    if matches:
+        return matches[0]
+    return None
 
-    team_a_lower = team_a.lower().strip()
-    team_b_lower = team_b.lower().strip()
-
-    # Build date range query - look for lineups within 3 days before result
-    date_clause = ""
-    params = []
-    if result_date:
-        date_clause = "AND game_date <= ? AND game_date >= date(?, '-3 days')"
-        params = [result_date, result_date]
-
-    # Query for lineups matching these teams (in either order)
-    sql = f"""
-        SELECT id, game_date, team_a, team_b, thread_id, comment_id
-        FROM manual_extract
-        WHERE kind = 'lineup'
-          AND (
-              (lower(team_a) = ? AND lower(team_b) = ?)
-              OR (lower(team_a) = ? AND lower(team_b) = ?)
-          )
-          {date_clause}
-        ORDER BY game_date DESC
-        LIMIT 5
+def _teams_match(lineup_a: str, lineup_b: str, result_a: str, result_b: str) -> tuple[bool, bool, int]:
     """
+    Check if two sets of team names match.
+    Returns: (matches, exact, score)
+    - matches: True if both teams match (in either order)
+    - exact: True if exact string match
+    - score: match quality (higher = better)
+    """
+    la = (lineup_a or "").lower().strip()
+    lb = (lineup_b or "").lower().strip()
+    ra = result_a.lower().strip()
+    rb = result_b.lower().strip()
 
-    matches = q(sql, (team_a_lower, team_b_lower, team_b_lower, team_a_lower) + tuple(params))
+    # Exact match (same order)
+    if la == ra and lb == rb:
+        return (True, True, 100)
+    # Exact match (swapped order)
+    if la == rb and lb == ra:
+        return (True, True, 100)
 
-    if not matches:
-        # Try fuzzy matching - team name might have slight variations
-        sql_fuzzy = f"""
-            SELECT id, game_date, team_a, team_b, thread_id, comment_id
-            FROM manual_extract
-            WHERE kind = 'lineup'
-              AND (
-                  (lower(team_a) LIKE ? AND lower(team_b) LIKE ?)
-                  OR (lower(team_a) LIKE ? AND lower(team_b) LIKE ?)
-              )
-              {date_clause}
-            ORDER BY game_date DESC
-            LIMIT 5
-        """
-        matches = q(sql_fuzzy, (
-            f"%{team_a_lower}%", f"%{team_b_lower}%",
-            f"%{team_b_lower}%", f"%{team_a_lower}%"
-        ) + tuple(params))
+    # Fuzzy match: check if names contain each other
+    def fuzzy_match(s1: str, s2: str) -> int:
+        if s1 == s2:
+            return 100
+        if s1 in s2 or s2 in s1:
+            # Penalize if lengths are very different
+            len_ratio = min(len(s1), len(s2)) / max(len(s1), len(s2)) if max(len(s1), len(s2)) > 0 else 0
+            return int(50 + 40 * len_ratio)
+        return 0
 
-    if not matches:
-        return None
+    # Check both orderings
+    score_same = min(fuzzy_match(la, ra), fuzzy_match(lb, rb))
+    score_swap = min(fuzzy_match(la, rb), fuzzy_match(lb, ra))
 
-    # Return the most recent match
-    match = matches[0]
-    match_team_a = (match["team_a"] or "").lower().strip()
+    best_score = max(score_same, score_swap)
 
-    # Determine if teams are swapped
-    swapped = (match_team_a == team_b_lower or team_b_lower in match_team_a)
+    # Need both teams to have some match
+    if best_score >= 50:
+        return (True, False, best_score)
 
-    return {
-        "id": match["id"],
-        "game_date": match["game_date"],
-        "team_a": match["team_a"],
-        "team_b": match["team_b"],
-        "thread_id": match["thread_id"],
-        "comment_id": match["comment_id"],
-        "swapped": swapped,
-    }
+    return (False, False, 0)
+
 
 def find_all_matching_lineups(team_a: str, team_b: str, result_date: str = None) -> list[dict]:
     """
     Find all potential matching lineups for a result.
-    Returns list of matches for user to choose from.
+    Requires BOTH teams to match (in either order).
+    Returns list of matches sorted by quality.
     """
     if not team_a or not team_b:
         return []
@@ -425,47 +402,65 @@ def find_all_matching_lineups(team_a: str, team_b: str, result_date: str = None)
         date_clause = "AND game_date <= ? AND game_date >= date(?, '-7 days')"
         params = [result_date, result_date]
 
-    sql = f"""
+    # First try exact matches - BOTH teams must match (in either order)
+    sql_exact = f"""
         SELECT id, game_date, team_a, team_b, thread_id, comment_id
         FROM manual_extract
         WHERE kind = 'lineup'
           AND (
-              (lower(team_a) LIKE ? OR lower(team_b) LIKE ?)
-              OR (lower(team_a) LIKE ? OR lower(team_b) LIKE ?)
+              (lower(team_a) = ? AND lower(team_b) = ?)
+              OR (lower(team_a) = ? AND lower(team_b) = ?)
           )
           {date_clause}
         ORDER BY game_date DESC
         LIMIT 10
     """
+    exact_matches = q(sql_exact, (team_a_lower, team_b_lower, team_b_lower, team_a_lower) + tuple(params))
 
-    matches = q(sql, (
-        f"%{team_a_lower}%", f"%{team_a_lower}%",
-        f"%{team_b_lower}%", f"%{team_b_lower}%"
-    ) + tuple(params))
+    # Also get recent lineups for fuzzy matching
+    sql_recent = f"""
+        SELECT id, game_date, team_a, team_b, thread_id, comment_id
+        FROM manual_extract
+        WHERE kind = 'lineup'
+          {date_clause.replace('AND', 'AND' if date_clause else '')}
+        ORDER BY game_date DESC
+        LIMIT 50
+    """
+    recent_lineups = q(sql_recent, tuple(params)) if params else q(sql_recent.replace(date_clause, ''), ())
 
+    # Combine and dedupe
+    seen_ids = set()
+    all_lineups = []
+    for m in exact_matches:
+        if m["id"] not in seen_ids:
+            seen_ids.add(m["id"])
+            all_lineups.append(m)
+    for m in recent_lineups:
+        if m["id"] not in seen_ids:
+            seen_ids.add(m["id"])
+            all_lineups.append(m)
+
+    # Score each lineup
     results = []
-    for match in matches:
-        match_team_a = (match["team_a"] or "").lower().strip()
-        match_team_b = (match["team_b"] or "").lower().strip()
-
-        # Score the match quality
-        exact_match = (
-            (match_team_a == team_a_lower and match_team_b == team_b_lower) or
-            (match_team_a == team_b_lower and match_team_b == team_a_lower)
+    for lineup in all_lineups:
+        matches, exact, score = _teams_match(
+            lineup["team_a"], lineup["team_b"],
+            team_a, team_b
         )
+        if matches:
+            results.append({
+                "id": lineup["id"],
+                "game_date": lineup["game_date"],
+                "team_a": lineup["team_a"],
+                "team_b": lineup["team_b"],
+                "thread_id": lineup["thread_id"],
+                "comment_id": lineup["comment_id"],
+                "exact_match": exact,
+                "match_score": score,
+            })
 
-        results.append({
-            "id": match["id"],
-            "game_date": match["game_date"],
-            "team_a": match["team_a"],
-            "team_b": match["team_b"],
-            "thread_id": match["thread_id"],
-            "comment_id": match["comment_id"],
-            "exact_match": exact_match,
-        })
-
-    # Sort by exact match first, then by date
-    results.sort(key=lambda x: (not x["exact_match"], x["game_date"] or ""), reverse=True)
+    # Sort by match score (descending), then by date (most recent first)
+    results.sort(key=lambda x: (-x["match_score"], -(x["game_date"] or "0000-00-00") if x["game_date"] else ""))
 
     return results
 
@@ -563,8 +558,29 @@ def guess_kind(text: str) -> str:
     t = text or ""
     if TOP_SCORES_RE.search(t) or MEDIAN_RE.search(t):
         return "leaderboard"
-    if WINLOSS_MARK_RE.search(t) and SCORE_NUM_RE.search(t):
+
+    # Result detection - multiple signals
+    # 1. Has win/loss markers AND scores
+    has_winloss = WINLOSS_MARK_RE.search(t)
+    has_scores = SCORE_NUM_RE.search(t)
+    # 2. Has team record patterns like "(10-4)"
+    has_records = RECORD_PATTERN_RE.search(t)
+    # 3. Has separator line (common in result posts)
+    has_separator = bool(re.search(r"^[-–—]{3,}$", t, re.MULTILINE))
+    # 4. Count how many record patterns (results usually have 2+)
+    record_count = len(RECORD_PATTERN_RE.findall(t))
+
+    # Strong result signals
+    if has_winloss and has_scores:
         return "result"
+    # Two+ team records with scores = likely result
+    if record_count >= 2 and has_scores:
+        return "result"
+    # Records + separator + scores = likely result
+    if has_records and has_separator and has_scores:
+        return "result"
+
+    # Lineup detection
     if (LINEUPS_WORD_RE.search(t) or VS_ANY_RE.search(t)) and MENTION_RE.search(t):
         return "lineup"
     # GOTD posts
@@ -1740,14 +1756,14 @@ with colR:
         # For results: show matched lineups and allow selection
         linked_extract_id = None
         if kind == "result" and matched_lineups:
-            st.markdown("#### 🔗 Matched Lineup")
-            # Build options: "date - team_a vs team_b (id: X)" or "None (use thread date)"
-            lineup_options = ["(None - use thread date)"]
+            # Build options: clear format with date, teams, and match quality
+            lineup_options = ["(None - use thread date instead)"]
             lineup_id_map = {0: None}  # index -> extract_id
 
             for i, lu in enumerate(matched_lineups):
-                exact = "✓" if lu.get("exact_match") else ""
-                option_text = f"{lu['game_date']} - {lu['team_a']} vs {lu['team_b']} {exact}"
+                # Format: "[EXACT] 2024-01-15: TeamA vs TeamB (#123)"
+                match_quality = "[EXACT]" if lu.get("exact_match") else f"[{lu.get('match_score', 0)}%]"
+                option_text = f"{match_quality} {lu['game_date']}: {lu['team_a']} vs {lu['team_b']} (#{lu['id']})"
                 lineup_options.append(option_text)
                 lineup_id_map[i + 1] = lu["id"]
 
@@ -1755,7 +1771,7 @@ with colR:
             default_idx = 1 if len(lineup_options) > 1 else 0
 
             selected_idx = st.selectbox(
-                "Link to lineup (auto-sets game date)",
+                "🔗 Link to lineup (auto-sets game date)",
                 range(len(lineup_options)),
                 format_func=lambda x: lineup_options[x],
                 index=default_idx,
