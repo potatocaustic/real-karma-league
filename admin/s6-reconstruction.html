@@ -346,6 +346,31 @@
                 </div>
             </div>
 
+            <!-- Unmatched Handles Section -->
+            <div class="results-section hidden" id="unmatched-section">
+                <div class="config-section">
+                    <h3>Unmatched Handles</h3>
+                    <p style="color: var(--admin-text); opacity: 0.8; margin-bottom: 15px;">
+                        The following handles still don't have a valid player_id.
+                        You can manually provide mappings below.
+                    </p>
+                    <div class="data-preview" style="max-height: 200px; margin-bottom: 15px;">
+                        <pre id="unmatched-list"></pre>
+                    </div>
+
+                    <h4 style="margin-top: 20px; margin-bottom: 10px;">Manual Mappings</h4>
+                    <p style="color: var(--admin-text); opacity: 0.8; margin-bottom: 10px; font-size: 13px;">
+                        Enter one mapping per line in format: <code>handle: player_id</code>
+                    </p>
+                    <textarea id="manual-mappings" rows="6" style="width: 100%; padding: 10px; border: 1px solid var(--admin-border); border-radius: 4px; background: var(--admin-surface); color: var(--admin-text); font-family: monospace; font-size: 13px;" placeholder="example_handle: abc123xyz
+another_handle: def456uvw"></textarea>
+                    <div class="btn-group" style="margin-top: 15px;">
+                        <button class="btn btn-primary" id="btn-apply-manual">Apply Manual Mappings</button>
+                        <button class="btn btn-success" id="btn-download-final">Download Final Games JSON</button>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 

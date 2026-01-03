@@ -97,6 +97,13 @@ function initializeElements() {
     elements.btnDownloadGames = document.getElementById('btn-download-games');
     elements.btnDownloadDiscoveries = document.getElementById('btn-download-discoveries');
     elements.btnDownloadMerged = document.getElementById('btn-download-merged');
+
+    // Unmatched handles section
+    elements.unmatchedSection = document.getElementById('unmatched-section');
+    elements.unmatchedList = document.getElementById('unmatched-list');
+    elements.manualMappings = document.getElementById('manual-mappings');
+    elements.btnApplyManual = document.getElementById('btn-apply-manual');
+    elements.btnDownloadFinal = document.getElementById('btn-download-final');
 }
 
 function setupEventListeners() {
@@ -130,6 +137,10 @@ function setupEventListeners() {
     elements.btnDownloadGames.addEventListener('click', downloadEnhancedGames);
     elements.btnDownloadDiscoveries.addEventListener('click', downloadDiscoveries);
     elements.btnDownloadMerged.addEventListener('click', downloadMergedHandles);
+
+    // Manual mapping buttons
+    elements.btnApplyManual.addEventListener('click', applyManualMappings);
+    elements.btnDownloadFinal.addEventListener('click', downloadEnhancedGames);
 }
 
 function setupDragDrop(area, input, type) {
@@ -739,6 +750,7 @@ async function runFullReconstruction() {
         applyDiscoveriesToAllGames();
 
         showResults();
+        showUnmatchedHandles();
         log('=== RECONSTRUCTION COMPLETE ===', 'success');
 
     } catch (err) {
@@ -1767,4 +1779,146 @@ function downloadJson(data, filename) {
     a.click();
     URL.revokeObjectURL(url);
     log(`Downloaded ${filename}`, 'success');
+}
+
+// ============================================================================
+// Unmatched Handles & Manual Mapping
+// ============================================================================
+
+/**
+ * Get all unique handles that still don't have a player_id.
+ * Returns an object with handle as key and occurrence count as value.
+ */
+function getUnmatchedHandles() {
+    const unmatched = {};
+
+    for (const game of gamesData) {
+        for (const rosterKey of ['roster_a', 'roster_b']) {
+            for (const player of game[rosterKey]) {
+                if (!player.player_id) {
+                    const handle = player.handle.toLowerCase();
+                    if (!unmatched[handle]) {
+                        unmatched[handle] = { count: 0, games: [] };
+                    }
+                    unmatched[handle].count++;
+                    if (!unmatched[handle].games.includes(game.game_date)) {
+                        unmatched[handle].games.push(game.game_date);
+                    }
+                }
+            }
+        }
+    }
+
+    return unmatched;
+}
+
+/**
+ * Display unmatched handles in the UI.
+ */
+function showUnmatchedHandles() {
+    const unmatched = getUnmatchedHandles();
+    const handles = Object.keys(unmatched).sort();
+
+    if (handles.length === 0) {
+        elements.unmatchedSection.classList.add('hidden');
+        log('All handles have been matched!', 'success');
+        return;
+    }
+
+    elements.unmatchedSection.classList.remove('hidden');
+
+    // Format the list
+    const lines = handles.map(handle => {
+        const info = unmatched[handle];
+        return `${handle}: ${info.count} occurrence(s) across ${info.games.length} game(s)`;
+    });
+
+    elements.unmatchedList.textContent = lines.join('\n');
+    log(`${handles.length} handles still without player_id`, 'warning');
+}
+
+/**
+ * Parse and apply manual handle→player_id mappings.
+ */
+function applyManualMappings() {
+    const input = elements.manualMappings.value.trim();
+    if (!input) {
+        log('No manual mappings entered', 'warning');
+        return;
+    }
+
+    const lines = input.split('\n');
+    const mappings = {};
+    let parseErrors = 0;
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;  // Skip empty lines and comments
+
+        // Support both "handle: id" and "handle=id" formats
+        const match = trimmed.match(/^([^:=]+)[:\s=]+(.+)$/);
+        if (match) {
+            const handle = match[1].trim().toLowerCase();
+            const playerId = match[2].trim();
+            if (handle && playerId) {
+                mappings[handle] = playerId;
+            }
+        } else {
+            log(`Could not parse line: "${trimmed}"`, 'warning');
+            parseErrors++;
+        }
+    }
+
+    const mappingCount = Object.keys(mappings).length;
+    if (mappingCount === 0) {
+        log('No valid mappings found', 'error');
+        return;
+    }
+
+    log(`Parsed ${mappingCount} manual mappings (${parseErrors} parse errors)`, 'info');
+
+    // Apply mappings to gamesData
+    let applied = 0;
+    let karmaApplied = 0;
+
+    for (const game of gamesData) {
+        const gameDate = game.game_date;
+
+        for (const rosterKey of ['roster_a', 'roster_b']) {
+            for (const player of game[rosterKey]) {
+                const handle = player.handle.toLowerCase();
+
+                if (mappings[handle] && !player.player_id) {
+                    player.player_id = mappings[handle];
+                    player.match_method = 'manual';
+                    applied++;
+
+                    // Try to get karma data
+                    const karma = karmaCache[gameDate];
+                    if (karma && karma[mappings[handle]]) {
+                        player.karma_amount = karma[mappings[handle]].amount;
+                        player.karma_rank = karma[mappings[handle]].rank;
+                        karmaApplied++;
+                    } else {
+                        player.karma_unavailable = true;
+                    }
+                }
+            }
+        }
+    }
+
+    // Add to discoveries for future reference
+    for (const [handle, playerId] of Object.entries(mappings)) {
+        discoveries[handle] = {
+            user_id: playerId,
+            confidence: 'manual',
+            method: 'manual',
+            verified: true
+        };
+    }
+
+    log(`Applied ${applied} manual mappings (${karmaApplied} with karma data)`, 'success');
+
+    // Refresh the unmatched list
+    showUnmatchedHandles();
 }
