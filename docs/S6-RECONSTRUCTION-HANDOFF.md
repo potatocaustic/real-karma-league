@@ -33,6 +33,12 @@ The admin module at `/admin/s6-reconstruction.html` + `/admin/s6-reconstruction.
    - Validates via ranked days API (70%+ weeks must match)
    - Handles player aliases in CSV (e.g., "verse (reversethev)")
 
+7. **Final Pass: Apply Discoveries to All Games** - ✅ IMPLEMENTED
+   - Ensures all discoveries are applied to ALL games where that handle appears
+   - Critical for postseason games (weeks 16+) which can't be validated via CSV
+   - Combines pre-loaded `handleToId` mappings with runtime discoveries
+   - Applies karma data where available, marks `karma_unavailable` otherwise
+
 ### Cloud Functions Created
 
 Located in `/functions/admin/admin-s6-reconstruction.js`:
@@ -443,7 +449,7 @@ Recent commits:
 
 ## Summary
 
-The reconstruction pipeline is now **100% complete** with all 6 phases implemented:
+The reconstruction pipeline is now **100% complete** with all phases implemented:
 
 1. ✅ Phase 1: Fetch Karma Data (Supabase or Cloud Functions)
 2. ✅ Phase 2: Direct Matching (known player_ids)
@@ -451,6 +457,7 @@ The reconstruction pipeline is now **100% complete** with all 6 phases implement
 4. ✅ Phase 4: Rank Discovery (rank-based candidate finding)
 5. ✅ Phase 5: API Verification (multi-date pattern validation)
 6. ✅ Phase 6: CSV Weekly Pattern Matching (weekly fingerprint matching)
+7. ✅ Final Pass: Apply all discoveries to all games (including postseason)
 
 ### Remaining Work
 

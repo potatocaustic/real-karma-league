@@ -732,6 +732,12 @@ async function runFullReconstruction() {
         log('=== PHASE 6: CSV weekly pattern matching ===', 'phase');
         await processPhase6CsvDiscovery();
 
+        if (shouldStop) return;
+
+        // Final pass: Apply all discoveries to all player objects
+        log('=== FINAL PASS: Applying discoveries to all games ===', 'phase');
+        applyDiscoveriesToAllGames();
+
         showResults();
         log('=== RECONSTRUCTION COMPLETE ===', 'success');
 
@@ -1655,6 +1661,72 @@ async function processPhase6CsvDiscovery() {
 
     updateStats();
     log(`Phase 6 complete: ${discovered} discoveries, ${noCandidates} no candidates, ${failedValidation} failed validation, ${notInGames} found but not in games`, 'success');
+}
+
+/**
+ * Final pass: Apply all discoveries to all player objects.
+ *
+ * This ensures that discoveries made during any phase are applied to ALL games
+ * where that handle appears, including postseason games that couldn't be validated
+ * directly (since CSV only has regular season data W1-W15).
+ */
+function applyDiscoveriesToAllGames() {
+    let applied = 0;
+    let alreadySet = 0;
+
+    // Combine handleToId (pre-loaded mappings) with discoveries (found during processing)
+    const allMappings = { ...handleToId };
+    for (const [handle, discovery] of Object.entries(discoveries)) {
+        // Only use verified discoveries, or all if none are verified
+        if (discovery.verified !== false) {
+            allMappings[handle] = discovery.user_id;
+        }
+    }
+
+    log(`Applying ${Object.keys(allMappings).length} handle→ID mappings to all games...`, 'info');
+
+    for (const game of gamesData) {
+        const gameDate = game.game_date;
+
+        for (const rosterKey of ['roster_a', 'roster_b']) {
+            for (const player of game[rosterKey]) {
+                const handle = player.handle.toLowerCase();
+
+                // Check if we have a mapping for this handle
+                const userId = allMappings[handle];
+                if (!userId) continue;
+
+                // Check if player_id is already set correctly
+                if (player.player_id === userId) {
+                    alreadySet++;
+                    continue;
+                }
+
+                // Apply the mapping
+                const wasUnset = !player.player_id;
+                player.player_id = userId;
+
+                // Set match method if not already set
+                if (!player.match_method) {
+                    player.match_method = 'applied_from_discovery';
+                }
+
+                // Try to get karma data for this game date
+                const karma = karmaCache[gameDate];
+                if (karma && karma[userId]) {
+                    player.karma_amount = karma[userId].amount;
+                    player.karma_rank = karma[userId].rank;
+                } else if (wasUnset) {
+                    // Mark that karma wasn't available (likely postseason or outside top 1000)
+                    player.karma_unavailable = true;
+                }
+
+                applied++;
+            }
+        }
+    }
+
+    log(`Final pass complete: ${applied} player IDs applied, ${alreadySet} already correctly set`, 'success');
 }
 
 function showResults() {
