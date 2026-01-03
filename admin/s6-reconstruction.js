@@ -853,6 +853,7 @@ function buildHandleRankingsMap() {
 
 /**
  * Validate a candidate user_id against expected rankings from the .json.
+ * Only considers rankings <= 1000 (within top 1000, where we have data).
  * Returns { valid: bool, matchedDates: n, totalDates: n, avgDeviation: n }
  */
 function validateCandidateAgainstRankings(rankedDaysHistory, expectedRankings, tolerance) {
@@ -862,11 +863,27 @@ function validateCandidateAgainstRankings(rankedDaysHistory, expectedRankings, t
         historyByDate[day.day] = day.rank;
     }
 
+    // Filter to only rankings within top 1000 (where we have data)
+    const validRankings = expectedRankings.filter(r => r.ranking <= 1000);
+
+    if (validRankings.length === 0) {
+        // No rankings within top 1000 to validate against
+        return {
+            valid: false,
+            matchedDates: 0,
+            totalDates: expectedRankings.length,
+            datesWithHistory: 0,
+            avgDeviation: Infinity,
+            skipped: true,
+            reason: 'No rankings within top 1000'
+        };
+    }
+
     let matchedDates = 0;
     let totalDeviation = 0;
     let datesWithHistory = 0;
 
-    for (const { date, ranking } of expectedRankings) {
+    for (const { date, ranking } of validRankings) {
         if (historyByDate[date] !== undefined) {
             datesWithHistory++;
             const deviation = Math.abs(historyByDate[date] - ranking);
@@ -878,14 +895,75 @@ function validateCandidateAgainstRankings(rankedDaysHistory, expectedRankings, t
         }
     }
 
+    if (datesWithHistory === 0) {
+        return {
+            valid: false,
+            matchedDates: 0,
+            totalDates: validRankings.length,
+            datesWithHistory: 0,
+            avgDeviation: Infinity,
+            skipped: true,
+            reason: 'No overlapping dates in history'
+        };
+    }
+
     return {
-        valid: datesWithHistory > 0 && (matchedDates / datesWithHistory) >= 0.7,  // 70%+ dates must match
+        valid: (matchedDates / datesWithHistory) >= 0.7,  // 70%+ dates must match
         matchedDates,
-        totalDates: expectedRankings.length,
+        totalDates: validRankings.length,
         datesWithHistory,
-        avgDeviation: datesWithHistory > 0 ? totalDeviation / datesWithHistory : Infinity
+        avgDeviation: totalDeviation / datesWithHistory
     };
 }
+
+/**
+ * Find alternative candidate user_ids from karma data for a given handle.
+ * Returns array of {user_id, avgRankDiff} sorted by proximity.
+ */
+function findAlternativeCandidates(handle, expectedRankings, excludeIds, tolerance) {
+    const candidateScores = {};  // user_id -> {totalDiff, count}
+
+    // Only consider rankings within top 1000
+    const validRankings = expectedRankings.filter(r => r.ranking <= 1000);
+
+    for (const { date, ranking } of validRankings) {
+        const karma = karmaCache[date];
+        if (!karma) continue;
+
+        for (const [userId, data] of Object.entries(karma)) {
+            if (excludeIds.has(userId)) continue;
+
+            const diff = Math.abs(data.rank - ranking);
+            if (diff <= tolerance) {
+                if (!candidateScores[userId]) {
+                    candidateScores[userId] = { totalDiff: 0, count: 0, username: data.username };
+                }
+                candidateScores[userId].totalDiff += diff;
+                candidateScores[userId].count++;
+            }
+        }
+    }
+
+    // Convert to array and sort by average difference
+    const candidates = Object.entries(candidateScores)
+        .map(([userId, { totalDiff, count, username }]) => ({
+            userId,
+            username,
+            avgRankDiff: totalDiff / count,
+            datesMatched: count
+        }))
+        .filter(c => c.datesMatched >= 2)  // Require at least 2 matching dates
+        .sort((a, b) => {
+            // Prefer more dates matched, then lower avg diff
+            if (b.datesMatched !== a.datesMatched) return b.datesMatched - a.datesMatched;
+            return a.avgRankDiff - b.avgRankDiff;
+        });
+
+    return candidates;
+}
+
+// Delay between API calls to avoid hammering the server
+const API_CALL_DELAY_MS = 750;
 
 async function processApiVerification() {
     const tolerance = parseInt(elements.rankTolerance.value) || 50;
@@ -893,95 +971,188 @@ async function processApiVerification() {
     // Build map of handle -> expected rankings from .json
     const handleRankings = buildHandleRankingsMap();
 
-    // Collect uncertain matches, grouped by handle
-    const uncertainByHandle = {};  // handle -> {player_id, players: [...]}
+    // Collect ALL discoveries (not just uncertain), grouped by handle
+    // This validates every discovery we made
+    const discoveryHandles = Object.keys(discoveries);
 
-    for (const game of gamesData) {
-        for (const rosterKey of ['roster_a', 'roster_b']) {
-            for (const player of game[rosterKey]) {
-                if (player.match_uncertain && player.player_id) {
-                    const handle = player.handle.toLowerCase();
-                    if (!uncertainByHandle[handle]) {
-                        uncertainByHandle[handle] = {
-                            player_id: player.player_id,
-                            players: []  // All player objects with this handle (to update)
-                        };
-                    }
-                    uncertainByHandle[handle].players.push(player);
-                }
-            }
-        }
-    }
-
-    const handles = Object.keys(uncertainByHandle);
-    if (handles.length === 0) {
-        log('No uncertain matches to verify', 'info');
+    if (discoveryHandles.length === 0) {
+        log('No discoveries to verify', 'info');
         updateProgress(100, 'Complete');
         return;
     }
 
-    log(`Verifying ${handles.length} uncertain handles via multi-date pattern matching...`, 'info');
+    // Build a map of handle -> all player objects with that handle (with game date)
+    const handleToPlayers = {};
+    for (const game of gamesData) {
+        const gameDate = game.game_date;
+        for (const rosterKey of ['roster_a', 'roster_b']) {
+            for (const player of game[rosterKey]) {
+                const handle = player.handle.toLowerCase();
+                if (!handleToPlayers[handle]) {
+                    handleToPlayers[handle] = [];
+                }
+                // Store reference to player and its game date
+                handleToPlayers[handle].push({ player, gameDate });
+            }
+        }
+    }
+
+    log(`Verifying ALL ${discoveryHandles.length} discoveries via multi-date pattern matching...`, 'info');
+    log(`(API delay: ${API_CALL_DELAY_MS}ms between calls)`, 'info');
 
     let verified = 0;
     let rejected = 0;
+    let skipped = 0;
+    let replacements = 0;
 
-    for (let i = 0; i < handles.length; i++) {
+    for (let i = 0; i < discoveryHandles.length; i++) {
         if (shouldStop) break;
 
-        const handle = handles[i];
-        const { player_id, players } = uncertainByHandle[handle];
+        const handle = discoveryHandles[i];
+        const discovery = discoveries[handle];
+        const player_id = discovery.user_id;
+        const playerRefs = handleToPlayers[handle] || [];  // [{player, gameDate}, ...]
         const expectedRankings = handleRankings[handle] || [];
 
-        if (expectedRankings.length < 2) {
-            // Not enough dates to do meaningful pattern matching
-            log(`  ${handle}: Only ${expectedRankings.length} date(s), skipping verification`, 'info');
+        // Filter to rankings within top 1000 for validation
+        const validatableRankings = expectedRankings.filter(r => r.ranking <= 1000);
+
+        if (validatableRankings.length < 2) {
+            log(`  ${handle}: Only ${validatableRankings.length} date(s) within top 1000, skipping`, 'info');
+            skipped++;
+            updateProgress(90 + ((i + 1) / discoveryHandles.length * 10), `Verifying: ${i + 1}/${discoveryHandles.length}`);
             continue;
         }
 
         // Fetch candidate's ranked days history
-        log(`  Checking ${handle} (${expectedRankings.length} dates)...`, 'info');
+        log(`  Checking ${handle} → ${player_id} (${validatableRankings.length} validatable dates)...`, 'info');
         const rankedDays = await fetchRankedDays(player_id);
+        await sleep(API_CALL_DELAY_MS);
 
         if (rankedDays.length === 0) {
-            log(`    No history found for ${player_id}`, 'warning');
+            log(`    No history found for ${player_id}, trying alternatives...`, 'warning');
+            // Try to find alternatives
+            const found = await tryAlternativeCandidates(handle, expectedRankings, new Set([player_id]), tolerance, playerRefs);
+            if (found) {
+                replacements++;
+                verified++;
+            } else {
+                rejected++;
+            }
+            updateProgress(90 + ((i + 1) / discoveryHandles.length * 10), `Verifying: ${i + 1}/${discoveryHandles.length}`);
             continue;
         }
 
         // Validate against expected rankings
         const result = validateCandidateAgainstRankings(rankedDays, expectedRankings, tolerance);
 
-        if (result.valid) {
+        if (result.skipped) {
+            log(`    Skipped: ${result.reason}`, 'info');
+            skipped++;
+        } else if (result.valid) {
             log(`    ✓ VERIFIED: ${result.matchedDates}/${result.datesWithHistory} dates matched (avg deviation: ${result.avgDeviation.toFixed(1)})`, 'success');
             // Mark all player objects for this handle as verified
-            for (const player of players) {
+            for (const { player } of playerRefs) {
                 player.match_verified = true;
                 delete player.match_uncertain;
             }
-            // Update discovery confidence
-            if (discoveries[handle]) {
-                discoveries[handle].confidence = 'high';
-                discoveries[handle].verified = true;
-            }
+            discovery.confidence = 'high';
+            discovery.verified = true;
             verified++;
         } else {
-            log(`    ✗ REJECTED: Only ${result.matchedDates}/${result.datesWithHistory} dates matched (avg deviation: ${result.avgDeviation.toFixed(1)})`, 'warning');
-            // Mark as rejected - the player_id assignment was likely wrong
-            for (const player of players) {
-                player.match_rejected = true;
-                player.match_uncertain = true;
+            log(`    ✗ FAILED: Only ${result.matchedDates}/${result.datesWithHistory} dates matched (avg deviation: ${result.avgDeviation.toFixed(1)})`, 'warning');
+            log(`    Searching for better candidates...`, 'info');
+
+            // Try alternative candidates
+            const found = await tryAlternativeCandidates(handle, expectedRankings, new Set([player_id]), tolerance, playerRefs);
+            if (found) {
+                replacements++;
+                verified++;
+            } else {
+                // No better match found - mark as rejected
+                for (const { player } of playerRefs) {
+                    player.match_rejected = true;
+                    player.match_uncertain = true;
+                }
+                discovery.confidence = 'rejected';
+                discovery.verified = false;
+                rejected++;
             }
-            if (discoveries[handle]) {
-                discoveries[handle].confidence = 'rejected';
-                discoveries[handle].verified = false;
-            }
-            rejected++;
         }
 
-        updateProgress(90 + ((i + 1) / handles.length * 10), `Verifying: ${i + 1}/${handles.length}`);
+        updateProgress(90 + ((i + 1) / discoveryHandles.length * 10), `Verifying: ${i + 1}/${discoveryHandles.length}`);
     }
 
-    log(`Verification complete: ${verified} verified, ${rejected} rejected`, 'success');
+    log(`Verification complete: ${verified} verified, ${rejected} rejected, ${skipped} skipped, ${replacements} replaced with better match`, 'success');
     updateProgress(100, 'Complete');
+}
+
+/**
+ * Try alternative candidates when the initial match fails validation.
+ * Returns true if a better match was found and applied.
+ * @param playerRefs - Array of {player, gameDate} objects
+ */
+async function tryAlternativeCandidates(handle, expectedRankings, excludeIds, tolerance, playerRefs) {
+    const candidates = findAlternativeCandidates(handle, expectedRankings, excludeIds, tolerance);
+
+    if (candidates.length === 0) {
+        log(`      No alternative candidates found`, 'warning');
+        return false;
+    }
+
+    log(`      Found ${candidates.length} alternative candidate(s), checking...`, 'info');
+
+    // Try up to 3 best candidates
+    for (let j = 0; j < Math.min(3, candidates.length); j++) {
+        const candidate = candidates[j];
+        log(`      Trying ${candidate.userId} (${candidate.username || 'unknown'}, ${candidate.datesMatched} dates, avgDiff: ${candidate.avgRankDiff.toFixed(1)})...`, 'info');
+
+        const rankedDays = await fetchRankedDays(candidate.userId);
+        await sleep(API_CALL_DELAY_MS);
+
+        if (rankedDays.length === 0) {
+            log(`        No history found`, 'info');
+            continue;
+        }
+
+        const result = validateCandidateAgainstRankings(rankedDays, expectedRankings, tolerance);
+
+        if (result.valid) {
+            log(`      ✓ REPLACEMENT FOUND: ${candidate.userId} - ${result.matchedDates}/${result.datesWithHistory} dates matched`, 'success');
+
+            // Update all player objects
+            for (const { player, gameDate } of playerRefs) {
+                player.player_id = candidate.userId;
+                player.match_verified = true;
+                player.match_method = 'replacement_discovery';
+                delete player.match_uncertain;
+                delete player.match_rejected;
+
+                // Update karma if available for this game date
+                const karma = karmaCache[gameDate];
+                if (karma && karma[candidate.userId]) {
+                    player.karma_amount = karma[candidate.userId].amount;
+                    player.karma_rank = karma[candidate.userId].rank;
+                }
+            }
+
+            // Update discovery record
+            discoveries[handle] = {
+                user_id: candidate.userId,
+                confidence: 'high',
+                method: 'replacement',
+                verified: true,
+                original_candidate: discoveries[handle]?.user_id
+            };
+
+            return true;
+        } else {
+            log(`        Failed: ${result.matchedDates}/${result.datesWithHistory} dates matched`, 'info');
+        }
+    }
+
+    log(`      No valid replacement found`, 'warning');
+    return false;
 }
 
 function showResults() {
