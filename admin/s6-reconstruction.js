@@ -998,6 +998,14 @@ async function processApiVerification() {
     }
 
     log(`Verifying ALL ${discoveryHandles.length} discoveries via multi-date pattern matching...`, 'info');
+
+    // Log breakdown by method
+    const byMethod = {};
+    for (const handle of discoveryHandles) {
+        const method = discoveries[handle].method || 'unknown';
+        byMethod[method] = (byMethod[method] || 0) + 1;
+    }
+    log(`  Breakdown: ${Object.entries(byMethod).map(([m, c]) => `${m}: ${c}`).join(', ')}`, 'info');
     log(`(API delay: ${API_CALL_DELAY_MS}ms between calls)`, 'info');
 
     let verified = 0;
@@ -1025,7 +1033,8 @@ async function processApiVerification() {
         }
 
         // Fetch candidate's ranked days history
-        log(`  Checking ${handle} → ${player_id} (${validatableRankings.length} validatable dates)...`, 'info');
+        const method = discovery.method || 'unknown';
+        log(`  [${method}] Checking ${handle} → ${player_id} (${validatableRankings.length} validatable dates)...`, 'info');
         const rankedDays = await fetchRankedDays(player_id);
         await sleep(API_CALL_DELAY_MS);
 
