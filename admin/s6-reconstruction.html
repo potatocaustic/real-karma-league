@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" data-style-rollout="modern">
+<head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8LNVNG5M1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-E8LNVNG5M1');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S6 Reconstruction - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = { useProdCollections: true };
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') document.documentElement.classList.add('dark-mode');
+        })();
+    </script>
+    <style>
+        .reconstruction-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .config-section {
+            background: var(--admin-surface-subtle);
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .config-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--admin-text);
+        }
+        .config-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .config-field {
+            flex: 1;
+            min-width: 200px;
+        }
+        .config-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: var(--admin-text);
+        }
+        .config-field input, .config-field select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--admin-border);
+            border-radius: 4px;
+            background: var(--admin-surface);
+            color: var(--admin-text);
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-primary:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border);
+            color: var(--admin-text);
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .progress-section {
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .progress-bar-container {
+            background: var(--admin-surface-subtle);
+            border-radius: 4px;
+            height: 24px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .log-container {
+            background: #0f172a;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            padding: 15px;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log-entry {
+            margin-bottom: 4px;
+            line-height: 1.5;
+        }
+        .log-info { color: #60a5fa; }
+        .log-success { color: #34d399; }
+        .log-warning { color: #fbbf24; }
+        .log-error { color: #f87171; }
+        .log-phase { color: #c084fc; font-weight: bold; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #3b82f6;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: var(--admin-text);
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        .results-section {
+            margin-top: 20px;
+        }
+        .data-preview {
+            background: var(--admin-surface);
+            border: 1px solid var(--admin-border);
+            border-radius: 6px;
+            padding: 15px;
+            max-height: 300px;
+            overflow: auto;
+        }
+        .data-preview pre {
+            margin: 0;
+            font-size: 12px;
+        }
+        .file-upload-area {
+            border: 2px dashed var(--admin-border);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .file-upload-area:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+        .file-upload-area.has-file {
+            border-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div id="auth-status"></div>
+        <button id="theme-toggle-btn" aria-label="Toggle theme">
+            <span class="theme-icon-light">☀️</span>
+            <span class="theme-icon-dark">🌙</span>
+        </button>
+        <h1>S6 Season Reconstruction</h1>
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <div class="reconstruction-container">
+
+            <!-- Configuration Section -->
+            <div class="config-section">
+                <h3>Configuration</h3>
+
+                <div class="config-row">
+                    <div class="config-field">
+                        <label for="supabase-url">Supabase URL</label>
+                        <input type="text" id="supabase-url" placeholder="https://xxxxx.supabase.co">
+                    </div>
+                    <div class="config-field">
+                        <label for="supabase-key">Supabase API Key</label>
+                        <input type="password" id="supabase-key" placeholder="Your anon or service key">
+                    </div>
+                </div>
+
+                <div class="config-row">
+                    <div class="config-field">
+                        <label for="rank-tolerance">Rank Tolerance (±)</label>
+                        <input type="number" id="rank-tolerance" value="50" min="10" max="200">
+                    </div>
+                    <div class="config-field">
+                        <label for="api-delay">API Delay (ms)</label>
+                        <input type="number" id="api-delay" value="500" min="100" max="2000">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Input Section -->
+            <div class="config-section">
+                <h3>Data Files</h3>
+
+                <div class="config-row">
+                    <div class="config-field">
+                        <label>Games Data (s6-games-enhanced.json)</label>
+                        <div class="file-upload-area" id="games-upload-area">
+                            <input type="file" id="games-file" accept=".json" style="display: none;">
+                            <span id="games-file-status">Click or drop file here</span>
+                        </div>
+                    </div>
+                    <div class="config-field">
+                        <label>Handle Map (s6-handle-to-id.json) - Optional</label>
+                        <div class="file-upload-area" id="handles-upload-area">
+                            <input type="file" id="handles-file" accept=".json" style="display: none;">
+                            <span id="handles-file-status">Click or drop file here</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="config-section">
+                <h3>Actions</h3>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="btn-run-full">Run Full Reconstruction</button>
+                    <button class="btn btn-secondary" id="btn-fetch-karma">Fetch Karma Only</button>
+                    <button class="btn btn-secondary" id="btn-discover-ids">Discover IDs Only</button>
+                    <button class="btn btn-secondary" id="btn-stop" disabled>Stop</button>
+                </div>
+            </div>
+
+            <!-- Progress Section -->
+            <div class="progress-section">
+                <h3>Progress</h3>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progress-bar" style="width: 0%">0%</div>
+                </div>
+                <div id="current-phase">Ready</div>
+
+                <div class="stats-grid" id="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-direct">0</div>
+                        <div class="stat-label">Direct Matches</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-username">0</div>
+                        <div class="stat-label">Username Matches</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-rank">0</div>
+                        <div class="stat-label">Rank Discoveries</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-outside">0</div>
+                        <div class="stat-label">Outside Top 1000</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-nomatch">0</div>
+                        <div class="stat-label">No Match</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Log Section -->
+            <div class="config-section">
+                <h3>Log</h3>
+                <div class="log-container" id="log-container"></div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section hidden" id="results-section">
+                <div class="config-section">
+                    <h3>Results</h3>
+                    <div class="btn-group" style="margin-bottom: 15px;">
+                        <button class="btn btn-success" id="btn-download-games">Download Enhanced Games</button>
+                        <button class="btn btn-success" id="btn-download-discoveries">Download Discoveries</button>
+                        <button class="btn btn-success" id="btn-download-merged">Download Merged Handles</button>
+                    </div>
+                    <div class="data-preview">
+                        <pre id="results-preview"></pre>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Authenticating...</p>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/admin/s6-reconstruction.js"></script>
+</body>
+</html>
