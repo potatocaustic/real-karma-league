@@ -460,7 +460,22 @@ def find_all_matching_lineups(team_a: str, team_b: str, result_date: str = None)
             })
 
     # Sort by match score (descending), then by date (most recent first)
-    results.sort(key=lambda x: (-x["match_score"], -(x["game_date"] or "0000-00-00") if x["game_date"] else ""))
+    # Use reverse=True approach: sort by (-score, date) then reverse would give wrong order
+    # Instead: sort by (-score, reverse_date) where we flip date string for descending
+    def sort_key(x):
+        score = -x["match_score"]  # Negative for descending
+        # For date: we want descending, so use a tuple that sorts inversely
+        # Since dates are YYYY-MM-DD, "9999-99-99" minus the date chars works conceptually
+        # Simpler: just use the date string and reverse the final sort
+        date = x["game_date"] or "0000-00-00"
+        return (score, date)
+
+    # Sort ascending by score (already negative), descending by date
+    results.sort(key=sort_key)
+    # Reverse to get dates in descending order within same score
+    # Actually, let's just do two-pass sort or use a cleaner approach
+    results.sort(key=lambda x: (x["game_date"] or "0000-00-00"), reverse=True)  # Date desc first
+    results.sort(key=lambda x: -x["match_score"])  # Then score desc (stable sort preserves date order)
 
     return results
 
