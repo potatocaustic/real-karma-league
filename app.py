@@ -69,6 +69,8 @@ def _init_db(con: sqlite3.Connection):
         ("winner", "TEXT"),      # "A", "B", or null
         ("adjustment_a", "REAL"),  # Score adjustment for team A
         ("adjustment_b", "REAL"),  # Score adjustment for team B
+        # Linking results to lineups
+        ("linked_extract_id", "INTEGER"),  # FK to another manual_extract (lineup)
     ]
     for col_name, col_type in migrations:
         try:
@@ -323,6 +325,149 @@ def extract_game_result(text: str) -> dict | None:
         "adjustment_b": adjustment_b,
         "round_name": round_name,
     }
+
+def find_matching_lineup(team_a: str, team_b: str, result_date: str = None) -> dict | None:
+    """
+    Find a matching lineup extract for a result based on team names.
+
+    Args:
+        team_a: First team name from result
+        team_b: Second team name from result
+        result_date: Date when result was posted (YYYY-MM-DD), used to limit search range
+
+    Returns:
+        Dict with lineup info {id, game_date, team_a, team_b, swapped} or None
+        'swapped' is True if teams are in reverse order in the lineup
+    """
+    if not team_a or not team_b:
+        return None
+
+    team_a_lower = team_a.lower().strip()
+    team_b_lower = team_b.lower().strip()
+
+    # Build date range query - look for lineups within 3 days before result
+    date_clause = ""
+    params = []
+    if result_date:
+        date_clause = "AND game_date <= ? AND game_date >= date(?, '-3 days')"
+        params = [result_date, result_date]
+
+    # Query for lineups matching these teams (in either order)
+    sql = f"""
+        SELECT id, game_date, team_a, team_b, thread_id, comment_id
+        FROM manual_extract
+        WHERE kind = 'lineup'
+          AND (
+              (lower(team_a) = ? AND lower(team_b) = ?)
+              OR (lower(team_a) = ? AND lower(team_b) = ?)
+          )
+          {date_clause}
+        ORDER BY game_date DESC
+        LIMIT 5
+    """
+
+    matches = q(sql, (team_a_lower, team_b_lower, team_b_lower, team_a_lower) + tuple(params))
+
+    if not matches:
+        # Try fuzzy matching - team name might have slight variations
+        sql_fuzzy = f"""
+            SELECT id, game_date, team_a, team_b, thread_id, comment_id
+            FROM manual_extract
+            WHERE kind = 'lineup'
+              AND (
+                  (lower(team_a) LIKE ? AND lower(team_b) LIKE ?)
+                  OR (lower(team_a) LIKE ? AND lower(team_b) LIKE ?)
+              )
+              {date_clause}
+            ORDER BY game_date DESC
+            LIMIT 5
+        """
+        matches = q(sql_fuzzy, (
+            f"%{team_a_lower}%", f"%{team_b_lower}%",
+            f"%{team_b_lower}%", f"%{team_a_lower}%"
+        ) + tuple(params))
+
+    if not matches:
+        return None
+
+    # Return the most recent match
+    match = matches[0]
+    match_team_a = (match["team_a"] or "").lower().strip()
+
+    # Determine if teams are swapped
+    swapped = (match_team_a == team_b_lower or team_b_lower in match_team_a)
+
+    return {
+        "id": match["id"],
+        "game_date": match["game_date"],
+        "team_a": match["team_a"],
+        "team_b": match["team_b"],
+        "thread_id": match["thread_id"],
+        "comment_id": match["comment_id"],
+        "swapped": swapped,
+    }
+
+def find_all_matching_lineups(team_a: str, team_b: str, result_date: str = None) -> list[dict]:
+    """
+    Find all potential matching lineups for a result.
+    Returns list of matches for user to choose from.
+    """
+    if not team_a or not team_b:
+        return []
+
+    team_a_lower = team_a.lower().strip()
+    team_b_lower = team_b.lower().strip()
+
+    # Build date range query - look for lineups within 7 days before result
+    date_clause = ""
+    params = []
+    if result_date:
+        date_clause = "AND game_date <= ? AND game_date >= date(?, '-7 days')"
+        params = [result_date, result_date]
+
+    sql = f"""
+        SELECT id, game_date, team_a, team_b, thread_id, comment_id
+        FROM manual_extract
+        WHERE kind = 'lineup'
+          AND (
+              (lower(team_a) LIKE ? OR lower(team_b) LIKE ?)
+              OR (lower(team_a) LIKE ? OR lower(team_b) LIKE ?)
+          )
+          {date_clause}
+        ORDER BY game_date DESC
+        LIMIT 10
+    """
+
+    matches = q(sql, (
+        f"%{team_a_lower}%", f"%{team_a_lower}%",
+        f"%{team_b_lower}%", f"%{team_b_lower}%"
+    ) + tuple(params))
+
+    results = []
+    for match in matches:
+        match_team_a = (match["team_a"] or "").lower().strip()
+        match_team_b = (match["team_b"] or "").lower().strip()
+
+        # Score the match quality
+        exact_match = (
+            (match_team_a == team_a_lower and match_team_b == team_b_lower) or
+            (match_team_a == team_b_lower and match_team_b == team_a_lower)
+        )
+
+        results.append({
+            "id": match["id"],
+            "game_date": match["game_date"],
+            "team_a": match["team_a"],
+            "team_b": match["team_b"],
+            "thread_id": match["thread_id"],
+            "comment_id": match["comment_id"],
+            "exact_match": exact_match,
+        })
+
+    # Sort by exact match first, then by date
+    results.sort(key=lambda x: (not x["exact_match"], x["game_date"] or ""), reverse=True)
+
+    return results
 
 def detect_postseason_info(text: str):
     """
@@ -710,12 +855,26 @@ def auto_extract_comment(thread_id: int, comment_id: int, source: str,
     if kind == "result":
         result = extract_game_result(text)
         if result and result.get("team_a") and result.get("team_b"):
+            # Try to find a matching lineup to get the correct game date
+            linked_lineup = find_matching_lineup(
+                result["team_a"],
+                result["team_b"],
+                game_date  # Use thread date as upper bound
+            )
+
+            # Use lineup's game_date if found, otherwise fall back to thread date
+            actual_game_date = game_date
+            linked_extract_id = None
+            if linked_lineup:
+                actual_game_date = linked_lineup["game_date"]
+                linked_extract_id = linked_lineup["id"]
+
             return {
                 "thread_id": thread_id,
                 "comment_id": comment_id,
                 "source": source,
                 "kind": kind,
-                "game_date": game_date,
+                "game_date": actual_game_date,
                 "team_a": result["team_a"],
                 "team_b": result["team_b"],
                 "captain_a": None,
@@ -730,6 +889,7 @@ def auto_extract_comment(thread_id: int, comment_id: int, source: str,
                 "winner": result.get("winner"),
                 "adjustment_a": result.get("adjustment_a"),
                 "adjustment_b": result.get("adjustment_b"),
+                "linked_extract_id": linked_extract_id,
                 "raw_text": text,
             }
         return None
@@ -778,6 +938,7 @@ def auto_extract_comment(thread_id: int, comment_id: int, source: str,
         "winner": None,
         "adjustment_a": None,
         "adjustment_b": None,
+        "linked_extract_id": None,
         "raw_text": text,
     }
 
@@ -818,8 +979,9 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
                   INSERT INTO manual_extract(
                     created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                     mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                    seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
-                  ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
+                    linked_extract_id
+                  ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     result["thread_id"], result["comment_id"], result["source"],
                     result["kind"], result["game_date"], result["team_a"], result["team_b"],
@@ -828,7 +990,8 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
                     result["mentions_a"], result["mentions_b"],
                     result["seed_a"], result["seed_b"], result["round_name"],
                     result.get("score_a"), result.get("score_b"), result.get("winner"),
-                    result.get("adjustment_a"), result.get("adjustment_b")
+                    result.get("adjustment_a"), result.get("adjustment_b"),
+                    result.get("linked_extract_id")
                 ))
                 extracted += 1
     else:
@@ -846,8 +1009,9 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
               INSERT INTO manual_extract(
                 created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                 mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
+                linked_extract_id
+              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 result["thread_id"], result["comment_id"], result["source"],
                 result["kind"], result["game_date"], result["team_a"], result["team_b"],
@@ -856,7 +1020,8 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
                 result["mentions_a"], result["mentions_b"],
                 result["seed_a"], result["seed_b"], result["round_name"],
                 result.get("score_a"), result.get("score_b"), result.get("winner"),
-                result.get("adjustment_a"), result.get("adjustment_b")
+                result.get("adjustment_a"), result.get("adjustment_b"),
+                result.get("linked_extract_id")
             ))
             extracted += 1
 
@@ -893,8 +1058,9 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
               INSERT INTO manual_extract(
                 created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                 mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
+                linked_extract_id
+              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (
                 result["thread_id"], result["comment_id"], result["source"],
                 result["kind"], result["game_date"], result["team_a"], result["team_b"],
@@ -903,7 +1069,8 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
                 result["mentions_a"], result["mentions_b"],
                 result["seed_a"], result["seed_b"], result["round_name"],
                 result.get("score_a"), result.get("score_b"), result.get("winner"),
-                result.get("adjustment_a"), result.get("adjustment_b")
+                result.get("adjustment_a"), result.get("adjustment_b"),
+                result.get("linked_extract_id")
             ))
             extracted += 1
         else:
@@ -1459,6 +1626,8 @@ with colR:
         winner_guess = None
         adjustment_a_guess = None
         adjustment_b_guess = None
+        matched_lineups = []
+        linked_extract_id_guess = None
 
         if kind_guess == "result":
             result_data = extract_game_result(extract_text)
@@ -1488,7 +1657,17 @@ with colR:
         captain_a_guess, captain_b_guess, captain_candidates = detect_captains(extract_text)
 
         # date guess uses thread's posted date in Eastern time
-        game_date_guess = infer_game_date(thread_created)
+        thread_date_guess = infer_game_date(thread_created)
+        game_date_guess = thread_date_guess
+
+        # For results, try to find matching lineup to get correct game date
+        if kind_guess == "result" and team_a_guess and team_b_guess:
+            matched_lineups = find_all_matching_lineups(team_a_guess, team_b_guess, thread_date_guess)
+            if matched_lineups:
+                # Use the best match's date
+                best_match = matched_lineups[0]
+                game_date_guess = best_match["game_date"]
+                linked_extract_id_guess = best_match["id"]
 
         # Build captain dropdown options: candidates first, then all mentions, with blank option
         captain_options = [""] + list(dict.fromkeys(captain_candidates + all_mentions_guess))
@@ -1558,6 +1737,42 @@ with colR:
         adjustment_a = parse_float(adj_a_str)
         adjustment_b = parse_float(adj_b_str)
 
+        # For results: show matched lineups and allow selection
+        linked_extract_id = None
+        if kind == "result" and matched_lineups:
+            st.markdown("#### 🔗 Matched Lineup")
+            # Build options: "date - team_a vs team_b (id: X)" or "None (use thread date)"
+            lineup_options = ["(None - use thread date)"]
+            lineup_id_map = {0: None}  # index -> extract_id
+
+            for i, lu in enumerate(matched_lineups):
+                exact = "✓" if lu.get("exact_match") else ""
+                option_text = f"{lu['game_date']} - {lu['team_a']} vs {lu['team_b']} {exact}"
+                lineup_options.append(option_text)
+                lineup_id_map[i + 1] = lu["id"]
+
+            # Default to first match (index 1) if we have matches
+            default_idx = 1 if len(lineup_options) > 1 else 0
+
+            selected_idx = st.selectbox(
+                "Link to lineup (auto-sets game date)",
+                range(len(lineup_options)),
+                format_func=lambda x: lineup_options[x],
+                index=default_idx,
+                key=f"lineup_select_{extract_id}"
+            )
+
+            linked_extract_id = lineup_id_map.get(selected_idx)
+
+            # Update game_date based on selection
+            if linked_extract_id:
+                for lu in matched_lineups:
+                    if lu["id"] == linked_extract_id:
+                        game_date = lu["game_date"]
+                        break
+            else:
+                game_date = thread_date_guess
+
         # Show detection hints
         hints = []
         if captain_candidates:
@@ -1566,6 +1781,8 @@ with colR:
             hints.append(f"🏆 Postseason: {round_name_guess}")
         if score_a_guess or score_b_guess:
             hints.append(f"📊 Scores detected: {score_a_guess} vs {score_b_guess}")
+        if linked_extract_id:
+            hints.append(f"🔗 Linked to lineup #{linked_extract_id}")
         if hints:
             st.caption(" | ".join(hints))
 
@@ -1583,12 +1800,14 @@ with colR:
               INSERT INTO manual_extract(
                 created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
                 mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
+                linked_extract_id
+              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """, (sel, extract_id, extract_source, kind, game_date, team_a, team_b,
                   "", notes, extract_text, captain_a or None, captain_b or None,
                   mentions_a or None, mentions_b or None, seed_a or None, seed_b or None,
-                  round_name or None, score_a, score_b, winner or None, adjustment_a, adjustment_b))
+                  round_name or None, score_a, score_b, winner or None, adjustment_a, adjustment_b,
+                  linked_extract_id))
         
         with save1:
             if st.button("💾 Save", use_container_width=True):
@@ -1629,7 +1848,7 @@ with colR:
         w.writerow(["id","created_at","thread_id","comment_id","source","kind","game_date",
                     "team_a","team_b","captain_a","captain_b","mentions_a","mentions_b",
                     "seed_a","seed_b","round_name","score_a","score_b","winner",
-                    "adjustment_a","adjustment_b","notes"])
+                    "adjustment_a","adjustment_b","linked_extract_id","notes"])
 
         def safe_get(row, col):
             try:
@@ -1646,6 +1865,7 @@ with colR:
                 safe_get(r, "seed_a"), safe_get(r, "seed_b"), safe_get(r, "round_name"),
                 safe_get(r, "score_a"), safe_get(r, "score_b"), safe_get(r, "winner"),
                 safe_get(r, "adjustment_a"), safe_get(r, "adjustment_b"),
+                safe_get(r, "linked_extract_id"),
                 r["notes"]
             ])
 
