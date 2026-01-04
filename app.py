@@ -973,6 +973,50 @@ def auto_extract_comment(thread_id: int, comment_id: int, source: str,
         "raw_text": text,
     }
 
+def _save_auto_extract(result: dict) -> bool:
+    """
+    Save an auto-extracted result. If it's a result with a linked lineup,
+    update that lineup's row instead of creating a new one.
+    Returns True if saved, False if skipped.
+    """
+    linked_id = result.get("linked_extract_id")
+
+    if linked_id and result["kind"] == "result":
+        # Update the linked lineup row with result data
+        x("""
+          UPDATE manual_extract SET
+            score_a = ?, score_b = ?, winner = ?,
+            adjustment_a = ?, adjustment_b = ?
+          WHERE id = ?
+        """, (
+            result.get("score_a"), result.get("score_b"), result.get("winner"),
+            result.get("adjustment_a"), result.get("adjustment_b"),
+            linked_id
+        ))
+        return True
+    else:
+        # Create new row
+        x("""
+          INSERT INTO manual_extract(
+            created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
+            mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
+            seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
+            linked_extract_id
+          ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            result["thread_id"], result["comment_id"], result["source"],
+            result["kind"], result["game_date"], result["team_a"], result["team_b"],
+            "", "auto-extracted", result["raw_text"],
+            result["captain_a"], result["captain_b"],
+            result["mentions_a"], result["mentions_b"],
+            result["seed_a"], result["seed_b"], result["round_name"],
+            result.get("score_a"), result.get("score_b"), result.get("winner"),
+            result.get("adjustment_a"), result.get("adjustment_b"),
+            None
+        ))
+        return True
+
+
 def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> tuple[int, int]:
     """
     Auto-extract from a thread: first try the thread itself (for GOTD/postseason),
@@ -1006,24 +1050,7 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
                 thread_created_ts=thread_created_ts
             )
             if result:
-                x("""
-                  INSERT INTO manual_extract(
-                    created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
-                    mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                    seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
-                    linked_extract_id
-                  ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, (
-                    result["thread_id"], result["comment_id"], result["source"],
-                    result["kind"], result["game_date"], result["team_a"], result["team_b"],
-                    "", "auto-extracted", result["raw_text"],
-                    result["captain_a"], result["captain_b"],
-                    result["mentions_a"], result["mentions_b"],
-                    result["seed_a"], result["seed_b"], result["round_name"],
-                    result.get("score_a"), result.get("score_b"), result.get("winner"),
-                    result.get("adjustment_a"), result.get("adjustment_b"),
-                    result.get("linked_extract_id")
-                ))
+                _save_auto_extract(result)
                 extracted += 1
     else:
         # Not skipping existing - try to extract from thread
@@ -1036,24 +1063,7 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
             thread_created_ts=thread_created_ts
         )
         if result:
-            x("""
-              INSERT INTO manual_extract(
-                created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
-                mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
-                linked_extract_id
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (
-                result["thread_id"], result["comment_id"], result["source"],
-                result["kind"], result["game_date"], result["team_a"], result["team_b"],
-                "", "auto-extracted", result["raw_text"],
-                result["captain_a"], result["captain_b"],
-                result["mentions_a"], result["mentions_b"],
-                result["seed_a"], result["seed_b"], result["round_name"],
-                result.get("score_a"), result.get("score_b"), result.get("winner"),
-                result.get("adjustment_a"), result.get("adjustment_b"),
-                result.get("linked_extract_id")
-            ))
+            _save_auto_extract(result)
             extracted += 1
 
     # Get all replies
@@ -1085,24 +1095,7 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
         )
         
         if result:
-            x("""
-              INSERT INTO manual_extract(
-                created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
-                mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
-                linked_extract_id
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (
-                result["thread_id"], result["comment_id"], result["source"],
-                result["kind"], result["game_date"], result["team_a"], result["team_b"],
-                "", "auto-extracted", result["raw_text"],
-                result["captain_a"], result["captain_b"],
-                result["mentions_a"], result["mentions_b"],
-                result["seed_a"], result["seed_b"], result["round_name"],
-                result.get("score_a"), result.get("score_b"), result.get("winner"),
-                result.get("adjustment_a"), result.get("adjustment_b"),
-                result.get("linked_extract_id")
-            ))
+            _save_auto_extract(result)
             extracted += 1
         else:
             skipped += 1
@@ -1825,20 +1818,36 @@ with colR:
 
         # Save buttons row
         save1, save2, save3 = st.columns([1, 1, 2])
-        
+
         def do_save():
-            x("""
-              INSERT INTO manual_extract(
-                created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
-                mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
-                seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
-                linked_extract_id
-              ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-            """, (sel, extract_id, extract_source, kind, game_date, team_a, team_b,
-                  "", notes, extract_text, captain_a or None, captain_b or None,
-                  mentions_a or None, mentions_b or None, seed_a or None, seed_b or None,
-                  round_name or None, score_a, score_b, winner or None, adjustment_a, adjustment_b,
-                  linked_extract_id))
+            if linked_extract_id and kind == "result":
+                # Update the linked lineup row with result data instead of creating new row
+                x("""
+                  UPDATE manual_extract SET
+                    score_a = ?, score_b = ?, winner = ?,
+                    adjustment_a = ?, adjustment_b = ?,
+                    notes = CASE WHEN notes = 'auto-extracted' THEN '' ELSE notes END || ?
+                  WHERE id = ?
+                """, (
+                    score_a, score_b, winner or None,
+                    adjustment_a, adjustment_b,
+                    ("\n" + notes if notes else ""),
+                    linked_extract_id
+                ))
+            else:
+                # Create new row (for lineups or unlinked results)
+                x("""
+                  INSERT INTO manual_extract(
+                    created_at, thread_id, comment_id, source, kind, game_date, team_a, team_b,
+                    mentions, notes, raw_text, captain_a, captain_b, mentions_a, mentions_b,
+                    seed_a, seed_b, round_name, score_a, score_b, winner, adjustment_a, adjustment_b,
+                    linked_extract_id
+                  ) VALUES (datetime('now'),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """, (sel, extract_id, extract_source, kind, game_date, team_a, team_b,
+                      "", notes, extract_text, captain_a or None, captain_b or None,
+                      mentions_a or None, mentions_b or None, seed_a or None, seed_b or None,
+                      round_name or None, score_a, score_b, winner or None, adjustment_a, adjustment_b,
+                      None))
         
         with save1:
             if st.button("💾 Save", use_container_width=True):
