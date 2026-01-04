@@ -1017,26 +1017,54 @@ def _save_auto_extract(result: dict) -> bool:
         return True
 
 
-def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> tuple[int, int]:
+def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True,
+                                  extract_mode: str = "both") -> tuple[int, int]:
     """
     Auto-extract from a thread: first try the thread itself (for GOTD/postseason),
     then process all replies.
+
+    Args:
+        thread_id: The thread to process
+        skip_existing: Skip comments that already have extracts
+        extract_mode: "lineup" (only lineups), "result" (only results), or "both"
+
     Returns (extracted_count, skipped_count).
     """
     # Get thread info
     thread = q("SELECT plain_text, created_at_ts, source FROM rkl_comments WHERE comment_id = ?", (thread_id,))
     if not thread:
         return (0, 0)
-    
+
     thread_text = thread[0]["plain_text"]
     thread_created_ts = thread[0]["created_at_ts"]
     thread_source = thread[0]["source"]
-    
+
     extracted = 0
     skipped = 0
-    
+
+    def should_process(result_kind: str) -> bool:
+        """Check if this kind should be processed based on extract_mode."""
+        if extract_mode == "both":
+            return True
+        return result_kind == extract_mode
+
+    def check_skip_for_results(result: dict) -> bool:
+        """
+        For results with linked lineups, we don't skip - we update the lineup.
+        For results without links, check if comment already extracted.
+        """
+        if result["kind"] == "result" and result.get("linked_extract_id"):
+            # Check if this lineup already has scores
+            existing = q("SELECT score_a FROM manual_extract WHERE id = ?", (result["linked_extract_id"],))
+            if existing and existing[0]["score_a"] is not None:
+                return True  # Already has result data
+            return False  # Can update
+        return False  # Don't skip
+
     # First, try to extract from the thread itself (for GOTD/postseason standalone posts)
-    if skip_existing:
+    should_check_existing = skip_existing and extract_mode != "result"
+
+    if should_check_existing:
         existing = q("SELECT id FROM manual_extract WHERE comment_id = ? LIMIT 1", (thread_id,))
         if existing:
             skipped += 1
@@ -1046,14 +1074,16 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
                 comment_id=thread_id,
                 source=thread_source or "feed",
                 text=thread_text,
-                thread_text="",  # No parent thread text for main feed posts
+                thread_text="",
                 thread_created_ts=thread_created_ts
             )
-            if result:
-                _save_auto_extract(result)
-                extracted += 1
+            if result and should_process(result["kind"]):
+                if not check_skip_for_results(result):
+                    _save_auto_extract(result)
+                    extracted += 1
+                else:
+                    skipped += 1
     else:
-        # Not skipping existing - try to extract from thread
         result = auto_extract_comment(
             thread_id=thread_id,
             comment_id=thread_id,
@@ -1062,29 +1092,25 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
             thread_text="",
             thread_created_ts=thread_created_ts
         )
-        if result:
-            _save_auto_extract(result)
-            extracted += 1
+        if result and should_process(result["kind"]):
+            if not check_skip_for_results(result):
+                _save_auto_extract(result)
+                extracted += 1
+            else:
+                skipped += 1
 
     # Get all replies
     replies = q(
-        """SELECT comment_id, plain_text, source FROM rkl_comments 
+        """SELECT comment_id, plain_text, source FROM rkl_comments
            WHERE source='replies' AND (thread_root_id = ? OR parent_comment_id = ?)
            ORDER BY created_at_ts ASC""",
         (thread_id, thread_id)
     )
-    
+
     for reply in replies:
         comment_id = reply["comment_id"]
-        
-        # Check if already extracted
-        if skip_existing:
-            existing = q("SELECT id FROM manual_extract WHERE comment_id = ? LIMIT 1", (comment_id,))
-            if existing:
-                skipped += 1
-                continue
-        
-        # Try to auto-extract
+
+        # Try to auto-extract first to know the kind
         result = auto_extract_comment(
             thread_id=thread_id,
             comment_id=comment_id,
@@ -1093,28 +1119,53 @@ def run_auto_extract_for_thread(thread_id: int, skip_existing: bool = True) -> t
             thread_text=thread_text,
             thread_created_ts=thread_created_ts
         )
-        
-        if result:
-            _save_auto_extract(result)
-            extracted += 1
-        else:
+
+        if not result:
             skipped += 1
+            continue
+
+        # Check if we should process this kind
+        if not should_process(result["kind"]):
+            skipped += 1
+            continue
+
+        # For lineups, check if already extracted
+        if result["kind"] == "lineup" and skip_existing:
+            existing = q("SELECT id FROM manual_extract WHERE comment_id = ? LIMIT 1", (comment_id,))
+            if existing:
+                skipped += 1
+                continue
+
+        # For results, check if we should skip
+        if check_skip_for_results(result):
+            skipped += 1
+            continue
+
+        _save_auto_extract(result)
+        extracted += 1
 
     return (extracted, skipped)
 
-def run_auto_extract_bulk(thread_ids: list[int], skip_existing: bool = True) -> tuple[int, int, int]:
+def run_auto_extract_bulk(thread_ids: list[int], skip_existing: bool = True,
+                          extract_mode: str = "both") -> tuple[int, int, int]:
     """
     Auto-extract for multiple threads.
+
+    Args:
+        thread_ids: List of thread IDs to process
+        skip_existing: Skip comments that already have extracts
+        extract_mode: "lineup" (only lineups), "result" (only results), or "both"
+
     Returns (total_extracted, total_skipped, threads_processed).
     """
     total_extracted = 0
     total_skipped = 0
-    
+
     for tid in thread_ids:
-        ext, skip = run_auto_extract_for_thread(tid, skip_existing)
+        ext, skip = run_auto_extract_for_thread(tid, skip_existing, extract_mode)
         total_extracted += ext
         total_skipped += skip
-    
+
     return (total_extracted, total_skipped, len(thread_ids))
 
 def highlight(text: str) -> str:
@@ -1172,15 +1223,29 @@ st.sidebar.divider()
 st.sidebar.header("🤖 Auto-Extract")
 st.sidebar.caption("Automatically extract lineup data from threads")
 
-auto_skip_existing = st.sidebar.checkbox("Skip already-extracted", value=True, 
+auto_skip_existing = st.sidebar.checkbox("Skip already-extracted", value=True,
     help="Don't re-extract comments that have already been extracted")
 
-if st.sidebar.button("Auto-extract current page", help="Extract all lineups from threads on this page"):
-    st.session_state.auto_extract_pending = "page"
-    
-if st.sidebar.button("Auto-extract ALL matching", type="secondary",
-    help="Extract from ALL threads matching current filters (may take a while)"):
-    st.session_state.auto_extract_pending = "all"
+# Extraction mode selection
+extract_mode = st.sidebar.radio(
+    "Extract type",
+    ["Lineups only", "Results only", "Both"],
+    index=0,
+    help="Lineups first, then Results to link them",
+    horizontal=True
+)
+extract_mode_value = {"Lineups only": "lineup", "Results only": "result", "Both": "both"}[extract_mode]
+
+col_ext1, col_ext2 = st.sidebar.columns(2)
+with col_ext1:
+    if st.button("📄 This page", help="Extract from threads on this page", use_container_width=True):
+        st.session_state.auto_extract_pending = "page"
+        st.session_state.auto_extract_mode = extract_mode_value
+
+with col_ext2:
+    if st.button("📚 All matching", help="Extract from ALL matching threads", use_container_width=True):
+        st.session_state.auto_extract_pending = "all"
+        st.session_state.auto_extract_mode = extract_mode_value
 
 # Keyset pagination state
 if "cursor" not in st.session_state:
@@ -1250,9 +1315,11 @@ threads = q(
 # Handle auto-extract requests
 if st.session_state.get("auto_extract_pending") == "page" and threads:
     thread_ids = [int(r["comment_id"]) for r in threads]
-    with st.spinner(f"Auto-extracting from {len(thread_ids)} threads..."):
-        extracted, skipped, processed = run_auto_extract_bulk(thread_ids, auto_skip_existing)
-    st.toast(f"✅ Extracted {extracted} lineups, skipped {skipped} (from {processed} threads)")
+    mode = st.session_state.get("auto_extract_mode", "both")
+    mode_label = {"lineup": "lineups", "result": "results", "both": "items"}[mode]
+    with st.spinner(f"Auto-extracting {mode_label} from {len(thread_ids)} threads..."):
+        extracted, skipped, processed = run_auto_extract_bulk(thread_ids, auto_skip_existing, mode)
+    st.toast(f"✅ Extracted {extracted} {mode_label}, skipped {skipped} (from {processed} threads)")
     st.session_state.auto_extract_pending = None
     st.rerun()
 
@@ -1270,11 +1337,14 @@ if st.session_state.get("auto_extract_pending") == "all":
         if cursor else tuple(params)
     )
     thread_ids = [int(r["comment_id"]) for r in all_threads]
-    
+
+    mode = st.session_state.get("auto_extract_mode", "both")
+    mode_label = {"lineup": "lineups", "result": "results", "both": "items"}[mode]
+
     if thread_ids:
-        with st.spinner(f"Auto-extracting from {len(thread_ids)} threads (this may take a while)..."):
-            extracted, skipped, processed = run_auto_extract_bulk(thread_ids, auto_skip_existing)
-        st.toast(f"✅ Extracted {extracted} lineups, skipped {skipped} (from {processed} threads)")
+        with st.spinner(f"Auto-extracting {mode_label} from {len(thread_ids)} threads (this may take a while)..."):
+            extracted, skipped, processed = run_auto_extract_bulk(thread_ids, auto_skip_existing, mode)
+        st.toast(f"✅ Extracted {extracted} {mode_label}, skipped {skipped} (from {processed} threads)")
     else:
         st.toast("No threads match current filters")
     st.session_state.auto_extract_pending = None
