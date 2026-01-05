@@ -163,9 +163,7 @@
           <p>
             GEM is an alternative way of averaging a player's rankings to reduce the impact of outliers. GEM is calculated by taking the nth root of the product of all the player's gameday ranks, where n is the total number of values.
           </p>
-          <div class="formula">
-            GEM = (x1 * x2 * ... * xn) ^ (1/n)
-          </div>
+          <div class="formula">GEM = (x₁ × x₂ × ... × xₙ) ^ (1/n)</div>
         </div>
         
         <div class="glossary-term">
@@ -173,9 +171,7 @@
           <p>
             PAM represents the cumulative number of points that a team has scored in excess of the leaguewide median on their gamedays. PAM is officially used as the tiebreaker in league standings.
           </p>
-          <div class="formula">
-            PAM = (total points scored) - (total gameday medians)
-          </div>
+          <div class="formula">PAM = (total points scored) − (total gameday medians)</div>
         </div>
 
         <div class="glossary-term">
@@ -183,10 +179,8 @@
           <p>
             Closely related to PAM, apPAM represents the *average* amount, in percentage terms, by which a team exceeds the leaguewide median score on a given day. Because different days have different scoring opportunities, teams with identical PAM values may not have the same apPAM.
           </p>
-          <div class="formula">
-            pPAM1, pPAM2, ... , pPAMn: percentage points above the median score in games 1, 2, ... , n
-            apPAM = (pPAM1, pPAM2, ... , pPAMn) / n
-          </div>
+          <div class="formula">pPAMᵢ = percentage points above the median in game i
+apPAM = (pPAM₁ + pPAM₂ + ... + pPAMₙ) / n</div>
         </div>
 
         <div class="glossary-term">
@@ -194,10 +188,8 @@
           <p>
             REL measures a player's raw point generation relative to the league's mean or median on days they played. It's a way to normalize scores across games that might have different scoring opportunities. An REL above 1.000 indicates above-average performance, while a score below 1.000 is below average.
           </p>
-          <div class="formula">
-            REL Median = (Player's Raw Scores / League Median Scores)
-            REL Mean = (Player's Raw Scores / League Mean Scores)
-          </div>
+          <div class="formula">REL (Median) = Player's Score / League Median Score
+REL (Mean) = Player's Score / League Mean Score</div>
         </div>
 
         <div class="glossary-term">
@@ -205,11 +197,9 @@
           <p>
             tREL is the weighted average REL score of all the players on a team's roster. Players who have started more games are given more weight in the formula (ex: if Player A has started six games and Player B has started two games, Player A's REL counts 3x as much as Player B's when calculating tREL). 
           </p>
-          <div class="formula">
-            REL1, REL2, ... , REL10: the REL scores for players 1, 2, ... , 10
-            GP1, GP2, ... , GP10: the number of games played for players 1, 2, ... , 10
-            tREL = [(REL1 * GP1) + (REL2 * GP2) + ... + (REL10 * GP10)] / (GP1 + GP2 + ... + GP10)
-          </div>
+          <div class="formula">tREL = Σ(RELᵢ × GPᵢ) / Σ(GPᵢ)
+
+where RELᵢ = REL score for player i, GPᵢ = games played by player i</div>
         </div>
 
         <div class="glossary-term">
@@ -220,9 +210,7 @@
             <br>
             The average margin of victory in a S7 RKL game is equal to 92% of the leaguewide median player score on a given day. Therefore, a player is considered to add 1.0 WAR if they produce (.92 * median) more karma than a replacement level player. For the purposes of WAR calculations, a "replacement level" performance is defined as 90% of the leaguewide median player score. This is approximately equal to the 180th-best REL in the league (30 teams * 6 starters). 
           </p>
-           <div class="formula">
-            WAR = (Player Scores - Replacement-Level Scores) / (Avg MoV)
-          </div>
+          <div class="formula">WAR = (Player Score − Replacement-Level Score) / Avg Margin of Victory</div>
         </div>
         
         </div>
