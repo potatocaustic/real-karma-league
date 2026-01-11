@@ -288,6 +288,9 @@ async function loadData() {
 
         allTeamsData = teams;
         allPlayersData = playerStats;
+        // Reset caches when data changes
+        teamsDataMap = null;
+        cachedTeamCheckboxes = null;
         
         allGamePerformancesData = {
             single_game_karma: singleGameKarma.map((p, i) => ({ ...p, rank: i + 1 })),
@@ -324,6 +327,7 @@ async function loadData() {
         });
 
         const allTeamsCb = document.getElementById('team-filter-all');
+        // Cache the checkbox elements once instead of querying multiple times
         const specificTeamCheckboxes = Array.from(document.querySelectorAll('.team-specific-filter'));
 
         allTeamsCb.addEventListener('change', () => {
@@ -341,7 +345,7 @@ async function loadData() {
                 applyTeamSelections();
             });
         });
-        
+
         const storedTeamFilterJSON = sessionStorage.getItem('selectedLeaderboardTeamFilter');
         if (storedTeamFilterJSON) {
             try {
@@ -372,16 +376,25 @@ async function loadData() {
             teamFilterToggleBtn.classList.toggle('active', !isActive);
         });
 
-        document.addEventListener('click', (event) => {
-            const dropdownWrapper = teamFilterToggleBtn.closest('.dropdown-team-filter');
-            if (dropdownWrapper && !dropdownWrapper.contains(event.target)) {
-                if (teamChecklistDropdown.style.display === 'block') {
-                    teamChecklistDropdown.style.display = 'none';
-                    teamFilterToggleBtn.classList.remove('active');
+        // Use event delegation on the dropdown wrapper instead of document-level listener
+        // This avoids memory leak from global listeners that accumulate on navigation
+        const dropdownWrapper = teamFilterToggleBtn.closest('.dropdown-team-filter');
+        if (dropdownWrapper) {
+            // Click outside detection - use a named function so it can be removed if needed
+            const handleOutsideClick = (event) => {
+                if (!dropdownWrapper.contains(event.target)) {
+                    if (teamChecklistDropdown.style.display === 'block') {
+                        teamChecklistDropdown.style.display = 'none';
+                        teamFilterToggleBtn.classList.remove('active');
+                    }
                 }
-            }
-        });
-        
+            };
+            // Remove any existing listener before adding (prevents duplicates on reload)
+            document.removeEventListener('click', window._leaderboardDropdownHandler);
+            window._leaderboardDropdownHandler = handleOutsideClick;
+            document.addEventListener('click', handleOutsideClick);
+        }
+
         displayLeaderboard();
 
     } catch(error) {
@@ -390,18 +403,39 @@ async function loadData() {
     }
 }
 
+// Cache for team checkboxes - populated once during loadData
+let cachedTeamCheckboxes = null;
+
+function getTeamCheckboxes() {
+    // Only query DOM if cache is empty or stale
+    if (!cachedTeamCheckboxes || cachedTeamCheckboxes.length === 0) {
+        cachedTeamCheckboxes = Array.from(document.querySelectorAll('.team-specific-filter'));
+    }
+    return cachedTeamCheckboxes;
+}
+
+// Create a Map for O(1) team lookups instead of O(n) find()
+let teamsDataMap = null;
+
+function getTeamById(teamId) {
+    if (!teamsDataMap) {
+        teamsDataMap = new Map(allTeamsData.map(t => [t.id, t]));
+    }
+    return teamsDataMap.get(teamId);
+}
+
 function updateToggleButtonText() {
     const teamFilterBtnText = document.getElementById('team-filter-btn-text');
     if (!teamFilterBtnText) return;
 
     const allTeamsCb = document.getElementById('team-filter-all');
-    const specificTeamCheckboxes = Array.from(document.querySelectorAll('.team-specific-filter'));
+    const specificTeamCheckboxes = getTeamCheckboxes();
     const currentSelectedTeamIds = specificTeamCheckboxes.filter(cb => cb.checked).map(cb => cb.value);
-    
+
     if (allTeamsCb.checked || currentSelectedTeamIds.length === 0) {
         teamFilterBtnText.textContent = 'All Teams';
     } else if (currentSelectedTeamIds.length === 1) {
-        const team = allTeamsData.find(t => t.id === currentSelectedTeamIds[0]);
+        const team = getTeamById(currentSelectedTeamIds[0]);
         teamFilterBtnText.textContent = team ? team.team_name : '1 Team Selected';
     } else {
         teamFilterBtnText.textContent = `${currentSelectedTeamIds.length} Teams Selected`;
@@ -410,7 +444,7 @@ function updateToggleButtonText() {
 
 function applyTeamSelections() {
     const allTeamsCb = document.getElementById('team-filter-all');
-    const specificTeamCheckboxes = Array.from(document.querySelectorAll('.team-specific-filter'));
+    const specificTeamCheckboxes = getTeamCheckboxes();
     let selectedValues = [];
 
     if (allTeamsCb && allTeamsCb.checked) {
@@ -432,7 +466,8 @@ function applyTeamSelections() {
 
 function getTeamName(teamId) {
     if (!teamId || String(teamId).toLowerCase() === 'undefined' || String(teamId).trim() === '' || teamId === 'N/A') return 'N/A';
-    const team = allTeamsData.find(t => t.id === teamId);
+    // Use the optimized Map lookup instead of .find()
+    const team = getTeamById(teamId);
     return team ? team.team_name : (teamId === 'FA' ? 'Free Agent' : teamId);
 }
 function getRankIndicator(rank) {

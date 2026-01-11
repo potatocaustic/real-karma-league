@@ -393,10 +393,7 @@ async function displayGamesForTeam(teamId) {
         const dateHeaderPrefix = ''; // No prefix in team view
         return `<div class="date-section"><div class="date-header">${dateHeaderPrefix}${formatDate(date)}</div><div class="games-grid">${dateGamesHTML}</div></div>`;
     }).join('');
-
-    document.querySelectorAll('.game-card.completed, .game-card.live').forEach(card => {
-        card.addEventListener('click', () => showGameDetails(card.dataset.gameId, card.dataset.isLive === 'true', card.dataset.date));
-    });
+    // Event delegation is handled by setupGameCardDelegation() - no per-element listeners needed
 }
 
 async function displayWeek(week) {
@@ -497,10 +494,7 @@ async function displayWeek(week) {
         const dateHeaderPrefix = week === 'Finals' ? '🏆 ' : '';
         return `<div class="date-section"><div class="date-header">${dateHeaderPrefix}${formatDate(date)}</div><div class="games-grid">${dateGamesHTML}</div></div>`;
     }).join('');
-
-    document.querySelectorAll('.game-card.completed, .game-card.live').forEach(card => {
-        card.addEventListener('click', () => showGameDetails(card.dataset.gameId, card.dataset.isLive === 'true', card.dataset.date));
-    });
+    // Event delegation is handled by setupGameCardDelegation() - no per-element listeners needed
 }
 
 
@@ -520,12 +514,16 @@ async function calculateAndDisplayStandouts(week) {
     const weeklyLineups = lineupsSnap.docs.map(d => d.data());
     const completedGamesThisWeek = allGamesCache.filter(g => g.week === week && g.completed === 'TRUE');
 
+    // Index daily scores by date for O(1) lookups instead of O(n) find() in loop
+    const dailyScoresByDate = new Map(weeklyDailyScores.map(ds => [ds.date, ds]));
+
     let bestTeam = { id: null, name: 'N/A', pct_diff: -Infinity }, worstTeam = { id: null, name: 'N/A', pct_diff: Infinity };
     completedGamesThisWeek.forEach(game => {
-        const dailyScoreData = weeklyDailyScores.find(ds => ds.date === game.date);
+        const dailyScoreData = dailyScoresByDate.get(game.date);
         if (!dailyScoreData || !dailyScoreData.daily_median) return;
         const processTeam = (teamId, teamScore) => {
             const pct_diff = ((teamScore / dailyScoreData.daily_median) - 1) * 100;
+            // getTeamById uses teamsCache Map internally, so already O(1)
             if (pct_diff > bestTeam.pct_diff) bestTeam = { id: teamId, name: getTeamById(teamId).team_name, pct_diff };
             if (pct_diff < worstTeam.pct_diff) worstTeam = { id: teamId, name: getTeamById(teamId).team_name, pct_diff };
         };
@@ -1289,6 +1287,34 @@ function addTeamIconsToChart(chartArea, team1, team2, colors) {
     chartArea.appendChild(createTeamIcon(team2, 'bottom'));
 }
 
+// Event delegation flag to prevent duplicate listeners
+let gameCardDelegationSetup = false;
+
+/**
+ * Sets up event delegation for game cards on the games-content container.
+ * This is more efficient than attaching listeners to each card after every render.
+ * Only sets up once per page load.
+ */
+function setupGameCardDelegation() {
+    if (gameCardDelegationSetup) return;
+
+    const gamesContent = document.getElementById('games-content');
+    if (!gamesContent) return;
+
+    gamesContent.addEventListener('click', (event) => {
+        // Find the closest game-card ancestor
+        const card = event.target.closest('.game-card.completed, .game-card.live');
+        if (card) {
+            const gameId = card.dataset.gameId;
+            const isLive = card.dataset.isLive === 'true';
+            const date = card.dataset.date;
+            showGameDetails(gameId, isLive, date);
+        }
+    });
+
+    gameCardDelegationSetup = true;
+}
+
 async function showGameDetails(gameId, isLive, gameDate = null) {
     const modal = document.getElementById('game-modal');
     const modalTitle = document.getElementById('modal-title');
@@ -1559,6 +1585,7 @@ async function initializePage() {
         setTimeout(async () => {
             setupWeekSelector();
             setupTeamFilter();
+            setupGameCardDelegation(); // Set up event delegation once
             await displayWeek(currentWeek);
         }, 0);
 
