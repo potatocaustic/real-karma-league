@@ -23,6 +23,12 @@ import {
 const formContainer = document.getElementById('form-container');
 const editTitle = document.getElementById('edit-title');
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 const urlParams = new URLSearchParams(window.location.search);
 const teamId = urlParams.get('team');
 
@@ -136,7 +142,7 @@ async function authorizeAndLoadForm(user, teamId) {
 
     } catch (error) {
         console.error("Authorization or loading error:", error);
-        formContainer.innerHTML = `<div class="error">Could not load editor. ${error.message}</div>`;
+        formContainer.innerHTML = `<div class="error">Could not load editor. ${escapeHtml(error.message)}</div>`;
     }
 }
 

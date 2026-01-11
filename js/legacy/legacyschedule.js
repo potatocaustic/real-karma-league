@@ -364,7 +364,7 @@ async function showGameDetails(gameId, isLive, gameDate = null) {
 
     } catch (error) {
         console.error("Error showing game details:", error);
-        contentArea.innerHTML = `<div class="error">Could not load details. ${error.message}</div>`;
+        contentArea.innerHTML = `<div class="error">Could not load details. ${escapeHTML(error.message)}</div>`;
     }
 }
 
@@ -391,7 +391,7 @@ async function initializePage() {
         // listenForLiveGames();       
     } catch (error) {
         console.error("Failed to initialize page:", error);
-        document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${error.message}</div>`;
+        document.querySelector('main').innerHTML = `<div class="error">Could not load schedule data. ${escapeHTML(error.message)}</div>`;
     }
 }
 
