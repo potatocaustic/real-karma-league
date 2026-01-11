@@ -88,32 +88,46 @@ async function performPlayerRankingUpdate(league = LEAGUES.MAJOR) {
 
     const statsToExcludeZeroes = new Set(['total_points', 'rel_mean', 'rel_median', 'GEM', 'WAR', 'medrank', 'meanrank']);
 
-    const leaderboards = {
+    // Define all ranking configurations for batch processing
+    const rankingConfigs = [
+        // Regular season stats
+        { key: 'total_points', stat: 'total_points', tiebreaker: null, ascending: false, gpMin: 0, excludeZeroes: true },
+        { key: 'rel_mean', stat: 'rel_mean', tiebreaker: null, ascending: false, gpMin: regSeasonGpMinimum, excludeZeroes: true },
+        { key: 'rel_median', stat: 'rel_median', tiebreaker: null, ascending: false, gpMin: regSeasonGpMinimum, excludeZeroes: true },
+        { key: 'GEM', stat: 'GEM', tiebreaker: null, ascending: true, gpMin: regSeasonGpMinimum, excludeZeroes: true },
+        { key: 'WAR', stat: 'WAR', tiebreaker: null, ascending: false, gpMin: 0, excludeZeroes: true },
+        { key: 'medrank', stat: 'medrank', tiebreaker: null, ascending: true, gpMin: regSeasonGpMinimum, excludeZeroes: true },
+        { key: 'meanrank', stat: 'meanrank', tiebreaker: null, ascending: true, gpMin: regSeasonGpMinimum, excludeZeroes: true },
+        { key: 'aag_mean', stat: 'aag_mean', tiebreaker: 'aag_mean_pct', ascending: false, gpMin: 0, excludeZeroes: false },
+        { key: 'aag_median', stat: 'aag_median', tiebreaker: 'aag_median_pct', ascending: false, gpMin: 0, excludeZeroes: false },
+        { key: 't100', stat: 't100', tiebreaker: 't100_pct', ascending: false, gpMin: 0, excludeZeroes: false },
+        { key: 't50', stat: 't50', tiebreaker: 't50_pct', ascending: false, gpMin: 0, excludeZeroes: false },
+        // Postseason stats
+        { key: 'post_total_points', stat: 'post_total_points', tiebreaker: null, ascending: false, gpMin: 0, excludeZeroes: true, gpField: 'post_games_played' },
+        { key: 'post_rel_mean', stat: 'post_rel_mean', tiebreaker: null, ascending: false, gpMin: postSeasonGpMinimum, excludeZeroes: true, gpField: 'post_games_played' },
+        { key: 'post_rel_median', stat: 'post_rel_median', tiebreaker: null, ascending: false, gpMin: postSeasonGpMinimum, excludeZeroes: true, gpField: 'post_games_played' },
+        { key: 'post_GEM', stat: 'post_GEM', tiebreaker: null, ascending: true, gpMin: postSeasonGpMinimum, excludeZeroes: true, gpField: 'post_games_played' },
+        { key: 'post_WAR', stat: 'post_WAR', tiebreaker: null, ascending: false, gpMin: 0, excludeZeroes: true, gpField: 'post_games_played' },
+        { key: 'post_medrank', stat: 'post_medrank', tiebreaker: null, ascending: true, gpMin: postSeasonGpMinimum, excludeZeroes: true, gpField: 'post_games_played' },
+        { key: 'post_meanrank', stat: 'post_meanrank', tiebreaker: null, ascending: true, gpMin: postSeasonGpMinimum, excludeZeroes: true, gpField: 'post_games_played' },
+        { key: 'post_aag_mean', stat: 'post_aag_mean', tiebreaker: 'post_aag_mean_pct', ascending: false, gpMin: 0, excludeZeroes: false, gpField: 'post_games_played' },
+        { key: 'post_aag_median', stat: 'post_aag_median', tiebreaker: 'post_aag_median_pct', ascending: false, gpMin: 0, excludeZeroes: false, gpField: 'post_games_played' },
+        { key: 'post_t100', stat: 'post_t100', tiebreaker: 'post_t100_pct', ascending: false, gpMin: 0, excludeZeroes: false, gpField: 'post_games_played' },
+        { key: 'post_t50', stat: 'post_t50', tiebreaker: 'post_t50_pct', ascending: false, gpMin: 0, excludeZeroes: false, gpField: 'post_games_played' },
+    ];
 
-        total_points: getRanks(allPlayerStats, 'total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
-        rel_mean: getRanks(allPlayerStats, 'rel_mean', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
-        rel_median: getRanks(allPlayerStats, 'rel_median', null, false, regSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
-        GEM: getRanks(allPlayerStats, 'GEM', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
-        WAR: getRanks(allPlayerStats, 'WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
-        medrank: getRanks(allPlayerStats, 'medrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
-        meanrank: getRanks(allPlayerStats, 'meanrank', null, true, regSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
-        aag_mean: getRanks(allPlayerStats, 'aag_mean', 'aag_mean_pct'),
-        aag_median: getRanks(allPlayerStats, 'aag_median', 'aag_median_pct'),
-        t100: getRanks(allPlayerStats, 't100', 't100_pct'),
-        t50: getRanks(allPlayerStats, 't50', 't50_pct'),
-
-        post_total_points: getRanks(allPlayerStats, 'post_total_points', null, false, 0, statsToExcludeZeroes.has('total_points')),
-        post_rel_mean: getRanks(allPlayerStats, 'post_rel_mean', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_mean')),
-        post_rel_median: getRanks(allPlayerStats, 'post_rel_median', null, false, postSeasonGpMinimum, statsToExcludeZeroes.has('rel_median')),
-        post_GEM: getRanks(allPlayerStats, 'post_GEM', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('GEM')),
-        post_WAR: getRanks(allPlayerStats, 'post_WAR', null, false, 0, statsToExcludeZeroes.has('WAR')),
-        post_medrank: getRanks(allPlayerStats, 'post_medrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('medrank')),
-        post_meanrank: getRanks(allPlayerStats, 'post_meanrank', null, true, postSeasonGpMinimum, statsToExcludeZeroes.has('meanrank')),
-        post_aag_mean: getRanks(allPlayerStats, 'post_aag_mean', 'post_aag_mean_pct'),
-        post_aag_median: getRanks(allPlayerStats, 'post_aag_median', 'post_aag_median_pct'),
-        post_t100: getRanks(allPlayerStats, 'post_t100', 'post_t100_pct'),
-        post_t50: getRanks(allPlayerStats, 'post_t50', 'post_t50_pct'),
-    };
+    // Process all rankings in a single pass through the configs
+    const leaderboards = {};
+    for (const config of rankingConfigs) {
+        leaderboards[config.key] = getRanks(
+            allPlayerStats,
+            config.stat,
+            config.tiebreaker,
+            config.ascending,
+            config.gpMin,
+            config.excludeZeroes
+        );
+    }
 
     const batch = db.batch();
     allPlayerStats.forEach(player => {

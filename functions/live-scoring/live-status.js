@@ -8,6 +8,82 @@ const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/f
 const { isScorekeeperOrAdmin } = require('../utils/auth-helpers');
 
 /**
+ * Fetches karma data for a player with exponential backoff retry logic
+ * @param {string} playerId - The player's ID
+ * @param {number} maxRetries - Maximum number of retry attempts (default: 3)
+ * @returns {Object} - The karma data or null on complete failure
+ */
+async function fetchPlayerKarmaWithRetry(playerId, maxRetries = 3) {
+    const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(playerId)}`;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(workerUrl);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+
+            // Validate we got actual data (not empty response)
+            if (data && (data.stats || data.user)) {
+                return data;
+            }
+
+            // Empty response - treat as retriable error
+            throw new Error('Empty or invalid response from karma API');
+        } catch (error) {
+            if (attempt < maxRetries) {
+                // Exponential backoff: 1s, 2s, 4s
+                const backoffMs = Math.pow(2, attempt) * 1000;
+                console.warn(`Retry ${attempt + 1}/${maxRetries} for player ${playerId} after ${backoffMs}ms: ${error.message}`);
+                await new Promise(resolve => setTimeout(resolve, backoffMs));
+            } else {
+                console.error(`All retries exhausted for player ${playerId}: ${error.message}`);
+                return null;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Processes karma fetches in controlled concurrent batches
+ * @param {Array} players - Array of player objects to process
+ * @param {number} concurrency - Number of concurrent requests (default: 3)
+ * @returns {Object} - Map of player_id to karma data
+ */
+async function batchFetchPlayerKarma(players, concurrency = 3) {
+    const results = new Map();
+    let apiRequests = 0;
+
+    // Process in chunks of 'concurrency' size
+    for (let i = 0; i < players.length; i += concurrency) {
+        const batch = players.slice(i, i + concurrency);
+
+        // Fetch all players in this batch concurrently
+        const batchPromises = batch.map(async (player) => {
+            const data = await fetchPlayerKarmaWithRetry(player.player_id);
+            apiRequests++;
+            return { playerId: player.player_id, data };
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+
+        // Store results
+        for (const { playerId, data } of batchResults) {
+            results.set(playerId, data);
+        }
+
+        // Small delay between batches to avoid overwhelming the API
+        if (i + concurrency < players.length) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+        }
+    }
+
+    return { results, apiRequests };
+}
+
+/**
  * Helper function to perform a full update of all live game scores
  * @param {string} league - League context ('major' or 'minor')
  */
@@ -30,41 +106,70 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     console.log(`[performFullUpdate] Found ${liveGamesSnap.size} live games to process`);
 
-    const batch = db.batch();
-    const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-    let apiRequests = 0;
+    // Collect all players from all games
+    const allPlayers = [];
+    const gamePlayerMap = new Map(); // Track which players belong to which game/lineup
 
     for (const gameDoc of liveGamesSnap.docs) {
         const gameData = gameDoc.data();
         const team1Lineup = gameData.team1_lineup || [];
         const team2Lineup = gameData.team2_lineup || [];
-        const allStarters = [...team1Lineup, ...team2Lineup];
 
-        for (let i = 0; i < allStarters.length; i++) {
-            const player = allStarters[i];
-            const workerUrl = `https://rkl-karma-proxy.caustic.workers.dev/?userId=${encodeURIComponent(player.player_id)}`;
-            try {
-                const response = await fetch(workerUrl);
-                apiRequests++;
-                const data = await response.json();
+        team1Lineup.forEach((player, idx) => {
+            allPlayers.push(player);
+            gamePlayerMap.set(player.player_id, { gameId: gameDoc.id, team: 'team1', index: idx });
+        });
+        team2Lineup.forEach((player, idx) => {
+            allPlayers.push(player);
+            gamePlayerMap.set(player.player_id, { gameId: gameDoc.id, team: 'team2', index: idx });
+        });
+    }
+
+    console.log(`[performFullUpdate] Fetching karma for ${allPlayers.length} players (3 concurrent)`);
+
+    // Fetch all karma data with controlled concurrency
+    const { results: karmaResults, apiRequests } = await batchFetchPlayerKarma(allPlayers, 3);
+
+    // Update player scores with fetched data
+    const batch = db.batch();
+
+    for (const gameDoc of liveGamesSnap.docs) {
+        const gameData = gameDoc.data();
+        const team1Lineup = gameData.team1_lineup || [];
+        const team2Lineup = gameData.team2_lineup || [];
+
+        // Update team1 lineup
+        for (const player of team1Lineup) {
+            const data = karmaResults.get(player.player_id);
+            if (data) {
                 const rawScore = parseFloat(data?.stats?.karmaDelta || 0);
-
                 const globalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
-
                 const adjustedScore = rawScore - (player.deductions || 0);
                 const finalScore = player.is_captain ? adjustedScore * 1.5 : adjustedScore;
 
                 player.points_raw = rawScore;
                 player.points_adjusted = adjustedScore;
                 player.final_score = finalScore;
-
                 player.global_rank = globalRank;
-
-            } catch (error) {
-                console.error(`performFullUpdate: Failed to fetch karma for ${player.player_id}`, error);
             }
-            await delay(Math.floor(Math.random() * 201) + 100);
         }
+
+        // Update team2 lineup
+        for (const player of team2Lineup) {
+            const data = karmaResults.get(player.player_id);
+            if (data) {
+                const rawScore = parseFloat(data?.stats?.karmaDelta || 0);
+                const globalRank = parseInt(data?.stats?.karmaDayRank || -1, 10);
+                const adjustedScore = rawScore - (player.deductions || 0);
+                const finalScore = player.is_captain ? adjustedScore * 1.5 : adjustedScore;
+
+                player.points_raw = rawScore;
+                player.points_adjusted = adjustedScore;
+                player.final_score = finalScore;
+                player.global_rank = globalRank;
+            }
+        }
+
         batch.update(gameDoc.ref, {
             team1_lineup: team1Lineup,
             team2_lineup: team2Lineup
@@ -73,8 +178,8 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     await batch.commit();
 
-    // Re-fetch live games to get updated data for snapshots and leaderboards
-    const updatedLiveGamesSnap = await db.collection(getCollectionName('live_games', league)).get();
+    // Use the already-updated data from liveGamesSnap instead of re-fetching
+    const updatedLiveGamesSnap = liveGamesSnap;
     console.log(`[performFullUpdate] Re-fetched ${updatedLiveGamesSnap.size} games with updated scores`);
 
     // === FEATURE 1: Record Game Flow Snapshots ===
@@ -190,7 +295,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
                     : allPlayers[Math.floor(allPlayers.length / 2)].score)
                 : 0;
 
-            // Fetch team names for all unique team IDs
+            // Fetch team names for all unique team IDs - batched query instead of N+1
             const uniqueTeamIds = [...new Set(allPlayers.map(p => p.team_id))];
             const teamNames = new Map();
 
@@ -203,28 +308,35 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
                 uniqueTeamIds.forEach(teamId => teamNames.set(teamId, 'Unknown'));
             } else {
                 console.log(`[Daily Leaderboard] Fetching team names for ${uniqueTeamIds.length} teams from season ${seasonId}...`);
-                for (const teamId of uniqueTeamIds) {
+                // Batch fetch all team records in parallel instead of sequential loop
+                const teamFetchPromises = uniqueTeamIds.map(async (teamId) => {
                     try {
-                        // Fetch from the seasonal_records subcollection
                         const seasonalRecordDoc = await db.collection(getCollectionName('v2_teams', league))
                             .doc(teamId)
                             .collection(getCollectionName('seasonal_records', league))
                             .doc(seasonId)
                             .get();
-
-                        if (seasonalRecordDoc.exists) {
-                            const teamName = seasonalRecordDoc.data().team_name;
-                            teamNames.set(teamId, teamName || 'Unknown');
-                            console.log(`[Daily Leaderboard] Fetched team name for ${teamId}: ${teamName}`);
-                        } else {
-                            console.warn(`[Daily Leaderboard] No seasonal record found for team ${teamId} in season ${seasonId}`);
-                            teamNames.set(teamId, 'Unknown');
-                        }
+                        return { teamId, doc: seasonalRecordDoc };
                     } catch (err) {
                         console.error(`[Daily Leaderboard] Error fetching team ${teamId}:`, err);
+                        return { teamId, doc: null, error: err };
+                    }
+                });
+
+                const teamResults = await Promise.all(teamFetchPromises);
+
+                for (const { teamId, doc, error } of teamResults) {
+                    if (error || !doc) {
+                        teamNames.set(teamId, 'Unknown');
+                    } else if (doc.exists) {
+                        const teamName = doc.data().team_name;
+                        teamNames.set(teamId, teamName || 'Unknown');
+                    } else {
+                        console.warn(`[Daily Leaderboard] No seasonal record found for team ${teamId} in season ${seasonId}`);
                         teamNames.set(teamId, 'Unknown');
                     }
                 }
+                console.log(`[Daily Leaderboard] Fetched ${teamResults.length} team names in parallel`);
             }
 
             // Enrich players with team names and calculate percent_vs_median
@@ -337,5 +449,6 @@ exports.setLiveScoringStatus = onCall({ region: "us-central1" }, async (request)
 // Export Cloud Functions
 module.exports.updateAllLiveScores = exports.updateAllLiveScores;
 module.exports.setLiveScoringStatus = exports.setLiveScoringStatus;
-// Export helper function for use by other modules
+// Export helper functions for use by other modules
 module.exports.performFullUpdate = performFullUpdate;
+module.exports.fetchPlayerKarmaWithRetry = fetchPlayerKarmaWithRetry;

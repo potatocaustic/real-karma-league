@@ -78,8 +78,14 @@ exports.admin_recalculatePlayerStats = onCall({ region: "us-central1" }, async (
             const medrank = calculateMedian(globalRanks);
             const meanrank = calculateMean(globalRanks);
             const GEM = calculateGeometricMean(globalRanks);
-            const t100 = lineups.filter(l => l.global_rank > 0 && l.global_rank <= 100).length;
-            const t50 = lineups.filter(l => l.global_rank > 0 && l.global_rank <= 50).length;
+            // Single pass to count t100 and t50 instead of two separate filter operations
+            let t100 = 0, t50 = 0;
+            for (const l of lineups) {
+                if (l.global_rank > 0 && l.global_rank <= 100) {
+                    t100++;
+                    if (l.global_rank <= 50) t50++;
+                }
+            }
 
             let meansum = 0;
             let medsum = 0;
