@@ -52,10 +52,25 @@ streamlit run app.py            # Run admin portal locally
 ## Critical Conventions
 
 ### League Context (IMPORTANT)
-The app supports Major and Minor leagues with separate Firestore collections:
-- Minor league collections use `minor_` prefix (e.g., `minor_v2_players`)
+The app supports Major and Minor leagues with separate Firestore collections. The `minor_` prefix is applied at different levels depending on collection type:
+
+**Top-level collections** - Use `minor_` prefix:
+- `minor_seasons`, `minor_v2_players`, `minor_v2_teams`
+- `minor_live_games`, `minor_transactions`, `minor_draft_results`
+- `minor_leaderboards`, `minor_daily_scores`, `minor_power_rankings`, etc.
+
+**Season subcollections** - NO `minor_` prefix (parent already prefixed):
+- `minor_seasons/{seasonId}/games/{gameId}` (not `minor_games`)
+- `minor_seasons/{seasonId}/lineups/{lineupId}` (not `minor_lineups`)
+- Same for `post_games`, `post_lineups`, `exhibition_games`, `exhibition_lineups`
+
+**Player/Team subcollections** - USE `minor_` prefix (even though parent prefixed):
+- `minor_v2_players/{playerId}/minor_seasonal_stats/{recordId}`
+- `minor_v2_teams/{teamId}/minor_seasonal_records/{recordId}`
+
+**Other conventions**:
 - Dev collections use `_dev` suffix (e.g., `v2_players_dev`)
-- Always use `getCollectionName(baseName, league)` from `firebase-helpers.js` for collection names
+- Use `getCollectionName(baseName, league)` from `firebase-helpers.js` for top-level collections
 - Shared collections (no prefix): `users`, `notifications`, `scorekeeper_activity_log`
 
 ### Firestore Data Model
