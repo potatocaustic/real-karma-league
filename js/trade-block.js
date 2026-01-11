@@ -25,6 +25,12 @@ const adminControlsContainer = document.getElementById('admin-controls');
 const pageHeader = document.querySelector('.page-header');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Inject CSS for new features
 document.head.insertAdjacentHTML('beforeend', `
 <style>
@@ -218,7 +224,7 @@ async function displayAllTradeBlocks(currentUserId) {
 
     } catch (error) {
         console.error("Error displaying trade blocks:", error);
-        container.innerHTML = `<div class="error">Could not load trade blocks. ${error.message}</div>`;
+        container.innerHTML = `<div class="error">Could not load trade blocks. ${escapeHtml(error.message)}</div>`;
     }
 }
 

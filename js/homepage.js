@@ -19,6 +19,12 @@ const currentSeasonContainer = document.getElementById('current-season-container
 const navGridContainer = document.getElementById('nav-grid-container');
 const seasonsGridContainer = document.getElementById('seasons-grid-container');
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 /**
  * Main function to initialize the homepage.
  */
@@ -82,7 +88,7 @@ async function initHomepage() {
 
     } catch (error) {
         console.error("Error initializing homepage:", error);
-        currentSeasonContainer.innerHTML = `<div class="error">Failed to load page data: ${error.message}</div>`;
+        currentSeasonContainer.innerHTML = `<div class="error">Failed to load page data: ${escapeHtml(error.message)}</div>`;
         navGridContainer.innerHTML = '';
         seasonsGridContainer.innerHTML = '';
     }

@@ -23,6 +23,12 @@ let gamesByWeek = {};
 let exhibitionGamesByWeek = {};
 let currentSeasonId = '';
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -388,7 +394,7 @@ async function handleForceWeekUpdate() {
         statusDiv.innerHTML = `<p style="color: green;">✓ ${result.data.message}</p>`;
     } catch (error) {
         console.error("Error forcing week update:", error);
-        statusDiv.innerHTML = `<p style="color: red;">✗ Error: ${error.message}</p>`;
+        statusDiv.innerHTML = `<p style="color: red;">✗ Error: ${escapeHtml(error.message)}</p>`;
     } finally {
         button.disabled = false;
         button.textContent = '🔄 Update Current Week';

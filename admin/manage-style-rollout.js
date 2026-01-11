@@ -21,6 +21,12 @@ const addPageBtn = document.getElementById('add-page-btn');
 const pathInput = document.getElementById('new-page-path');
 const labelInput = document.getElementById('new-page-label');
 
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 const defaultPages = [
     { path: '/', label: 'Homepage' },
     { path: '/login.html?target=admin', label: 'Login' },
@@ -103,7 +109,7 @@ async function initializeRolloutTable() {
 
         renderTable();
     } catch (error) {
-        tableWrapper.innerHTML = `<div class="error">Failed to load style rollout settings: ${error.message}</div>`;
+        tableWrapper.innerHTML = `<div class="error">Failed to load style rollout settings: ${escapeHtml(error.message)}</div>`;
     }
 }
 
