@@ -136,6 +136,14 @@ async function handlePlayerSearch() {
         const playersCollectionName = getLeagueCollectionName('v2_players', currentLeague);
         const seasonalStatsCollectionName = getLeagueCollectionName('seasonal_stats', currentLeague);
 
+        console.log('[Player Search Debug]', {
+            currentLeague,
+            playersCollectionName,
+            seasonalStatsCollectionName,
+            searchTerm: searchTermRaw,
+            currentSeasonId
+        });
+
         const playersQuery = query(
             collection(db, playersCollectionName),
             orderBy('player_handle'),
@@ -145,6 +153,7 @@ async function handlePlayerSearch() {
         );
 
         const playersSnap = await getDocs(playersQuery);
+        console.log(`[Player Search Debug] Query returned ${playersSnap.docs.length} results`);
 
         const playerPromises = playersSnap.docs.map(async (playerDoc) => {
             const playerData = { id: playerDoc.id, ...playerDoc.data() };
