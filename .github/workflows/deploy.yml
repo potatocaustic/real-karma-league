@@ -30,8 +30,8 @@ jobs:
       - name: Deploy to Firebase
         uses: w9jds/firebase-action@master
         with:
-          # The command to run. This deploys ONLY your functions.
-          args: deploy --only functions
+          # Deploy both functions and hosting
+          args: deploy --only functions,hosting
         env:
           # Use the secret token you created earlier
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
