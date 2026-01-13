@@ -1,0 +1,548 @@
+game_id,game_date,game_type,team_a,team_b,captain_a,captain_b,players_a,players_b,score_a,score_b,winner,adjustment_a,adjustment_b,round_name,seed_a,seed_b,lineup_comment_id,result_comment_id
+541,2025-03-01,regular,Gravediggers,Freaks,cry,supa,"cry, derrickwhitetop5, davidv03, kevin, arthurmorgan, anonymoususer","supa, etan22, york, bennett, ai, vj",,,,,,,,,50686424,
+542,2025-03-01,regular,Piggies,Lean Team,evan_stewart_ii,dxvxn,"evan_stewart_ii, glaciers, lxst, brandonmiller, yandy, poolepartyjp3","dxvxn, bigk, pnwsavant, bmannn, kuminga_, thelankygerman",,,,,,,,,50686479,
+543,2025-03-01,regular,Jammers,Gamblers,cteszn,nyc,"cteszn, fun, mccasual, gavinlub, freaky_giannis","nyc, doggy, _turner, michael.carter.ll, brown",,,,,,,,,50687977,
+544,2025-03-01,regular,Flames,Donuts,frostyy,bohm,"frostyy, tjgany, j417, xyo, montolio, aprilfoolsbday","bohm, hutchinson, tay, poopybuttlover, yellow, abos",,,,,,,,,50689002,
+545,2025-03-01,regular,Demons,Flags,buck,tw0,"buck, cyl, otf, o3wn, joshminottenjoyer","tw0, ejwise, chltown, jonah, gradyt06",,,,,,,,,50691687,
+546,2025-03-01,regular,KOCK,Flags,ow3n1,tw0,"ow3n1, croger, trevq3, fernando, rockymountain, devincooker","tw0, ejwise, chltown, jonah, gradyt06, relaxedp",,,,,,,,,50691952,
+547,2025-03-01,regular,Fellas,Hornets,mlbelite,knightnate12,"mlbelite, realnuggets, tyus, aiden, dugz","okorolover355, tye, knightnate12, murray, sasser",,,,,,,,,50704443,
+535,2025-03-02,regular,Demons,Creamers,bruins,cle,"bruins, joshminottenjoyer, o3wn, nick_, cyl, otf","cle, saquon, znye, verse, sports6138, oldfriend99",,,,,,,,,50814392,
+536,2025-03-02,regular,Flames,Otters,frostyy,notkiddo,"frostyy, intriquid, plemay, j417, aprilfoolsbday, tjgany","notkiddo, crqmer, jcbihh, lukamodric, novo, therealcartergilmore",,,,,,,,,50818223,
+537,2025-03-02,regular,Creamers,KOCK,cle,ow3n1,"cle, saquon, znye, verse, sports6138, oldfriend99","ow3n1, croger, trevq3, fernando, rockymountain, devincooker",,,,,,,,,50819331,
+538,2025-03-02,regular,Minors,Freaks,baty,supa,"baty, burress, darwin, bojack, nickplaysbball, shenli","supa, etan22, york, bennett, ai, bshumer1",,,,,,,,,50821780,
+539,2025-03-02,regular,MLB,Karma Stars,aiden0220,devinbooker,"aiden0220, kane, richer, dillon, sossboy_, marte","devinbooker, dawgsnation, neev, wisco, raiola, rojoknicks",,,,,,,,,50823177,
+540,2025-03-02,regular,Stimmers,Aces,arttheclown_,kenny_wya,"arttheclown_, mpls, spursszn_, nael_abuasi, tylrr, draculas","kenny_wya, grizzy, mars_vibezz, curtisjoneslover, sony_",,,,,,,,,50829672,
+524,2025-03-03,regular,Jammers,Freaks,mccasual,supa,"mccasual, cteszn, swouse, sweat, bello, caustic","supa, etan22, york, bennett, ai, norrispaul13",,,,,,,,,50954488,
+525,2025-03-03,regular,Donuts,Lean Team,winslowforprez,bigk,"winslowforprez, scottie, cs_derrick13, yellow, bacotlover, abos","bigk, cbd, bmannn, pnwsavant, heatloyalist, addison",,,,,,,,,50954637,
+526,2025-03-03,regular,Demons,Fellas,otf,dugz,"otf, four, buck, nickza, bruins, o3wn","dariusgarland, mlbelite, dugz, cadewave, ballingpm, tyus",,,,,,,,,50956108,
+527,2025-03-03,regular,Fellas,Freaks,mlbelite,supa,"dariusgarland, mlbelite, dugz, cadewave, ballingpm, tyus","supa, etan22, york, bennett, ai, norrispaul13",,,,,,,,,50956136,
+528,2025-03-03,regular,Fellas,MLB,dariusgarland,kane,"dariusgarland, mlbelite, dugz, cadewave, ballingpm, tyus","kane, sossboy_, marte, dane, target, dillon",,,,,,,,,50957394,
+529,2025-03-03,regular,Freaks,Piggies,supa,evan_stewart_ii,"supa, etan22, york, bennett, ai, norrispaul13","lxst, evan_stewart_ii, brandonmiller, jtfr, glaciers, poolepartyjp3",,,,,,,,,50959737,
+530,2025-03-03,regular,Hornets,Stars,sasser,raiola,"sasser, knightnate12, tye, cookie, okorolover355","raiola, willi3, neev, rojoknicks, dawgsnation",,,,,,,,,50961554,
+531,2025-03-03,regular,Aces,Stimmers,sotonyc,spursszn_,"sotonyc, kenny_wya, sony_, curtisjoneslover, lindors","spursszn_, mpls, arttheclown_, nael_abuasi, tylrr, draculas",,,,,,,,,50961884,
+532,2025-03-03,regular,Flames,Hornets,frostyy,sasser,"frostyy, intriquid, tjgany, xyo","sasser, okorolover355, tye, knightnate12",,,,,,,,,50963128,
+533,2025-03-03,regular,Flames,Gamblers,,,tjgany,doggy,,,,,,,,,50963812,
+534,2025-03-03,regular,Otters,Horses,notkiddo,chris,"notkiddo, jamiee, jcbihh, lukamodric, crqmer, panarin","chris, kinnick, mattyice, herro, xo, ice",,,,,,,,,50965537,
+518,2025-03-04,regular,Flags,Freaks,jonah,supa,"jonah, tw0, ejwise, relaxedp, chltown, liljon","supa, etan22, bennett, norrispaul13, ai, vj",,,,,,,,,51069070,
+519,2025-03-04,regular,Freaks,Kings,supa,clutch,"supa, etan22, bennett, norrispaul13, ai, vj","clutch, mario, morel, clase, jaylenszn, cinemax",,,,,,,,,51069162,
+520,2025-03-04,regular,Penguins,Freaks,khys9575,supa,"khys9575, bg_15, turbo, codybellinger, piggy, zero","supa, etan22, bennett, norrispaul13, ai, vj",,,,,,,,,51069183,
+521,2025-03-04,regular,Flames A,Flames B,frostyy,intriquid,"frostyy, plemay, xyo, wulf, crozo","intriquid, tjgany, j417, aprilfoolsbday, montolio",,,,,,,,,51070893,
+522,2025-03-04,regular,Donuts,Hornets,,,ivy,gaines,,,,,,,,,51090769,
+523,2025-03-04,regular,Stars,Flags,wisco,jonah,"wisco, devinbooker, lamb, morant, playexplainer, rojoknicks","jonah, tw0, ejwise, relaxedp, chltown, liljon",,,,,,,,,51100714,
+512,2025-03-05,regular,fellas,Hornets,,,cadewave,gaines,,,,,,,,,51195614,
+513,2025-03-05,regular,Amigos,Flames,,,"duke, pat","tjgany, frostyy",,,,,,,,,51195645,
+514,2025-03-05,regular,Gamblers 1,Gamblers 2,_turner,dex,"_turner, doggy, michael.carter.ll, nyc","dex, shabddd, xxyn, brown",,,,,,,,,51195711,
+515,2025-03-05,regular,flag_united_states @gingy,Horses,canada,kinnick,"canada, chittum, etienne, joelembiid, bigsnook, gingy","kinnick, chris, ice, papacoop, salty, xo",,,,,,,,,51196728,
+516,2025-03-05,regular,Jammers,Stimmers,swouse,spursszn_,"swouse, sweat, bello, palmer, cteszn","spursszn_, mpls, arttheclown_, nael_abuasi, tylrr, draculas",,,,,,,,,51202336,
+517,2025-03-05,regular,Flames,Otters,,,xyo,notkiddo,,,,,,,,,51215396,
+507,2025-03-06,regular,Flames,Stars,frostyy,devinbooker,"frostyy, intriquid, plemay, tjgany, xyo, wulf","devinbooker, wisco, neev, morant, raiola, lamb",,,,,,,,,51316540,
+508,2025-03-06,regular,Tacos,Kings,iverson,mario,"iverson, siri, bam, burgerking, ryoshi, zionwilliamson","mario, clutch, morel, btjszn, witt, cinemax",,,,,,,,,51315420,
+509,2025-03-06,regular,Piggies,Aces,glaciers,kenny_wya,"glaciers, brandonmiller, evan_stewart_ii, lxst, jtfr, shitsterken","kenny_wya, curtisjoneslover, grizzy, berg_02, mars_vibezz",,,,,,,,,51315443,
+510,2025-03-06,regular,Donuts,Heroes,bohm,deshaun4prison,"bohm, abos, tay, poopybuttlover, winslowforprez, hutchinson","deshaun4prison, member98674, garland, devonta, zaccc, 13allard",,,,,,,,,51315451,
+511,2025-03-06,regular,Jammers,Stimmers,cteszn,spursszn_,"cteszn, swouse, mccasual, sweat, fun, caustic","spursszn_, mpls, arttheclown_, nael_abuasi, tylrr, robertjr",,,,,,,,,51315463,
+500,2025-03-07,regular,KOCK,Gamblers,croger,doggy,"croger, ederick2442, devincooker, bos, trevq3, fernando","doggy, michael.carter.ll, _turner, shabddd, nyc, dex",,,,,,,,,51442391,
+501,2025-03-07,regular,Freaks,Minors,supa,max,"supa, etan22, bennett, ai, vj, norrispaul13","max, baty, braden_, trylq, coby, bojack",,,,,,,,,51440832,
+502,2025-03-07,regular,Creamers,Lean Team,saquon,dxvxn,"saquon, znye, verse, sports6138, oldfriend99, cle","dxvxn, herroenjoyer, addison, bigk, cbd, townes",,,,,,,,,51440851,
+503,2025-03-07,regular,Empire,Outlaws,zim,lehkyforselke,"zim, sebas, fullofopps, kodyblu31, bobsburgers, jameswyo","lehkyforselke, itzneallol, longganisa, goodbyesosoon, gaston, prove",,,,,,,,,51440888,
+504,2025-03-07,regular,Voyage,Penguins,shot,khys9575,"shot, twistex, huts, glo, justakidfromakron23, frylock","khys9575, zupacam, zik, rzk__, zero, bg_15",,,,,,,,,51440915,
+505,2025-03-07,regular,@piggies,@diabetics,,,piggies,"diabetics, horniehorses, empire.rkl, flags, rkl.kocks, gravediggers, otters, creamers, thefellas, voyage, rklkings, karma.stars, theaces, stimmers",,,,,,,,,51418238,
+506,2025-03-07,regular,@flamesrkl,@teamtacos,,,flamesrkl,"teamtacos, jammersrkl, rklheroes, leanteam, rklhornets, theoutlaws, gamblers, karmafreaks, rkldemons, penguins, madsminors, theamigos, mlbrkl, donutsrkl",,,,,,,,,51418214,
+492,2025-03-08,regular,MLB,Gravediggers,aiden0220,cry,"aiden0220, dillon, zooch5, sossboy_, ukator, dane","cry, arthurmorgan, anonymoususer, davidv03, kevin, markjackson",,,,,,,,,51565040,
+493,2025-03-08,regular,Diabetics,Hornets,canada,zayo,"canada, chittum, etienne, joelembiid, jonah, gingy","zayo, okorolover355, jensive, bmannn, knightnate12, murray",,,,,,,,,51562861,
+494,2025-03-08,regular,Horses,Otters,kinnick,novo,"kinnick, chris, ice, xo, salty, papacoop","novo, notkiddo, crqmer, lukamodric, maxp, trickyy",,,,,,,,,51562881,
+495,2025-03-08,regular,Demons,Flags,four,tw0,"four, otf, o3wn, joshminottenjoyer, bruins, cyl","tw0, ejwise, liljon, bigsnook, relaxedp, jayson",,,,,,,,,51562902,
+496,2025-03-08,regular,Fellas,Amigos,dariusgarland,duke,"dariusgarland, dugz, cadewave, cartercrash, mlbelite, ballingpm","duke, aprilfoolsbday, bamry, noir, pat, ted",,,,,,,,,51562924,
+497,2025-03-08,regular,@piggies,@rkl.kocks,,,piggies,"rkl.kocks, diabetics, horniehorses, flags, gravediggers, ottersrkl, rklfellas, rklkings, creamers, karma.stars, theaces, thevoyage, rklstimmers, empire.rkl",,,,,,,,,51561927,
+498,2025-03-08,regular,@freaks,@rkloutlaws,,,freaks,"rkloutlaws, flamesrkl, teamtacos, leanteam, jammersrkl, rklheroes, rklpenguins, hornetsrkl, rkldemons, theamigos, mlbrkl, gamblers, donuts, madsminors",,,,,,,,,51561879,
+499,2025-03-08,regular,"Empire: 32,943","Outlaws: 44,216",,,,"lehkyforselke, zim, longganisa, gaston",,,,,,,,,51536606,
+482,2025-03-09,regular,Heroes,Flames,deshaun4prison,frostyy,"deshaun4prison, devonta, garland, member98674, ngasilver, snivy","frostyy, intriquid, plemay, tjgany, xyo, j417",,,,,,,,,51691872,
+483,2025-03-09,regular,Stars,Tacos,lamb,burgerking,"lamb, neev, juan.soto22, raiola, morant, devinbooker","burgerking, iverson, bam, siri, zionwilliamson, ryoshi",,,,,,,,,51687478,
+484,2025-03-09,regular,Aces,Kings,kenny_wya,morel,"kenny_wya, grizzy, sotonyc, curtisjoneslover, mars_vibezz","morel, thorpe, mario, btjszn, witt, cinemax",,,,,,,,,51687515,
+485,2025-03-09,regular,Stimmers,Piggies,arttheclown_,evan_stewart_ii,"arttheclown_, mpls, tylrr, draculas, homeslice2, seahawkswoolen","evan_stewart_ii, lxst, brandonmiller, zane, glaciers, jtfr",,,,,,,,,51687544,
+486,2025-03-09,regular,Minors,Donuts,max,bohm,"max, baty, braden_, hardforbedard, darwin, bojack","bohm, tay, poopybuttlover, hutchinson, abos, yellow",,,,,,,,,51687590,
+487,2025-03-09,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, piggies, rkl.kocks, gravediggers, rklkings, ottersrkl, creamers, karma.stars, rklfellas, theaces, thevoyage, rklstimmers, flags, empire.rkl",,,,,,,,,51677988,
+488,2025-03-09,regular,@freaks,@rkloutlaws,,,freaks,"rkloutlaws, flamesrkl, teamtacos, rkldemons, leanteam, theamigos, jammersrkl, rklheroes, rklpenguins, gamblers, hornetsrkl, donuts, madsminors, mlbrkl",,,,,,,,,51677941,
+489,2025-03-09,regular,Horses,Otters,papacoop,,,"papacoop, kinnick, chris, strider",,,,,,,,,51667534,
+490,2025-03-09,regular,Diabetics,Hornets,,,,"etienne, gingy, chittum, zayo",,,,,,,,,51667425,
+491,2025-03-09,regular,Fellas,Amigos,pat,ted,,"dugz, pat, ted, duke, aprilfoolsbday",,,,,,,,,51667172,
+475,2025-03-10,regular,@piggies,@horniehorses,,,piggies,"horniehorses, diabetics, rkl.kocks, gravediggers, rklkings, ottersrkl, creamers, rklfellas, thevoyage, flags, empire.rkl, karma.stars, theaces, rklstimmers",,,,,,,,,51954954,
+476,2025-03-10,regular,@teamtacos,@rklheroes,,,teamtacos,"rklheroes, freaks, rkloutlaws, rkldemons, leanteam, theamigos, jammersrkl, rklpenguins, flamesrkl, madsminors, gamblers, hornetsrkl, mlbrkl, donuts",,,,,,,,,51954890,
+477,2025-03-10,regular,Gamblers,Creamers,doggy,saquon,"doggy, rzk__, dex, _turner, nyc, devonta","saquon, znye, verse, sports6138, oldfriend99, cle",,,,,,,,,51859255,
+478,2025-03-10,regular,Lean Team,Jammers,pnwsavant,swouse,"pnwsavant, cbd, heatloyalist, addison, dxvxn, bigk","swouse, sweat, cteszn, thorpee, caustic, mccasual",,,,,,,,,51856743,
+479,2025-03-10,regular,Outlaws,Freaks,,supa,"lehkyforselke, itzneallol, longganisa, goodbyesosoon, gaston, prove","supa, etan22, bennett, ai, york, norrispaul13",,,,,,,,,51857011,
+480,2025-03-10,regular,Penguins,Empire,zupacam,thereturnofzlo,"zupacam, khys9575, vincent_, scottie, turbo, zik","thereturnofzlo, sebas, bobsburgers, kodyblu31, jameswyo, etan_",,,,,,,,,51857050,
+481,2025-03-10,regular,Hornets,KOCK,zayo,croger,"zayo, bmannn, sasser, okorolover355, masdog2222, knightnate12","croger, ow3n1, rockymountain, ederick2442, devincooker, trevq3",,,,,,,,,51859199,
+466,2025-03-11,regular,@piggies,@horniehorses,,,piggies,"horniehorses, diabetics, gravediggers, creamers, rklkings, rkl.kocks, empire.rkl, ottersrkl, rklfellas, thevoyage, flags, karma.stars, theaces, rklstimmers",,,,,,,,,52015957,
+467,2025-03-11,regular,@freaks,@teamtacos,,,freaks,"teamtacos, rklheroes, jammersrkl, rkldemons, leanteam, theamigos, hornetsrkl, rkloutlaws, flamesrkl, madsminors, rklpenguins, mlbrkl, gamblers, donuts",,,,,,,,,52015909,
+468,2025-03-11,regular,Gravediggers,Voyage,arthurmorgan,shot,"arthurmorgan, cry, anonymoususer, derrickwhitetop5, davidv03, _ln4_","shot, frylock, glo, toasty, justakidfromakron23, huts",,,,,,,,,51999256,
+469,2025-03-11,regular,Otters,Diabetics,notkiddo,canada,"notkiddo, trickyy, panarin, lukamodric, psyklone, maxp","canada, chittum, etienne, joelembiid, zo_glasses, jonah",,,,,,,,,51995831,
+470,2025-03-11,regular,Flags,MLB,tw0,aiden0220,"tw0, ejwise, chltown, bigsnook, relaxedp, gradyt06","aiden0220, kane, ukator, sossboy_, marner, dillon",,,,,,,,,51995851,
+471,2025-03-11,regular,Amigos,Horses,sink,ice,"sink, duke, pat, ted, bamry, noir","ice, chris, kinnick, salty, xo, papacoop",,,,,,,,,51995860,
+472,2025-03-11,regular,Fellas,Demons,dugz,bruins,"dugz, cadewave, dariusgarland, mlbelite, ballingpm, realnuggets","bruins, four, otf, o3wn, joshminottenjoyer, tralogik",,,,,,,,,51995870,
+473,2025-03-11,regular,Lean Team,Jammers,,,,"caustic, sweat, dxvxn, pnwsavant",,,,,,,,,51978037,
+474,2025-03-11,regular,Outlaws,Freaks,,,,"bennett, supa, york, gaston, lehkyforselke",,,,,,,,,51977939,
+461,2025-03-12,regular,Piggies,Lean Team,jtfr,pnwsavant,"jtfr, killerbees_71, brandonmiller, glaciers, cs_derrick13, ngasilver","pnwsavant, dxvxn, bigk, heatloyalist, cbd, thelankygerman",,,,,,,,,52134202,
+462,2025-03-12,regular,Tacos,Aces,bam,sony_,"bam, iverson, burgerking, siri, zionwilliamson, tacko","sony_, kenny_wya, sotonyc, grizzy, mars_vibezz",,,,,,,,,52133265,
+463,2025-03-12,regular,Stars,Heroes,lamb,erndog,"lamb, devinbooker, raiola, morant, juan.soto22, playexplainer","erndog, morel, garland, longganisa, crow.armstrong, cookie",,,,,,,,,52133278,
+464,2025-03-12,regular,Kings,Stimmers,btjszn,arttheclown_,"btjszn, clutch, witt, mario, devonta, cinemax","arttheclown_, mpls, poolepartyjp3, draculas, palmer, nael_abuasi",,,,,,,,,52133300,
+465,2025-03-12,regular,Flames,Minors,intriquid,max,"intriquid, frostyy, tjgany, plemay, wulf, crozo","max, baty, bojack, coby, hardforbedard, shenli",,,,,,,,,52133313,
+454,2025-03-13,regular,Empire,Gravediggers,sebas,cry,"sebas, thereturnofzlo, kodyblu31, luhsean56, bobsburgers, jameswyo","cry, kevin, arthurmorgan, tw0, markjackson, anonymoususer",,,,,,,,,52239288,
+455,2025-03-13,regular,Donuts,Outlaws,bohm,lehkyforselke,"bohm, poopybuttlover, winslowforprez, tay, hutchinson, flock.ravens","lehkyforselke, deshaun4prison, itzneallol, gaston, clarke, goodbyesosoon",,,,,,,,,52237276,
+456,2025-03-13,regular,Jammers,Gamblers,swouse,doggy,"swouse, cteszn, sweat, mccasual, fun, caustic","doggy, _turner, dogger, rzk__, nyc, shabddd",,,,,,,,,52237290,
+457,2025-03-13,regular,Freaks,Penguins,supa,zupacam,"supa, etan22, ai, york, norrispaul13, vj","zupacam, khys9575, zik, vincent_, codybellinger, scottie",,,,,,,,,52237309,
+458,2025-03-13,regular,Creamers,Hornets,saquon,zayo,"saquon, znye, verse, sports6138, glovee, cle","zayo, masdog2222, bmannn, okorolover355, knightnate12, sasser",,,,,,,,,52237321,
+459,2025-03-13,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, gravediggers, rklkings, piggies, creamers, rkl.kocks, empire.rkl, karma.stars, ottersrkl, rklfellas, flags, thevoyage, theaces, rklstimmers",,,,,,,,,52235485,
+460,2025-03-13,regular,@teamtacos,@freaks,,,teamtacos,"freaks, rkldemons, jammersrkl, leanteam, rklheroes, madsminors, hornetsrkl, rkloutlaws, theamigos, rklpenguins, mlbrkl, flamesrkl, gamblers, donuts",,,,,,,,,52235462,
+139,2025-03-14,regular,Empire,Gravediggers,,,,,42606.0,41959.0,A,,,,,,,52331407
+140,2025-03-14,regular,Freaks,Penguins,,,,,48812.0,47093.0,A,,,,,,,52331191
+141,2025-03-14,regular,Jammers,Gamblers,,,,,48226.0,44326.0,A,,,,,,,52330983
+447,2025-03-14,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, creamers, rklkings, gravediggers, piggies, empire.rkl, rkl.kocks, karma.stars, ottersrkl, rklfellas, flags, thevoyage, theaces, rklstimmers",,,,,,,,,52363147,
+448,2025-03-14,regular,@freaks,@teamtacos,,,freaks,"teamtacos, jammersrkl, rkldemons, leanteam, rklheroes, madsminors, theamigos, mlbrkl, hornetsrkl, flamesrkl, rkloutlaws, donuts, rklpenguins, gamblers",,,,,,,,,52363073,
+449,2025-03-14,regular,Horses,Demons,chris,four,"chris, ice, kinnick, xo, papacoop, salty","four, bruins, o3wn, tralogik, nick_, jjettaz",,,,,,,,,52356375,
+450,2025-03-14,regular,KOCK,Otters,ederick2442,notkiddo,"ederick2442, devincooker, ow3n1, fernando, croger, bos","notkiddo, novo, crqmer, lukamodric, maxp, trickyy",,,,,,,,,52355022,
+451,2025-03-14,regular,Voyage,Flags,shot,bigsnook,"shot, twistex, vazyok, huts, justakidfromakron23, toasty","bigsnook, gradyt06, liljon, j417, relaxedp, chltown",,,,,,,,,52355038,
+452,2025-03-14,regular,MLB,Fellas,kane,dugz,"kane, sossboy_, marner, dillon, dane, richer","dugz, cadewave, dariusgarland, mlbelite, cartercrash, floyd",,,,,,,,,52355047,
+453,2025-03-14,regular,Diabetics,Amigos,chittum,,"chittum, gingy, etienne, joelembiid, zo_glasses, jonah","sink, duke, pat, ted, bamry, noir",,,,,,,,,52355057,
+439,2025-03-15,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, creamers, rklkings, gravediggers, piggies, empire.rkl, karma.stars, ottersrkl, rklfellas, rkl.kocks, flags, theaces, rklstimmers, thevoyage",,,,,,,,,52496512,
+440,2025-03-15,regular,@freaks,@teamtacos,,,freaks,"teamtacos, jammersrkl, rkldemons, leanteam, rklheroes, madsminors, hornetsrkl, flamesrkl, rkloutlaws, donuts, rklpenguins, theamigos, mlbrkl, gamblers",,,,,,,,,52496441,
+441,2025-03-15,regular,Stimmers,Aces,arttheclown_,kenny_wya,"arttheclown_, poolepartyjp3, draculas, homeslice2, seahawkswoolen, nael_abuasi","kenny_wya, kumingaszn, sotonyc, sony_, grizzy",,,,,,,,,52466083,
+442,2025-03-15,regular,Heroes,Tacos,morel,burgerking,"morel, erndog, garland, schlongganisa, crow.armstrong, zaccc","burgerking, ryoshi, iverson, siri, metcalf, bam",,,,,,,,,52464967,
+443,2025-03-15,regular,Minors,Stars,max,lamb,"max, baty, coby, bojack, shenli, adrimtl10","lamb, devinbooker, juan.soto22, raiola, dawgsnation, playexplainer",,,,,,,,,52464982,
+444,2025-03-15,regular,Outlaws,Flames,gaston,tjgany,"gaston, deshaun4prison, itzneallol, lehkyforselke, wood, prove","tjgany, frostyy, plemay, corbin, ejwise, wulf",,,,,,,,,52465011,
+445,2025-03-15,regular,Lean Team,Kings,pnwsavant,cinemax,"pnwsavant, dxvxn, thelankygerman, cbd, bigk, heatloyalist","cinemax, witt, mario, devonta, clutch, nate_",,,,,,,,,52548830,
+446,2025-03-15,regular,Diabetics,Amigos,,,,"chittum, etienne, pat, duke",,,,,,,,,52455620,
+429,2025-03-16,regular,Gravediggers,Freaks,arthurmorgan,supa,"arthurmorgan, cry, davidv03, derrickwhitetop5, tw0, kevin","supa, etan22, york, ai, norrispaul13, bshumer1",,,,,,,,,52590772,
+430,2025-03-16,regular,Penguins,Donuts,zupacam,bohm,"zupacam, khys9575, zik, scottie, codybellinger, bg_15","bohm, tay, bacotlover, winslowforprez, poopybuttlover, flock.ravens",,,,,,,,,52590479,
+431,2025-03-16,regular,Hornets,Jammers,zayo,swouse,"zayo, knightnate12, okorolover355, drakelistener, sasser, masdog2222","swouse, cteszn, caustic, mccasual, fun, sweat",,,,,,,,,52590493,
+432,2025-03-16,regular,Gamblers,Piggies,rzk__,brandonmiller,"rzk__, doggy, michael.carter.ll, _turner, nyc, dogger","brandonmiller, glaciers, quickleyy, killerbees_71, lxst, jtfr",,,,,,,,,52596244,
+433,2025-03-16,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, rklkings, creamers, gravediggers, piggies, empire.rkl, karma.stars, ottersrkl, rklfellas, rkl.kocks, flags, theaces, thevoyage, rklstimmers",,,,,,,,,52584739,
+434,2025-03-16,regular,@freaks,@jammersrkl,,,freaks,"jammersrkl, teamtacos, rklheroes, rkldemons, flamesrkl, madsminors, leanteam, hornetsrkl, donuts, rklpenguins, theamigos, mlbrkl, rkloutlaws, gamblers",,,,,,,,,52584678,
+435,2025-03-16,regular,Heroes,Tacos,,,,"zionwilliamson, morel, crow.armstrong, schlongganisa",,,,,,,,,52571277,
+436,2025-03-16,postseason,Stimmers,Aces,,,,"grizzy, sotonyc",,,,,,In the battle of the winless teams the Aces reign supreme with an easy win. @grizzy finally places top 50 finishing 15th as well as @sotonyc in 40th. Stimmers had no one in the top 100 as their poor start to the season continues.,,,52571243,
+437,2025-03-16,regular,Minors,Stars,,,,"devinbooker, dawgsnation, coby, max",,,,,,,,,52571209,
+438,2025-03-16,regular,Outlaws,Flames,,,,"ejwise, frostyy, wulf, gaston",,,,,,,,,52571166,
+134,2025-03-17,regular,Gravediggers,Freaks,,,,,33406.0,31497.0,A,,,,,,,52703966
+135,2025-03-17,regular,Gamblers,Piggies,,,,,27079.0,28059.0,B,,,,,,,52703781
+136,2025-03-17,regular,Penguins,Donuts,,,,,24299.0,27134.0,B,,,,,,,52703384
+137,2025-03-17,regular,Hornets,Jammers,,,,,24664.0,30064.0,B,,,,,,,52703166
+138,2025-03-17,regular,Otters,Creamers,,,,,28626.0,30940.0,B,,,,,,,52702855
+421,2025-03-17,postseason,New York,Wisconsin,four,,"four, xo, _turner, shot, sebas, thereturnofzlo","doggy, fernando, dogger, morant, bobsburgers, wisco",,,,,,North Conference Finals,,,52799648,
+422,2025-03-17,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, creamers, gravediggers, rklkings, piggies, empire.rkl, karma.stars, rklfellas, rkl.kocks, flags, ottersrkl, theaces, thevoyage, rklstimmers",,,,,,,,,52746927,
+423,2025-03-17,regular,@jammersrkl,@freaks,,,jammersrkl,"freaks, teamtacos, rklheroes, rkldemons, flamesrkl, madsminors, leanteam, donuts, theamigos, mlbrkl, rkloutlaws, hornetsrkl, rklpenguins, gamblers",,,,,,,,,52746909,
+424,2025-03-17,regular,Demons,Diabetics,bruins,chittum,"bruins, otf, o3wn, four, tralogik, joshminottenjoyer","chittum, gingy, etienne, joelembiid, zo_glasses, jonah",,,,,,,,,52731365,
+425,2025-03-17,regular,Horses,MLB,kinnick,marner,"kinnick, chris, salty, papacoop, xo, ice","marner, kane, ukator, aiden0220, dillon, dane",,,,,,,,,52731023,
+426,2025-03-17,regular,Amigos,KOCK,sink,ederick2442,"sink, aprilfoolsbday, bamry, nind0, noir, pat","ederick2442, croger, bg_15, arttheclown_, fernando, devincooker",,,,,,,,,52731246,
+427,2025-03-17,regular,Flags,Empire,bigsnook,sebas,"bigsnook, palmer, j417, burning, jayson, bengalsw","sebas, happy, thereturnofzlo, kodyblu31, fullofopps, bobsburgers",,,,,,,,,52731249,
+428,2025-03-17,regular,Fellas,Voyage,,,"dugz, cadewave, dariusgarland, mlbelite, cartercrash, floyd","frylock, twistex, vazyok, huts, justakidfromakron23, toasty",,,,,,,,,52731349,
+129,2025-03-18,regular,Demons,Diabetics,,,,,21596.0,22483.0,B,,,,,,,52815294
+130,2025-03-18,regular,Horses,MLB,,,,,22509.0,20990.0,A,,,,,,,52815210
+131,2025-03-18,regular,Amigos,KOCK,,,,,18193.0,20545.0,B,,,,,,,52815102
+132,2025-03-18,regular,Flags,Empire,,,,,17605.0,18409.0,B,,,,,,,52814839
+133,2025-03-18,regular,Fellas,Voyage,,,,,18048.0,13882.0,A,,,,,,,52814695
+414,2025-03-18,regular,Kings,Gamblers,clutch,rzk,"clutch, cinemax, sink, nate_, devonta, witt","rzk, michael.carter.ll, doggy, shabddd, _turner, nyc",,,,,,,,,52839116,
+415,2025-03-18,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, creamers, gravediggers, rklkings, piggies, empire.rkl, karma.stars, rkl.kocks, rklfellas, ottersrkl, theaces, flags, rklstimmers, thevoyage",,,,,,,,,52836877,
+416,2025-03-18,regular,@jammersrkl,@freaks,,,jammersrkl,"freaks, teamtacos, rklheroes, flamesrkl, rkldemons, madsminors, leanteam, donuts, rkloutlaws, hornetsrkl, rklpenguins, mlbrkl, theamigos, gamblers",,,,,,,,,52836843,
+417,2025-03-18,regular,Stars,Outlaws,lamb,gaston,"lamb, devinbooker, juan.soto22, raiola, morant, playexplainer","gaston, itzneallol, lehkyforselke, member704148, goodbyesosoon, prove",,,,,,,,,52836622,
+418,2025-03-18,regular,Heroes,Minors,morel,max,"morel, erndog, garland, schlongganisa, crow.armstrong, cookie","max, baty, coby, shenli, bojack, braden_",,,,,,,,,52836635,
+419,2025-03-18,regular,Tacos,Stimmers,burgerking,poolepartyjp3,"burgerking, tezzywezzy, iverson, siri, gschmoney, bam","poolepartyjp3, mpls, okorolover355, chltown, tatum, draculas",,,,,,,,,52836649,
+420,2025-03-18,regular,Aces,Lean Team,kenny_wya,pnwsavant,"kenny_wya, yaxel, kumingaszn, sotonyc, curtisjoneslover, grizzy","pnwsavant, dxvxn, cbd, thelankygerman, addison, bigk",,,,,,,,,52836685,
+128,2025-03-19,regular,Tacos,Stimmers,,,,,42937.0,42417.0,A,,,,,,,52909915
+407,2025-03-19,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, rklkings, creamers, gravediggers, piggies, empire.rkl, rkl.kocks, rklfellas, karma.stars, theaces, ottersrkl, flags, thevoyage, rklstimmers",,,,,,,,,52937404,
+408,2025-03-19,regular,@jammersrkl,@teamtacos,,,jammersrkl,"teamtacos, rklheroes, freaks, flamesrkl, rkldemons, donuts, rkloutlaws, madsminors, leanteam, hornetsrkl, rklpenguins, mlbrkl, theamigos, gamblers",,,,,,,,,52937371,
+409,2025-03-19,regular,Donuts,Gravediggers,bohm,cry,"bohm, tay, winslowforprez, skiseason, hutchinson, flock.ravens","cry, arthurmorgan, kevin, tw0, derrickwhitetop5, markjackson",,,,,,,,,52935708,
+410,2025-03-19,regular,Flames,Penguins,tjgany,zupacam,"tjgany, frostyy, ejwise, plemay, intriquid, wulf","zupacam, zik, zupazero, khys9575, owens, scottie",,,,,,,,,52934670,
+411,2025-03-19,regular,Piggies,Hornets,quickleyy,zayo,"quickleyy, killerbees_71, brandonmiller, glaciers, shot, jtfr","zayo, bmannn, jensive, masdog2222, knightnate12, sasser",,,,,,,,,52934680,
+412,2025-03-19,regular,Freaks,Flags,supa,,"supa, mario, york, ai, bshumer1, vj","bigsnook, palmer, j417, burning, jayson, bengalsw",,,,,,,,,52934700,
+413,2025-03-19,regular,stars,outlaws,,,,"prove, member704148, lehkyforselke, gaston, juan.soto22",,,,,,,,,52911294,
+400,2025-03-20,regular,Empire,Fellas,sebas,dugz,"sebas, happy, thereturnofzlo, jameswyo, bobsburgers, luhsean56","dugz, cadewave, dariusgarland, cartercrash, mlbelite, gradyt06",,,,,,,,,53041653,
+401,2025-03-20,regular,Creamers,Amigos,saquon,nind0,"saquon, znye, verse, oldfriend99, glovee, cle","nind0, aprilfoolsbday, bamry, noir, norrispaul13, pat",,,,,,,,,53041046,
+402,2025-03-20,regular,KOCK,Demons,croger,joshminottenjoyer,"croger, ederick2442, arttheclown_, rockymountain, devincooker, fernando","joshminottenjoyer, four, o3wn, otf, virgil, tralogik",,,,,,,,,53041054,
+403,2025-03-20,regular,Diabetics,MLB,etienne,aiden0220,"etienne, gingy, chittum, joelembiid, zo_glasses, jonah","aiden0220, kane, marner, ukator, dane, dillon",,,,,,,,,53041610,
+404,2025-03-20,regular,Voyage,Horses,relaxedp,kinnick,"relaxedp, justakidfromakron23, twistex, huts, frylock, vazyok","kinnick, chris, salty, papacoop, xo, ice",,,,,,,,,53041616,
+405,2025-03-20,regular,Donuts,Gravediggers,,,,"tw0, arthurmorgan, cry, winslowforprez, flock.ravens",,,,,,,,,53016332,
+406,2025-03-20,regular,Freaks,Flags,,,,"supa, mario, york",,,,,,,,,53015947,
+392,2025-03-21,regular,Outlaws,Heroes,gaston,morel,"gaston, lehkyforselke, itzneallol, goodbyesosoon, clarke, prove","morel, erndog, garland, schlongganisa, snivy, zaccc",,,,,,,,,53139572,
+393,2025-03-21,regular,Penguins,Stars,zik,lamb,"zik, khys9575, owens, scottie, vincent_, codybellinger","lamb, devinbooker, raiola, morant, dawgsnation, playexplainer",,,,,,,,,53139324,
+394,2025-03-21,regular,Lean Team,Stimmers,dxvxn,poolepartyjp3,"dxvxn, thelankygerman, heatloyalist, bigk, cbd, addison","poolepartyjp3, okorolover355, bigsnook, chltown, mpls, draculas",,,,,,,,,53139350,
+395,2025-03-21,regular,Minors,Tacos,max,iverson,"max, baty, coby, shenli, hardforbedard, braden_","iverson, tezzywezzy, burgerking, siri, gschmoney, bam",,,,,,,,,53139543,
+396,2025-03-21,regular,Gamblers,Aces,doggy,,"doggy, rzk, _turner, nyc, dex, shabddd","kenny_wya, yaxel, kumingaszn, sotonyc, sony_, grizzy",,,,,,,,,53195180,
+397,2025-03-21,regular,Creamers,Amigos,,,,"oldfriend99, znye, verse, norrispaul13",,,,,,,,,53119569,
+398,2025-03-21,regular,KOCK,Demons,,,,"virgil, tralogik, otf, arttheclown_",,,,,,,,,53119489,
+399,2025-03-21,regular,Empire,Fellas,,,,"bobsburgers, gradyt06, cartercrash, dariusgarland",,,,,,,,,53119166,
+125,2025-03-22,regular,gamblers,aces,,,,,46995.0,42409.0,A,,,,,,,53221257
+126,2025-03-22,regular,outlaws,heroes,,,,,47202.0,50037.0,B,,,,,,,53220962
+127,2025-03-22,regular,Minors,Tacos,,,,,53027.0,53325.0,B,,,,,,,53220651
+387,2025-03-22,regular,Gravediggers,Flames,arthurmorgan,corbin,"arthurmorgan, cry, davidv03, tw0, anonymoususer, kevin","corbin, tjgany, frostyy, ejwise, intriquid, plemay",,,,,,,,,53241522,
+388,2025-03-22,regular,Hornets,Kings,masdog2222,nate_,"masdog2222, zayo, smart, bmannn, knightnate12, drakelistener","nate_, sink, clase, cinemax, clutch, jaylenszn",,,,,,,,,53241440,
+389,2025-03-22,regular,Otters,Piggies,notkiddo,brandonmiller,"notkiddo, novo, lukamodric, trickyy, maxp, crqmer","brandonmiller, glaciers, shot, lxst, killerbees_71, quickleyy",,,,,,,,,53241457,
+390,2025-03-22,regular,Flags,Donuts,j417,bohm,"j417, liljon, tylrr, nael_abuasi, yankees.hub, burning","bohm, hutchinson, tay, winslowforprez, poopybuttlover, bacotlover",,,,,,,,,53241474,
+391,2025-03-22,regular,Amigos,Jammers,,sweat,"nind0, aprilfoolsbday, norrispaul13, duke, josh_0310, palmingo","sweat, cteszn, mccasual, caustic, gavinlub, swouse",,,,,,,,,53241489,
+381,2025-03-23,regular,Demons,Creamers,virgil,znye,"o3wn, bruins, virgil, joshminottenjoyer, otf, tralogik","znye, saquon, verse, oldfriend99, sports6138, cle",,,,,,,,,53386272,
+382,2025-03-23,regular,Fellas,Freaks,dugz,york,"dugz, barger, dariusgarland, ballingpm, mlbelite, gradyt06","york, ai, supa, mario, ggs1, vj",,,,,,,,,53381454,
+383,2025-03-23,regular,Horses,Empire,chris,happy,"chris, kinnick, papacoop, salty, ice, xo","happy, luhsean56, jameswyo, sebas, bobsburgers, kodyblu31",,,,,,,,,53381769,
+384,2025-03-23,regular,MLB,KOCK,marner,,"marner, aiden0220, ukator, zooch5, dillon, dane","ederick2442, arttheclown_, fernando, croger, rockymountain, devincooker",,,,,,,,,53381836,
+385,2025-03-23,regular,Diabetics,Voyage,mrdawson,xxyn,"mrdawson, chittum, pritchard, etienne, joelembiid, jonah","xxyn, vazyok, twistex, draculas, justakidfromakron23, huts",,,,,,,,,53386233,
+386,2025-03-23,regular,Otters,Piggies,,,,"maxp, lukamodric, lxst, quickleyy",,,,,,,,,53351809,
+122,2025-03-24,regular,Demons,Creamers,,,,,50951.0,51151.0,B,,,,,,,53496842
+123,2025-03-24,regular,Horses,Empire,,,,,51049.0,46721.0,A,,,,,,,53496432
+124,2025-03-24,regular,Fellas,Freaks,,,,,46234.0,53509.0,B,,,,,,,53496222
+376,2025-03-24,regular,Tacos,Lean Team,iverson,dxvxn,"iverson, tezzywezzy, burgerking, siri, tacko, bam","dxvxn, thelankygerman, heatloyalist, pnwsavant, bigk, emvpiid70",,,,,,,,,53521700,
+377,2025-03-24,regular,Minors,Outlaws,max,gaston,"max, baty, braden_, trylq, shenli, coby","gaston, lehkyforselke, itzneallol, deshaun4prison, clarke, prove",,,,,,,,,53521502,
+378,2025-03-24,regular,Stimmers,Gamblers,relaxedp,doggy,"relaxedp, poolepartyjp3, bigsnook, iouisss, chltown, mpls","doggy, rzk, dex, shabddd, _turner, nyc",,,,,,,,,53521567,
+379,2025-03-24,regular,Heroes,Penguins,morel,zik,"morel, marner, garland, schlongganisa, crow.armstrong, zaccc","zik, khys9575, owens, zupazero, scottie, vincent_",,,,,,,,,53521579,
+380,2025-03-24,regular,Aces,Hornets,yaxel,smart,"yaxel, sony_, grizzy, kenny_wya, mars_vibezz, sotonyc","smart, zayo, knightnate12, bmannn, sasser, jensive",,,,,,,,,53521593,
+118,2025-03-25,regular,Tacos,Lean Team,,,,,34091.0,30464.0,A,,,,,,,53610769
+119,2025-03-25,regular,Aces,Hornets,,,,,26603.0,25115.0,A,,,,,,,53610535
+120,2025-03-25,regular,Heroes,Penguins,,,,,29866.0,26680.0,A,,,,,,,53610442
+121,2025-03-25,regular,Stimmers,Gamblers,,,,,27931.0,28266.0,B,,,,,,,53609272
+365,2025-03-25,regular,Stars,Gravediggers,lamb,cry,"lamb, devinbooker, morant, raiola, dawgsnation, wisco","cry, arthurmorgan, davidv03, tw0, markjackson, _ln4_",,,,,,,,,53637114,
+366,2025-03-25,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, creamers, gravediggers, rklkings, piggies, rklfellas, empire.rkl, theaces, karma.stars, ottersrkl, rkl.kocks, flags, rklstimmers, thevoyage",,,,,,,,,53636487,
+367,2025-03-25,regular,@jammersrkl,@teamtacos,,,jammersrkl,"teamtacos, rklheroes, freaks, rkldemons, flamesrkl, donuts, rkloutlaws, mlbrkl, madsminors, rklpenguins, hornetsrkl, gamblers, leanteam, theamigos",,,,,,,,,53636451,
+368,2025-03-25,regular,Jammers,Demons,caustic,tralogik,"caustic, cteszn, swouse, mccasual, sweat, thorpee","tralogik, bruins, four, o3wn, otf, joshminottenjoyer",,,,,,,,,53637182,
+369,2025-03-25,regular,Empire,Tacos,zim,,"zim, thereturnofzlo, etan_, kodyblu31, bobsburgers, jameswyo","iverson, tezzywezzy, burgerking, siri, tacko, bam",,,,,,,,,53637201,
+370,2025-03-25,regular,Minors,Diabetics,max,mrdawson,"max, baty, coby, shenli, senga, braden_","mrdawson, chittum, zo_glasses, etienne, joelembiid, jonah",,,,,,,,,53641184,
+371,2025-03-25,regular,Gravediggers,Aces,cry,kenny_wya,"cry, arthurmorgan, davidv03, tw0, markjackson, _ln4_","kenny_wya, sony, berg_02, mars_vibezz, yaxel, sotonyc",,,,,,,,,53667032,
+372,2025-03-25,regular,Kings,Otters,sink,notkiddo,"sink, clutch, nate_, jaylenszn, clase, devonta","notkiddo, lukamodric, psyklone, maxp, josephmazzulla, trickyy",,,,,,,,,53635402,
+373,2025-03-25,regular,Flames,Flags,frostyy,,"frostyy, tjgany, corbin, plemay, wulf, rojoknicks","j417, liljon, tylrr, nael_abuasi, yankees.hub, burning",,,,,,,,,53635417,
+374,2025-03-25,regular,Donuts,Fellas,bohm,dugz,"bohm, yellow, ihatekarmagrinding, winslowforprez, poopybuttlover, hutchinson","dugz, barger, dariusgarland, ballingpm, mlbelite, floyd",,,,,,,,,53636970,
+375,2025-03-25,regular,Piggies,Amigos,zane,,"wxrtz, zane, glaciers, brandonmiller, killerbees_71, shot","nind0, aprilfoolsbday, norrispaul13, duke, josh_0310, palmingo",,,,,,,,,53665018,
+358,2025-03-26,regular,Freaks,Horses,mario,chris,"mario, york, ai, bennett, bshumer1, vj","chris, kinnick, papacoop, salty, ice, xo",,,,,,,,,53778256,
+359,2025-03-26,regular,Jammers,Demons,swouse,tralogik,"swouse, cteszn, mccasual, caustic, sweat, fun","tralogik, four, bruins, o3wn, otf, joshminottenjoyer",,,,,,,,,53774509,
+360,2025-03-26,regular,Creamers,MLB,saquon,kane,"saquon, znye, verse, oldfriend99, sports6138, cle","kane, aiden0220, dane, ukator, croatia, dillon",,,,,,,,,53774525,
+361,2025-03-26,regular,Empire,Diabetics,zim,mrdawson,"zim, thereturnofzlo, luhsean56, jameswyo, bobsburgers, kodyblu31","mrdawson, chittum, pritchard, etienne, joelembiid, jonah",,,,,,,,,53774543,
+362,2025-03-26,regular,KOCK,Voyage,ederick2442,bmannn,"ederick2442, arttheclown_, fernando, croger, bg_15, devincooker","bmannn, xxyn, huts, twistex, draculas, vazyok",,,,,,,,,53778072,
+363,2025-03-26,regular,@horniehorses,@diabetics,,,horniehorses,"diabetics, creamers, gravediggers, piggies, rklkings, empire.rkl, karma.stars, ottersrkl, rklfellas, theaces, rkl.kocks, flags, thevoyage, rklstimmers",,,,,,,,,53725741,
+364,2025-03-26,regular,@jammersrkl,@teamtacos,,,jammersrkl,"teamtacos, rklheroes, freaks, flamesrkl, donuts, rkldemons, rkloutlaws, leanteam, mlbrkl, madsminors, rklpenguins, hornetsrkl, gamblers, theamigos",,,,,,,,,53725706,
+113,2025-03-27,regular,Freaks,Horses,,,,,18347.0,17396.0,A,,,,,,,53862074
+114,2025-03-27,regular,KOCK,Voyage,,,,,14843.0,18978.0,B,,,,,,,53861896
+115,2025-03-27,regular,Empire,Diabetics,,,,,18593.0,19451.0,B,,,,,,,53861773
+116,2025-03-27,regular,Creamers,MLB,,,,,17910.0,11820.0,A,,,,,,,53861541
+117,2025-03-27,regular,Jammers,Demons,,,,,18982.0,20138.0,B,,,,,,,53861412
+351,2025-03-27,regular,Gravediggers,Heroes,arthurmorgan,garland,"arthurmorgan, cry, tw0, derrickwhitetop5, kevin, anonymoususer","garland, marner, morel, schlongganisa, crow.armstrong, snivy",,,,,,,,,53913380,
+352,2025-03-27,regular,Outlaws,Tacos,lehkyforselke,iverson,"lehkyforselke, gaston, goodbyesosoon, deshaun4prison, itzneallol, prove","iverson, tezzywezzy, burgerking, siri, tacko, bam",,,,,,,,,53905048,
+353,2025-03-27,regular,Gamblers,Lean Team,doggy,heatloyalist,"doggy, shabddd, rzk, _turner, michael.carter.ll, nyc","heatloyalist, cbd, pnwsavant, thelankygerman, dxvxn, bigk",,,,,,,,,53905069,
+354,2025-03-27,regular,Penguins,Minors,zik,baty,"zik, zupazero, scottie, khys9575, vincent_, owens","baty, max, shenli, coby, braden_, hardforbedard",,,,,,,,,53913343,
+355,2025-03-27,regular,Hornets,Stimmers,devonta,relaxedp,"devonta, cyl, knightnate12, lewis, hoosier, murray","relaxedp, bigsnook, iouisss, poolepartyjp3, frylock, chltown",,,,,,,,,53913356,
+356,2025-03-27,regular,@diabetics,@horniehorses,,,diabetics,"horniehorses, creamers, gravediggers, piggies, rklkings, karma.stars, ottersrkl, rklfellas, theaces, empire.rkl, rkl.kocks, thevoyage, flags, rklstimmers",,,,,,,,,53878373,
+357,2025-03-27,regular,@freaks,@teamtacos,,,freaks,"teamtacos, jammersrkl, rklheroes, rkldemons, flamesrkl, donuts, rkloutlaws, leanteam, madsminors, rklpenguins, hornetsrkl, gamblers, mlbrkl, theamigos",,,,,,,,,53878346,
+108,2025-03-28,regular,Gravediggers,Heroes,,,,,49834.0,58500.0,B,,,,,,,53990484
+109,2025-03-28,regular,Hornets,Stimmers,,,,,46999.0,49923.0,B,,,,,,,53990019
+110,2025-03-28,regular,Penguins,Minors,,,,,45939.0,52808.0,B,,,,,,,53989610
+111,2025-03-28,regular,Gamblers,Lean Team,,,,,51960.0,55348.0,B,,,,,,,53989360
+112,2025-03-28,regular,Outlaws,Tacos,,,,,50557.0,52014.0,B,,,,,,,53988956
+345,2025-03-28,regular,Demons,Piggies,tralogik,cs_derrick13,"tralogik, four, virgil, otf, sammy, bruins","cs_derrick13, jtfr, glaciers, brandonmiller, shot, killerbees_71",,,,,,,,,54059333,
+346,2025-03-28,regular,Otters,Aces,notkiddo,kenny_wya,"notkiddo, novo, psyklone, lukamodric, trickyy, erndog","kenny_wya, yaxel, sony, mars_vibezz, sotonyc, berg_02",,,,,,,,,54050059,
+347,2025-03-28,regular,Flags,Stars,j417,lamb,"j417, liljon, palmer, bengalsw, burning, tylrr","lamb, devinbooker, raiola, dawgsnation, wisco, neev",,,,,,,,,54050103,
+348,2025-03-28,regular,Amigos,Kings,,sink,"norrispaul13, duke, josh_0310, nind0, palmingo, aprilfoolsday","sink, nate_, rowan, clase, witt, clutch",,,,,,,,,54050126,
+349,2025-03-28,regular,Fellas,Flames,dugz,frostyy,"dugz, barger, dariusgarland, ballingpm, mlbelite, cartercrash","frostyy, tjgany, intriquid, wulf, plemay, corbin",,,,,,,,,54059264,
+350,2025-03-28,postseason,Heroes,Stars,garland,devinbooker,"garland, marner, morel, schlongganisa, crow.armstrong, snivy","devinbooker, lamb, raiola, dawgsnation, playexplainer, willi3",,,,,,MM Final 4,,,54049025,
+339,2025-03-29,regular,Horses,Donuts,papacoop,winslowforprez,"papacoop, chris, ice, kinnick, salty, xo","winslowforprez, hutchinson, trae_young, bohm, poopybuttlover, bacot",,,,,,,,,54169975,
+340,2025-03-29,regular,MLB,Jammers,kane,swouse,"kane, aiden0220, sossboy_, dane, croatia, richer","swouse, cteszn, mccasual, caustic, sweat, fun",,,,,,,,,54160895,
+341,2025-03-29,regular,Diabetics,Freaks,mrdawson,supa,"mrdawson, chittum, pritchard, etienne, gingy, jonah","supa, york, mario, ai, bennett, vj",,,,,,,,,54160915,
+342,2025-03-29,regular,Voyage,Creamers,rivv_,saquon,"rivv_, huts, xxyn, draculas, twistex, justakidfromakron23","saquon, znye, verse, oldfriend99, sports6138, cle",,,,,,,,,54161072,
+343,2025-03-29,regular,KOCK,Empire,ederick2442,thereturnofzlo,"ederick2442, arttheclown_, fernando, croger, bg_15, devincooker","thereturnofzlo, zim, luhsean56, sebas, bobsburgers, jameswyo",,,,,,,,,54169873,
+344,2025-03-29,postseason,Jammers,Minors,swouse,baty,"swouse, cteszn, mccasual, caustic, sweat, fun","baty, max, shenli, braden_, coby, adrimtl10",,,,,,MM Final 4,,,54150963,
+334,2025-03-30,postseason,Jammers,Stars,caustic,devinbooker,"caustic, sweat, swouse, mccasual, cteszn, gavinlub","devinbooker, lamb, raiola, morant, juan.soto22, playexplainer",,,,,,MM Finals,,,54342728,
+335,2025-03-30,regular,@diabetics,@creamers,,,diabetics,"creamers, horniehorses, piggies, gravediggers, rklkings, karma.stars, empire.rkl, theaces, ottersrkl, rklfellas, rkl.kocks, rklstimmers, thevoyage, flags",,,,,,,,,54268518,
+336,2025-03-30,regular,@freaks,@teamtacos,,,freaks,"teamtacos, jammersrkl, rklheroes, flamesrkl, donuts, rkldemons, leanteam, rkloutlaws, madsminors, gamblers, hornetsrkl, rklpenguins, mlbrkl, theamigos",,,,,,,,,54268480,
+337,2025-03-30,regular,Horses,Donuts,,,,"chris, hutchinson, winslowforprez, porsche",,,,,,,,,54248428,
+338,2025-03-30,regular,MLB,Jammers,,,,"caustic, cteszn, kane, aiden0220",,,,,,,,,54248310,
+333,2025-03-31,postseason,Final trade I think bc ivy not the brightest,Donuts get: @coby,coby,pat,"flock.ravens, coby","pat, flock.ravens",,,,,,Final trade I think bc ivy not the brightest,,,54381091,
+328,2025-04-02,regular,Minors,Gravediggers,baty,tw0,"baty, max, shenli, bojack, paterik, trylq","tw0, cry, arthurmorgan, davidv03, markjackson, kevin",,,,,,,,,54676691,
+329,2025-04-02,regular,Stimmers,Otters,relaxedp,notkiddo,"relaxedp, bigsnook, iouisss, poolepartyjp3, mpls, chltown","notkiddo, psyklone, crqmer, panarin, lukamodric, josephmazzulla",,,,,,,,,54669426,
+330,2025-04-02,regular,Lean Team,Hornets,thelankygerman,cyl,"thelankygerman, pnwsavant, cbd, bigk, dxvxn, addison","cyl, hoosier, trevq3, justakidfromakron, tsukiko, mattyice",,,,,,,,,54669924,
+331,2025-04-02,regular,Outlaws,Penguins,lehkyforselke,zik,"lehkyforselke, gaston, deshaun4prison, itzneallol, prove, wood","zik, owencooks, zupacam, zupazero, scottie, vincent_",,,,,,,,,54669943,
+332,2025-04-02,regular,Tacos,Gamblers,iverson,doggy,"iverson, gschmoney, burgerking, siri, tacko, bam","doggy, _turner, nyc, shabddd, michael.carter.ll, rzk",,,,,,,,,54676677,
+103,2025-04-03,regular,Minors,Gravediggers,,,,,35129.0,42206.0,B,,,,,,,54748692
+104,2025-04-03,regular,Tacos,Gamblers,,,,,38423.0,33384.0,A,,,,,,,54748122
+105,2025-04-03,regular,Outlaws,Penguins,,,,,33192.0,38239.0,B,,,,,,,54747772
+106,2025-04-03,regular,Lean Team,Hornets,,,,,34106.0,24473.0,A,,,,,,,54747495
+107,2025-04-03,regular,Stimmers,Otters,,,,,31690.0,31624.0,A,,,,,,,54746777
+323,2025-04-03,regular,Flames,Horses,frostyy,chris,"frostyy, intriquid, tjgany, ejwise, corbin, kuminga_","chris, ice, kinnick, papacoop, salty, cartercrash",,,,,,,,,54784941,
+324,2025-04-03,regular,Heroes,Flags,barger,j417,"barger, zaccc, schlongganisa, garland, marner, snivy","j417, liljon, palmer, realnuggets, burning, tylrr",,,,,,,,,54781817,
+325,2025-04-03,regular,Aces,Amigos,kenny_wya,norrispaul13,"kenny_wya, yaxel, sony, sotonyc, kumingaszn, berg_02","norrispaul13, flock.ravens, josh_0310, nind0, bengalsw, palmingo",,,,,,,,,54781838,
+326,2025-04-03,regular,Stars,Fellas,devinbooker,joshminottenjoyer,"devinbooker, lamb, juan.soto22, raiola, wisco, playexplainer","joshminottenjoyer, khys9575, devonta, fun, bshumer1, xxyn",,,,,,,,,54781859,
+327,2025-04-03,regular,Kings,Demons,sink,tralogik,"sink, clutch, masdog2222, clase, jaylenszn, rowan","tralogik, four, otf, o3wn, virgil, jjettaz",,,,,,,,,54784917,
+98,2025-04-04,regular,Flames,Horses,,,,,28632.0,26390.0,A,,,,,,,54855187
+99,2025-04-04,regular,Kings,Demons,,,,,30608.0,31522.0,B,,,,,,,54855003
+100,2025-04-04,regular,Stars,Fellas,,,,,27854.0,24819.0,A,,,,,,,54854875
+101,2025-04-04,regular,Aces,Amigos,,,,,26657.0,26231.0,A,,,,,,,54854760
+102,2025-04-04,regular,Heroes,Flags,,,,,25837.0,24624.0,A,,,,,,,54854614
+316,2025-04-04,regular,Donuts,Diabetics,bohm,mrdawson,"bohm, winslowforprez, tay, coby, hutchinson, yellow","mrdawson, chittum, joelembiid, etienne, grounded, jonah",,,,,,,,,54894680,
+317,2025-04-04,regular,Piggies,MLB,cs_derrick13,kane,"cs_derrick13, quickleyy, glaciers, brandonmiller, killerbees_71, money","kane, aiden0220, maxp, dane, richer, croatia",,,,,,,,,54891485,
+318,2025-04-04,regular,Jammers,Voyage,cteszn,sammy,"cteszn, caustic, swouse, robertjr_, dortch","sammy, knightnate12, zegras, draculas, huts, toasty",,,,,,,,,54891496,
+319,2025-04-04,regular,Freaks,KOCK,supa,ederick2442,"supa, york, ai, bennett, vj, ggs1","ederick2442, arttheclown_, fernando, croger, mrwashed, devincooker",,,,,,,,,54891520,
+320,2025-04-04,regular,Creamers,Empire,znye,thereturnofzlo,"znye, saquon, verse, oldfriend99, sports6138, cle","thereturnofzlo, happy, zim, jameswyo, sebas, bobsburgers",,,,,,,,,54891525,
+321,2025-04-04,regular,@diabetics,@creamers,,,diabetics,"creamers, piggies, horniehorses, gravediggers, karma.stars, rklkings, theaces, empire.rkl, ottersrkl, rklfellas, rkl.kocks, rklstimmers, thevoyage, flags",,,,,,,,,54869557,
+322,2025-04-04,regular,@teamtacos,@rklheroes,,,teamtacos,"rklheroes, freaks, jammersrkl, flamesrkl, donuts, rkldemons, leanteam, rkloutlaws, madsminors, rklpenguins, mlbrkl, gamblers, hornetsrkl, theamigos",,,,,,,,,54869520,
+309,2025-04-05,postseason,Final 4 games day 1/6,@kinnick 0 vs 5. @chris 0,,,"kinnick, chris","papacoop, ai",,,,,,Final 4 games day 1/6,,,55136394,
+310,2025-04-05,regular,@kinnick 0 vs 5. @chris 0,@papacoop 0 vs 26. @ai 0,,,papacoop,ai,,,,,,,,,55137295,
+311,2025-04-05,regular,Gravediggers,Outlaws,arthurmorgan,gaston,"arthurmorgan, tw0, cry, justinjefferson, davidv03, kevin","gaston, lehkyforselke, deshaun4prison, itzneallol, goodbyesosoon, prove",,,,,,,,,55082000,
+312,2025-04-05,regular,Penguins,Tacos,zupacam,iverson,"zupacam, scottie, zik, owencooks, zupazero, codybellinger","iverson, ryoshi, burgerking, siri, tezzywezzy, bam",,,,,,,,,55061837,
+313,2025-04-05,regular,Hornets,Gamblers,cyl,doggy,"cyl, hoosier, tsukiko, justakidfromakron23, lewis, jensive","doggy, shabddd, rzk, dex, _turner, nyc",,,,,,,,,55061866,
+314,2025-04-05,regular,Otters,Lean Team,notkiddo,thelankygerman,"notkiddo, lukamodric, novo, erndog, crqmer, psyklone","thelankygerman, dxvxn, pnwsavant, bigk, addison, cbd",,,,,,,,,55061904,
+315,2025-04-05,regular,Flags,Minors,liljon,baty,"j417, liljon, palmer, realnuggets, burning, tylrr","baty, max, paterik, braden_, bojack, adrimtl10",,,,,,,,,55061943,
+93,2025-04-06,regular,Gravediggers,Outlaws,,,,,46363.0,43639.0,A,,,,,,,55194695
+94,2025-04-06,regular,Flags,Minors,,,,,44125.0,43182.0,A,,,,,,,55194474
+95,2025-04-06,regular,Otters,Lean Team,,,,,46641.0,49679.0,B,,,,,,,55194249
+96,2025-04-06,regular,Hornets,Gamblers,,,,,35126.0,45749.0,B,,,,,,,55191536
+97,2025-04-06,regular,Penguins,Tacos,,,,,40129.0,44267.0,B,,,,,,,55190856
+303,2025-04-06,postseason,Final 4 games day 2/6,"@kinnick 6,638 vs 5. @chris 5,851",,,kinnick,chris,,,,,,Final 4 games day 2/6,,,55351132,
+304,2025-04-06,regular,Amigos,Stimmers,norrispaul13,relaxedp,"norrispaul13, josh_0310, flock.ravens, aprilfoolsbday, bengalsw, palmingo","relaxedp, bigsnook, iouisss, poolepartyjp3, chltown, homeslice2",,,,,,,,,55256978,
+305,2025-04-06,regular,Demons,Aces,tralogik,kenny_wya,"tralogik, dawgsnation, o3wn, jjettaz, virgil, dugz","kenny_wya, sotonyc, yaxel, sony, mars_vibezz, grizzy",,,,,,,,,55240418,
+306,2025-04-06,regular,Horses,Stars,kinnick,devinbooker,"kinnick, papacoop, chris, corsic, skinnover, cartercrash","devinbooker, lamb, juan.soto22, raiola, wisco, playexplainer",,,,,,,,,55240468,
+307,2025-04-06,regular,MLB,Kings,aiden0220,nate_,"aiden0220, kane, dillon, maxp, sossboy_, dane","nate_, rowan, clutch, masdog2222, clase, sink",,,,,,,,,55240540,
+308,2025-04-06,regular,Fellas,Heroes,khys9575,snivy,"khys9575, joshminottenjoyer, devonta, fun, yankees.hub, xxyn","snivy, murray, schlongganisa, garland, marner, crow.armstrong",,,,,,,,,55256932,
+88,2025-04-07,regular,MLB,Kings,,,,,22422.0,22593.0,B,,,,,,,55388363
+89,2025-04-07,regular,Horses,Stars,,,,,25042.0,29471.0,B,,,,,,,55388135
+90,2025-04-07,regular,Fellas,Heroes,,,,,25267.0,24818.0,A,,,,,,,55387844
+91,2025-04-07,regular,Demons,Aces,,,,,27923.0,26506.0,A,,,,,,,55387582
+92,2025-04-07,regular,Amigos,Stimmers,,,,,26513.5,26087.0,A,,,,,,,55387395
+295,2025-04-07,regular,Freaks,Creamers,supa,saquon,"supa, ai, vj, mario, york, ggs1","saquon, znye, verse, oldfriend99, sports6138, cle",,,,,,,,,55477290,
+296,2025-04-07,regular,Diabetics,Flames,mrdawson,ejwise,"mrdawson, chittum, joelembiid, etienne, grounded, jonah","ejwise, frostyy, intriquid, tjgany, plemay, wulf",,,,,,,,,55462449,
+297,2025-04-07,regular,Voyage,Piggies,grace,cs_derrick13,"grace, knightnate12, toasty, huts, draculas, twistex","cs_derrick13, glaciers, money, zane, quickleyy, jtfr",,,,,,,,,55462468,
+298,2025-04-07,regular,KOCK,Donuts,ederick2442,coby,"ederick2442, arttheclown_, fernando, croger, mrwashed, devincooker","coby, winslowforprez, tay, bohm, poopybuttlover, hutchinson",,,,,,,,,55462640,
+299,2025-04-07,regular,Empire,Jammers,bobsburgers,swouse,"thereturnofzlo, bobsburgers, jameswyo, sebas, kodyblu31, etan_","swouse, cteszn, caustic, sweat, mccasual, robertjr88",,,,,,,,,55462681,
+300,2025-04-07,postseason,Final 4 games day 3/6,"@kinnick 9,837 vs 5. @chris 10,515	(Day 3/4)",,,kinnick,chris,,,,,,Final 4 games day 3/6,,,55428294,
+301,2025-04-07,regular,@diabetics,@creamers,,,diabetics,"creamers, gravediggers, piggies, karma.stars, horniehorses, rklkings, empire.rkl, theaces, rklfellas, rkl.kocks, ottersrkl, rklstimmers, flags, thevoyage",,,,,,,,,55419519,
+302,2025-04-07,regular,@teamtacos,@jammersrkl,,,"teamtacos, jammersrkl, rklheroes, freaks, flamesrkl, donuts, rkldemons, leanteam, rkloutlaws, madsminors, gamblers, rklpenguins, mlbrkl, hornetsrkl, theamigos",teamtacos,,,,,,,,,55419465,
+283,2025-04-08,regular,Gamblers,Otters,doggy,notkiddo,"doggy, shabddd, rzk, michael.carter.ll, _turner, nyc","notkiddo, crqmer, lukamodric, trickyy, erndog, psyklone",,,,,,,,,55615338,
+284,2025-04-08,regular,Outlaws,Flags,gaston,,"gaston, lehkyforselke, wood, deshuan4prison, itzneallol, prove","liljon, realnuggets, bent, shzckers, kanginator, j417",,,,,,,,,55615269,
+285,2025-04-08,regular,Penguins,Gravediggers,scottie,cry,"scottie, zupacam, zik, ngasilver, zero, codybellinger","cry, tw0, arthurmorgan, _ln4_, derrickwhitetop5, markjackson",,,,,,,,,55615301,
+286,2025-04-08,regular,Lean Team,Amigos,thelankygerman,norrispaul13,"thelankygerman, dxvxn, pnwsavant, townes, cbd, bigk","norrispaul13, ballingpm, bengalsw, josh_0310, nind0, noir",,,,,,,,,55704100,
+287,2025-04-08,regular,Tacos,Hornets,iverson,,"iverson, ryoshi, burgerking, siri, tezzywezzy, bam","cyl, trevq3, tsukiko, justakidfromakron23, lewis, jensive",,,,,,,,,55706148,
+288,2025-04-08,postseason,Final 4 games day 4/6,"@kinnick 17,357 vs 5. @chris 17,073 Day 4/4",,,kinnick,chris,,,,,,Final 4 games day 4/6,,,55603986,
+289,2025-04-08,regular,@diabetics,@gravediggers,,,diabetics,"gravediggers, creamers, piggies, horniehorses, karma.stars, rklkings, empire.rkl, theaces, thefellas, ottersrkl, rkl.kocks, rklstimmers, flags, thevoyage",,,,,,,,,55584795,
+290,2025-04-08,regular,@teamtacos,@freaks,,,teamtacos,"freaks, jammersrkl, rklheroes, flamesrkl, donuts, rkldemons, leanteam, rkloutlaws, madsminors, gamblers, rklpenguins, mlbrkl, hornetsrkl, theamigos",,,,,,,,,55584722,
+291,2025-04-08,regular,Diabetics,Flames,,,,"tjgany, ejwise, mrdawson, jonah, etienne",,,,,,,,,55559787,
+292,2025-04-08,regular,Voyage,Piggies,,,,"knightnate12, zane",,,,,,,,,55559711,
+293,2025-04-08,regular,KOCK,Donuts,,,,"ederick2442, arttheclown_, coby, hutchinson, bohm",,,,,,,,,55559423,
+294,2025-04-08,regular,Empire,Jammers,,,,"sebas, etan_, thereturnofzlo, swouse, caustic, cteszn",,,,,,,,,55558792,
+85,2025-04-09,regular,Penguins,Gravediggers,,,,,31390.0,45915.0,B,,,,,,,55721045
+86,2025-04-09,regular,Gamblers,Otters,,,,,44897.0,45710.0,B,,,,,,,55720803
+87,2025-04-09,regular,Tacos,Hornets,,,,,44038.0,17349.0,A,,,,,,,55720540
+273,2025-04-09,regular,Heroes,Horses,snivy,chris,"snivy, barger, schlongganisa, garland, marner, crow.armstrong","chris, papacoop, kinnick, salty, corsic",,,,,,,,,55799187,
+274,2025-04-09,regular,Minors,Fellas,max,devonta,"max, baty, paterik, trylq, braden_, shenli","devonta, joshminottenjoyer, khys9575, duke, sasser, fun",,,,,,,,,55790503,
+275,2025-04-09,regular,Stimmers,Demons,bigsnook,tralogik,"bigsnook, relaxedp, flock.ravens, toasty, chltown, homeslice2","tralogik, bruins, otf, o3wn, tatum, virgil",,,,,,,,,55790535,
+276,2025-04-09,regular,Aces,MLB,kenny_wya,kane,"kenny_wya, yaxel, hoosier, sotonyc, sony, kumingaszn","kane, aiden0220, dane, maxp, richer, dillon",,,,,,,,,55790613,
+277,2025-04-09,regular,Stars,Diabetics,devinbooker,mrdawson,"devinbooker, lamb, juan.soto22, raiola, wisco, willi3","mrdawson, chittum, joelembiid, etienne, grounded, jonah",,,,,,,,,55790638,
+278,2025-04-09,postseason,Final result of first final 4 game,"@kinnick 25,570 vs 5. @chris 24,548",,,"kinnick, chris","papacoop, ai",,,,,,Final result of first final 4 game,,,55743419,
+279,2025-04-09,regular,@gravediggers,@diabetics,,,gravediggers,"diabetics, creamers, piggies, horniehorses, karma.stars, rklkings, empire.rkl, theaces, thefellas, ottersrkl, rkl.kocks, rklstimmers, flags, thevoyage",,,,,,,,,55742880,
+280,2025-04-09,regular,@teamtacos,@freaks,,,teamtacos,"freaks, jammersrkl, rklheroes, flamesrkl, donuts, rkldemons, leanteam, rkloutlaws, madsminors, mlbrkl, gamblers, rklpenguins, theamigos, hornetsrkl",,,,,,,,,55742809,
+281,2025-04-09,regular,Outlaws,Flags,,,,"bent, kanginator, itzneallol, gaston, deshaun4prison",,,,,,,,,55721027,
+282,2025-04-09,regular,Lean Team,Amigos,,,,"norrispaul, bengalsw, nind0, ballingpm, pnwsavant, cbd, dxvxn",,,,,,,,,55720674,
+80,2025-04-10,regular,Heroes,Horses,,,,,36457.0,36928.0,B,,,,,,,55876246
+81,2025-04-10,regular,Stars,Diabetics,,,,,36462.5,37587.0,B,,,,,,,55875947
+82,2025-04-10,regular,Aces,MLB,,,,,33012.0,35998.0,B,,,,,,,55875722
+83,2025-04-10,regular,Stimmers,Demons,,,,,31461.0,35757.0,B,,,,,,,55875469
+84,2025-04-10,regular,Minors,Fellas,,,,,35789.0,31901.0,A,,,,,,,55875224
+265,2025-04-10,regular,Jammers,Freaks,swouse,supa,"swouse, cteszn, caustic, mccasual, dortch, sweat","supa, ai, vj, mario, york, morel",,,,,,,,,55942510,
+266,2025-04-10,regular,Kings,Voyage,masdog2222,huts,"masdog2222, sink, clutch, clase, witt, jaylenszn","huts, cywebb, jesusfreak, knightnate12, twistex, anthonyedwardsisgood",,,,,,,,,55935917,
+267,2025-04-10,regular,Flames,KOCK,frostyy,ederick2442,"frostyy, intriquid, tjgany, ejwise, kuminga_, trixsta","ederick2442, arttheclown_, fernando, croger, rockymountain, devincooker",,,,,,,,,55935937,
+268,2025-04-10,regular,Piggies,Empire,cs_derrick13,thereturnofzlo,"glaciers, money, quickleyy, cs_derrick13, jtfr, zane","thereturnofzlo, bobsburgers, kodyblu31, sebas, zim, happy",,,,,,,,,55935968,
+269,2025-04-10,regular,Donuts,Creamers,winslowforprez,saquon,"winslowforprez, samismid, tay, bohm, hutchinson, coby","saquon, znye, verse, oldfriend99, glovee, cle",,,,,,,,,55935991,
+270,2025-04-10,postseason,Final result of other final 4 game,"@papacoop 21,992 vs 26. @ai 25,061",,,"papacoop, ai","kinnick, ai",,,,,,Final result of other final 4 game,,,55903076,
+271,2025-04-10,regular,@diabetics,@gravediggers,,,diabetics,"gravediggers, creamers, piggies, horniehorses, rklkings, empire.rkl, karma.stars, theaces, ottersrkl, thefellas, rkl.kocks, rklstimmers, flags, thevoyage",,,,,,,,,55902346,
+272,2025-04-10,regular,@teamtacos,@freaks,,,teamtacos,"freaks, jammersrkl, rklheroes, flamesrkl, donuts, rkldemons, leanteam, rkloutlaws, madsminors, mlbrkl, gamblers, rklpenguins, theamigos, hornetsrkl",,,,,,,,,55902282,
+255,2025-04-11,regular,Gravediggers,Tacos,tw0,iverson,"tw0, cry, arthurmorgan, _ln4_, davidv03, justinjefferson","iverson, ryoshi, burgerking, siri, tezzywezzy, bam",,,,,,,,,56104361,
+256,2025-04-11,regular,Minimum 6 GP,@supa - 1.251,,,supa,arthurmorgan,,,,,,,,,56102755,
+257,2025-04-11,regular,Otters,Hornets,lukamodric,,"lukamodric, novo, trickyy, erndog, psyklone, therealbenshelton","cyl, trevq3, tsukiko, justakidfromakron23, lewis, jensive",,,,,,,,,56101580,
+258,2025-04-11,regular,Flags,Penguins,liljon,zero,"liljon, realnuggets, bent, tylrr, kanginator, nael_abuasi","zero, zik, silver, zupacam, scottie, owencooks",,,,,,,,,56101605,
+259,2025-04-11,regular,Amigos,Gamblers,norrispaul13,rzk,"norrispaul13, ballingpm, bengalsw, corum, iouisss, nind0","rzk, doggy, _turner, nyc, shabddd, michael.carter.ll",,,,,,,,,56101622,
+260,2025-04-11,regular,Fellas,Outlaws,khys9575,gaston,"khys9575, sasser, fun, bello, yankees.hub, devonta","gaston, lehkyforselke, deshaun4prison, prove, itzneallol, ssuco",,,,,,,,,56105451,
+261,2025-04-11,regular,1v1 Championship Day 1/5,@kinnick vs 26. @ai,,,kinnick,ai,,,,,,,,,56069341,
+262,2025-04-11,regular,@diabetics,@gravediggers,,,diabetics,"gravediggers, horniehorses, creamers, rklkings, piggies, empire.rkl, karma.stars, theaces, ottersrkl, rkl.kocks, thefellas, rklstimmers, flags, thevoyage",,,,,,,,,56035415,
+263,2025-04-11,regular,@teamtacos,@freaks,,,"teamtacos, freaks, jammersrkl, rklheroes, donuts, rkldemons, flamesrkl, leanteam, rkloutlaws, madsminors, mlbrkl, gamblers, rklpenguins, theamigos, hornetsrkl",freaks,,,,,,,,,56035344,
+264,2025-04-11,regular,Flames,KOCK,tjgany,,,"croger, ederick2442, arttheclown_, devincooker, tjgany, ejwise",,,,,,,,,56012264,
+244,2025-04-12,regular,Diabetics,Heroes,mrdawson,marner,"mrdawson, chittum, joelembiid, etienne, gingy, jonah","marner, schlongganisa, barger, snivy, garland, zaccc",,,,,,,,,56186372,
+245,2025-04-12,regular,Voyage,Aces,huts,kenny_wya,"huts, cywebb, jesusfreak, knightnate12, twistex, anthonyedwardsisgood","kenny_wya, yaxel, hoosier, sony, sotonyc, grizzy",,,,,,,,,56174164,
+246,2025-04-12,regular,MLB,Stimmers,kane,flock.ravens,"kane, aiden0220, dillon, maxp, dane, richer","flock.ravens, relaxedp, bigsnook, poolepartyjp3, toasty, chltown",,,,,,,,,56174190,
+247,2025-04-12,regular,Horses,Minors,chris,max,"chris, kinnick, corsic, salty, cartercrash, papacoop","max, paterik, burning, hardforbedard, trylq, braden_",,,,,,,,,56174296,
+248,2025-04-12,regular,Demons,Lean Tam,tralogik,dxvxn,"tralogik, bruins, otf, o3wn, dugz, virgil","dxvxn, pnwsavant, bigk, thelankygerman, giannisisdaddy1, tommytanks",,,,,,,,,56186660,
+249,2025-04-12,regular,1v1 Championship Day 2/5,"@kinnick 4,540 vs 26. @ai 3,419",,,kinnick,ai,,,,,,,,,56163945,
+250,2025-04-12,regular,@gravediggers,@diabetics,,,"gravediggers, diabetics, horniehorses, creamers, rklkings, piggies, empire.rkl, karma.stars, theaces, ottersrkl, rkl.kocks, thefellas, rklstimmers, flags, thevoyage",gravediggers,,,,,,,,,56163622,
+251,2025-04-12,regular,@teamtacos,@freaks,,,teamtacos,"freaks, jammersrkl, rklheroes, donuts, rkldemons, flamesrkl, leanteam, rkloutlaws, madsminors, mlbrkl, gamblers, rklpenguins, theamigos, hornetsrkl",,,,,,,,,56163487,
+252,2025-04-12,regular,Gravediggers,Tacos,ryoshi,,,"tw0, davidv03, cry, ryoshi, iverson, tezzywezzy",,,,,,,,,56134177,
+253,2025-04-12,regular,Otters,Hornets,,,,"psyklone, jensive",,,,,,,,,56133993,
+254,2025-04-12,regular,Fellas,Outlaws,,,,"deshaun4prison, gaston, prove, yankees.hub, khys9575",,,,,,,,,56133601,
+75,2025-04-13,regular,Diabetics,Heroes,,,,,36985.0,38640.0,B,,,,,,,56280501
+76,2025-04-13,regular,Demons,Lean Team,,,,,43018.0,37463.0,A,,,,,,,56280281
+77,2025-04-13,regular,Horses,Minors,,,,,30782.0,40161.0,B,,,,,,,56280037
+78,2025-04-13,regular,MLB,Stimmers,,,,,36937.0,39310.0,B,,,,,,,56279682
+79,2025-04-13,regular,Voyage,Aces,,,,,30683.0,37677.0,B,,,,,,,56279410
+236,2025-04-13,regular,1v1 Championship Day 3/5,"@kinnick 10,924 vs 26. @ai 8,942",,,kinnick,ai,,,,,,,,,56366641,
+237,2025-04-13,regular,Jammers,Donuts,swouse,coby,"swouse, cteszn, sweat, caustic, mccasual, gavinlub","coby, bohm, poopybuttlover, hutchinson, bacot, winslowforprez",,,,,,,,,56333819,
+238,2025-04-13,regular,KOCK,Stars,ederick2442,devinbooker,"ederick2442, arttheclown_, fernando, croger, marte, devincooker","devinbooker, lamb, juan.soto22, raiola, willi3, playexplainer",,,,,,,,,56330345,
+239,2025-04-13,regular,Empire,Kings,thereturnofzlo,clutch,"sebas, thereturnofzlo, bobsburgers, kodyblu31, jameswyo, happy","clutch, sink, masdog2222, hvl, witt, jaylenszn",,,,,,,,,56330383,
+240,2025-04-13,regular,Creamers,Flames,saquon,frostyy,"saquon, znye, verse, oldfriend99, glovee, cle","frostyy, intriquid, tjgany, corbin, plemay, trixsta",,,,,,,,,56330416,
+241,2025-04-13,regular,Freaks,Piggies,supa,brandonmiller,"supa, bklyn, york, ai, mario, vj","brandonmiller, cs_derrick13, glaciers, shot, jtfr, zane",,,,,,,,,56330450,
+242,2025-04-13,regular,@gravediggers,@diabetics,,,"gravediggers, diabetics, creamers, rklkings, piggies, empire.rkl, horniehorses, karma.stars, theaces, ottersrkl, rkl.kocks, thefellas, rklstimmers, flags, thevoyage",thevoyage,,,,,,,,,56312743,
+243,2025-04-13,regular,@teamtacos,@freaks,,,"teamtacos, freaks, rklheroes, jammersrkl, donuts, rkldemons, flamesrkl, leanteam, rkloutlaws, madsminors, gamblers, rklpenguins, mlbrkl, theamigos, hornetsrkl","rklheroes, jammersrkl, donuts, rkldemons",,,,,,,,,56312575,
+70,2025-04-14,regular,Jammers,Donuts,,,,,37227.0,34239.0,A,,,,,,,56438908
+71,2025-04-14,regular,Freaks,Piggies,,,,,38679.0,28318.0,A,,,,,,,56438643
+72,2025-04-14,regular,Creamers,Flames,,,,,36977.0,37756.0,B,,,,,,,56438370
+73,2025-04-14,regular,Empire,Kings,,,,,38690.0,34031.0,A,,,,,,,56438055
+74,2025-04-14,regular,KOCK,Stars,,,,,36640.0,39297.0,B,,,,,,,56437717
+230,2025-04-14,regular,Gamblers,Demons,rzk,tralogik,"rzk, michael.carter.ll, _turner, doggy, nyc, shabddd","tralogik, bruins, four, o3wn, virgil, tatum",,,,,,,,,56533168,
+231,2025-04-14,regular,Tacos,Otters,iverson,lukamodric,"iverson, ryoshi, burgerking, siri, tacko, bam","lukamodric, trickyy, psyklone, panarin, crqmer, erndog",,,,,,,,,56519837,
+232,2025-04-14,regular,Gravediggers,Flags,tw0,bent,"tw0, cry, arthurmorgan, derrickwhitetop5, anonymoususer, markjackson","bent, liljon, nael_abuasi, tylrr, kanginator, realnuggets",,,,,,,,,56519863,
+233,2025-04-14,regular,Hornets,Amigos,xxyn,norrispaul13,"xxyn, mars_vibezz, justakidfromakron23, lewis, tsukiko, cyl","norrispaul13, bengalsw, corum, iouisss, nind0, noir",,,,,,,,,56533118,
+234,2025-04-14,regular,Penguins,Fellas,scottie,joshminottenjoyer,"scottie, zero, zik, floyd, silver, owencooks","joshminottenjoyer, fun, sasser, devonta, khys9575, bello",,,,,,,,,56533138,
+235,2025-04-14,regular,1v1 Championship Day 4/5,"@kinnick 16,845 vs 26. @ai 13,851",,,kinnick,ai,,,,,,,,,56498967,
+224,2025-04-15,regular,Minors,Diabetics,max,etienne,"max, paterik, trylq, bojack, braden_, hardforbedard","etienne, chittum, joelembiid, pritchard, jonah, mrdawson",,,,,,,,,56661848,
+225,2025-04-15,regular,Outlaws,Horses,gaston,kinnick,"gaston, lehkyforselke, prove, deshaun4prison, itzneallol, clarke","kinnick, chris, herro, cartercrash, salty, papacoop",,,,,,,,,56652091,
+226,2025-04-15,regular,Lean Team,MLB,pnwsavant,kane,"pnwsavant, dxvxn, thelankygerman, cbd, bigk, emvpiid70","kane, aiden0220, maxp, dillon, ukator, sossboy_",,,,,,,,,56652148,
+227,2025-04-15,regular,Heroes,KOCK,marner,ederick2442,"marner, schlongganisa, garland, snivy, crow.armstrong, palmer","ederick2442, arttheclown_, fernando, croger, adames, devincooker",,,,,,,,,56661823,
+228,2025-04-15,regular,Stimmers,Voyage,relaxedp,huts,"relaxedp, flock.ravens, bigsnook, poolepartyjp3, toasty, homeslice2","huts, knightnate12, sammybammy, cywebb, twistex, mpls",,,,,,,,,56662247,
+229,2025-04-15,regular,1v1 Championship Day 5/5,"@kinnick 18,539 vs 26. @ai 15,267",,,kinnick,ai,,,,,,,,,56597230,
+69,2025-04-16,regular,Stimmers,Voyage,,,,,39074.0,32639.0,A,,,,,,,56717107
+218,2025-04-16,regular,Flames,Jammers,tjgany,cteszn,"tjgany, frostyy, ejwise, intriquid, heroin, plemay","cteszn, swouse, caustic, mccasual, dortch, sweat",,,,,,,,,56754506,
+219,2025-04-16,regular,Piggies,Donuts,cs_derrick13,coby,"cs_derrick13, glaciers, shot, jtfr, brandonmiller, zane","coby, tay, rhyne_, winslowforprez, bohm, hutchinson",,,,,,,,,56751772,
+220,2025-04-16,regular,Stars,Creamers,devinbooker,saquon,"devinbooker, lamb, juan.soto22, raiola, willi3, neev","saquon, znye, verse, oldfriend99, sports6138, cle",,,,,,,,,56754451,
+221,2025-04-16,regular,Kings,Freaks,masdog2222,supa,"masdog2222, hvl, sink, jaylenszn, clutch, freakyfrank","supa, mario, morel, york, ai, vj",,,,,,,,,56754472,
+222,2025-04-16,regular,Aces,Empire,kenny_wya,thereturnofzlo,"kenny_wya, yaxel, sony, sotonyc, hoosier, grizzy","thereturnofzlo, sebas, bobsburgers, kodyblu31, etan_",,,,,,,,,56763269,
+223,2025-04-16,regular,Lean Team,MLB,,,,"sossboy_, kane, thelankygerman, emvpiid70",,,,,,,,,56716701,
+64,2025-04-17,regular,Flames,Jammers,,,,,28382.0,22331.0,A,,,,,,,56850515
+65,2025-04-17,regular,Aces,Empire,,,,,24975.0,24712.0,A,,,,,,,56850232
+66,2025-04-17,regular,Kings,Freaks,,,,,25907.0,27759.0,B,,,,,,,56849908
+67,2025-04-17,regular,Stars,Creamers,,,,,24783.0,26160.0,B,,,,,,,56849661
+68,2025-04-17,regular,Piggies,Donuts,,,,,24652.0,19808.0,A,,,,,,,56849353
+210,2025-04-17,regular,📈 - REL Leaderboard - 📈,Minimum 7 Games Played,,,"supa, tw0, arthurmorgan, devinbooker, etienne, chittum, tralogik, ryoshi, shenli, masdog2222","tw0, norrispaul13, ejwise, bengalsw, masdog2222, coby",,,,,,,,,56948702,
+211,2025-04-17,regular,Horses,Penguins,kinnick,zik,"kinnick, chris, ice, cartercrash, corsic, montolio","zik, scottie, zero, owencooks, codybellinger, cjstroud777",,,,,,,,,56914805,
+212,2025-04-17,regular,Flags,Tacos,bent,iverson,"bent, liljon, nael_abuasi, tylrr, kanginator, realnuggets","iverson, ryoshi, burgerking, siri, tacko, bam",,,,,,,,,56897634,
+213,2025-04-17,regular,Amigos,Otters,norrispaul13,lukamodric,"norrispaul13, bengalsw, corum, iouisss, nind0, noir","lukamodric, psyklone, panarin, novo, erndog, trickyy",,,,,,,,,56897659,
+214,2025-04-17,regular,Fellas,Gravediggers,fun,tw0,"fun, joshminottenjoyer, bshumer1, devonta, khys9575, yankees.hub","tw0, cry, arthurmorgan, kevin, markjackson, aunt",,,,,,,,,56897688,
+215,2025-04-17,regular,Demons,Hornets,tralogik,xxyn,"tralogik, o3wn, bruins, dugz, otf, dawgsnation","xxyn, mars_vibezz, justakidfromakron23, lewis, tsukiko, cyl",,,,,,,,,56897734,
+216,2025-04-17,regular,Most Top 100 Games in a Season,@yato (S0),,,"yato, etan22, cartercrash, chris, canada, zyx, chittum, devinbooker",devinbooker,,,,,,,,,56861826,
+217,2025-04-17,regular,Most Top 50 Games in a Season,@chris (S4),,,"chris, supa, yato, chittum, lebron23goat6, tralogik","supa, tralogik",,,,,,,,,56861818,
+58,2025-04-18,regular,Horses,Penguins,,,,,22830.0,18794.0,A,,,,,,,56970018
+59,2025-04-18,regular,Demons,Hornets,,,,,21840.0,18593.0,A,,,,,,,56969373
+60,2025-04-18,regular,Fellas,Gravediggers,,,,,20086.0,23748.0,B,,,,,,,56969015
+61,2025-04-18,regular,Amigos,Otters,,,,,21925.0,22731.0,B,,,,,,,56968590
+62,2025-04-18,regular,Flags,Tacos,,,,,14363.0,21431.0,B,,,,,,,56967510
+63,2025-04-18,regular,Flags,Tacos,,,,,14363.0,21431.0,B,,,,,,,56967522
+205,2025-04-18,regular,Voyage,Lean Team,knightnate12,thelankygerman,"knightnate12, huts, twistex, mpls, cywebb, anthonyedwardsisgood","thelankygerman, dxvxn, pnwsavant, emvpiid70, bigk, cbd",,,,,,,,,57030689,
+206,2025-04-18,regular,MLB,Gamblers,kane,nyc,"kane, aiden0220, maxp, dillon, dane, richer","nyc, rzk, dex, doggy, michael.carter.ll, shabddd",,,,,,,,,57028697,
+207,2025-04-18,regular,Diabetics,Outlaws,mrdawson,gaston,"mrdawson, chittum, joelembiid, etienne, jonah, gingy","gaston, deshaun4prison, prove, itzneallol, clarke, goodbyesosoon",,,,,,,,,57028710,
+208,2025-04-18,regular,KOCK,Minors,ederick2442,max,"ederick2442, arttheclown_, croger, kyleteel, adames, rockymountain","max, paterik, trylq, hardforbedard, burning, bojack",,,,,,,,,57028735,
+209,2025-04-18,regular,Empire,Stimmers,sebas,flock.ravens,"sebas, thereturnofzlo, happy, luhsean56, bobsburgers, kodyblu31","flock.ravens, bigsnook, toasty, poolepartyjp3, homeslice2, seahawkswoolen",,,,,,,,,57030631,
+53,2025-04-19,regular,Voyage,Lean Team,,,,,28122.0,36907.0,B,-1950.0,-1950.0,,,,,57104889
+54,2025-04-19,regular,Empire,Stimmers,,,,,34967.0,28232.0,A,-1950.0,-1650.0,,,,,57104656
+55,2025-04-19,regular,KOCK,Minors,,,,,30618.0,34632.0,B,-1650.0,-1350.0,,,,,57104467
+56,2025-04-19,regular,Diabetics,Outlaws,,,,,37005.0,32849.0,A,-1950.0,-1500.0,,,,,57104126
+57,2025-04-19,regular,MLB,Gamblers,,,,,28426.0,34235.0,B,,,,,,,57103786
+200,2025-04-19,regular,Donuts,Kings,coby,masdog2222,"coby, bohm, yellow, skiseason, poopybuttlover, hutchinson","masdog2222, clutch, hvl, freakyfrank, jaylenszn, cinemax",,,,,,,,,57152176,
+201,2025-04-19,regular,Freaks,Aces,supa,kenny_wya,"supa, york, mario, ai, morel, vj","kenny_wya, kumingaszn, yaxel, berg_02, sotonyc, grizzy",,,,,,,,,57144498,
+202,2025-04-19,regular,Jammers,Stars,swouse,devinbooker,"swouse, cteszn, robertjr88, caustic, mccasual, dortch","devinbooker, lamb, juan.soto22, raiola, willi3, playexplainer",,,,,,,,,57144519,
+203,2025-04-19,regular,Piggies,Flames,glaciers,frostyy,"cs_derrick13, glaciers, killerbees71, brandonmiller, starwars, jtfr","frostyy, intriquid, corbin, tjgany, plemay, trixsta",,,,,,,,,57148515,
+204,2025-04-19,regular,Creamers,Heroes,verse,barger,"verse, znye, saquon, glovee, sports6138, cle","barger, schlongganisa, marner, snivy, crow.armstrong, palmer",,,,,,,,,57152142,
+48,2025-04-20,regular,Donuts,Kings,,,,,42599.0,48988.0,B,,,,,,,57245665
+49,2025-04-20,regular,Creamers,Heroes,,,,,50658.0,46251.0,A,,,,,,,57244729
+50,2025-04-20,regular,Piggies,Flames,,,,,50365.0,49485.0,A,,,,,,,57244108
+51,2025-04-20,regular,Jammers,Stars,,,,,47691.0,50762.0,B,,,,,,,57243677
+52,2025-04-20,regular,Freaks,Aces,,,,,50408.0,48348.0,A,,,,,,,57243265
+198,2025-04-20,regular,@gravediggers,@diabetics,,,gravediggers,"diabetics, creamers, empire.rkl, piggies, karma.stars, horniehorses, rklkings, ottersrkl, theaces, thefellas, rkl.kocks, rklstimmers, flags, thevoyage",,,,,,,,,57246506,
+199,2025-04-20,regular,@freaks,@teamtacos,,,freaks,"teamtacos, rklheroes, rkldemons, jammersrkl, flamesrkl, donuts, leanteam, gamblers, madsminors, rkloutlaws, mlbrkl, rklpenguins, theamigos, hornetsrkl",,,,,,,,,57246496,
+193,2025-04-21,regular,Gravediggers,Horses,tw0,kinnick,"tw0, cry, justinjefferson, anonymoususer, _ln4_, davidv03","kinnick, chris, papacoop, corsic, salty, montolio",,,,,,,,,57488276,
+194,2025-04-21,regular,Hornets,MLB,xxyn,sossboy_,"xxyn, cyl, mars_vibezz, tsukiko, justakidfromakron23, joeburrow","sossboy_, ukator, aiden0220, richer, croatia, kane",,,,,,,,,57488196,
+195,2025-04-21,regular,Otters,Demons,lukamodric,tralogik,"lukamodric, notkiddo, psyklone, trickyy, erndog, crqmer","tralogik, four, bruins, dugz, o3wn, otf",,,,,,,,,57488222,
+196,2025-04-21,regular,Flags,Fellas,jaccags,bello,"jaccags, bent, tylrr, shzckers, j417, nael_abuasi","bello, bshumer1, sasser, yankees.hub, joshminottenjoyer, devonta",,,,,,,,,57488243,
+197,2025-04-21,regular,Tacos,Amigos,iverson,,"iverson, ryoshi, burgerking, siri, tezzywezzy, bam","norrispaul13, bengalsw, corum, iouisss, nind0, noir",,,,,,,,,57499585,
+43,2025-04-22,regular,Gravediggers,Horses,,,,,29870.0,29635.0,A,,,,,,,57550537
+44,2025-04-22,regular,Tacos,Amigos,,,,,25974.0,21520.0,A,,,,,,,57550241
+45,2025-04-22,regular,Flags,Fellas,,,,,12590.0,19642.0,B,,,,,,,57550017
+46,2025-04-22,regular,Otters,Demons,,,,,24617.0,30124.0,B,,,,,,,57549852
+47,2025-04-22,regular,Hornets,MLB,,,,,20956.0,19439.0,A,,,,,,,57549642
+188,2025-04-22,regular,Gamblers,Voyage,rzk,huts,"rzk, doggy, _turner, shabddd, nyc, michael.carter.ll","huts, sammybammy, cywebb, knightnate12, twistex, mpls",,,,,,,,,57622892,
+189,2025-04-22,regular,Penguins,Diabetics,,mrdawson,"zik, scottie, zero, owencooks, codybellinger, cjstroud777","mrdawson, chittum, joelembiid, etienne, jonah, zo_glasses",,,,,,,,,57617492,
+190,2025-04-22,regular,Outlaws,KOCK,gaston,ederick2442,"gaston, deshaun4prison, prove, goodbyesosoon, itzneallol, clarke","ederick2442, arttheclown_, devincooker, marte, adames, rockymountain",,,,,,,,,57617521,
+191,2025-04-22,regular,Lean Team,Empire,thelankygerman,thereturnofzlo,"thelankygerman, pnwsavant, emvpiid70, dxvxn, cbd, bigk","thereturnofzlo, happy, sebas, kodyblu31, bobsburgers, jameswyo",,,,,,,,,57622786,
+192,2025-04-22,regular,Minors,Creamers,max,saquon,"max, bojack, adrimtl10, hardforbedard, trylq, braden_","saquon, znye, verse, glovee, sports6138, cle",,,,,,,,,57622846,
+38,2025-04-23,regular,Gamblers,Voyage,,,,,67195.0,62028.0,A,,,,,,,57674881
+39,2025-04-23,regular,Minors,Creamers,,,,,48921.0,63490.0,B,,,,,,,57674745
+40,2025-04-23,regular,Lean Team,Empire,,,,,65484.0,56344.0,A,,,,,,,57674634
+41,2025-04-23,regular,Outlaws,KOCK,,,,,61011.0,59581.0,A,,,,,,,57674532
+42,2025-04-23,regular,Penguins,Diabetics,,,,,49658.0,66012.0,B,,,,,,,57674347
+182,2025-04-23,regular,Heroes,Jammers,marner,swouse,"marner, crow.armstrong, barger, schlongganisa, murray, snivy","swouse, cteszn, sweat, caustic, mccasual, mlbelite",,,,,,,,,57730685,
+183,2025-04-23,regular,Heroes,Jammers,,,dortch,barger,,,,,,,,,57745755,
+184,2025-04-23,regular,Stimmers,Freaks,flock.ravens,supa,"flock.ravens, toasty, bigsnook, homeslice2, poolepartyjp3, bruhmomment","supa, york, mario, ai, morel, vj",,,,,,,,,57727443,
+185,2025-04-23,regular,Aces,Donuts,yaxel,coby,"yaxel, kenny_wya, hoosier, grizzy, lindors, berg_02","coby, bohm, hutchinson, winslowforprez, tay, skiseason",,,,,,,,,57727528,
+186,2025-04-23,regular,Stars,Piggies,devinbooker,glaciers,"devinbooker, lamb, juan.soto22, raiola, morant, neev","glaciers, killerbees_71, brandonmiller, jtfr, cs_derrick13, starwars",,,,,,,,,57727636,
+187,2025-04-23,regular,Kings,Flames,masdog2222,frostyy,"masdog2222, jaylenszn, clutch, sink, freakyfrank, hvl","frostyy, corbin, plemay, heroin, trixsta, senga",,,,,,,,,57730638,
+33,2025-04-24,regular,Heroes,Jammers,,,,,36234.0,43210.0,B,,,,,,,57798587
+34,2025-04-24,regular,Kings,Flames,,,,,43031.0,39962.0,A,,,,,,,57798512
+35,2025-04-24,regular,Stars,Piggies,,,,,43314.0,37649.0,A,,,,,,,57798414
+36,2025-04-24,regular,Aces,Donuts,,,,,37014.0,40094.0,B,,,,,,,57798300
+37,2025-04-24,regular,Stimmers,Freaks,,,,,36872.0,42962.0,B,,,,,,,57798183
+180,2025-04-24,postseason,@gravediggers,@diabetics,,,gravediggers,"diabetics, creamers, karma.stars, rklkings, empire.rkl, piggies, horniehorses, ottersrkl, theaces, thefellas, rkl.kocks, rklstimmers, flags, thevoyage",,,,,,Final East Standings:,,,57798662,
+181,2025-04-24,postseason,@freaks,@teamtacos,,,freaks,"teamtacos, rkldemons, jammersrkl, heroesrkl, flamesrkl, donuts, leanteam, gamblers, rkloutlaws, madsminors, mlbrkl, rklpenguins, theamigos, hornetsrkl",,,,,,Final West Standings:,,,57798657,
+176,2025-04-25,postseason,Donuts,Lean Team,tay,thelankygerman,"tay, poopybuttlover, hutchinson, coby, bohm, skiseason","thelankygerman, emvpiid70, dxvxn, giannisisdaddy1, bigk, cbd",,,,,,,7,8,57990709,
+177,2025-04-25,postseason,Gamblers,Outlaws,rzk,gaston,"rzk, dex, doggy, _turner, nyc, michael.carter.ll","gaston, deshaun4prison, prove, itzneallol, clarke, ig",,,,,,,9,10,57983118,
+178,2025-04-25,postseason,Otters,Aces,notkiddo,kenny_wya,"notkiddo, lukamodric, psyklone, crqmer, trickyy, erndog","kenny_wya, yaxel, grizzy, sony, sotonyc, berg_02",,,,,,,9,10,57983091,
+179,2025-04-25,postseason,Piggies,Horses,jtfr,kinnick,"jtfr, brandonmiller, glaciers, cs_derrick13, killerbees_71, shot","kinnick, chris, ice, papacoop, salty, cartercrash",,,,,,,7,8,57983071,
+174,2025-04-26,postseason,Piggies,Otters,killerbees_71,lukamodric,"killerbees_71, payton, jtfr, shot, brandonmiller, glaciers","lukamodric, notkiddo, psyklone, crqmer, erndog, panarin",,,,,,,7,9,58124771,
+175,2025-04-26,regular,Donuts,Gamblers,bohm,rzk,"bohm, hutchinson, tay, skiseason, coby, poopybuttlover","rzk, michael.carter.ll, shabddd, doggy, nyc, _turner",,,,,,,,,58121000,
+172,2025-04-27,regular,Stars v Kings 5,WEST PLAYOFFS,,,shabd,shabddd,,,,,,,,,58187306,
+173,2025-04-27,regular,Stars v Kings 5,WEST PLAYOFFS,,,shabd,"shabddd, shabdiddy",,,,,,,,,58187617,
+164,2025-04-28,postseason,Jammers,Heroes,swouse,marner,"swouse, cteszn, caustic, dortch, mccasual, sweat","marner, garland, barger, schlongganisa, murray, snivy",,,,,,West Playoffs Round 1,4,5,58398984,
+165,2025-04-28,postseason,Demons,Flames,tralogik,frostyy,"tralogik, o3wn, otf, bruins, virgil, dugz","frostyy, intriquid, tjgany, ejwise, corbin, plemay",,,,,,West Playoffs Round 1,3,6,58398958,
+166,2025-04-28,postseason,Tacos,Lean Team,iverson,thelankygerman,"iverson, ryoshi, burgerking, siri, tezzywezzy, bam","thelankygerman, dxvxn, pnwsavant, emvpiid70, cbd, bigk",,,,,,West Playoffs Round 1,2,7,58398803,
+167,2025-04-28,postseason,Freaks,Gamblers,supa,rzk,"supa, york, mario, ai, morel, vj","rzk, dex, doggy, _turner, nyc, michael.carter.ll",,,,,,West Playoffs Round 1,1,8,58398786,
+168,2025-04-28,postseason,Stars,Kings,devinbooker,masdog2222,"devinbooker, lamb, juan.soto22, raiola, morant, neev","masdog2222, jaylenszn, clutch, hvl, cinemax, aunt",,,,,,East Playoffs Round 1,4,5,58395545,
+169,2025-04-28,postseason,Creamers,Empire,saquon,thereturnofzlo,"saquon, znye, verse, oldfriend99, sports6138, cle","thereturnofzlo, bobsburgers, kodyblu31, sebas, jameswyo, etan_",,,,,,East Playoffs Round 1,3,6,58395466,
+170,2025-04-28,postseason,Diabetics,Horses,mrdawson,kinnick,"mrdawson, chittum, joelembiid, etienne, jonah, pritchard","kinnick, chris, papacoop, cartercrash, ice, salty",,,,,,East Playoffs Round 1,2,7,58395422,
+171,2025-04-28,postseason,Gravediggers,Otters,tw0,lukamodric,"tw0, davidv03, markjackson, derrickwhitetop5, justinjefferson, cry","lukamodric, erndog, psyklone, panarin, trickyy, crqmer",,,,,,East Playoffs Round 1,1,8,58395388,
+27,2025-04-29,postseason,Stars,Kings,devinbooker,masdog2222,"devinbooker, morant, playexplainer, raiola, neev, wisco","masdog2222, sink, hvl, clutch, aunt, jaylenszn",26982.5,24227.0,A,,,East Playoffs Round 1,4,5,58526889,58464887
+28,2025-04-29,postseason,Creamers,Empire,saquon,thereturnofzlo,"saquon, znye, verse, oldfriend99, sports6138, cle","thereturnofzlo, bobsburgers, kodyblu31, sebas, jameswyo, etan_",23912.0,26490.0,B,,,East Playoffs Round 1,3,6,58526854,58464823
+29,2025-04-29,postseason,Jammers,Heroes,swouse,marner,"swouse, cteszn, caustic, dortch, mccasual","marner, crow.armstrong, silver, schlongganisa, murray, garland",26732.5,22496.0,A,,,West Playoffs Round 1,4,5,58531456,58464711
+30,2025-04-29,postseason,Diabetics,Horses,mrdawson,ice,"mrdawson, chittum, joelembiid, etienne, jonah, grounded","ice, kinnick, chris, papacoop, salty, cartercrash",25300.0,28900.0,B,,,East Playoffs Round 1,2,7,58526814,58464607
+31,2025-04-29,postseason,Demons,Flames,tralogik,frostyy,"tralogik, four, otf, o3wn, dugz, virgil","frostyy, ejwise, intriquid, trixsta, heroin, plemay",25448.5,22513.0,A,,,West Playoffs Round 1,3,6,58531434,58464584
+32,2025-04-29,postseason,Gravediggers,Otters,tw0,psyklone,"tw0, anonymoususer, cry, kevin, derrickwhitetop5, markjackson","psyklone, lukamodric, crqmer, erndog, trickyy, panarin",28612.0,26346.0,A,,,East Playoffs Round 1,1,8,58526759,58464342
+162,2025-04-29,postseason,Tacos,Lean Team,iverson,thelankygerman,"iverson, ryoshi, burgerking, xpr0gidy, tezzywezzy, bam","thelankygerman, dxvxn, pnwsavant, emvpiid70, cbd, bigk",,,,,,West Playoffs Round 1,2,7,58531153,
+163,2025-04-29,postseason,Freaks,Gamblers,supa,rzk,"supa, york, mario, ai, morel, vj","rzk, doggy, dex, _turner, michael.carter.ll, nyc",,,,,,West Playoffs Round 1,1,8,58531066,
+20,2025-04-30,postseason,Freaks,Gamblers,,,,,46861.0,38216.0,A,,,,1,8,,58591427
+21,2025-04-30,postseason,Tacos,Lean Team,,,,,45775.0,42066.0,A,,,,2,7,,58591085
+22,2025-04-30,postseason,Stars,Kings,devinbooker,masdog2222,"devinbooker, morant, neev, playexplainer, wisco, sc6rz","masdog2222, freakyfrank, hvl, clutch, sink, jaylenszn",42562.0,44239.0,B,,,East Playoffs Round 1,4,5,58627271,58591069
+23,2025-04-30,postseason,Creamers,Empire,znye,thereturnofzlo,"znye, saquon, verse, oldfriend99, sports6138, deez","thereturnofzlo, bobsburgers, kodyblu31, sebas, etan_, fullofopps",43324.0,43170.0,A,,,East Playoffs Round 1,3,6,58627257,58590609
+24,2025-04-30,postseason,Demons,Flames,,,,,51458.0,44605.0,A,,,,3,6,,58590426
+25,2025-04-30,postseason,Diabetics,Horses,,,,,43597.0,44708.0,B,,,,2,7,,58590271
+26,2025-04-30,postseason,Gravediggers,Otters,,,,,40962.0,36192.0,A,,,,1,8,,58590091
+159,2025-04-30,postseason,Jammers,Heroes,swouse,garland,"swouse, cteszn, caustic, dortch, mccasual, sweat","garland, marner, schlongganisa, murray, barger, silver",,,,,,West Playoffs Round 1,4,5,58627297,
+160,2025-04-30,postseason,Stars,Kings,devinbooker,masdog2222,"devinbooker, morant, neev, playexplainer, wisco, sc6rz","masdog2222, freakyfrank, hvl, clutch, sink, jaylenszn",,,,,,East Playoffs Round 1,4,5,58635291,
+161,2025-04-30,postseason,Creamers,Empire,znye,thereturnofzlo,"znye, saquon, verse, oldfriend99, sports6138, deez","thereturnofzlo, bobsburgers, kodyblu31, sebas, etan_, fullofopps",,,,,,East Playoffs Round 1,3,6,58635336,
+17,2025-05-01,postseason,Jammers,Heroes,,,,,35756.0,38763.0,B,,,,4,5,,58718591
+18,2025-05-01,postseason,Stars,Kings,,,,,30484.0,37802.0,B,,,,4,5,,58718160
+19,2025-05-01,postseason,Creamers,Empire,,,,,37678.0,33130.0,A,,,,3,6,,58717785
+155,2025-05-01,postseason,Tacos,Demons,iverson,tralogik,"iverson, siri, burgerking, xpr0gidy, ryoshi, bam","tralogik, virgil, four, o3wn, otf, dawgsnation",,,,,,West Playoffs Round 2,2,3,58768613,
+156,2025-05-01,postseason,Freaks,Heroes,supa,garland,"supa, york, mario, ai, morel, vj","garland, crow.armstrong, barger, rich.brian, murray, silver",,,,,,West Playoffs Round 2,1,5,58768582,
+157,2025-05-01,postseason,Creamers,Horses,znye,ice,"znye, glovee, verse, oldfriend99, sports6138, deez","ice, kinnick, chris, papacoop, salty, cartercrash",,,,,,East Playoffs Round 2,3,7,58768549,
+158,2025-05-01,postseason,Gravediggers,Kings,tw0,masdog2222,"tw0, markjackson, cry, _ln4_, kevin, derrickwhitetop5","masdog2222, aunt, jaylenszn, sink, hvl, clutch",,,,,,East Playoffs Round 2,1,5,58768529,
+13,2025-05-02,postseason,Creamers,Horses,saquon,ice,"saquon, verse, znye, oldfriend99, sports6138, cle","ice, kinnick, chris, papacoop, corsic",38113.0,34901.0,A,,,East Playoffs Round 2,3,7,58901920,58839215
+14,2025-05-02,postseason,Gravediggers,Kings,tw0,clutch,"tw0, davidv03, markjackson, anonymoususer, justinjefferson, cry","clutch, rowan, hvl, aunt, jaylenszn, masdog2222",36080.0,35706.0,A,,,East Playoffs Round 2,1,5,58901867,58839005
+15,2025-05-02,postseason,Freaks,Heroes,supa,garland,"supa, york, mario, ai, morel, vj","garland, marner, ashton, murray, rich.brian, crow.armstrong",37246.0,33132.0,A,,,West Playoffs Round 2,1,5,58901945,58838820
+16,2025-05-02,postseason,Tacos,Demons,xpr0gidy,tralogik,"xpr0gidy, tezzywezzy, burgerking, iverson, ryoshi, bam","tralogik, o3wn, dugz, otf, jjettaz, virgil",40828.0,40918.0,B,,,West Playoffs Round 2,2,3,58901963,58838530
+8,2025-05-03,postseason,Creamers,Horses,saquon,chris,"saquon, verse, znye, glovee, sports6138, cle","chris, kinnick, ice, papacoop, salty",24332.0,13001.0,A,,,East Playoffs Round 2,3,7,58981737,59057052
+9,2025-05-03,postseason,Tacos,Demons,,,,,13146.0,17143.0,B,,,,2,3,,58944789
+10,2025-05-03,postseason,Freaks,Heroes,,,,,20767.0,16187.0,A,,,,1,5,,58944570
+11,2025-05-03,postseason,Creamers,Horses,,,,,14469.0,17650.0,B,,,,3,7,,58944020
+12,2025-05-03,postseason,Gravediggers,Kings,,,,,18859.0,14088.0,A,,,,1,5,,58943669
+153,2025-05-04,postseason,Freaks,Demons,ai,tralogik,"ai, supa, york, mario, morel, vj","tralogik, dugz, otf, o3wn, virgil, bruins",,,,,,,1,3,59109454,
+154,2025-05-04,postseason,Gravediggers,Creamers,cry,saquon,"cry, derrickwhitetop5, davidv03, kevin, anonymoususer, markjackson","saquon, verse, znye, glovee, sports6138, cle",,,,,,,1,3,59109415,
+151,2025-05-05,postseason,Freaks,Demons,supa,tralogik,"supa, york, sakina, mario, morel, vj","tralogik, bruins, four, otf, o3wn, virgil",,,,,,,1,3,59273716,
+152,2025-05-05,postseason,Gravediggers,Creamers,cry,saquon,"cry, tw0, _ln4_, davidv03, kevin, justinjefferson","saquon, verse, znye, glovee, sports6138, cle",,,,,,,1,3,59273698,
+149,2025-05-06,postseason,Freaks,Demons,supa,tralogik,"supa, york, sakina, mario, morel, vj","tralogik, four, virgil, o3wn, dugz, otf",,,,,,,1,3,59378616,
+150,2025-05-06,postseason,Gravediggers,Creamers,tw0,saquon,"tw0, cry, markjackson, derrickwhitetop5, davidv03, kevin","saquon, verse, znye, glovee, sports6138, cle",,,,,,,1,3,59378599,
+147,2025-05-07,postseason,Freaks,Demons,supa,tralogik,"supa, york, sakina, mario, morel, vj","tralogik, otf, bruins, o3wn, virgil, dawgsnation",,,,,,,1,3,59475602,
+148,2025-05-07,postseason,Gravediggers,Creamers,cry,saquon,"cry, tw0, markjackson, derrickwhitetop5, kevin, jmb","saquon, verse, znye, sports6138, cle, oldfriend99",,,,,,,1,3,59475596,
+145,2025-05-08,postseason,Freaks,Demons,supa,tralogik,"supa, york, bennett, mario, etan22, vj","tralogik, bruins, otf, o3wn, virgil, dawgsnation",,,,,,,1,3,59589146,
+146,2025-05-08,postseason,Gravediggers,Creamers,cry,saquon,"cry, tw0, _ln4_, anonymoususer, davidv03, derrickwhitetop5","saquon, verse, znye, sports6138, cle, glovee",,,,,,,1,3,59589124,
+6,2025-05-09,postseason,Gravediggers,Creamers,,,,,25873.0,23328.0,A,,,ECF Game 5,1,3,,59653039
+7,2025-05-09,postseason,Freaks,Demons,,,,,20641.0,24472.0,B,,,,1,3,,59652993
+144,2025-05-09,postseason,Gravediggers,Demons,tw0,tralogik,"tw0, davidv03, cry, justinjefferson, markjackson, derrickwhitetop5","tralogik, bruins, virgil, dugz, otf, o3wn",,,,,,RKL Finals,1,3,59709293,
+5,2025-05-10,postseason,Gravediggers,Demons,cry,tralogik,"cry, tw0, anonymoususer, derrickwhitetop5, kevin, davidv03","tralogik, o3wn, otf, dugz, bruins, roycelewiscanyoupleasegetahit",34370.0,37547.0,B,,,RKL Finals,1,3,59765463,59752929
+4,2025-05-11,postseason,Gravediggers,Demons,,,,,60340.0,62034.0,B,,,👑 RKL FINALS GAME 2 👑,1,3,,59865121
+143,2025-05-12,postseason,Gravediggers,Demons,cry,tralogik,"cry, kyriereact, davidv03, _ln4_, kevin, markjackson","tralogik, four, virgil, otf, o3wn, dawgsnation",,,,,,RKL Finals,1,3,60069313,
+3,2025-05-13,postseason,Gravediggers,Demons,cry,tralogik,"cry, davidv03, markjackson, justinjefferson, kyriereact, kevin","tralogik, virgil, o3wn, otf, four, dugz",26401.0,24830.0,A,,,RKL Finals,1,3,60202913,60140060
+2,2025-05-14,postseason,Gravediggers,Demons,cry,tralogik,"cry, kyriereact, anonymoususer, _ln4_, markjackson, derrickwhitetop5","tralogik, o3wn, otf, virgil, dawgsnation, dugz",6558.0,7545.0,B,,,RKL Finals,1,3,60292942,60261342
+1,2025-05-15,postseason,Gravediggers,Demons,,,,,34565.0,37201.0,B,,,👑 RKL FINALS GAME 5 👑,1,3,,60375366
+142,2025-05-19,regular,Voyage,Vipers,twistex,shad0w,"twistex, huts, knightnate12, mpls, draculas, louseal","shad0w, mrswaggymcswag0, idxstyew, buctober2025, burress, tee",,,,,,,,,60880231,

@@ -1,0 +1,1628 @@
+[
+  {
+    "comment_id": 60880231,
+    "thread_id": 60880231,
+    "created_at": "2025-05-19T21:21:13.193000+00:00",
+    "game_date": "2025-05-19",
+    "team_a": "Voyage",
+    "team_b": "Vipers",
+    "captain_a": "twistex",
+    "captain_b": "shad0w",
+    "players_a": [
+      "twistex",
+      "huts",
+      "knightnate12",
+      "mpls",
+      "draculas",
+      "louseal"
+    ],
+    "players_b": [
+      "shad0w",
+      "mrswaggymcswag0",
+      "idxstyew",
+      "buctober2025",
+      "burress",
+      "tee"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Relegation/Promotion Game\nVoyage\n @twistex(c)\n @huts\n @knightnate12\n @mpls\n @draculas\n @louseal\nvs\nVipers\n @shad0w (c)\n @mrswaggymcswag0\n @idxstyew\n @buctober2025\n @burress\n @tee"
+  },
+  {
+    "comment_id": 58124771,
+    "thread_id": 58124771,
+    "created_at": "2025-04-26T21:40:38.864000+00:00",
+    "game_date": "2025-04-26",
+    "team_a": "Piggies",
+    "team_b": "Otters",
+    "captain_a": "killerbees_71",
+    "captain_b": "lukamodric",
+    "players_a": [
+      "killerbees_71",
+      "payton",
+      "jtfr",
+      "shot",
+      "brandonmiller",
+      "glaciers"
+    ],
+    "players_b": [
+      "lukamodric",
+      "notkiddo",
+      "psyklone",
+      "crqmer",
+      "erndog",
+      "panarin"
+    ],
+    "seed_a": "7",
+    "seed_b": "9",
+    "round_name": null,
+    "is_postseason": true,
+    "raw_text": "East Play-In\n7 Piggies\n @killerbees_71 (c)\n @payton\n @jtfr\n @shot\n @brandonmiller\n @glaciers\nvs\n9 Otters\n @lukamodric (c)\n @notkiddo\n @psyklone\n @crqmer\n @erndog\n @panarin"
+  },
+  {
+    "comment_id": 58121000,
+    "thread_id": 58121000,
+    "created_at": "2025-04-26T21:10:36.503000+00:00",
+    "game_date": "2025-04-26",
+    "team_a": "Donuts",
+    "team_b": "Gamblers",
+    "captain_a": "bohm",
+    "captain_b": "rzk",
+    "players_a": [
+      "bohm",
+      "hutchinson",
+      "tay",
+      "skiseason",
+      "coby",
+      "poopybuttlover"
+    ],
+    "players_b": [
+      "rzk",
+      "michael.carter.ll",
+      "shabddd",
+      "doggy",
+      "nyc",
+      "_turner"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "West Play-in\nDonuts:\n @bohm (c)\n @hutchinson\n @tay\n @skiseason\n @coby\n @poopybuttlover\nVs\nGamblers:\n @rzk (c)\n @michael.carter.ll\n @shabddd\n @doggy\n @nyc\n @_turner"
+  },
+  {
+    "comment_id": 57990709,
+    "thread_id": 57990709,
+    "created_at": "2025-04-25T20:52:46.699000+00:00",
+    "game_date": "2025-04-25",
+    "team_a": "Donuts",
+    "team_b": "Lean Team",
+    "captain_a": "tay",
+    "captain_b": "thelankygerman",
+    "players_a": [
+      "tay",
+      "poopybuttlover",
+      "hutchinson",
+      "coby",
+      "bohm",
+      "skiseason"
+    ],
+    "players_b": [
+      "thelankygerman",
+      "emvpiid70",
+      "dxvxn",
+      "giannisisdaddy1",
+      "bigk",
+      "cbd"
+    ],
+    "seed_a": "7",
+    "seed_b": "8",
+    "round_name": null,
+    "is_postseason": true,
+    "raw_text": "West Play-In\n7 Donuts\n @tay (c)\n @poopybuttlover\n @hutchinson\n @coby\n @bohm\n @skiseason\nvs\n8 Lean Team\n @thelankygerman (c)\n @emvpiid70\n @dxvxn\n @giannisisdaddy1\n @bigk\n @cbd"
+  },
+  {
+    "comment_id": 57983118,
+    "thread_id": 57983118,
+    "created_at": "2025-04-25T19:25:02.186000+00:00",
+    "game_date": "2025-04-25",
+    "team_a": "Gamblers",
+    "team_b": "Outlaws",
+    "captain_a": "rzk",
+    "captain_b": "gaston",
+    "players_a": [
+      "rzk",
+      "dex",
+      "doggy",
+      "_turner",
+      "nyc",
+      "michael.carter.ll"
+    ],
+    "players_b": [
+      "gaston",
+      "deshaun4prison",
+      "prove",
+      "itzneallol",
+      "clarke",
+      "ig"
+    ],
+    "seed_a": "9",
+    "seed_b": "10",
+    "round_name": null,
+    "is_postseason": true,
+    "raw_text": "West Play-In\n9 Gamblers\n @rzk (c)\n @dex\n @doggy\n @_turner\n @nyc\n @michael.carter.ll\nvs\n10 Outlaws\n @gaston (c)\n @deshaun4prison\n @prove\n @itzneallol\n @clarke\n @ig"
+  },
+  {
+    "comment_id": 57983091,
+    "thread_id": 57983091,
+    "created_at": "2025-04-25T19:24:38.941000+00:00",
+    "game_date": "2025-04-25",
+    "team_a": "Otters",
+    "team_b": "Aces",
+    "captain_a": "notkiddo",
+    "captain_b": "kenny_wya",
+    "players_a": [
+      "notkiddo",
+      "lukamodric",
+      "psyklone",
+      "crqmer",
+      "trickyy",
+      "erndog"
+    ],
+    "players_b": [
+      "kenny_wya",
+      "yaxel",
+      "grizzy",
+      "sony",
+      "sotonyc",
+      "berg_02"
+    ],
+    "seed_a": "9",
+    "seed_b": "10",
+    "round_name": null,
+    "is_postseason": true,
+    "raw_text": "East Play-In\n9 Otters\n @notkiddo (c)\n @lukamodric\n @psyklone\n @crqmer\n @trickyy\n @erndog\nvs\n10 Aces\n @kenny_wya (c)\n @yaxel\n @grizzy\n @sony\n @sotonyc\n @berg_02"
+  },
+  {
+    "comment_id": 57983071,
+    "thread_id": 57983071,
+    "created_at": "2025-04-25T19:24:20.365000+00:00",
+    "game_date": "2025-04-25",
+    "team_a": "Piggies",
+    "team_b": "Horses",
+    "captain_a": "jtfr",
+    "captain_b": "kinnick",
+    "players_a": [
+      "jtfr",
+      "brandonmiller",
+      "glaciers",
+      "cs_derrick13",
+      "killerbees_71",
+      "shot"
+    ],
+    "players_b": [
+      "kinnick",
+      "chris",
+      "ice",
+      "papacoop",
+      "salty",
+      "cartercrash"
+    ],
+    "seed_a": "7",
+    "seed_b": "8",
+    "round_name": null,
+    "is_postseason": true,
+    "raw_text": "East Play-In\n7 Piggies\n @jtfr (c)\n @brandonmiller\n @glaciers\n @cs_derrick13\n @killerbees_71\n @shot\nvs\n8 Horses\n @kinnick (c)\n @chris\n @ice\n @papacoop\n @salty\n @cartercrash"
+  },
+  {
+    "comment_id": 57745755,
+    "thread_id": 57730685,
+    "created_at": "2025-04-23T22:39:40.332000+00:00",
+    "game_date": "2025-04-23",
+    "team_a": "Heroes",
+    "team_b": "Jammers",
+    "captain_a": null,
+    "captain_b": null,
+    "players_a": [
+      "dortch"
+    ],
+    "players_b": [
+      "barger"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "they done robbed us of @dortch vs @barger"
+  },
+  {
+    "comment_id": 54342728,
+    "thread_id": 54342728,
+    "created_at": "2025-03-30T23:49:27.059000+00:00",
+    "game_date": "2025-03-30",
+    "team_a": "Jammers",
+    "team_b": "Stars",
+    "captain_a": "caustic",
+    "captain_b": "devinbooker",
+    "players_a": [
+      "caustic",
+      "sweat",
+      "swouse",
+      "mccasual",
+      "cteszn",
+      "gavinlub"
+    ],
+    "players_b": [
+      "devinbooker",
+      "lamb",
+      "raiola",
+      "morant",
+      "juan.soto22",
+      "playexplainer"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": "MM Finals",
+    "is_postseason": true,
+    "raw_text": "MM Finals\nJammers\n @caustic (c)\n @sweat\n @swouse\n @mccasual\n @cteszn\n @gavinlub\nvs\nStars\n @devinbooker (C)\n @lamb\n @raiola\n @morant\n @juan.soto22\n @playexplainer"
+  },
+  {
+    "comment_id": 54150963,
+    "thread_id": 54150963,
+    "created_at": "2025-03-29T18:20:40.410000+00:00",
+    "game_date": "2025-03-29",
+    "team_a": "Jammers",
+    "team_b": "Minors",
+    "captain_a": "swouse",
+    "captain_b": "baty",
+    "players_a": [
+      "swouse",
+      "cteszn",
+      "mccasual",
+      "caustic",
+      "sweat",
+      "fun"
+    ],
+    "players_b": [
+      "baty",
+      "max",
+      "shenli",
+      "braden_",
+      "coby",
+      "adrimtl10"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": "MM Final 4",
+    "is_postseason": true,
+    "raw_text": "MM Final 4\nJammers\n @swouse (c)\n @cteszn\n @mccasual\n @caustic\n @sweat\n @fun\nvs\nMinors\n @baty (c)\n @max\n @shenli\n @braden_\n @coby\n @adrimtl10"
+  },
+  {
+    "comment_id": 54049025,
+    "thread_id": 54049025,
+    "created_at": "2025-03-28T22:18:57.249000+00:00",
+    "game_date": "2025-03-28",
+    "team_a": "Heroes",
+    "team_b": "Stars",
+    "captain_a": "garland",
+    "captain_b": "devinbooker",
+    "players_a": [
+      "garland",
+      "marner",
+      "morel",
+      "schlongganisa",
+      "crow.armstrong",
+      "snivy"
+    ],
+    "players_b": [
+      "devinbooker",
+      "lamb",
+      "raiola",
+      "dawgsnation",
+      "playexplainer",
+      "willi3"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": "MM Final 4",
+    "is_postseason": true,
+    "raw_text": "MM Final 4\nHeroes\n @garland🦸\n @marner\n @morel\n @schlongganisa\n @crow.armstrong\n @snivy\nvs\nStars\n @devinbooker (C)\n @lamb\n @raiola\n @dawgsnation\n @playexplainer\n @willi3"
+  },
+  {
+    "comment_id": 53637182,
+    "thread_id": 53635547,
+    "created_at": "2025-03-25T17:32:09.997000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Jammers",
+    "team_b": "Demons",
+    "captain_a": "caustic",
+    "captain_b": "tralogik",
+    "players_a": [
+      "caustic",
+      "cteszn",
+      "swouse",
+      "mccasual",
+      "sweat",
+      "thorpee"
+    ],
+    "players_b": [
+      "tralogik",
+      "bruins",
+      "four",
+      "o3wn",
+      "otf",
+      "joshminottenjoyer"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Jammers\n @caustic (c)\n @cteszn\n @swouse\n @mccasual\n @sweat\n @thorpee\nvs\nDemons\n @tralogik 😈\n @bruins\n @four\n @o3wn\n @otf\n @joshminottenjoyer"
+  },
+  {
+    "comment_id": 53637201,
+    "thread_id": 53635547,
+    "created_at": "2025-03-25T17:32:19.795000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Empire",
+    "team_b": "Tacos",
+    "captain_a": "zim",
+    "captain_b": null,
+    "players_a": [
+      "zim",
+      "thereturnofzlo",
+      "etan_",
+      "kodyblu31",
+      "bobsburgers",
+      "jameswyo"
+    ],
+    "players_b": [
+      "iverson",
+      "tezzywezzy",
+      "burgerking",
+      "siri",
+      "tacko",
+      "bam"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Empire\n @zim (c)\n @thereturnofzlo\n @etan_\n @kodyblu31\n @bobsburgers\n @jameswyo\nvs\nTacos\n @iverson\n @tezzywezzy\n @burgerking\n @siri\n @tacko\n @bam"
+  },
+  {
+    "comment_id": 53641184,
+    "thread_id": 53635547,
+    "created_at": "2025-03-25T18:27:17.674000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Minors",
+    "team_b": "Diabetics",
+    "captain_a": "max",
+    "captain_b": "mrdawson",
+    "players_a": [
+      "max",
+      "baty",
+      "coby",
+      "shenli",
+      "senga",
+      "braden_"
+    ],
+    "players_b": [
+      "mrdawson",
+      "chittum",
+      "zo_glasses",
+      "etienne",
+      "joelembiid",
+      "jonah"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Minors\n @max (c)\n @baty\n @coby\n @shenli\n @senga\n @braden_\nvs\nDiabetics\n :flag_canada @mrdawson :crown\n :flag_united_states @chittum\n :flag_united_states @zo_glasses\n :flag_united_states @etienne\n :flag_united_states @joelembiid\n :flag_united_states @jonah"
+  },
+  {
+    "comment_id": 53667032,
+    "thread_id": 53635547,
+    "created_at": "2025-03-25T23:07:56.276000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Gravediggers",
+    "team_b": "Aces",
+    "captain_a": "cry",
+    "captain_b": "kenny_wya",
+    "players_a": [
+      "cry",
+      "arthurmorgan",
+      "davidv03",
+      "tw0",
+      "markjackson",
+      "_ln4_"
+    ],
+    "players_b": [
+      "kenny_wya",
+      "sony",
+      "berg_02",
+      "mars_vibezz",
+      "yaxel",
+      "sotonyc"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Gravediggers\n @cry (c)\n @arthurmorgan\n @davidv03\n @tw0\n @markjackson\n @_ln4_\nvs\nAces\n @kenny_wya (c)\n @sony\n @berg_02\n @mars_vibezz\n @yaxel\n @sotonyc"
+  },
+  {
+    "comment_id": 53635402,
+    "thread_id": 53635283,
+    "created_at": "2025-03-25T17:08:24.426000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Kings",
+    "team_b": "Otters",
+    "captain_a": "sink",
+    "captain_b": "notkiddo",
+    "players_a": [
+      "sink",
+      "clutch",
+      "nate_",
+      "jaylenszn",
+      "clase",
+      "devonta"
+    ],
+    "players_b": [
+      "notkiddo",
+      "lukamodric",
+      "psyklone",
+      "maxp",
+      "josephmazzulla",
+      "trickyy"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Kings\n @sink (c)\n @clutch\n @nate_\n @jaylenszn\n @clase\n @devonta\nvs\nOtters\n @notkiddo (c)\n @lukamodric\n @psyklone\n @maxp\n @josephmazzulla\n @trickyy"
+  },
+  {
+    "comment_id": 53635417,
+    "thread_id": 53635283,
+    "created_at": "2025-03-25T17:08:38.028000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Flames",
+    "team_b": "Flags",
+    "captain_a": "frostyy",
+    "captain_b": null,
+    "players_a": [
+      "frostyy",
+      "tjgany",
+      "corbin",
+      "plemay",
+      "wulf",
+      "rojoknicks"
+    ],
+    "players_b": [
+      "j417",
+      "liljon",
+      "tylrr",
+      "nael_abuasi",
+      "yankees.hub",
+      "burning"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flames\n @frostyy (c)\n @tjgany\n @corbin\n @plemay\n @wulf\n @rojoknicks\nvs\nFlags\n @j417\n @liljon\n @tylrr\n @nael_abuasi\n @yankees.hub\n @burning"
+  },
+  {
+    "comment_id": 53636970,
+    "thread_id": 53635283,
+    "created_at": "2025-03-25T17:29:44.678000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Donuts",
+    "team_b": "Fellas",
+    "captain_a": "bohm",
+    "captain_b": "dugz",
+    "players_a": [
+      "bohm",
+      "yellow",
+      "ihatekarmagrinding",
+      "winslowforprez",
+      "poopybuttlover",
+      "hutchinson"
+    ],
+    "players_b": [
+      "dugz",
+      "barger",
+      "dariusgarland",
+      "ballingpm",
+      "mlbelite",
+      "floyd"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Donuts\n @bohm (c) :bread\n @yellow :bread\n @ihatekarmagrinding :bread\n @winslowforprez :bread\n @poopybuttlover :bread\n @hutchinson :bread\nvs\nFellas\n @dugz (C)\n @barger\n @dariusgarland\n @ballingpm\n @mlbelite\n @floyd"
+  },
+  {
+    "comment_id": 53665018,
+    "thread_id": 53635283,
+    "created_at": "2025-03-25T22:52:42.721000+00:00",
+    "game_date": "2025-03-25",
+    "team_a": "Piggies",
+    "team_b": "Amigos",
+    "captain_a": "zane",
+    "captain_b": null,
+    "players_a": [
+      "wxrtz",
+      "zane",
+      "glaciers",
+      "brandonmiller",
+      "killerbees_71",
+      "shot"
+    ],
+    "players_b": [
+      "nind0",
+      "aprilfoolsbday",
+      "norrispaul13",
+      "duke",
+      "josh_0310",
+      "palmingo"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Piggies\n @wxrtz\n @zane (c)\n @glaciers\n @brandonmiller\n @killerbees_71\n @shot\nvs\nAmigos\n @nind0\n @aprilfoolsbday\n @norrispaul13\n @duke\n @josh_0310\n @palmingo"
+  },
+  {
+    "comment_id": 51195614,
+    "thread_id": 51194206,
+    "created_at": "2025-03-05T18:00:21.062000+00:00",
+    "game_date": "2025-03-05",
+    "team_a": "fellas",
+    "team_b": "Hornets",
+    "captain_a": null,
+    "captain_b": null,
+    "players_a": [
+      "cadewave"
+    ],
+    "players_b": [
+      "gaines"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "fellas\n @cadewave\nVS\nHornets\n @gaines"
+  },
+  {
+    "comment_id": 51195645,
+    "thread_id": 51194206,
+    "created_at": "2025-03-05T18:00:40.631000+00:00",
+    "game_date": "2025-03-05",
+    "team_a": "Amigos",
+    "team_b": "Flames",
+    "captain_a": null,
+    "captain_b": null,
+    "players_a": [
+      "duke",
+      "pat"
+    ],
+    "players_b": [
+      "tjgany",
+      "frostyy"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Amigos\n @duke\n @pat\nVs\nFlames\n @tjgany\n @frostyy"
+  },
+  {
+    "comment_id": 51195711,
+    "thread_id": 51194206,
+    "created_at": "2025-03-05T18:01:12.358000+00:00",
+    "game_date": "2025-03-05",
+    "team_a": "Gamblers 1",
+    "team_b": "Gamblers 2",
+    "captain_a": "_turner",
+    "captain_b": "dex",
+    "players_a": [
+      "_turner",
+      "doggy",
+      "michael.carter.ll",
+      "nyc"
+    ],
+    "players_b": [
+      "dex",
+      "shabddd",
+      "xxyn",
+      "brown"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Gamblers 1\n @_turner (c)\n @doggy\n @michael.carter.ll\n @nyc\nVs\nGamblers 2\n @dex (c)\n @shabddd\n @xxyn\n @brown"
+  },
+  {
+    "comment_id": 51196728,
+    "thread_id": 51194206,
+    "created_at": "2025-03-05T18:13:44.644000+00:00",
+    "game_date": "2025-03-05",
+    "team_a": "flag_united_states @gingy",
+    "team_b": "Horses",
+    "captain_a": "canada",
+    "captain_b": "kinnick",
+    "players_a": [
+      "canada",
+      "chittum",
+      "etienne",
+      "joelembiid",
+      "bigsnook",
+      "gingy"
+    ],
+    "players_b": [
+      "kinnick",
+      "chris",
+      "ice",
+      "papacoop",
+      "salty",
+      "xo"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Diabetics\n :flag_canada  @canada (c)\n :flag_united_states @chittum\n :flag_united_states @etienne\n :flag_united_states @joelembiid\n :flag_united_states @bigsnook\n :flag_united_states @gingy\nvs\nHorses\n @kinnick (c)\n @chris\n @ice\n @papacoop\n @salty\n @xo"
+  },
+  {
+    "comment_id": 51202336,
+    "thread_id": 51194206,
+    "created_at": "2025-03-05T19:17:18.383000+00:00",
+    "game_date": "2025-03-05",
+    "team_a": "Jammers",
+    "team_b": "Stimmers",
+    "captain_a": "swouse",
+    "captain_b": "spursszn_",
+    "players_a": [
+      "swouse",
+      "sweat",
+      "bello",
+      "palmer",
+      "cteszn"
+    ],
+    "players_b": [
+      "spursszn_",
+      "mpls",
+      "arttheclown_",
+      "nael_abuasi",
+      "tylrr",
+      "draculas"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Jammers\n @swouse (c)\n @sweat\n @bello\n @palmer\n @🍁\n @cteszn\nvs\nStimmers\n @spursszn_ (c)\n @mpls\n @arttheclown_\n @nael_abuasi\n @tylrr\n @draculas"
+  },
+  {
+    "comment_id": 51215396,
+    "thread_id": 51194206,
+    "created_at": "2025-03-05T21:31:20.365000+00:00",
+    "game_date": "2025-03-05",
+    "team_a": "Flames",
+    "team_b": "Otters",
+    "captain_a": null,
+    "captain_b": null,
+    "players_a": [
+      "xyo"
+    ],
+    "players_b": [
+      "notkiddo"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flames\n @xyo\nvs\nOtters\n @notkiddo"
+  },
+  {
+    "comment_id": 51069070,
+    "thread_id": 51068698,
+    "created_at": "2025-03-04T17:59:14.427000+00:00",
+    "game_date": "2025-03-04",
+    "team_a": "Flags",
+    "team_b": "Freaks",
+    "captain_a": "jonah",
+    "captain_b": "supa",
+    "players_a": [
+      "jonah",
+      "tw0",
+      "ejwise",
+      "relaxedp",
+      "chltown",
+      "liljon"
+    ],
+    "players_b": [
+      "supa",
+      "etan22",
+      "bennett",
+      "norrispaul13",
+      "ai",
+      "vj"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flags\n @jonah (c)\n @tw0\n @ejwise\n @relaxedp\n @chltown\n @liljon\nvs\nFreaks\n @supa (c)\n @etan22\n @bennett\n @norrispaul13\n @ai\n @vj"
+  },
+  {
+    "comment_id": 51069162,
+    "thread_id": 51068698,
+    "created_at": "2025-03-04T18:00:13.633000+00:00",
+    "game_date": "2025-03-04",
+    "team_a": "Freaks",
+    "team_b": "Kings",
+    "captain_a": "supa",
+    "captain_b": "clutch",
+    "players_a": [
+      "supa",
+      "etan22",
+      "bennett",
+      "norrispaul13",
+      "ai",
+      "vj"
+    ],
+    "players_b": [
+      "clutch",
+      "mario",
+      "morel",
+      "clase",
+      "jaylenszn",
+      "cinemax"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Freaks\n @supa (c)\n @etan22\n @bennett\n @norrispaul13\n @ai\n @vj\nvs\nKings\n @clutch (c)\n @mario\n @morel\n @clase\n @jaylenszn\n @cinemax"
+  },
+  {
+    "comment_id": 51069183,
+    "thread_id": 51068698,
+    "created_at": "2025-03-04T18:00:29.549000+00:00",
+    "game_date": "2025-03-04",
+    "team_a": "Penguins",
+    "team_b": "Freaks",
+    "captain_a": "khys9575",
+    "captain_b": "supa",
+    "players_a": [
+      "khys9575",
+      "bg_15",
+      "turbo",
+      "codybellinger",
+      "piggy",
+      "zero"
+    ],
+    "players_b": [
+      "supa",
+      "etan22",
+      "bennett",
+      "norrispaul13",
+      "ai",
+      "vj"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Penguins\n @khys9575 (c)\n @bg_15\n @turbo\n @codybellinger\n @piggy\n @zero\nvs\nFreaks\n @supa (c)\n @etan22\n @bennett\n @norrispaul13\n @ai\n @vj"
+  },
+  {
+    "comment_id": 51070893,
+    "thread_id": 51068698,
+    "created_at": "2025-03-04T18:22:05.896000+00:00",
+    "game_date": "2025-03-04",
+    "team_a": "Flames A",
+    "team_b": "Flames B",
+    "captain_a": "frostyy",
+    "captain_b": "intriquid",
+    "players_a": [
+      "frostyy",
+      "plemay",
+      "xyo",
+      "wulf",
+      "crozo"
+    ],
+    "players_b": [
+      "intriquid",
+      "tjgany",
+      "j417",
+      "aprilfoolsbday",
+      "montolio"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flames A\n @frostyy (c)\n @plemay\n @xyo\n @wulf\n @crozo\nvs\nFlames B\n @intriquid (c)\n @tjgany\n @j417\n @aprilfoolsbday\n @montolio"
+  },
+  {
+    "comment_id": 51090769,
+    "thread_id": 51068698,
+    "created_at": "2025-03-04T22:00:05.002000+00:00",
+    "game_date": "2025-03-04",
+    "team_a": "Donuts",
+    "team_b": "Hornets",
+    "captain_a": null,
+    "captain_b": null,
+    "players_a": [
+      "ivy"
+    ],
+    "players_b": [
+      "gaines"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Donuts\n @ivy\nvs\nHornets\n @gaines"
+  },
+  {
+    "comment_id": 51100714,
+    "thread_id": 51068698,
+    "created_at": "2025-03-04T23:24:52.002000+00:00",
+    "game_date": "2025-03-04",
+    "team_a": "Stars",
+    "team_b": "Flags",
+    "captain_a": "wisco",
+    "captain_b": "jonah",
+    "players_a": [
+      "wisco",
+      "devinbooker",
+      "lamb",
+      "morant",
+      "playexplainer",
+      "rojoknicks"
+    ],
+    "players_b": [
+      "jonah",
+      "tw0",
+      "ejwise",
+      "relaxedp",
+      "chltown",
+      "liljon"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Stars\n @wisco (C)\n @devinbooker\n @lamb\n @morant\n @playexplainer\n @rojoknicks\nVs\nFlags\n @jonah (c)\n @tw0\n @ejwise\n @relaxedp\n @chltown\n @liljon"
+  },
+  {
+    "comment_id": 50954488,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T18:10:25.670000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Jammers",
+    "team_b": "Freaks",
+    "captain_a": "mccasual",
+    "captain_b": "supa",
+    "players_a": [
+      "mccasual",
+      "cteszn",
+      "swouse",
+      "sweat",
+      "bello",
+      "caustic"
+    ],
+    "players_b": [
+      "supa",
+      "etan22",
+      "york",
+      "bennett",
+      "ai",
+      "norrispaul13"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Jammers\n @mccasual (c)\n @cteszn\n @swouse\n @sweat\n @bello\n @caustic\nvs\nFreaks\n @supa (c)\n @etan22\n @york\n @bennett\n @ai\n @norrispaul13"
+  },
+  {
+    "comment_id": 50954637,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T18:12:21.931000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Donuts",
+    "team_b": "Lean Team",
+    "captain_a": "winslowforprez",
+    "captain_b": "bigk",
+    "players_a": [
+      "winslowforprez",
+      "scottie",
+      "cs_derrick13",
+      "yellow",
+      "bacotlover",
+      "abos"
+    ],
+    "players_b": [
+      "bigk",
+      "cbd",
+      "bmannn",
+      "pnwsavant",
+      "heatloyalist",
+      "addison"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Donuts\n @winslowforprez (c)\n @scottie\n @cs_derrick13\n @yellow\n @bacotlover\n @abos\nvs\nLean Team\n @bigk (c)\n @cbd\n @bmannn\n @pnwsavant\n @heatloyalist\n @addison"
+  },
+  {
+    "comment_id": 50956108,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T18:34:56.146000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Demons",
+    "team_b": "Fellas",
+    "captain_a": "otf",
+    "captain_b": "dugz",
+    "players_a": [
+      "otf",
+      "four",
+      "buck",
+      "nickza",
+      "bruins",
+      "o3wn"
+    ],
+    "players_b": [
+      "dariusgarland",
+      "mlbelite",
+      "dugz",
+      "cadewave",
+      "ballingpm",
+      "tyus"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Demons\n @otf 😈\n @four\n @buck\n @nickza\n @bruins\n @o3wn\nvs\nFellas\n @dariusgarland\n @mlbelite\n @dugz (c)\n @cadewave\n @ballingpm\n @tyus"
+  },
+  {
+    "comment_id": 50956136,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T18:35:25.340000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Fellas",
+    "team_b": "Freaks",
+    "captain_a": "mlbelite",
+    "captain_b": "supa",
+    "players_a": [
+      "dariusgarland",
+      "mlbelite",
+      "dugz",
+      "cadewave",
+      "ballingpm",
+      "tyus"
+    ],
+    "players_b": [
+      "supa",
+      "etan22",
+      "york",
+      "bennett",
+      "ai",
+      "norrispaul13"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Fellas\n @dariusgarland\n @mlbelite (c)\n @dugz\n @cadewave\n @ballingpm\n @tyus\nvs\nFreaks\n @supa (c)\n @etan22\n @york\n @bennett\n @ai\n @norrispaul13"
+  },
+  {
+    "comment_id": 50957394,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T18:54:35.990000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Fellas",
+    "team_b": "MLB",
+    "captain_a": "dariusgarland",
+    "captain_b": "kane",
+    "players_a": [
+      "dariusgarland",
+      "mlbelite",
+      "dugz",
+      "cadewave",
+      "ballingpm",
+      "tyus"
+    ],
+    "players_b": [
+      "kane",
+      "sossboy_",
+      "marte",
+      "dane",
+      "target",
+      "dillon"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Fellas\n @dariusgarland (c)\n @mlbelite\n @dugz\n @cadewave\n @ballingpm\n @tyus\nvs\nMLB\n @kane (c)\n @sossboy_\n @marte\n @dane\n @target\n @dillon"
+  },
+  {
+    "comment_id": 50959737,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T19:28:23.272000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Freaks",
+    "team_b": "Piggies",
+    "captain_a": "supa",
+    "captain_b": "evan_stewart_ii",
+    "players_a": [
+      "supa",
+      "etan22",
+      "york",
+      "bennett",
+      "ai",
+      "norrispaul13"
+    ],
+    "players_b": [
+      "lxst",
+      "evan_stewart_ii",
+      "brandonmiller",
+      "jtfr",
+      "glaciers",
+      "poolepartyjp3"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Scrimmage\nFreaks\n @supa (c)\n @etan22\n @york\n @bennett\n @ai\n @norrispaul13\nVs\nPiggies\n @lxst\n @evan_stewart_ii (c)\n @brandonmiller\n @jtfr\n @glaciers\n @poolepartyjp3"
+  },
+  {
+    "comment_id": 50961554,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T19:51:45.961000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Hornets",
+    "team_b": "Stars",
+    "captain_a": "sasser",
+    "captain_b": "raiola",
+    "players_a": [
+      "sasser",
+      "knightnate12",
+      "tye",
+      "cookie",
+      "okorolover355"
+    ],
+    "players_b": [
+      "raiola",
+      "willi3",
+      "neev",
+      "rojoknicks",
+      "dawgsnation"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Hornets\n @sasser (c)\n @knightnate12\n @tye\n @cookie\n @okorolover355\nvs\nStars\n @raiola (C)\n @willi3\n @neev\n @rojoknicks\n @dawgsnation"
+  },
+  {
+    "comment_id": 50961884,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T19:55:53.586000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Aces",
+    "team_b": "Stimmers",
+    "captain_a": "sotonyc",
+    "captain_b": "spursszn_",
+    "players_a": [
+      "sotonyc",
+      "kenny_wya",
+      "sony_",
+      "curtisjoneslover",
+      "lindors"
+    ],
+    "players_b": [
+      "spursszn_",
+      "mpls",
+      "arttheclown_",
+      "nael_abuasi",
+      "tylrr",
+      "draculas"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Aces\n @sotonyc (c)\n @kenny_wya\n @sony_\n @curtisjoneslover\n @🚀📈🔥\n @lindors\nvs\nStimmers\n @spursszn_ (c)\n @mpls\n @arttheclown_\n @nael_abuasi\n @tylrr\n @draculas"
+  },
+  {
+    "comment_id": 50963128,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T20:10:34.032000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Flames",
+    "team_b": "Hornets",
+    "captain_a": "frostyy",
+    "captain_b": "sasser",
+    "players_a": [
+      "frostyy",
+      "intriquid",
+      "tjgany",
+      "xyo"
+    ],
+    "players_b": [
+      "sasser",
+      "okorolover355",
+      "tye",
+      "knightnate12"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flames\n @frostyy (c)\n @intriquid\n @tjgany\n @xyo\nvs\nHornets\n @sasser (c)\n @okorolover355\n @tye\n @knightnate12"
+  },
+  {
+    "comment_id": 50963812,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T20:17:22.091000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Flames",
+    "team_b": "Gamblers",
+    "captain_a": null,
+    "captain_b": null,
+    "players_a": [
+      "tjgany"
+    ],
+    "players_b": [
+      "doggy"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flames\n @tjgany\nvs\nGamblers\n @doggy"
+  },
+  {
+    "comment_id": 50965537,
+    "thread_id": 50954364,
+    "created_at": "2025-03-03T20:36:39.085000+00:00",
+    "game_date": "2025-03-03",
+    "team_a": "Otters",
+    "team_b": "Horses",
+    "captain_a": "notkiddo",
+    "captain_b": "chris",
+    "players_a": [
+      "notkiddo",
+      "jamiee",
+      "jcbihh",
+      "lukamodric",
+      "crqmer",
+      "panarin"
+    ],
+    "players_b": [
+      "chris",
+      "kinnick",
+      "mattyice",
+      "herro",
+      "xo",
+      "ice"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Otters\n @notkiddo (c)\n @jamiee\n @jcbihh\n @lukamodric\n @crqmer\n @panarin\nvs.\nHorses\n @chris (c)\n @kinnick\n @mattyice\n @herro\n @xo\n @ice"
+  },
+  {
+    "comment_id": 50814392,
+    "thread_id": 50814060,
+    "created_at": "2025-03-02T16:58:09.536000+00:00",
+    "game_date": "2025-03-02",
+    "team_a": "Demons",
+    "team_b": "Creamers",
+    "captain_a": "bruins",
+    "captain_b": "cle",
+    "players_a": [
+      "bruins",
+      "joshminottenjoyer",
+      "o3wn",
+      "nick_",
+      "cyl",
+      "otf"
+    ],
+    "players_b": [
+      "cle",
+      "saquon",
+      "znye",
+      "verse",
+      "sports6138",
+      "oldfriend99"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Demons\n @bruins 😈\n @joshminottenjoyer\n @o3wn\n @nick_\n @cyl\n @otf\nvs\nCreamers\n @cle (c)\n @saquon\n @znye\n @verse\n @sports6138\n @oldfriend99"
+  },
+  {
+    "comment_id": 50818223,
+    "thread_id": 50814060,
+    "created_at": "2025-03-02T17:28:29.566000+00:00",
+    "game_date": "2025-03-02",
+    "team_a": "Flames",
+    "team_b": "Otters",
+    "captain_a": "frostyy",
+    "captain_b": "notkiddo",
+    "players_a": [
+      "frostyy",
+      "intriquid",
+      "plemay",
+      "j417",
+      "aprilfoolsbday",
+      "tjgany"
+    ],
+    "players_b": [
+      "notkiddo",
+      "crqmer",
+      "jcbihh",
+      "lukamodric",
+      "novo",
+      "therealcartergilmore"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flames\n @frostyy (c)\n @intriquid\n @plemay\n @j417\n @aprilfoolsbday\n @tjgany\nvs\nOtters\n @notkiddo (c)\n @crqmer\n @jcbihh\n @lukamodric\n @novo\n @therealcartergilmore"
+  },
+  {
+    "comment_id": 50819331,
+    "thread_id": 50814060,
+    "created_at": "2025-03-02T17:36:26.580000+00:00",
+    "game_date": "2025-03-02",
+    "team_a": "Creamers",
+    "team_b": "KOCK",
+    "captain_a": "cle",
+    "captain_b": "ow3n1",
+    "players_a": [
+      "cle",
+      "saquon",
+      "znye",
+      "verse",
+      "sports6138",
+      "oldfriend99"
+    ],
+    "players_b": [
+      "ow3n1",
+      "croger",
+      "trevq3",
+      "fernando",
+      "rockymountain",
+      "devincooker"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Creamers\n @cle (c)\n @saquon\n @znye\n @verse\n @sports6138\n @oldfriend99\nvs\nKOCK\n @ow3n1 (c)\n @croger\n @trevq3\n @fernando\n @rockymountain\n @devincooker"
+  },
+  {
+    "comment_id": 50821780,
+    "thread_id": 50814060,
+    "created_at": "2025-03-02T17:54:15.849000+00:00",
+    "game_date": "2025-03-02",
+    "team_a": "Minors",
+    "team_b": "Freaks",
+    "captain_a": "baty",
+    "captain_b": "supa",
+    "players_a": [
+      "baty",
+      "burress",
+      "darwin",
+      "bojack",
+      "nickplaysbball",
+      "shenli"
+    ],
+    "players_b": [
+      "supa",
+      "etan22",
+      "york",
+      "bennett",
+      "ai",
+      "bshumer1"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Minors\n @baty (c)\n @burress\n @darwin\n @bojack\n @nickplaysbball\n @shenli\nvs\nFreaks\n @supa (c)\n @etan22\n @york\n @bennett\n @ai\n @bshumer1"
+  },
+  {
+    "comment_id": 50823177,
+    "thread_id": 50814060,
+    "created_at": "2025-03-02T18:05:19.787000+00:00",
+    "game_date": "2025-03-02",
+    "team_a": "MLB",
+    "team_b": "Karma Stars",
+    "captain_a": "aiden0220",
+    "captain_b": "devinbooker",
+    "players_a": [
+      "aiden0220",
+      "kane",
+      "richer",
+      "dillon",
+      "sossboy_",
+      "marte"
+    ],
+    "players_b": [
+      "devinbooker",
+      "dawgsnation",
+      "neev",
+      "wisco",
+      "raiola",
+      "rojoknicks"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "MLB:\n @aiden0220 (c)\n @kane\n @richer\n @dillon\n @sossboy_\n @marte\nVS\nKarma Stars:\n @devinbooker (C)\n @dawgsnation\n @neev\n @wisco\n @raiola\n @rojoknicks"
+  },
+  {
+    "comment_id": 50829672,
+    "thread_id": 50814060,
+    "created_at": "2025-03-02T18:59:23.863000+00:00",
+    "game_date": "2025-03-02",
+    "team_a": "Stimmers",
+    "team_b": "Aces",
+    "captain_a": "arttheclown_",
+    "captain_b": "kenny_wya",
+    "players_a": [
+      "arttheclown_",
+      "mpls",
+      "spursszn_",
+      "nael_abuasi",
+      "tylrr",
+      "draculas"
+    ],
+    "players_b": [
+      "kenny_wya",
+      "grizzy",
+      "mars_vibezz",
+      "curtisjoneslover",
+      "sony_"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Stimmers\n @arttheclown_ (c)\n @mpls\n @spursszn_\n @nael_abuasi\n @tylrr\n @draculas\nvs\nAces\n @kenny_wya (c)\n @🚀📈🔥\n @grizzy\n @mars_vibezz\n @curtisjoneslover\n @sony_"
+  },
+  {
+    "comment_id": 50686424,
+    "thread_id": 50686351,
+    "created_at": "2025-03-01T17:07:04.726000+00:00",
+    "game_date": "2025-03-01",
+    "team_a": "Gravediggers",
+    "team_b": "Freaks",
+    "captain_a": "cry",
+    "captain_b": "supa",
+    "players_a": [
+      "cry",
+      "derrickwhitetop5",
+      "davidv03",
+      "kevin",
+      "arthurmorgan",
+      "anonymoususer"
+    ],
+    "players_b": [
+      "supa",
+      "etan22",
+      "york",
+      "bennett",
+      "ai",
+      "vj"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Gravediggers\n @cry (c)\n @derrickwhitetop5\n @davidv03\n @kevin\n @arthurmorgan\n @anonymoususer\nvs\nFreaks\n @supa (c)\n @etan22\n @york\n @bennett\n @ai\n @vj"
+  },
+  {
+    "comment_id": 50686479,
+    "thread_id": 50686351,
+    "created_at": "2025-03-01T17:07:22.538000+00:00",
+    "game_date": "2025-03-01",
+    "team_a": "Piggies",
+    "team_b": "Lean Team",
+    "captain_a": "evan_stewart_ii",
+    "captain_b": "dxvxn",
+    "players_a": [
+      "evan_stewart_ii",
+      "glaciers",
+      "lxst",
+      "brandonmiller",
+      "yandy",
+      "poolepartyjp3"
+    ],
+    "players_b": [
+      "dxvxn",
+      "bigk",
+      "pnwsavant",
+      "bmannn",
+      "kuminga_",
+      "thelankygerman"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Piggies\n @evan_stewart_ii (c)\n @glaciers\n @lxst\n @brandonmiller\n @yandy\n @poolepartyjp3\nvs\nLean Team\n @dxvxn (c)\n @bigk\n @pnwsavant\n @bmannn\n @kuminga_\n @thelankygerman"
+  },
+  {
+    "comment_id": 50687977,
+    "thread_id": 50686351,
+    "created_at": "2025-03-01T17:21:38.199000+00:00",
+    "game_date": "2025-03-01",
+    "team_a": "Jammers",
+    "team_b": "Gamblers",
+    "captain_a": "cteszn",
+    "captain_b": "nyc",
+    "players_a": [
+      "cteszn",
+      "fun",
+      "mccasual",
+      "gavinlub",
+      "freaky_giannis"
+    ],
+    "players_b": [
+      "nyc",
+      "doggy",
+      "_turner",
+      "michael.carter.ll",
+      "brown"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Jammers\n @cteszn (c)\n @fun\n @mccasual\n @gavinlub\n @freaky_giannis\nvs\nGamblers\n @nyc (c)\n @doggy\n @_turner\n @michael.carter.ll\n @brown"
+  },
+  {
+    "comment_id": 50689002,
+    "thread_id": 50686351,
+    "created_at": "2025-03-01T17:30:14.785000+00:00",
+    "game_date": "2025-03-01",
+    "team_a": "Flames",
+    "team_b": "Donuts",
+    "captain_a": "frostyy",
+    "captain_b": "bohm",
+    "players_a": [
+      "frostyy",
+      "tjgany",
+      "j417",
+      "xyo",
+      "montolio",
+      "aprilfoolsbday"
+    ],
+    "players_b": [
+      "bohm",
+      "hutchinson",
+      "tay",
+      "poopybuttlover",
+      "yellow",
+      "abos"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Flames\n @frostyy (c)\n @tjgany\n @j417\n @xyo\n @montolio\n @aprilfoolsbday\nvs\nDonuts\n @bohm (c)\n @hutchinson\n @tay\n @poopybuttlover\n @yellow\n @abos"
+  },
+  {
+    "comment_id": 50691687,
+    "thread_id": 50686351,
+    "created_at": "2025-03-01T17:52:28.034000+00:00",
+    "game_date": "2025-03-01",
+    "team_a": "Demons",
+    "team_b": "Flags",
+    "captain_a": "buck",
+    "captain_b": "tw0",
+    "players_a": [
+      "buck",
+      "cyl",
+      "otf",
+      "o3wn",
+      "joshminottenjoyer"
+    ],
+    "players_b": [
+      "tw0",
+      "ejwise",
+      "chltown",
+      "jonah",
+      "gradyt06"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Demons\n @buck 😈\n @cyl\n @otf\n @o3wn\n @joshminottenjoyer\nvs\nFlags\n @tw0 (c)\n @ejwise\n @chltown\n @jonah\n @gradyt06"
+  },
+  {
+    "comment_id": 50691952,
+    "thread_id": 50686351,
+    "created_at": "2025-03-01T17:54:28.176000+00:00",
+    "game_date": "2025-03-01",
+    "team_a": "KOCK",
+    "team_b": "Flags",
+    "captain_a": "ow3n1",
+    "captain_b": "tw0",
+    "players_a": [
+      "ow3n1",
+      "croger",
+      "trevq3",
+      "fernando",
+      "rockymountain",
+      "devincooker"
+    ],
+    "players_b": [
+      "tw0",
+      "ejwise",
+      "chltown",
+      "jonah",
+      "gradyt06",
+      "relaxedp"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "KOCK\n @ow3n1 (c)\n @croger\n @trevq3\n @fernando\n @rockymountain\n @devincooker\nvs\nFlags\n @tw0 (c)\n @ejwise\n @chltown\n @jonah\n @gradyt06\n @relaxedp"
+  },
+  {
+    "comment_id": 50704443,
+    "thread_id": 50686351,
+    "created_at": "2025-03-01T20:03:48.560000+00:00",
+    "game_date": "2025-03-01",
+    "team_a": "Fellas",
+    "team_b": "Hornets",
+    "captain_a": "mlbelite",
+    "captain_b": "knightnate12",
+    "players_a": [
+      "mlbelite",
+      "realnuggets",
+      "tyus",
+      "aiden",
+      "dugz"
+    ],
+    "players_b": [
+      "okorolover355",
+      "tye",
+      "knightnate12",
+      "murray",
+      "sasser"
+    ],
+    "seed_a": null,
+    "seed_b": null,
+    "round_name": null,
+    "is_postseason": false,
+    "raw_text": "Fellas\n @mlbelite (c)\n @realnuggets\n @tyus\n @aiden\n @dugz\nvs\nHornets\n @okorolover355\n @tye\n @knightnate12 (c)\n @murray\n @sasser"
+  }
+]
