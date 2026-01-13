@@ -67,7 +67,12 @@ async function initializePage() {
 
 async function updateTeamCache(seasonId) {
     allTeams.clear();
-    const teamsSnap = await getDocs(collection(db, collectionNames.teams));
+    // Explicitly get the current league to ensure correct collection is queried
+    const currentLeague = getCurrentLeague();
+    const teamsCollectionName = getLeagueCollectionName('v2_teams', currentLeague);
+    const seasonalRecordsCollectionName = getLeagueCollectionName('seasonal_records', currentLeague);
+
+    const teamsSnap = await getDocs(collection(db, teamsCollectionName));
 
     const teamPromises = teamsSnap.docs.map(async (teamDoc) => {
         if (!teamDoc.data().conference) {
@@ -75,7 +80,7 @@ async function updateTeamCache(seasonId) {
         }
 
         const teamData = { id: teamDoc.id, ...teamDoc.data() };
-        const seasonRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
+        const seasonRecordRef = doc(db, teamsCollectionName, teamDoc.id, seasonalRecordsCollectionName, seasonId);
         const seasonRecordSnap = await getDoc(seasonRecordRef);
 
         if (seasonRecordSnap.exists()) {
@@ -90,7 +95,10 @@ async function updateTeamCache(seasonId) {
     teamsWithData.forEach(team => allTeams.set(team.id, team));
 }
 async function populateSeasons() {
-    const seasonsSnap = await getDocs(query(collection(db, collectionNames.seasons)));
+    // Explicitly get the current league to ensure correct collection is queried
+    const currentLeague = getCurrentLeague();
+    const seasonsCollectionName = getLeagueCollectionName('seasons', currentLeague);
+    const seasonsSnap = await getDocs(query(collection(db, seasonsCollectionName)));
     let activeSeasonId = null;
     const sortedDocs = seasonsSnap.docs.sort((a, b) => b.id.localeCompare(a.id));
 
@@ -123,8 +131,13 @@ async function handlePlayerSearch() {
     playersListContainer.innerHTML = '<div class="loading">Searching players...</div>';
 
     try {
+        // Explicitly get the current league to ensure correct collection is queried
+        const currentLeague = getCurrentLeague();
+        const playersCollectionName = getLeagueCollectionName('v2_players', currentLeague);
+        const seasonalStatsCollectionName = getLeagueCollectionName('seasonal_stats', currentLeague);
+
         const playersQuery = query(
-            collection(db, collectionNames.players),
+            collection(db, playersCollectionName),
             orderBy('player_handle'),
             startAt(searchTermRaw),
             endAt(searchTermRaw + '\uf8ff'),
@@ -135,7 +148,7 @@ async function handlePlayerSearch() {
 
         const playerPromises = playersSnap.docs.map(async (playerDoc) => {
             const playerData = { id: playerDoc.id, ...playerDoc.data() };
-            const seasonStatsRef = doc(db, collectionNames.players, playerDoc.id, collectionNames.seasonalStats, currentSeasonId);
+            const seasonStatsRef = doc(db, playersCollectionName, playerDoc.id, seasonalStatsCollectionName, currentSeasonId);
             const seasonStatsSnap = await getDoc(seasonStatsRef);
             if (seasonStatsSnap.exists()) {
                 playerData.season_stats = seasonStatsSnap.data();
