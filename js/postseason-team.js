@@ -76,12 +76,12 @@ async function loadPageData() {
         // --- DEFINE ALL DATA PROMISES ---
         // ✅ EFFICIENT - Use collectionGroup to fetch all seasonal records in one query
         const allTeamsRecordsQuery = query(
-            collectionGroup(db, 'seasonal_records'),
+            collectionGroup(db, collectionNames.seasonalRecords),
             where('seasonId', '==', ACTIVE_SEASON_ID)
         );
 
         const teamDocPromise = getDoc(doc(db, collectionNames.teams, teamId));
-        const teamSeasonalPromise = getDoc(doc(db, collectionNames.teams, teamId, 'seasonal_records', ACTIVE_SEASON_ID));
+        const teamSeasonalPromise = getDoc(doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID));
 
         const rosterQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const rosterPromise = getDocs(rosterQuery);
@@ -133,7 +133,7 @@ async function loadPageData() {
 
         // Fetch all seasonal stats for roster players in one query
         const playerStatsQuery = query(
-            collectionGroup(db, 'seasonal_stats'),
+            collectionGroup(db, collectionNames.seasonalStats),
             where('seasonId', '==', ACTIVE_SEASON_ID)
         );
         const playerStatsSnap = await getDocs(playerStatsQuery);
@@ -326,7 +326,7 @@ async function showGameDetails(team1_id, team2_id, gameDate) {
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
 
         const playerStatsPromises = uniquePlayerIds.map(playerId =>
-            getDoc(doc(db, collectionNames.players, playerId, 'seasonal_stats', ACTIVE_SEASON_ID))
+            getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, ACTIVE_SEASON_ID))
         );
         const playerStatsDocs = await Promise.all(playerStatsPromises);
         
