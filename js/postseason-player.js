@@ -81,7 +81,7 @@ async function loadPlayerData() {
             regularSeasonBtn.href = `player.html?id=${finalPlayerId}`;
         }
 
-        const seasonalStatsRef = doc(db, `${collectionNames.players}/${finalPlayerId}/${collectionNames.seasonalStats}`, SEASON_ID);
+        const seasonalStatsRef = doc(db, `${collectionNames.players}/${finalPlayerId}/seasonal_stats`, SEASON_ID);
         const teamsQuery = query(collection(db, collectionNames.teams));
 
         const [seasonalStatsSnap, teamsSnap] = await Promise.all([ getDoc(seasonalStatsRef), getDocs(teamsQuery) ]);
@@ -92,7 +92,7 @@ async function loadPlayerData() {
         teamsSnap.docs.forEach(teamDoc => allTeamsData.set(teamDoc.id, { id: teamDoc.id, ...teamDoc.data() }));
 
         const seasonalRecordsQuery = query(
-            collectionGroup(db, collectionNames.seasonalRecords),
+            collectionGroup(db, 'seasonal_records'),
             where('seasonId', '==', SEASON_ID)
         );
         const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
@@ -302,7 +302,7 @@ async function showGameDetails(gameId) {
         const allPlayerIdsInGame = lineupsSnap.docs.map(doc => doc.data().player_id);
         const uniquePlayerIds = [...new Set(allPlayerIdsInGame)];
 
-        const playerStatsPromises = uniquePlayerIds.map(playerId => getDoc(doc(db, collectionNames.players, playerId, collectionNames.seasonalStats, SEASON_ID)));
+        const playerStatsPromises = uniquePlayerIds.map(playerId => getDoc(doc(db, collectionNames.players, playerId, 'seasonal_stats', SEASON_ID)));
         const playerStatsDocs = await Promise.all(playerStatsPromises);
         
         const playerSeasonalStats = new Map();
