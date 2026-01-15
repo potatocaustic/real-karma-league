@@ -153,7 +153,10 @@ function setupEventListeners() {
             const section = document.getElementById(`${selectedType.toLowerCase()}-section`);
             if (section) section.style.display = 'block';
         }
-        if (selectedType === 'TRADE' && document.querySelector('.trade-party-block') == null) {
+        // Clear trade party blocks when not using TRADE type to avoid hidden required fields
+        if (selectedType !== 'TRADE') {
+            document.querySelector('.trade-parties-container').innerHTML = '';
+        } else if (document.querySelector('.trade-party-block') == null) {
             addTradePartyBlock();
             addTradePartyBlock();
         }
