@@ -17,8 +17,13 @@ async function processCompletedGame(event, league = LEAGUES.MAJOR) {
     const seasonId = event.params.seasonId;
     const gameId = event.params.gameId;
 
-    // Exit if this isn't a game completion event
-    if (after.completed !== 'TRUE' || before.completed === 'TRUE') {
+    // Handle UNCOMPLETE: game was completed, now isn't
+    if (before.completed === 'TRUE' && after.completed !== 'TRUE') {
+        return handleGameUncompletion(event, league);
+    }
+
+    // Exit if this isn't a NEW game completion event
+    if (after.completed !== 'TRUE') {
         return null;
     }
     console.log(`V2: Processing completed game ${gameId} in season ${seasonId} for ${league} league`);
@@ -195,6 +200,39 @@ async function processCompletedGame(event, league = LEAGUES.MAJOR) {
 
     await batch.commit();
     console.log(`Successfully saved all daily calculations and stats for ${gameDate}.`);
+    return null;
+}
+
+/**
+ * Handles when a game is uncompleted (completed status changed from TRUE to FALSE)
+ * Cleans up daily_scores documents and recalculates team stats
+ * @param {Object} event - Firestore document event
+ * @param {string} league - League context (major or minor)
+ */
+async function handleGameUncompletion(event, league = LEAGUES.MAJOR) {
+    const before = event.data.before.data();
+    const seasonId = event.params.seasonId;
+    const gameId = event.params.gameId;
+    const isPostseason = !/^\d+$/.test(before.week) && before.week !== "All-Star" && before.week !== "Relegation";
+
+    console.log(`V2: Processing UNCOMPLETED game ${gameId} in season ${seasonId} for ${league} league`);
+
+    const batch = db.batch();
+    const seasonNum = seasonId.replace('S', '');
+    const scoresColl = isPostseason ? 'post_daily_scores' : 'daily_scores';
+
+    // Delete daily_scores for both teams in this game
+    const team1ScoreRef = db.doc(`${getCollectionName(scoresColl, league)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${scoresColl}`, league)}/${before.team1_id}-${gameId}`);
+    const team2ScoreRef = db.doc(`${getCollectionName(scoresColl, league)}/season_${seasonNum}/${getCollectionName(`S${seasonNum}_${scoresColl}`, league)}/${before.team2_id}-${gameId}`);
+
+    batch.delete(team1ScoreRef);
+    batch.delete(team2ScoreRef);
+
+    // Recalculate team stats (passing empty newDailyScores since we're removing, not adding)
+    await updateAllTeamStats(seasonId, isPostseason, batch, [], league);
+
+    await batch.commit();
+    console.log(`Successfully cleaned up stats for uncompleted game ${gameId}.`);
     return null;
 }
 
