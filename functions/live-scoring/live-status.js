@@ -132,6 +132,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
     // Update player scores with fetched data
     const batch = db.batch();
+    const updatedGameData = new Map(); // Store updated game data for later calculations
 
     for (const gameDoc of liveGamesSnap.docs) {
         const gameData = gameDoc.data();
@@ -174,20 +175,27 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
             team1_lineup: team1Lineup,
             team2_lineup: team2Lineup
         });
+
+        // Store updated game data for game flow and leaderboard calculations
+        updatedGameData.set(gameDoc.id, {
+            ...gameData,
+            team1_lineup: team1Lineup,
+            team2_lineup: team2Lineup
+        });
     }
 
     await batch.commit();
 
-    // Use the already-updated data from liveGamesSnap instead of re-fetching
+    // Use updatedGameData Map for game flow and leaderboard calculations (avoids stale snapshot data)
     const updatedLiveGamesSnap = liveGamesSnap;
-    console.log(`[performFullUpdate] Re-fetched ${updatedLiveGamesSnap.size} games with updated scores`);
+    console.log(`[performFullUpdate] Processing ${updatedLiveGamesSnap.size} games with updated scores`);
 
     // === FEATURE 1: Record Game Flow Snapshots ===
     const timestamp = admin.firestore.Timestamp.now();
     const snapshotBatch = db.batch();
 
     for (const gameDoc of updatedLiveGamesSnap.docs) {
-        const gameData = gameDoc.data();
+        const gameData = updatedGameData.get(gameDoc.id);
         const team1_total = (gameData.team1_lineup || []).reduce((sum, p) => sum + (p.final_score || 0), 0);
         const team2_total = (gameData.team2_lineup || []).reduce((sum, p) => sum + (p.final_score || 0), 0);
 
@@ -255,7 +263,7 @@ async function performFullUpdate(league = LEAGUES.MAJOR) {
 
         console.log(`[Daily Leaderboard] Processing ${updatedLiveGamesSnap.size} live games...`);
         for (const gameDoc of updatedLiveGamesSnap.docs) {
-            const gameData = gameDoc.data();
+            const gameData = updatedGameData.get(gameDoc.id);
             const allStarters = [...(gameData.team1_lineup || []), ...(gameData.team2_lineup || [])];
             console.log(`[Daily Leaderboard] Game ${gameDoc.id}: ${allStarters.length} starters`);
 
