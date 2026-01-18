@@ -8,8 +8,11 @@ const seasonSelect = document.getElementById('season-select');
 const regularSeasonContainer = document.getElementById('regular-season-schedule-container');
 const postseasonContainer = document.getElementById('postseason-schedule-container');
 const postseasonDatesContainer = document.getElementById('postseason-dates-container');
+const postseasonStatus = document.getElementById('postseason-status');
 const addGameBtn = document.getElementById('add-game-btn');
 const generatePostseasonBtn = document.getElementById('generate-postseason-btn');
+const savePostseasonDatesBtn = document.getElementById('save-postseason-dates-btn');
+const autoGenerateToggle = document.getElementById('auto-generate-toggle');
 
 const gameModal = document.getElementById('game-modal');
 const gameForm = document.getElementById('game-form');
@@ -65,11 +68,13 @@ async function initializePage() {
 
         await updateTeamCache(currentSeasonId);
         populatePostseasonDates();
+        await loadPostseasonConfig();
         await loadSchedules();
 
         seasonSelect.addEventListener('change', async () => {
             currentSeasonId = seasonSelect.value;
             await updateTeamCache(currentSeasonId);
+            await loadPostseasonConfig();
             await loadSchedules();
         });
 
@@ -86,6 +91,7 @@ async function initializePage() {
 
         gameWeekSelect.addEventListener('change', populateAvailableTeams);
         generatePostseasonBtn.addEventListener('click', handleGeneratePostseason);
+        savePostseasonDatesBtn.addEventListener('click', handleSavePostseasonDates);
         regularSeasonContainer.addEventListener('click', handleDeleteGame);
 
         // Add event listener for force week update button
@@ -398,5 +404,138 @@ async function handleForceWeekUpdate() {
     } finally {
         button.disabled = false;
         button.textContent = '🔄 Update Current Week';
+    }
+}
+
+async function loadPostseasonConfig() {
+    try {
+        const seasonRef = doc(db, collectionNames.seasons, currentSeasonId);
+        const seasonDoc = await getDoc(seasonRef);
+
+        if (!seasonDoc.exists()) {
+            console.log('Season document not found');
+            updatePostseasonStatusUI(null);
+            return;
+        }
+
+        const postseasonConfig = seasonDoc.data().postseasonConfig;
+        updatePostseasonStatusUI(postseasonConfig);
+
+        if (postseasonConfig && postseasonConfig.dates) {
+            // Pre-fill the date inputs from saved config
+            for (const [round, dates] of Object.entries(postseasonConfig.dates)) {
+                dates.forEach((dateStr, index) => {
+                    const inputId = `date-${round.replace(' ', '-')}-${index + 1}`;
+                    const input = document.getElementById(inputId);
+                    if (input && dateStr) {
+                        // Convert from M/D/YYYY to YYYY-MM-DD for input
+                        const [month, day, year] = dateStr.split('/');
+                        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        input.value = formattedDate;
+                    }
+                });
+            }
+
+            // Set the auto-generate toggle
+            autoGenerateToggle.checked = postseasonConfig.autoGenerateEnabled !== false;
+        } else {
+            // Clear all date inputs if no config
+            document.querySelectorAll('#postseason-dates-container input[type="date"]').forEach(input => {
+                input.value = '';
+            });
+            autoGenerateToggle.checked = true;
+        }
+    } catch (error) {
+        console.error('Error loading postseason config:', error);
+    }
+}
+
+function updatePostseasonStatusUI(config) {
+    if (!config) {
+        postseasonStatus.style.display = 'none';
+        return;
+    }
+
+    postseasonStatus.style.display = 'block';
+
+    if (config.scheduleGenerated) {
+        const generatedAt = config.scheduleGeneratedAt?.toDate?.()
+            ? config.scheduleGeneratedAt.toDate().toLocaleString()
+            : 'Unknown';
+        postseasonStatus.style.background = 'var(--success-bg, #d4edda)';
+        postseasonStatus.style.borderColor = 'var(--success-border, #c3e6cb)';
+        postseasonStatus.innerHTML = `
+            <strong>Schedule Generated</strong><br>
+            <span style="font-size: 0.9em;">Generated at: ${escapeHtml(generatedAt)}</span>
+        `;
+    } else if (config.lastAutoGenerateError) {
+        postseasonStatus.style.background = 'var(--danger-bg, #f8d7da)';
+        postseasonStatus.style.borderColor = 'var(--danger-border, #f5c6cb)';
+        postseasonStatus.innerHTML = `
+            <strong>Auto-Generation Error</strong><br>
+            <span style="font-size: 0.9em;">${escapeHtml(config.lastAutoGenerateError)}</span>
+        `;
+    } else if (config.dates) {
+        const savedAt = config.savedAt?.toDate?.()
+            ? config.savedAt.toDate().toLocaleString()
+            : 'Unknown';
+        postseasonStatus.style.background = 'var(--info-bg, #cce5ff)';
+        postseasonStatus.style.borderColor = 'var(--info-border, #b8daff)';
+        postseasonStatus.innerHTML = `
+            <strong>Dates Saved</strong> - Waiting for regular season to complete<br>
+            <span style="font-size: 0.9em;">Saved at: ${escapeHtml(savedAt)}${config.autoGenerateEnabled !== false ? ' | Auto-generation enabled' : ' | Auto-generation disabled'}</span>
+        `;
+    } else {
+        postseasonStatus.style.display = 'none';
+    }
+}
+
+async function handleSavePostseasonDates() {
+    savePostseasonDatesBtn.disabled = true;
+    savePostseasonDatesBtn.textContent = 'Saving...';
+
+    const dates = {
+        'Play-In': [], 'Round 1': [], 'Round 2': [], 'Conf Finals': [], 'Finals': []
+    };
+
+    document.querySelectorAll('#postseason-dates-container input[type="date"]').forEach(input => {
+        const roundName = input.dataset.roundName;
+
+        if (dates[roundName] && input.value) {
+            const [year, month, day] = input.value.split('-');
+            dates[roundName].push(`${parseInt(month, 10)}/${parseInt(day, 10)}/${year}`);
+        }
+    });
+
+    // Validate that all rounds have required dates
+    const requiredCounts = {
+        'Play-In': 2, 'Round 1': 3, 'Round 2': 3, 'Conf Finals': 5, 'Finals': 7
+    };
+
+    for (const [round, required] of Object.entries(requiredCounts)) {
+        if (dates[round].length < required) {
+            alert(`${round} requires ${required} dates. Please fill in all dates before saving.`);
+            savePostseasonDatesBtn.disabled = false;
+            savePostseasonDatesBtn.textContent = 'Save Dates';
+            return;
+        }
+    }
+
+    try {
+        const savePostseasonDates = httpsCallable(functions, 'savePostseasonDates');
+        const result = await savePostseasonDates({
+            seasonId: currentSeasonId,
+            dates,
+            autoGenerateEnabled: autoGenerateToggle.checked,
+            league: getCurrentLeague()
+        });
+        alert(result.data.message);
+        await loadPostseasonConfig();
+    } catch (error) {
+        console.error("Error saving postseason dates:", error);
+        alert(`Error: ${error.message}`);
+    } finally {
+        savePostseasonDatesBtn.disabled = false;
+        savePostseasonDatesBtn.textContent = 'Save Dates';
     }
 }

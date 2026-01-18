@@ -3,6 +3,7 @@
 const { admin, db } = require("./firebase-admin");
 const { getCollectionName } = require('./firebase-helpers');
 const { calculateMedian, calculateMean, calculateGeometricMean } = require('./calculations');
+const { autoGeneratePostseasonSchedule } = require('../seasons/schedules');
 
 /**
  * Updates player seasonal statistics based on their lineups
@@ -279,6 +280,15 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores,
                 });
             }
         });
+
+        // Trigger auto-generation of postseason schedule when regular season completes
+        if (isRegularSeasonComplete) {
+            console.log(`Regular season complete for ${seasonId}. Checking postseason auto-generation...`);
+            // Run async but don't await - we don't want to block the batch commit
+            autoGeneratePostseasonSchedule(seasonId, league).catch(err => {
+                console.error(`Error in auto-generate postseason: ${err.message}`);
+            });
+        }
     }
 
     for (const team of calculatedStats) {

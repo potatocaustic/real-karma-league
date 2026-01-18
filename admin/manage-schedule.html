@@ -131,10 +131,25 @@
 
             <div class="schedule-section">
                 <h3>Postseason Automation</h3>
-                <p>Set the dates for each round. The bracket will be generated automatically after Week 15 is completed.</p>
+                <p>Set the dates for each round and save them. When the regular season completes, the playoff schedule will be generated automatically using these dates.</p>
+
+                <div id="postseason-status" style="margin-bottom: 1rem; padding: 0.75rem; border-radius: 6px; display: none;">
+                </div>
+
                 <div id="postseason-dates-container">
                 </div>
-                <button id="generate-postseason-btn" class="btn-admin-save" style="margin-top: 1.5rem;">Generate/Update Postseason Schedule</button>
+
+                <div style="margin-top: 1rem; margin-bottom: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="auto-generate-toggle" checked>
+                        <span>Enable automatic schedule generation when regular season ends</span>
+                    </label>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
+                    <button id="save-postseason-dates-btn" class="btn-admin-secondary">Save Dates</button>
+                    <button id="generate-postseason-btn" class="btn-admin-save">Generate/Regenerate Schedule</button>
+                </div>
                 <div id="postseason-schedule-container" style="margin-top: 1.5rem;"></div>
             </div>
         </div>

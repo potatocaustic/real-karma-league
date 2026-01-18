@@ -102,6 +102,7 @@ exports.createNewSeason = seasonCreation.createNewSeason;
 exports.createHistoricalSeason = seasonCreation.createHistoricalSeason;
 
 exports.generatePostseasonSchedule = seasonSchedules.generatePostseasonSchedule;
+exports.savePostseasonDates = seasonSchedules.savePostseasonDates;
 
 exports.updateCurrentWeek = weekManagement.updateCurrentWeek;
 exports.minor_updateCurrentWeek = weekManagement.minor_updateCurrentWeek;
