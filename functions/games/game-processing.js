@@ -26,6 +26,16 @@ async function processCompletedGame(event, league = LEAGUES.MAJOR) {
     if (after.completed !== 'TRUE') {
         return null;
     }
+
+    // CRITICAL FIX: Guard against cascading re-processing
+    // When series games are batch-updated with new team1_wins/team2_wins/series_winner,
+    // completed games trigger onDocumentUpdated. This guard prevents re-processing
+    // (and re-incrementing series wins) for games that were already completed.
+    if (before.completed === 'TRUE') {
+        console.log(`Game ${gameId} was already completed. Skipping to prevent cascading re-processing.`);
+        return null;
+    }
+
     console.log(`V2: Processing completed game ${gameId} in season ${seasonId} for ${league} league`);
 
     const gameDate = after.date;
