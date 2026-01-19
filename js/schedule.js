@@ -59,6 +59,7 @@ const isPostseason = (week) => !/^\d+$/.test(week) && week !== "All-Star" && wee
 
 /**
  * Generates a descriptive label for postseason games based on their series name.
+ * For minor leagues, converts East/West to North/South conference names.
  */
 function getPostseasonGameLabel(seriesName) {
     if (!seriesName) return seriesName;
@@ -67,29 +68,39 @@ function getPostseasonGameLabel(seriesName) {
     const gameNumberString = gameNumberMatch ? gameNumberMatch[0] : '';
     const baseSeriesId = seriesName.replace(/ Game \d+$/, '').trim();
 
-    // Updated map with dashes as requested
+    const currentLeague = getCurrentLeague();
+    const isMinor = currentLeague === 'minor';
+
+    // Conference names differ by league: Major uses East/West, Minor uses North/South
+    const westConf = isMinor ? 'South' : 'West';
+    const eastConf = isMinor ? 'North' : 'East';
+    const wcfLabel = isMinor ? 'SCF' : 'WCF';
+    const ecfLabel = isMinor ? 'NCF' : 'ECF';
+    const finalsLabel = isMinor ? 'RKML Finals' : 'RKL Finals';
+
+    // Series keys use E/W internally, but display names use league-appropriate conference names
     const seriesTypeMap = {
-        'W7vW8': 'West Play-In Stage 1',
-        'E7vE8': 'East Play-In Stage 1',
-        'W9vW10': 'West Play-In Stage 1',
-        'E9vE10': 'East Play-In Stage 1',
-        'W8thSeedGame': 'West Play-In Stage 2',
-        'E8thSeedGame': 'East Play-In Stage 2',
-        'W1vW8': `West Round 1 - ${gameNumberString}`,
-        'W4vW5': `West Round 1 - ${gameNumberString}`,
-        'W3vW6': `West Round 1 - ${gameNumberString}`,
-        'W2vW7': `West Round 1 - ${gameNumberString}`,
-        'E1vE8': `East Round 1 - ${gameNumberString}`,
-        'E4vE5': `East Round 1 - ${gameNumberString}`,
-        'E3vE6': `East Round 1 - ${gameNumberString}`,
-        'E2vE7': `East Round 1 - ${gameNumberString}`,
-        'W-R2-T': `West Round 2 - ${gameNumberString}`,
-        'W-R2-B': `West Round 2 - ${gameNumberString}`,
-        'E-R2-T': `East Round 2 - ${gameNumberString}`,
-        'E-R2-B': `East Round 2 - ${gameNumberString}`,
-        'WCF': `WCF ${gameNumberString}`,
-        'ECF': `ECF ${gameNumberString}`,
-        'Finals': `RKL Finals ${gameNumberString}`,
+        'W7vW8': `${westConf} Play-In Stage 1`,
+        'E7vE8': `${eastConf} Play-In Stage 1`,
+        'W9vW10': `${westConf} Play-In Stage 1`,
+        'E9vE10': `${eastConf} Play-In Stage 1`,
+        'W8thSeedGame': `${westConf} Play-In Stage 2`,
+        'E8thSeedGame': `${eastConf} Play-In Stage 2`,
+        'W1vW8': `${westConf} Round 1 - ${gameNumberString}`,
+        'W4vW5': `${westConf} Round 1 - ${gameNumberString}`,
+        'W3vW6': `${westConf} Round 1 - ${gameNumberString}`,
+        'W2vW7': `${westConf} Round 1 - ${gameNumberString}`,
+        'E1vE8': `${eastConf} Round 1 - ${gameNumberString}`,
+        'E4vE5': `${eastConf} Round 1 - ${gameNumberString}`,
+        'E3vE6': `${eastConf} Round 1 - ${gameNumberString}`,
+        'E2vE7': `${eastConf} Round 1 - ${gameNumberString}`,
+        'W-R2-T': `${westConf} Round 2 - ${gameNumberString}`,
+        'W-R2-B': `${westConf} Round 2 - ${gameNumberString}`,
+        'E-R2-T': `${eastConf} Round 2 - ${gameNumberString}`,
+        'E-R2-B': `${eastConf} Round 2 - ${gameNumberString}`,
+        'WCF': `${wcfLabel} ${gameNumberString}`,
+        'ECF': `${ecfLabel} ${gameNumberString}`,
+        'Finals': `${finalsLabel} ${gameNumberString}`,
     };
 
     const label = seriesTypeMap[baseSeriesId];
