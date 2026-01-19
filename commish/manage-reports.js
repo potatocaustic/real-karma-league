@@ -362,6 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const shortConferences = getShortConferenceNames();
         const primaryConf = shortConferences.primary; // North for minor, East for major
         const secondaryConf = shortConferences.secondary; // South for minor, West for major
+        const isMinor = window.__currentLeague === 'minor';
+        const wcfLabel = isMinor ? 'SCF' : 'WCF';
+        const ecfLabel = isMinor ? 'NCF' : 'ECF';
+        const finalsLabel = isMinor ? 'RKML Finals' : 'RKL Finals';
 
         const seriesTypeMap = {
             'W7vW8': `${secondaryConf} Play-In Stage 1`, 'E7vE8': `${primaryConf} Play-In Stage 1`,
@@ -373,8 +377,8 @@ document.addEventListener('DOMContentLoaded', () => {
             'E3vE6': `${primaryConf} Round 1 - ${gameNumberString}`, 'E2vE7': `${primaryConf} Round 1 - ${gameNumberString}`,
             'W-R2-T': `${secondaryConf} Round 2 - ${gameNumberString}`, 'W-R2-B': `${secondaryConf} Round 2 - ${gameNumberString}`,
             'E-R2-T': `${primaryConf} Round 2 - ${gameNumberString}`, 'E-R2-B': `${primaryConf} Round 2 - ${gameNumberString}`,
-            'WCF': `${secondaryConf}CF ${gameNumberString}`, 'ECF': `${primaryConf}CF ${gameNumberString}`,
-            'Finals': `RKL Finals ${gameNumberString}`,
+            'WCF': `${wcfLabel} ${gameNumberString}`, 'ECF': `${ecfLabel} ${gameNumberString}`,
+            'Finals': `${finalsLabel} ${gameNumberString}`,
         };
         const label = seriesTypeMap[baseSeriesId];
         return label ? label.trim() : seriesName;
