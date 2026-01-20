@@ -91,20 +91,41 @@ exports.savePostseasonDates = onCall({ region: "us-central1" }, async (request) 
  * @param {string} seasonId - Season ID
  * @param {Object} dates - Dates configuration
  * @param {string} league - League context ('major' or 'minor')
+ * @param {Array} [preCalculatedTeamStats] - Optional pre-calculated team stats with postseeds (used to avoid race conditions)
  * @returns {Object} - { success: boolean, message?: string, error?: string }
  */
-async function generatePostseasonGamesCore(seasonId, dates, league) {
+async function generatePostseasonGamesCore(seasonId, dates, league, preCalculatedTeamStats = null) {
     console.log(`[Core] Generating postseason schedule for ${seasonId} (${league} league)`);
 
-    const teamsRef = db.collection(getCollectionName('v2_teams', league));
-    const teamsSnap = await teamsRef.get();
-    const allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let teamRecords;
 
-    const teamRecords = await Promise.all(allTeams.map(async (team) => {
-        const recordRef = db.doc(`${getCollectionName('v2_teams', league)}/${team.id}/${getCollectionName('seasonal_records', league)}/${seasonId}`);
-        const recordSnap = await recordRef.get();
-        return { ...team, ...recordSnap.data() };
-    }));
+    if (preCalculatedTeamStats && preCalculatedTeamStats.length > 0) {
+        // Use pre-calculated stats passed from the caller (avoids race condition with batch commit)
+        console.log(`[Core] Using ${preCalculatedTeamStats.length} pre-calculated team stats`);
+
+        // Fetch team base data to merge with pre-calculated stats
+        const teamsRef = db.collection(getCollectionName('v2_teams', league));
+        const teamsSnap = await teamsRef.get();
+        const teamBaseData = new Map(teamsSnap.docs.map(doc => [doc.id, { id: doc.id, ...doc.data() }]));
+
+        // Merge base team data with pre-calculated stats
+        teamRecords = preCalculatedTeamStats.map(stats => ({
+            ...teamBaseData.get(stats.teamId),
+            ...stats,
+            id: stats.teamId  // Ensure id is set
+        }));
+    } else {
+        // Read from database (for manual generation or when no pre-calculated data provided)
+        const teamsRef = db.collection(getCollectionName('v2_teams', league));
+        const teamsSnap = await teamsRef.get();
+        const allTeams = teamsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        teamRecords = await Promise.all(allTeams.map(async (team) => {
+            const recordRef = db.doc(`${getCollectionName('v2_teams', league)}/${team.id}/${getCollectionName('seasonal_records', league)}/${seasonId}`);
+            const recordSnap = await recordRef.get();
+            return { ...team, ...recordSnap.data() };
+        }));
+    }
 
     // Use league-specific conference names
     const conferences = league === 'minor'
@@ -201,8 +222,9 @@ async function generatePostseasonGamesCore(seasonId, dates, league) {
  * Called internally from stats-helpers when isRegularSeasonComplete is detected
  * @param {string} seasonId - Season ID
  * @param {string} league - League context ('major' or 'minor')
+ * @param {Array} [preCalculatedTeamStats] - Optional pre-calculated team stats with postseeds (avoids race condition)
  */
-async function autoGeneratePostseasonSchedule(seasonId, league) {
+async function autoGeneratePostseasonSchedule(seasonId, league, preCalculatedTeamStats = null) {
     console.log(`[Auto] Checking postseason auto-generation for ${seasonId} (${league} league)`);
 
     const seasonRef = db.collection(getCollectionName('seasons', league)).doc(seasonId);
@@ -234,9 +256,12 @@ async function autoGeneratePostseasonSchedule(seasonId, league) {
     }
 
     console.log(`[Auto] Triggering automatic postseason schedule generation for ${seasonId}`);
+    if (preCalculatedTeamStats) {
+        console.log(`[Auto] Using ${preCalculatedTeamStats.length} pre-calculated team stats to avoid race condition`);
+    }
 
     try {
-        const result = await generatePostseasonGamesCore(seasonId, postseasonConfig.dates, league);
+        const result = await generatePostseasonGamesCore(seasonId, postseasonConfig.dates, league, preCalculatedTeamStats);
 
         if (result.success) {
             // Update the config to mark as generated

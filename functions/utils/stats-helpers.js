@@ -284,8 +284,10 @@ async function updateAllTeamStats(seasonId, isPostseason, batch, newDailyScores,
         // Trigger auto-generation of postseason schedule when regular season completes
         if (isRegularSeasonComplete) {
             console.log(`Regular season complete for ${seasonId}. Checking postseason auto-generation...`);
-            // Run async but don't await - we don't want to block the batch commit
-            autoGeneratePostseasonSchedule(seasonId, league).catch(err => {
+            // Pass the calculated stats directly to avoid race condition with batch commit
+            // The batch hasn't committed yet, so autoGeneratePostseasonSchedule would read stale data
+            // from the database if we didn't pass the freshly calculated values here
+            autoGeneratePostseasonSchedule(seasonId, league, calculatedStats).catch(err => {
                 console.error(`Error in auto-generate postseason: ${err.message}`);
             });
         }
