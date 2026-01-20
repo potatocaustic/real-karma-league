@@ -238,6 +238,50 @@ async function handleGameUncompletion(event, league = LEAGUES.MAJOR) {
     batch.delete(team1ScoreRef);
     batch.delete(team2ScoreRef);
 
+    // For postseason games, decrement series win counts
+    if (isPostseason && before.winner && before.series_id) {
+        const winnerId = before.winner;
+
+        // Get current series state from this game's stored values
+        let newTeam1Wins = (before.team1_wins || 0);
+        let newTeam2Wins = (before.team2_wins || 0);
+
+        // Decrement the winner's count
+        if (winnerId === before.team1_id && newTeam1Wins > 0) {
+            newTeam1Wins--;
+        } else if (winnerId === before.team2_id && newTeam2Wins > 0) {
+            newTeam2Wins--;
+        }
+
+        // Recalculate series_winner (should now be empty since we're removing a win)
+        const winConditions = { 'Round 1': 2, 'Round 2': 2, 'Conf Finals': 3, 'Finals': 4 };
+        const winsNeeded = winConditions[before.week];
+        let seriesWinner = '';
+        if (winsNeeded) {
+            if (newTeam1Wins >= winsNeeded) {
+                seriesWinner = before.team1_id;
+            } else if (newTeam2Wins >= winsNeeded) {
+                seriesWinner = before.team2_id;
+            }
+        }
+
+        // Update ALL games in the series with corrected counts
+        const seriesGamesQuery = db.collection(getCollectionName('seasons', league))
+            .doc(seasonId).collection('post_games')
+            .where('series_id', '==', before.series_id);
+        const seriesGamesSnap = await seriesGamesQuery.get();
+
+        seriesGamesSnap.forEach(doc => {
+            batch.update(doc.ref, {
+                team1_wins: newTeam1Wins,
+                team2_wins: newTeam2Wins,
+                series_winner: seriesWinner
+            });
+        });
+
+        console.log(`Decremented series wins for ${before.series_id}: now ${newTeam1Wins}-${newTeam2Wins}`);
+    }
+
     // Recalculate team stats (passing empty newDailyScores since we're removing, not adding)
     await updateAllTeamStats(seasonId, isPostseason, batch, [], league);
 
