@@ -623,11 +623,16 @@ async function loadRecentGames() {
 // js/RKL-S9.js
 
 async function loadSeasonInfo(seasonData) {
-    const currentWeekSpan = document.getElementById('current-week');
+    const currentWeekContainer = document.getElementById('current-week-container');
     const seasonStatsContainer = document.getElementById('season-stats');
     const playoffBtnContainer = document.getElementById('playoff-button-container');
 
-    if (!currentWeekSpan || !seasonStatsContainer || !playoffBtnContainer) return;
+    if (!currentWeekContainer || !seasonStatsContainer || !playoffBtnContainer) return;
+
+    // Reset the current week container to its original structure
+    // This is necessary because the champion display replaces the innerHTML
+    currentWeekContainer.innerHTML = '<p><strong>Current Week:</strong> <span id="current-week">Loading...</span></p>';
+    const currentWeekSpan = document.getElementById('current-week');
 
     const currentWeek = seasonData.current_week || '1';
 
@@ -658,7 +663,7 @@ async function loadSeasonInfo(seasonData) {
             const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
             const logoExt = winnerInfo.logo_ext || (specialTeamIds.includes(winnerInfo.id) ? 'png' : 'webp');
 
-            currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.${logoExt}" onerror="this.style.display='none'"/> ${escapeHTML(winnerInfo.team_name)} 🏆</p>`;
+            currentWeekContainer.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.${logoExt}" onerror="this.style.display='none'"/> ${escapeHTML(winnerInfo.team_name)} 🏆</p>`;
         } else {
             currentWeekSpan.textContent = "Season Complete";
         }
@@ -715,7 +720,7 @@ async function loadSeasonInfo(seasonData) {
             const specialTeamIds = ["EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
             const logoExt = winnerInfo.logo_ext || (specialTeamIds.includes(winnerInfo.id) ? 'png' : 'webp');
 
-            currentWeekSpan.parentElement.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.${logoExt}" onerror="this.style.display='none'"/> ${escapeHTML(winnerInfo.team_name)} 🏆</p>`;
+            currentWeekContainer.innerHTML = `<p class="champion-display">🏆 League Champion: <img src="../icons/${winnerInfo.id}.${logoExt}" onerror="this.style.display='none'"/> ${escapeHTML(winnerInfo.team_name)} 🏆</p>`;
         }
         playoffBtnContainer.style.display = 'block';
     }
