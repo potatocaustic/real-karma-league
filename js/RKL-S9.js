@@ -491,12 +491,25 @@ async function loadRecentGames() {
     gamesList.innerHTML = '<div class="loading">Loading recent games...</div>';
 
     try {
-        // --- THIS IS THE FIX ---
-        // Fetch a larger pool of candidates to ensure the true most recent game is found,
-        // compensating for non-chronological document IDs.
-        const regularSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, 'games'), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
-        const postSeasonGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, 'post_games'), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
-        const exhibitionGamesQuery = query(collection(db, collectionNames.seasons, activeSeasonId, 'exhibition_games'), where('completed', '==', 'TRUE'), orderBy(documentId(), 'desc'), limit(15));
+        // Fetch recent completed games from each collection, ordered by date descending
+        const regularSeasonGamesQuery = query(
+            collection(db, collectionNames.seasons, activeSeasonId, 'games'),
+            where('completed', '==', 'TRUE'),
+            orderBy('date', 'desc'),
+            limit(1)
+        );
+        const postSeasonGamesQuery = query(
+            collection(db, collectionNames.seasons, activeSeasonId, 'post_games'),
+            where('completed', '==', 'TRUE'),
+            orderBy('date', 'desc'),
+            limit(1)
+        );
+        const exhibitionGamesQuery = query(
+            collection(db, collectionNames.seasons, activeSeasonId, 'exhibition_games'),
+            where('completed', '==', 'TRUE'),
+            orderBy('date', 'desc'),
+            limit(1)
+        );
 
         const [regSnap, postSnap, exhSnap] = await Promise.all([
             getDocs(regularSeasonGamesQuery),
@@ -504,27 +517,29 @@ async function loadRecentGames() {
             getDocs(exhibitionGamesQuery)
         ]);
 
-        const potentialGames = [];
-        // Now we populate the array with all fetched games, not just one from each
-        if (!regSnap.empty) regSnap.docs.forEach(doc => potentialGames.push({ doc, collection: 'games' }));
-        if (!postSnap.empty) postSnap.docs.forEach(doc => potentialGames.push({ doc, collection: 'post_games' }));
-        if (!exhSnap.empty) exhSnap.docs.forEach(doc => potentialGames.push({ doc, collection: 'exhibition_games' }));
+        // Get the most recent game from each collection type
+        const candidates = [];
+        if (!regSnap.empty) candidates.push({ doc: regSnap.docs[0], collection: 'games' });
+        if (!postSnap.empty) candidates.push({ doc: postSnap.docs[0], collection: 'post_games' });
+        if (!exhSnap.empty) candidates.push({ doc: exhSnap.docs[0], collection: 'exhibition_games' });
 
-
-        if (potentialGames.length === 0) {
+        if (candidates.length === 0) {
             gamesList.innerHTML = '<div class="loading">No completed games yet.</div>';
             return;
         }
 
-        // This sort (from the previous fix) now works because the correct games are in the pool
-        potentialGames.sort((a, b) => new Date(b.doc.data().date) - new Date(a.doc.data().date));
-        
-        const mostRecentGameInfo = potentialGames[0];
-        
+        // Find which collection has the most recent game
+        candidates.sort((a, b) => new Date(b.doc.data().date) - new Date(a.doc.data().date));
+        const mostRecentGameInfo = candidates[0];
         const mostRecentDate = mostRecentGameInfo.doc.data().date;
         const collectionToQuery = mostRecentGameInfo.collection;
 
-        const gamesSnapshot = await getDocs(query(collection(db, collectionNames.seasons, activeSeasonId, collectionToQuery), where('date', '==', mostRecentDate), where('completed', '==', 'TRUE')));
+        // Fetch all completed games from that date in the winning collection
+        const gamesSnapshot = await getDocs(query(
+            collection(db, collectionNames.seasons, activeSeasonId, collectionToQuery),
+            where('date', '==', mostRecentDate),
+            where('completed', '==', 'TRUE')
+        ));
         const games = gamesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
         if (games.length === 0) {
