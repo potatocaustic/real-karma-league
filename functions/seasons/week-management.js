@@ -76,18 +76,28 @@ async function performWeekUpdate(league = LEAGUES.MAJOR) {
             // Get all regular season games to determine the season state
             const allGamesSnap = await gamesRef.get();
 
-            console.log(`Found ${allGamesSnap.size} total regular season games for ${league} league.`);
+            // Filter out placeholder/invalid documents (those without a valid completed field)
+            const validGames = allGamesSnap.docs.filter(doc => {
+                const completed = doc.data().completed;
+                return completed === 'TRUE' || completed === 'FALSE';
+            });
 
-            if (allGamesSnap.empty) {
-                // No games scheduled at all - beginning of season
-                console.log(`No games scheduled yet for ${league} league. Defaulting to Week 1.`);
+            console.log(`Found ${allGamesSnap.size} total documents, ${validGames.length} valid games for ${league} league.`);
+
+            if (validGames.length === 0) {
+                // No valid games scheduled at all - beginning of season
+                console.log(`No valid games scheduled yet for ${league} league. Defaulting to Week 1.`);
                 await activeSeasonDoc.ref.set({
                     current_week: "1"
                 }, { merge: true });
             } else {
                 // There are games. Check if they're all completed or if this is a data issue
-                const allCompleted = allGamesSnap.docs.every(doc => doc.data().completed === 'TRUE');
-                const hasWeek1Games = allGamesSnap.docs.some(doc => doc.data().week === 'Week 1');
+                const allCompleted = validGames.every(doc => doc.data().completed === 'TRUE');
+                // Check for week 1 games using both formats: 'Week 1' and '1'
+                const hasWeek1Games = validGames.some(doc => {
+                    const week = doc.data().week;
+                    return week === 'Week 1' || week === '1';
+                });
 
                 console.log(`All games completed: ${allCompleted}, Has Week 1 games: ${hasWeek1Games}`);
 
