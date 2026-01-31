@@ -117,6 +117,17 @@ service cloud.firestore {
       allow write: if isUserAdmin();
     }
 
+    // Relegation/Promotion collections (shared between leagues)
+    match /relegation_games/{seasonId} {
+      allow read: if request.auth != null;
+      allow write: if isUserAdmin();
+    }
+
+    match /promotion_history/{seasonId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only backend can write
+    }
+
     match /style_rollout/{doc=**} {
       allow read: if true;
       allow write: if isUserAdmin();

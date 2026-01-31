@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en" data-style-rollout="modern">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8LNVNG5M1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-E8LNVNG5M1');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relegation Management | RKL Commish</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        // Detect league immediately to prevent flash
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <style>
+        .relegation-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .status-panel {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-panel h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .status-item .label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .status-item .value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-badge.pending { background: var(--warning-bg); color: var(--warning-text); }
+        .status-badge.matchup_set { background: var(--info-bg); color: var(--info-text); }
+        .status-badge.scheduled { background: var(--info-bg); color: var(--info-text); }
+        .status-badge.completed { background: var(--success-bg); color: var(--success-text); }
+        .status-badge.executed { background: var(--success-bg); color: var(--success-text); }
+        .status-badge.no_change { background: var(--neutral-bg); color: var(--text-secondary); }
+
+        .matchup-panel {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .team-card {
+            background: var(--card-bg-alt);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .team-card.major { border-left: 4px solid var(--major-color, #1a73e8); }
+        .team-card.minor { border-left: 4px solid var(--minor-color, #34a853); }
+
+        .team-card .league-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .team-card .team-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .team-card .team-record {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .vs-badge {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
+
+        .action-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn-action {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--accent-color);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: var(--danger-hover);
+        }
+
+        .btn-secondary {
+            background: var(--card-bg-alt);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--hover-bg);
+        }
+
+        .result-panel {
+            margin-top: 1rem;
+        }
+
+        .result-panel .winner-announcement {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .winner-announcement.promotion-required {
+            background: var(--warning-bg);
+            color: var(--warning-text);
+        }
+
+        .winner-announcement.no-promotion {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+
+        /* Confirmation Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.is-visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            color: var(--danger-color);
+        }
+
+        .modal-summary {
+            background: var(--card-bg-alt);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .modal-summary h4 {
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .modal-summary ul {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        .modal-summary li {
+            margin-bottom: 0.25rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .info-message {
+            background: var(--info-bg);
+            color: var(--info-text);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .error-message {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-bottom: 1rem;
+        }
+
+        .back-link:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon"></span>
+        <span class="moon-icon"></span>
+      </button>
+      <h1>
+        <script>
+          document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+        </script>
+        <script>
+          document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+        </script>
+      </h1>
+      <div id="league-switcher-mount">
+        <div class="league-switcher">
+            <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="17 1 21 5 17 9"></polyline>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                    <polyline points="7 23 3 19 7 15"></polyline>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                </svg>
+            </button>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="/commish/dashboard.html">Dashboard</a></li>
+            <li><a href="/commish/manage-games.html">Manage Games</a></li>
+            <li><a href="/commish/manage-transactions.html">Transactions</a></li>
+            <li><a href="/commish/manage-players.html">Players</a></li>
+            <li><a href="/commish/manage-teams.html">Teams</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/commish/dashboard.html" class="back-link">&larr; Back to Dashboard</a>
+        <h2>Promotion/Relegation Management</h2>
+        <p id="page-subtitle">Manage end-of-season promotion/relegation between Major and Minor leagues.</p>
+
+        <div class="relegation-container">
+            <!-- Season Status Panel -->
+            <div class="status-panel" id="season-status-panel">
+                <h3>Season Status</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="label">Major League Season</span>
+                        <span class="value" id="major-season-id">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Major League Status</span>
+                        <span class="value" id="major-season-status">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Minor League Status</span>
+                        <span class="value" id="minor-season-status">--</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Relegation Status</span>
+                        <span class="status-badge pending" id="relegation-status">pending</span>
+                    </div>
+                </div>
+                <div class="action-panel" id="detect-action-panel" style="display: none;">
+                    <button class="btn-action btn-primary" id="detect-matchup-btn">Detect Relegation Matchup</button>
+                </div>
+            </div>
+
+            <!-- Matchup Panel -->
+            <div class="status-panel" id="matchup-panel" style="display: none;">
+                <h3>Relegation Matchup</h3>
+                <div class="matchup-panel">
+                    <div class="team-card major">
+                        <div class="league-label">Major League (Worst Record)</div>
+                        <div class="team-name" id="major-team-name">--</div>
+                        <div class="team-record" id="major-team-record">-- record</div>
+                        <div class="team-record" id="major-team-sortscore">Sortscore: --</div>
+                    </div>
+                    <div class="vs-badge">VS</div>
+                    <div class="team-card minor">
+                        <div class="league-label">Minor League Champion</div>
+                        <div class="team-name" id="minor-team-name">--</div>
+                        <div class="team-record" id="minor-team-info"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Status Panel -->
+            <div class="status-panel" id="game-panel" style="display: none;">
+                <h3>Relegation Game</h3>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="label">Game Date</span>
+                        <span class="value" id="game-date">Not Scheduled</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Game Status</span>
+                        <span class="value" id="game-status">--</span>
+                    </div>
+                </div>
+                <div class="action-panel" id="schedule-action-panel">
+                    <a href="/commish/manage-games.html" class="btn-action btn-secondary" id="schedule-game-link">Schedule Relegation Game</a>
+                </div>
+            </div>
+
+            <!-- Result Panel -->
+            <div class="status-panel" id="result-panel" style="display: none;">
+                <h3>Relegation Result</h3>
+                <div class="result-panel">
+                    <div class="winner-announcement" id="winner-announcement">--</div>
+                </div>
+                <div class="action-panel" id="execute-action-panel" style="display: none;">
+                    <button class="btn-action btn-danger" id="execute-promotion-btn">Execute Promotion</button>
+                </div>
+            </div>
+
+            <!-- Execution Complete Panel -->
+            <div class="status-panel" id="execution-panel" style="display: none;">
+                <h3>Promotion Executed</h3>
+                <div class="info-message" id="execution-info">
+                    Promotion/relegation has been executed successfully.
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div class="error-message" id="error-display" style="display: none;"></div>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-content">
+            <h3>Confirm Promotion/Relegation</h3>
+            <p>This action will permanently swap the following teams between leagues. This cannot be undone easily.</p>
+
+            <div class="modal-summary">
+                <h4>Team being PROMOTED to Major League:</h4>
+                <ul>
+                    <li><strong id="confirm-promoted-team">--</strong></li>
+                    <li>All players will move to Major league</li>
+                    <li>All future draft picks will move to Major league</li>
+                </ul>
+            </div>
+
+            <div class="modal-summary">
+                <h4>Team being RELEGATED to Minor League:</h4>
+                <ul>
+                    <li><strong id="confirm-relegated-team">--</strong></li>
+                    <li>All players will move to Minor league</li>
+                    <li>All future draft picks will move to Minor league</li>
+                </ul>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-action btn-secondary" id="cancel-execute-btn">Cancel</button>
+                <button class="btn-action btn-danger" id="confirm-execute-btn">Confirm Promotion</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/commish/relegation.js"></script>
+    <script type="module">
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+        const switcher = createLeagueSwitcher();
+        document.getElementById('league-switcher-mount').appendChild(switcher);
+    </script>
+</body>
+</html>

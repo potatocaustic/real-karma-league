@@ -69,6 +69,9 @@ const sheetsSync = require('./data-sync/sheets-sync');
 // Import auth modules
 const activation = require('./auth/activation');
 
+// Import relegation modules
+const relegation = require('./relegation');
+
 const USE_DEV_COLLECTIONS = false;
 
 /**
@@ -211,6 +214,13 @@ exports.ensureUserDocument = activation.ensureUserDocument;
 exports.activateUserWithCode = activation.activateUserWithCode;
 exports.revokeActivationCode = activation.revokeActivationCode;
 exports.listActivationCodes = activation.listActivationCodes;
+
+// Re-export relegation functions from extracted modules
+exports.detectRelegationMatchup = relegation.detectRelegationMatchup;
+exports.getRelegationStatus = relegation.getRelegationStatus;
+exports.executePromotion = relegation.executePromotion;
+exports.onRelegationGameComplete = relegation.onRelegationGameComplete;
+exports.onRelegationGameScheduled = relegation.onRelegationGameScheduled;
 
 module.exports = { ...module.exports, ...require('./draft-prospects') };
 module.exports = { ...module.exports, ...require('./free-agents') };
