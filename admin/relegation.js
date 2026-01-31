@@ -1,9 +1,9 @@
-// /commish/relegation.js
+// /admin/relegation.js
 
-import { auth, db, functions, onAuthStateChanged, doc, getDoc, httpsCallable } from '/js/firebase-init.js';
-import { initCommishAuth } from '/commish/commish.js';
+import { auth, db, functions, onAuthStateChanged, signOut, doc, getDoc, httpsCallable } from '/js/firebase-init.js';
 
 // --- Page Elements ---
+let loadingContainer, adminContainer, authStatusDiv;
 let majorSeasonIdEl, majorSeasonStatusEl, minorSeasonStatusEl, relegationStatusEl;
 let matchupPanel, majorTeamNameEl, majorTeamRecordEl, majorTeamSortscoreEl;
 let minorTeamNameEl, minorTeamInfoEl;
@@ -20,6 +20,10 @@ let errorDisplay;
 let currentRelegationData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+    loadingContainer = document.getElementById('loading-container');
+    adminContainer = document.getElementById('admin-container');
+    authStatusDiv = document.getElementById('auth-status');
+
     // Season status elements
     majorSeasonIdEl = document.getElementById('major-season-id');
     majorSeasonStatusEl = document.getElementById('major-season-status');
@@ -70,9 +74,51 @@ document.addEventListener('DOMContentLoaded', () => {
     cancelExecuteBtn.addEventListener('click', closeConfirmModal);
     confirmExecuteBtn.addEventListener('click', handleExecutePromotion);
 
-    // Initialize page with commish auth
-    initCommishAuth(initializePage);
+    // Initialize with admin auth
+    initAdminAuth();
 });
+
+function initAdminAuth() {
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // If the user is anonymous, sign them out and redirect to login
+            if (user.isAnonymous) {
+                await signOut(auth);
+                window.location.href = '/login.html?target=admin';
+                return;
+            }
+
+            const userRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userRef);
+
+            if (userDoc.exists() && userDoc.data().role === 'admin') {
+                loadingContainer.style.display = 'none';
+                adminContainer.style.display = 'block';
+                authStatusDiv.innerHTML = `Welcome, Admin | <a href="#" id="logout-btn">Logout</a>`;
+                addLogoutListener();
+                await initializePage();
+            } else {
+                loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
+                authStatusDiv.innerHTML = `Access Denied | <a href="#" id="logout-btn">Logout</a>`;
+                addLogoutListener();
+            }
+        } else {
+            window.location.href = '/login.html?target=admin';
+        }
+    });
+}
+
+function addLogoutListener() {
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            auth.signOut().then(() => {
+                window.location.href = '/login.html?target=admin';
+            });
+        });
+    }
+}
 
 async function initializePage() {
     try {

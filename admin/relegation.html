@@ -12,7 +12,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relegation Management | RKL Commish</title>
+    <title>Relegation Management | RKL Admin</title>
     <link rel="stylesheet" href="/css/global-styles.css">
     <link rel="stylesheet" href="/admin/admin-styles.css">
     <link rel="stylesheet" href="/css/league-switcher.css">
@@ -335,17 +335,17 @@
       <nav>
         <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
         <ul id="nav-menu">
-            <li><a href="/commish/dashboard.html">Dashboard</a></li>
-            <li><a href="/commish/manage-games.html">Manage Games</a></li>
-            <li><a href="/commish/manage-transactions.html">Transactions</a></li>
-            <li><a href="/commish/manage-players.html">Players</a></li>
-            <li><a href="/commish/manage-teams.html">Teams</a></li>
+            <li><a href="/admin/dashboard.html">Dashboard</a></li>
+            <li><a href="/admin/manage-games.html">Manage Games</a></li>
+            <li><a href="/admin/manage-transactions.html">Transactions</a></li>
+            <li><a href="/admin/manage-players.html">Players</a></li>
+            <li><a href="/admin/manage-teams.html">Teams</a></li>
         </ul>
       </nav>
     </header>
 
     <main id="admin-container" style="display: none;">
-        <a href="/commish/dashboard.html" class="back-link">&larr; Back to Dashboard</a>
+        <a href="/admin/dashboard.html" class="back-link">&larr; Back to Dashboard</a>
         <h2>Promotion/Relegation Management</h2>
         <p id="page-subtitle">Manage end-of-season promotion/relegation between Major and Minor leagues.</p>
 
@@ -409,7 +409,7 @@
                     </div>
                 </div>
                 <div class="action-panel" id="schedule-action-panel">
-                    <a href="/commish/manage-games.html" class="btn-action btn-secondary" id="schedule-game-link">Schedule Relegation Game</a>
+                    <a href="/admin/manage-games.html" class="btn-action btn-secondary" id="schedule-game-link">Schedule Relegation Game</a>
                 </div>
             </div>
 
@@ -472,7 +472,7 @@
 
     <script type="module" src="/js/firebase-init.js"></script>
     <script type="module" src="/js/main.js"></script>
-    <script type="module" src="/commish/relegation.js"></script>
+    <script type="module" src="/admin/relegation.js"></script>
     <script type="module">
         import { createLeagueSwitcher } from '/common/league-switcher.js';
         const switcher = createLeagueSwitcher();
