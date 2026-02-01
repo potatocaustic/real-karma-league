@@ -263,7 +263,7 @@
         .dark-mode .draft-table th {
             background: linear-gradient(145deg, #111827, #0f172a);
             color: #e5e7eb;
-            border-bottom: 1px solid #4a5568;
+            border-bottom: 1px solid #6b7280 !important;
         }
         .dark-mode .draft-table td {
             border-bottom-color: #2d3748;
@@ -630,8 +630,7 @@
 
     <!-- Handle league switching -->
     <script>
-        function updateLeagueDisplay() {
-            const league = window.__currentLeague || localStorage.getItem('rkl_current_league') || 'major';
+        function updateLeagueDisplay(league) {
             const majorContent = document.getElementById('major-content');
             const minorPlaceholder = document.getElementById('minor-placeholder');
 
@@ -645,10 +644,12 @@
         }
 
         // Run on page load
-        updateLeagueDisplay();
+        updateLeagueDisplay(window.__currentLeague || localStorage.getItem('rkl_current_league') || 'major');
 
         // Listen for league changes
-        window.addEventListener('leagueChanged', updateLeagueDisplay);
+        window.addEventListener('leagueChanged', (event) => {
+            updateLeagueDisplay(event.detail.league);
+        });
     </script>
 
     <!-- League switcher with feature flag support -->
