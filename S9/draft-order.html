@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en" data-style-rollout="modern">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8LNVNG5M1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-E8LNVNG5M1');
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>S10 Draft Order</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css" />
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        // Detect league immediately to prevent flash
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const leagueParam = urlParams.get('league');
+            if (leagueParam === 'major' || leagueParam === 'minor') {
+                window.__currentLeague = leagueParam;
+                localStorage.setItem('rkl_current_league', leagueParam);
+            } else {
+                window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+            }
+        })();
+    </script>
+    <script>
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+    <style>
+        /* Page-specific styles */
+        .draft-order-container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto 2rem auto;
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+        .draft-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(145deg, #eef2ff, #e0f2fe);
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .draft-header h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin: 0;
+            color: #0f172a;
+        }
+        .round-badge {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .draft-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .draft-table th {
+            background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            color: #1f2937;
+            border-bottom: 1px solid #e5e7eb;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+        .draft-table td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.95rem;
+            vertical-align: middle;
+            color: #111827;
+            transition: border-color 0.3s;
+        }
+        .draft-table tr:hover {
+            background: linear-gradient(145deg, #f8fafc, #edf2ff);
+        }
+        .draft-table .pick-num {
+            font-weight: 600;
+            text-align: center;
+            width: 50px;
+        }
+
+        /* Team cell - matches draft-lottery pattern */
+        .team-cell {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #0f172a;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        .team-cell:hover {
+            color: #2563eb;
+        }
+        .team-cell-content {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .team-logo {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            flex-shrink: 0;
+            border-radius: 4px;
+        }
+        .font-semibold {
+            font-weight: 600;
+        }
+        .original-team-traded {
+            opacity: 0.6;
+            text-decoration: line-through;
+            font-size: 0.85rem;
+        }
+
+        /* Forfeited picks */
+        .forfeited {
+            background-color: #fef3c7 !important;
+        }
+        .forfeited:hover {
+            background-color: #fde68a !important;
+        }
+        .forfeited-badge {
+            background-color: #dc2626;
+            color: white;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            white-space: nowrap;
+        }
+
+        /* Quick links */
+        .quick-links-container {
+            text-align: center;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .quick-link-btn {
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
+            color: #111827;
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        }
+        .quick-link-btn:hover {
+            background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
+            border-color: #d1d5db;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Info box */
+        .draft-info {
+            background: linear-gradient(145deg, #e0f2fe, #dbeafe);
+            border: 1px solid #93c5fd;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .draft-info strong {
+            color: #1e40af;
+        }
+
+        /* Round section spacing */
+        .round-section {
+            margin-bottom: 2rem;
+        }
+
+        /* Mobile-hidden columns */
+        .hidden-mobile {
+            display: table-cell;
+        }
+
+        /* Minor league placeholder */
+        .minor-placeholder {
+            background: linear-gradient(145deg, #fef3c7, #fde68a);
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+        .minor-placeholder h3 {
+            color: #92400e;
+            margin-bottom: 1rem;
+        }
+        .minor-placeholder p {
+            color: #78350f;
+            font-size: 1rem;
+        }
+
+        /* Major league content - hidden when minor */
+        .major-only {
+            display: block;
+        }
+        .minor-only {
+            display: none;
+        }
+
+        /* Dark mode overrides */
+        .dark-mode .draft-order-container {
+            background: linear-gradient(145deg, #1a1f2e, #1e2433);
+            box-shadow: 0 16px 35px rgba(0, 0, 0, 0.35);
+            border: 1px solid #2d3748;
+        }
+        .dark-mode .draft-header {
+            background: linear-gradient(145deg, #0f172a, #111827);
+            border-bottom-color: #2d3748;
+        }
+        .dark-mode .draft-header h3 {
+            color: #e5e7eb;
+        }
+        .dark-mode .draft-table th {
+            background: linear-gradient(145deg, #111827, #0f172a);
+            color: #e5e7eb;
+            border-bottom-color: #2d3748;
+        }
+        .dark-mode .draft-table td {
+            border-bottom-color: #2d3748;
+            color: #e5e7eb;
+        }
+        .dark-mode .draft-table tr:hover {
+            background: linear-gradient(145deg, #111827, #1a2333);
+        }
+        .dark-mode .team-cell {
+            color: #e5e7eb;
+        }
+        .dark-mode .team-cell:hover {
+            color: #93c5fd;
+        }
+        .dark-mode .quick-link-btn {
+            background: linear-gradient(145deg, #1f2937, #111827);
+            color: #e5e7eb;
+            border-color: #2d3748;
+            box-shadow: 0 16px 32px rgba(0,0,0,0.4);
+        }
+        .dark-mode .quick-link-btn:hover {
+            background: linear-gradient(145deg, #111827, #0b1220);
+            border-color: #374151;
+        }
+        .dark-mode .forfeited {
+            background-color: #422006 !important;
+        }
+        .dark-mode .forfeited:hover {
+            background-color: #4a2409 !important;
+        }
+        .dark-mode .draft-info {
+            background: linear-gradient(145deg, #1e3a5f, #172554);
+            border-color: #1d4ed8;
+            color: #e0e0e0;
+        }
+        .dark-mode .draft-info strong {
+            color: #93c5fd;
+        }
+        .dark-mode .minor-placeholder {
+            background: linear-gradient(145deg, #422006, #451a03);
+            border-color: #92400e;
+        }
+        .dark-mode .minor-placeholder h3 {
+            color: #fcd34d;
+        }
+        .dark-mode .minor-placeholder p {
+            color: #fbbf24;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .hidden-mobile {
+                display: none;
+            }
+            .draft-table th, .draft-table td {
+                padding: 0.6rem 0.5rem;
+            }
+            .draft-header {
+                padding: 0.75rem 1rem;
+            }
+            .draft-header h3 {
+                font-size: 1.1rem;
+            }
+            .round-badge {
+                font-size: 0.75rem;
+                padding: 0.2rem 0.5rem;
+            }
+            .team-logo {
+                width: 24px;
+                height: 24px;
+            }
+            .team-cell {
+                gap: 0.5rem;
+            }
+            .team-cell-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.15rem;
+            }
+            .original-team-traded {
+                font-size: 0.75rem;
+            }
+            .forfeited-badge {
+                font-size: 0.6rem;
+                padding: 0.1rem 0.35rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            main {
+                padding: 1rem;
+            }
+            .draft-info {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+            }
+            .quick-link-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body class="s9-page">
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <div id="league-switcher-mount">
+            <div class="league-switcher">
+                <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <script>
+                  document.write('<img src="/icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+                </script>
+                <script>
+                  document.write('<span class="header-text">Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+                </script>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S9.html" class="dropbtn">S9 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                        <a href="/S7/RKL-S7.html">S7 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Season Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-order.html">S10 Draft Order</a>
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Players &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="players.html">Player Search</a>
+                        <a href="free-agents.html">Free Agents</a>
+                    </div>
+                </li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <h2>S10 Draft Order</h2>
+            <p>Complete pick-by-pick order for the Season 10 Draft</p>
+        </div>
+
+        <div class="quick-links-container">
+            <a href="draft-capital.html" class="quick-link-btn">Draft Capital</a>
+            <a href="draft-prospects.html" class="quick-link-btn">Draft Prospects</a>
+            <a href="draft-lottery.html" class="quick-link-btn">Lottery Odds</a>
+        </div>
+
+        <!-- Minor League Placeholder -->
+        <div class="minor-only" id="minor-placeholder">
+            <div class="minor-placeholder">
+                <h3>Draft Order Coming Soon</h3>
+                <p>The Minor League draft order will be posted once the season concludes.</p>
+            </div>
+        </div>
+
+        <!-- Major League Content -->
+        <div class="major-only" id="major-content">
+            <div class="draft-info">
+                <strong>Draft Order Rules:</strong><br>
+                <strong>Round 1 (Picks 1-14):</strong> Determined by lottery results<br>
+                <strong>Round 1 (Picks 15-30):</strong> Reverse order of regular season standings (ties broken by PAM)<br>
+                <strong>Rounds 2-3:</strong> Reverse order of regular season standings (ties broken by PAM)
+            </div>
+
+            <!-- Round 1 -->
+            <div class="round-section">
+                <div class="draft-order-container">
+                    <div class="draft-header">
+                        <h3>Round 1</h3>
+                        <span class="round-badge">Picks 1-30</span>
+                    </div>
+                    <table class="draft-table">
+                        <thead>
+                            <tr>
+                                <th>Pick</th>
+                                <th>Team</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="pick-num">1</td><td><a href="team.html?id=HND" class="team-cell"><img src="/icons/HND.webp" class="team-logo" alt="Hounds"><div class="team-cell-content"><span class="font-semibold">Hounds</span><span class="original-team-traded">Outlaws</span></div></a></td></tr>
+                            <tr><td class="pick-num">2</td><td><a href="team.html?id=PEN" class="team-cell"><img src="/icons/PEN.webp" class="team-logo" alt="Penguins"><div class="team-cell-content"><span class="font-semibold">Penguins</span><span class="original-team-traded">Diabetics</span></div></a></td></tr>
+                            <tr><td class="pick-num">3</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><div class="team-cell-content"><span class="font-semibold">Stars</span><span class="original-team-traded">Penguins</span></div></a></td></tr>
+                            <tr><td class="pick-num">4</td><td><a href="team.html?id=ORP" class="team-cell"><img src="/icons/ORP.webp" class="team-logo" alt="Orphans"><div class="team-cell-content"><span class="font-semibold">Orphans</span><span class="original-team-traded">Horses</span></div></a></td></tr>
+                            <tr><td class="pick-num">5</td><td><a href="team.html?id=EMP" class="team-cell"><img src="/icons/EMP.webp" class="team-logo" alt="Empire"><div class="team-cell-content"><span class="font-semibold">Empire</span><span class="original-team-traded">Legion</span></div></a></td></tr>
+                            <tr><td class="pick-num">6</td><td><a href="team.html?id=MLB" class="team-cell"><img src="/icons/MLB.webp" class="team-logo" alt="MLB"><div class="team-cell-content"><span class="font-semibold">MLB</span><span class="original-team-traded">Tacos</span></div></a></td></tr>
+                            <tr><td class="pick-num">7</td><td><a href="team.html?id=FZC" class="team-cell"><img src="/icons/FZC.webp" class="team-logo" alt="FaZe"><span class="font-semibold">FaZe</span></a></td></tr>
+                            <tr><td class="pick-num">8</td><td><a href="team.html?id=CRM" class="team-cell"><img src="/icons/CRM.webp" class="team-logo" alt="Creamers"><span class="font-semibold">Creamers</span></a></td></tr>
+                            <tr><td class="pick-num">9</td><td><a href="team.html?id=ORP" class="team-cell"><img src="/icons/ORP.webp" class="team-logo" alt="Orphans"><span class="font-semibold">Orphans</span></a></td></tr>
+                            <tr><td class="pick-num">10</td><td><a href="team.html?id=HH" class="team-cell"><img src="/icons/HH.webp" class="team-logo" alt="Horses"><div class="team-cell-content"><span class="font-semibold">Horses</span><span class="original-team-traded">Donuts</span></div></a></td></tr>
+                            <tr><td class="pick-num">11</td><td><a href="team.html?id=GD" class="team-cell"><img src="/icons/GD.webp" class="team-logo" alt="Gravediggers"><span class="font-semibold">Gravediggers</span></a></td></tr>
+                            <tr><td class="pick-num">12</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><div class="team-cell-content"><span class="font-semibold">Stars</span><span class="original-team-traded">Flames</span></div></a></td></tr>
+                            <tr><td class="pick-num">13</td><td><a href="team.html?id=MLB" class="team-cell"><img src="/icons/MLB.webp" class="team-logo" alt="MLB"><div class="team-cell-content"><span class="font-semibold">MLB</span><span class="original-team-traded">Amigos</span></div></a></td></tr>
+                            <tr><td class="pick-num">14</td><td><a href="team.html?id=CRM" class="team-cell"><img src="/icons/CRM.webp" class="team-logo" alt="Creamers"><div class="team-cell-content"><span class="font-semibold">Creamers</span><span class="original-team-traded">Gamblers</span></div></a></td></tr>
+                            <tr><td class="pick-num">15</td><td><a href="team.html?id=MLB" class="team-cell"><img src="/icons/MLB.webp" class="team-logo" alt="MLB"><div class="team-cell-content"><span class="font-semibold">MLB</span><span class="original-team-traded">Piggies</span></div></a></td></tr>
+                            <tr><td class="pick-num">16</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><div class="team-cell-content"><span class="font-semibold">Stars</span><span class="original-team-traded">Heroes</span></div></a></td></tr>
+                            <tr><td class="pick-num">17</td><td><a href="team.html?id=GD" class="team-cell"><img src="/icons/GD.webp" class="team-logo" alt="Gravediggers"><div class="team-cell-content"><span class="font-semibold">Gravediggers</span><span class="original-team-traded">Lean Team</span></div></a></td></tr>
+                            <tr><td class="pick-num">18</td><td><a href="team.html?id=GD" class="team-cell"><img src="/icons/GD.webp" class="team-logo" alt="Gravediggers"><div class="team-cell-content"><span class="font-semibold">Gravediggers</span><span class="original-team-traded">Jammers</span></div></a></td></tr>
+                            <tr><td class="pick-num">19</td><td><a href="team.html?id=HH" class="team-cell"><img src="/icons/HH.webp" class="team-logo" alt="Horses"><div class="team-cell-content"><span class="font-semibold">Horses</span><span class="original-team-traded">Hounds</span></div></a></td></tr>
+                            <tr><td class="pick-num">20</td><td><a href="team.html?id=HOR" class="team-cell"><img src="/icons/HOR.webp" class="team-logo" alt="Hornets"><span class="font-semibold">Hornets</span></a></td></tr>
+                            <tr><td class="pick-num">21</td><td><a href="team.html?id=ORP" class="team-cell"><img src="/icons/ORP.webp" class="team-logo" alt="Orphans"><div class="team-cell-content"><span class="font-semibold">Orphans</span><span class="original-team-traded">Aces</span></div></a></td></tr>
+                            <tr><td class="pick-num">22</td><td><a href="team.html?id=FZC" class="team-cell"><img src="/icons/FZC.webp" class="team-logo" alt="FaZe"><div class="team-cell-content"><span class="font-semibold">FaZe</span><span class="original-team-traded">Empire</span></div></a></td></tr>
+                            <tr><td class="pick-num">23</td><td><a href="team.html?id=TT" class="team-cell"><img src="/icons/TT.webp" class="team-logo" alt="Tacos"><div class="team-cell-content"><span class="font-semibold">Tacos</span><span class="original-team-traded">MLB</span></div></a></td></tr>
+                            <tr><td class="pick-num">24</td><td><a href="team.html?id=HH" class="team-cell"><img src="/icons/HH.webp" class="team-logo" alt="Horses"><div class="team-cell-content"><span class="font-semibold">Horses</span><span class="original-team-traded">Reapers</span></div></a></td></tr>
+                            <tr><td class="pick-num">25</td><td><a href="team.html?id=HND" class="team-cell"><img src="/icons/HND.webp" class="team-logo" alt="Hounds"><div class="team-cell-content"><span class="font-semibold">Hounds</span><span class="original-team-traded">Freaks</span></div></a></td></tr>
+                            <tr><td class="pick-num">26</td><td><a href="team.html?id=AMI" class="team-cell"><img src="/icons/AMI.webp" class="team-logo" alt="Amigos"><div class="team-cell-content"><span class="font-semibold">Amigos</span><span class="original-team-traded">Otters</span></div></a></td></tr>
+                            <tr><td class="pick-num">27</td><td><a href="team.html?id=PEN" class="team-cell"><img src="/icons/PEN.webp" class="team-logo" alt="Penguins"><div class="team-cell-content"><span class="font-semibold">Penguins</span><span class="original-team-traded">KOCK</span></div></a></td></tr>
+                            <tr><td class="pick-num">28</td><td><a href="team.html?id=OUT" class="team-cell"><img src="/icons/OUT.webp" class="team-logo" alt="Outlaws"><div class="team-cell-content"><span class="font-semibold">Outlaws</span><span class="original-team-traded">Stars</span></div></a></td></tr>
+                            <tr><td class="pick-num">29</td><td><a href="team.html?id=JAM" class="team-cell"><img src="/icons/JAM.webp" class="team-logo" alt="Jammers"><div class="team-cell-content"><span class="font-semibold">Jammers</span><span class="original-team-traded">Vipers</span></div></a></td></tr>
+                            <tr><td class="pick-num">30</td><td><a href="team.html?id=AMI" class="team-cell"><img src="/icons/AMI.webp" class="team-logo" alt="Amigos"><div class="team-cell-content"><span class="font-semibold">Amigos</span><span class="original-team-traded">Demons</span></div></a></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Round 2 -->
+            <div class="round-section">
+                <div class="draft-order-container">
+                    <div class="draft-header">
+                        <h3>Round 2</h3>
+                        <span class="round-badge">Picks 31-60</span>
+                    </div>
+                    <table class="draft-table">
+                        <thead>
+                            <tr>
+                                <th>Pick</th>
+                                <th>Team</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="pick-num">31</td><td><a href="team.html?id=KOCK" class="team-cell"><img src="/icons/KOCK.webp" class="team-logo" alt="KOCK"><div class="team-cell-content"><span class="font-semibold">KOCK</span><span class="original-team-traded">Legion</span></div></a></td></tr>
+                            <tr><td class="pick-num">32</td><td><a href="team.html?id=DIA" class="team-cell"><img src="/icons/DIA.webp" class="team-logo" alt="Diabetics"><span class="font-semibold">Diabetics</span></a></td></tr>
+                            <tr><td class="pick-num">33</td><td><a href="team.html?id=DIA" class="team-cell"><img src="/icons/DIA.webp" class="team-logo" alt="Diabetics"><div class="team-cell-content"><span class="font-semibold">Diabetics</span><span class="original-team-traded">Horses</span></div></a></td></tr>
+                            <tr><td class="pick-num">34</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><div class="team-cell-content"><span class="font-semibold">Stars</span><span class="original-team-traded">Tacos</span></div></a></td></tr>
+                            <tr><td class="pick-num">35</td><td><a href="team.html?id=FZC" class="team-cell"><img src="/icons/FZC.webp" class="team-logo" alt="FaZe"><span class="font-semibold">FaZe</span></a></td></tr>
+                            <tr><td class="pick-num">36</td><td><a href="team.html?id=CRM" class="team-cell"><img src="/icons/CRM.webp" class="team-logo" alt="Creamers"><span class="font-semibold">Creamers</span></a></td></tr>
+                            <tr><td class="pick-num">37</td><td><a href="team.html?id=DIA" class="team-cell"><img src="/icons/DIA.webp" class="team-logo" alt="Diabetics"><div class="team-cell-content"><span class="font-semibold">Diabetics</span><span class="original-team-traded">Penguins</span></div></a></td></tr>
+                            <tr><td class="pick-num">38</td><td><a href="team.html?id=TT" class="team-cell"><img src="/icons/TT.webp" class="team-logo" alt="Tacos"><div class="team-cell-content"><span class="font-semibold">Tacos</span><span class="original-team-traded">Orphans</span></div></a></td></tr>
+                            <tr><td class="pick-num">39</td><td><a href="team.html?id=LT" class="team-cell"><img src="/icons/LT.webp" class="team-logo" alt="Lean Team"><div class="team-cell-content"><span class="font-semibold">Lean Team</span><span class="original-team-traded">Outlaws</span></div></a></td></tr>
+                            <tr class="forfeited"><td class="pick-num">40</td><td><a href="team.html?id=PEN" class="team-cell"><img src="/icons/PEN.webp" class="team-logo" alt="Penguins"><div class="team-cell-content"><span class="font-semibold">Penguins</span><span class="forfeited-badge">FORFEITED</span><span class="original-team-traded">Piggies</span></div></a></td></tr>
+                            <tr><td class="pick-num">41</td><td><a href="team.html?id=HH" class="team-cell"><img src="/icons/HH.webp" class="team-logo" alt="Horses"><div class="team-cell-content"><span class="font-semibold">Horses</span><span class="original-team-traded">Donuts</span></div></a></td></tr>
+                            <tr class="forfeited"><td class="pick-num">42</td><td><a href="team.html?id=ACE" class="team-cell"><img src="/icons/ACE.webp" class="team-logo" alt="Aces"><div class="team-cell-content"><span class="font-semibold">Aces</span><span class="forfeited-badge">FORFEITED</span><span class="original-team-traded">Gravediggers</span></div></a></td></tr>
+                            <tr><td class="pick-num">43</td><td><a href="team.html?id=FZC" class="team-cell"><img src="/icons/FZC.webp" class="team-logo" alt="FaZe"><div class="team-cell-content"><span class="font-semibold">FaZe</span><span class="original-team-traded">Flames</span></div></a></td></tr>
+                            <tr><td class="pick-num">44</td><td><a href="team.html?id=CRM" class="team-cell"><img src="/icons/CRM.webp" class="team-logo" alt="Creamers"><div class="team-cell-content"><span class="font-semibold">Creamers</span><span class="original-team-traded">Heroes</span></div></a></td></tr>
+                            <tr><td class="pick-num">45</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><div class="team-cell-content"><span class="font-semibold">Stars</span><span class="original-team-traded">Gamblers</span></div></a></td></tr>
+                            <tr><td class="pick-num">46</td><td><a href="team.html?id=LT" class="team-cell"><img src="/icons/LT.webp" class="team-logo" alt="Lean Team"><div class="team-cell-content"><span class="font-semibold">Lean Team</span><span class="original-team-traded">Amigos</span></div></a></td></tr>
+                            <tr><td class="pick-num">47</td><td><a href="team.html?id=LT" class="team-cell"><img src="/icons/LT.webp" class="team-logo" alt="Lean Team"><span class="font-semibold">Lean Team</span></a></td></tr>
+                            <tr><td class="pick-num">48</td><td><a href="team.html?id=JAM" class="team-cell"><img src="/icons/JAM.webp" class="team-logo" alt="Jammers"><span class="font-semibold">Jammers</span></a></td></tr>
+                            <tr><td class="pick-num">49</td><td><a href="team.html?id=LGN" class="team-cell"><img src="/icons/LGN.webp" class="team-logo" alt="Legion"><div class="team-cell-content"><span class="font-semibold">Legion</span><span class="original-team-traded">Hounds</span></div></a></td></tr>
+                            <tr><td class="pick-num">50</td><td><a href="team.html?id=SD" class="team-cell"><img src="/icons/SD.webp" class="team-logo" alt="Demons"><div class="team-cell-content"><span class="font-semibold">Demons</span><span class="original-team-traded">Hornets</span></div></a></td></tr>
+                            <tr><td class="pick-num">51</td><td><a href="team.html?id=LGN" class="team-cell"><img src="/icons/LGN.webp" class="team-logo" alt="Legion"><div class="team-cell-content"><span class="font-semibold">Legion</span><span class="original-team-traded">Aces</span></div></a></td></tr>
+                            <tr><td class="pick-num">52</td><td><a href="team.html?id=EMP" class="team-cell"><img src="/icons/EMP.webp" class="team-logo" alt="Empire"><span class="font-semibold">Empire</span></a></td></tr>
+                            <tr><td class="pick-num">53</td><td><a href="team.html?id=HH" class="team-cell"><img src="/icons/HH.webp" class="team-logo" alt="Horses"><div class="team-cell-content"><span class="font-semibold">Horses</span><span class="original-team-traded">MLB</span></div></a></td></tr>
+                            <tr class="forfeited"><td class="pick-num">54</td><td><a href="team.html?id=EMP" class="team-cell"><img src="/icons/EMP.webp" class="team-logo" alt="Empire"><div class="team-cell-content"><span class="font-semibold">Empire</span><span class="forfeited-badge">FORFEITED</span><span class="original-team-traded">Reapers</span></div></a></td></tr>
+                            <tr><td class="pick-num">55</td><td><a href="team.html?id=HND" class="team-cell"><img src="/icons/HND.webp" class="team-logo" alt="Hounds"><div class="team-cell-content"><span class="font-semibold">Hounds</span><span class="original-team-traded">Freaks</span></div></a></td></tr>
+                            <tr><td class="pick-num">56</td><td><a href="team.html?id=OTT" class="team-cell"><img src="/icons/OTT.webp" class="team-logo" alt="Otters"><span class="font-semibold">Otters</span></a></td></tr>
+                            <tr><td class="pick-num">57</td><td><a href="team.html?id=LGN" class="team-cell"><img src="/icons/LGN.webp" class="team-logo" alt="Legion"><div class="team-cell-content"><span class="font-semibold">Legion</span><span class="original-team-traded">KOCK</span></div></a></td></tr>
+                            <tr><td class="pick-num">58</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><span class="font-semibold">Stars</span></a></td></tr>
+                            <tr><td class="pick-num">59</td><td><a href="team.html?id=HH" class="team-cell"><img src="/icons/HH.webp" class="team-logo" alt="Horses"><div class="team-cell-content"><span class="font-semibold">Horses</span><span class="original-team-traded">Vipers</span></div></a></td></tr>
+                            <tr><td class="pick-num">60</td><td><a href="team.html?id=REA" class="team-cell"><img src="/icons/REA.webp" class="team-logo" alt="Reapers"><div class="team-cell-content"><span class="font-semibold">Reapers</span><span class="original-team-traded">Demons</span></div></a></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Round 3 -->
+            <div class="round-section">
+                <div class="draft-order-container">
+                    <div class="draft-header">
+                        <h3>Round 3</h3>
+                        <span class="round-badge">Picks 61-90</span>
+                    </div>
+                    <table class="draft-table">
+                        <thead>
+                            <tr>
+                                <th>Pick</th>
+                                <th>Team</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="pick-num">61</td><td><a href="team.html?id=GD" class="team-cell"><img src="/icons/GD.webp" class="team-logo" alt="Gravediggers"><div class="team-cell-content"><span class="font-semibold">Gravediggers</span><span class="original-team-traded">Legion</span></div></a></td></tr>
+                            <tr class="forfeited"><td class="pick-num">62</td><td><a href="team.html?id=DIA" class="team-cell"><img src="/icons/DIA.webp" class="team-logo" alt="Diabetics"><div class="team-cell-content"><span class="font-semibold">Diabetics</span><span class="forfeited-badge">FORFEITED</span></div></a></td></tr>
+                            <tr><td class="pick-num">63</td><td><a href="team.html?id=OTT" class="team-cell"><img src="/icons/OTT.webp" class="team-logo" alt="Otters"><div class="team-cell-content"><span class="font-semibold">Otters</span><span class="original-team-traded">Horses</span></div></a></td></tr>
+                            <tr class="forfeited"><td class="pick-num">64</td><td><a href="team.html?id=ACE" class="team-cell"><img src="/icons/ACE.webp" class="team-logo" alt="Aces"><div class="team-cell-content"><span class="font-semibold">Aces</span><span class="forfeited-badge">FORFEITED</span><span class="original-team-traded">Tacos</span></div></a></td></tr>
+                            <tr><td class="pick-num">65</td><td><a href="team.html?id=FZC" class="team-cell"><img src="/icons/FZC.webp" class="team-logo" alt="FaZe"><span class="font-semibold">FaZe</span></a></td></tr>
+                            <tr><td class="pick-num">66</td><td><a href="team.html?id=SD" class="team-cell"><img src="/icons/SD.webp" class="team-logo" alt="Demons"><div class="team-cell-content"><span class="font-semibold">Demons</span><span class="original-team-traded">Creamers</span></div></a></td></tr>
+                            <tr><td class="pick-num">67</td><td><a href="team.html?id=HND" class="team-cell"><img src="/icons/HND.webp" class="team-logo" alt="Hounds"><div class="team-cell-content"><span class="font-semibold">Hounds</span><span class="original-team-traded">Penguins</span></div></a></td></tr>
+                            <tr><td class="pick-num">68</td><td><a href="team.html?id=JAM" class="team-cell"><img src="/icons/JAM.webp" class="team-logo" alt="Jammers"><div class="team-cell-content"><span class="font-semibold">Jammers</span><span class="original-team-traded">Orphans</span></div></a></td></tr>
+                            <tr><td class="pick-num">69</td><td><a href="team.html?id=HH" class="team-cell"><img src="/icons/HH.webp" class="team-logo" alt="Horses"><div class="team-cell-content"><span class="font-semibold">Horses</span><span class="original-team-traded">Outlaws</span></div></a></td></tr>
+                            <tr><td class="pick-num">70</td><td><a href="team.html?id=OTT" class="team-cell"><img src="/icons/OTT.webp" class="team-logo" alt="Otters"><div class="team-cell-content"><span class="font-semibold">Otters</span><span class="original-team-traded">Piggies</span></div></a></td></tr>
+                            <tr><td class="pick-num">71</td><td><a href="team.html?id=FZC" class="team-cell"><img src="/icons/FZC.webp" class="team-logo" alt="FaZe"><div class="team-cell-content"><span class="font-semibold">FaZe</span><span class="original-team-traded">Donuts</span></div></a></td></tr>
+                            <tr><td class="pick-num">72</td><td><a href="team.html?id=GD" class="team-cell"><img src="/icons/GD.webp" class="team-logo" alt="Gravediggers"><span class="font-semibold">Gravediggers</span></a></td></tr>
+                            <tr><td class="pick-num">73</td><td><a href="team.html?id=KF" class="team-cell"><img src="/icons/KF.webp" class="team-logo" alt="Freaks"><div class="team-cell-content"><span class="font-semibold">Freaks</span><span class="original-team-traded">Flames</span></div></a></td></tr>
+                            <tr><td class="pick-num">74</td><td><a href="team.html?id=GAM" class="team-cell"><img src="/icons/GAM.webp" class="team-logo" alt="Gamblers"><div class="team-cell-content"><span class="font-semibold">Gamblers</span><span class="original-team-traded">Heroes</span></div></a></td></tr>
+                            <tr><td class="pick-num">75</td><td><a href="team.html?id=GAM" class="team-cell"><img src="/icons/GAM.webp" class="team-logo" alt="Gamblers"><span class="font-semibold">Gamblers</span></a></td></tr>
+                            <tr><td class="pick-num">76</td><td><a href="team.html?id=CRM" class="team-cell"><img src="/icons/CRM.webp" class="team-logo" alt="Creamers"><div class="team-cell-content"><span class="font-semibold">Creamers</span><span class="original-team-traded">Amigos</span></div></a></td></tr>
+                            <tr><td class="pick-num">77</td><td><a href="team.html?id=LT" class="team-cell"><img src="/icons/LT.webp" class="team-logo" alt="Lean Team"><span class="font-semibold">Lean Team</span></a></td></tr>
+                            <tr><td class="pick-num">78</td><td><a href="team.html?id=KOCK" class="team-cell"><img src="/icons/KOCK.webp" class="team-logo" alt="KOCK"><div class="team-cell-content"><span class="font-semibold">KOCK</span><span class="original-team-traded">Jammers</span></div></a></td></tr>
+                            <tr><td class="pick-num">79</td><td><a href="team.html?id=HND" class="team-cell"><img src="/icons/HND.webp" class="team-logo" alt="Hounds"><span class="font-semibold">Hounds</span></a></td></tr>
+                            <tr><td class="pick-num">80</td><td><a href="team.html?id=REA" class="team-cell"><img src="/icons/REA.webp" class="team-logo" alt="Reapers"><div class="team-cell-content"><span class="font-semibold">Reapers</span><span class="original-team-traded">Hornets</span></div></a></td></tr>
+                            <tr><td class="pick-num">81</td><td><a href="team.html?id=HND" class="team-cell"><img src="/icons/HND.webp" class="team-logo" alt="Hounds"><div class="team-cell-content"><span class="font-semibold">Hounds</span><span class="original-team-traded">Aces</span></div></a></td></tr>
+                            <tr><td class="pick-num">82</td><td><a href="team.html?id=FLA" class="team-cell"><img src="/icons/FLA.webp" class="team-logo" alt="Flames"><div class="team-cell-content"><span class="font-semibold">Flames</span><span class="original-team-traded">Empire</span></div></a></td></tr>
+                            <tr><td class="pick-num">83</td><td><a href="team.html?id=MLB" class="team-cell"><img src="/icons/MLB.webp" class="team-logo" alt="MLB"><span class="font-semibold">MLB</span></a></td></tr>
+                            <tr><td class="pick-num">84</td><td><a href="team.html?id=FZC" class="team-cell"><img src="/icons/FZC.webp" class="team-logo" alt="FaZe"><div class="team-cell-content"><span class="font-semibold">FaZe</span><span class="original-team-traded">Reapers</span></div></a></td></tr>
+                            <tr><td class="pick-num">85</td><td><a href="team.html?id=KOCK" class="team-cell"><img src="/icons/KOCK.webp" class="team-logo" alt="KOCK"><div class="team-cell-content"><span class="font-semibold">KOCK</span><span class="original-team-traded">Freaks</span></div></a></td></tr>
+                            <tr><td class="pick-num">86</td><td><a href="team.html?id=OTT" class="team-cell"><img src="/icons/OTT.webp" class="team-logo" alt="Otters"><span class="font-semibold">Otters</span></a></td></tr>
+                            <tr class="forfeited"><td class="pick-num">87</td><td><a href="team.html?id=DON" class="team-cell"><img src="/icons/DON.webp" class="team-logo" alt="Donuts"><div class="team-cell-content"><span class="font-semibold">Donuts</span><span class="forfeited-badge">FORFEITED</span><span class="original-team-traded">KOCK</span></div></a></td></tr>
+                            <tr><td class="pick-num">88</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><span class="font-semibold">Stars</span></a></td></tr>
+                            <tr><td class="pick-num">89</td><td><a href="team.html?id=KS" class="team-cell"><img src="/icons/KS.webp" class="team-logo" alt="Stars"><div class="team-cell-content"><span class="font-semibold">Stars</span><span class="original-team-traded">Vipers</span></div></a></td></tr>
+                            <tr class="forfeited"><td class="pick-num">90</td><td><a href="team.html?id=AMI" class="team-cell"><img src="/icons/AMI.webp" class="team-logo" alt="Amigos"><div class="team-cell-content"><span class="font-semibold">Amigos</span><span class="forfeited-badge">FORFEITED</span><span class="original-team-traded">Demons</span></div></a></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="/gm/dashboard.html">GM Portal</a> | <a href="/commish/dashboard.html">Commish</a>
+    </footer>
+
+    <script src="/js/main.js" type="module"></script>
+
+    <!-- Handle league switching -->
+    <script>
+        function updateLeagueDisplay() {
+            const league = window.__currentLeague || localStorage.getItem('rkl_current_league') || 'major';
+            const majorContent = document.getElementById('major-content');
+            const minorPlaceholder = document.getElementById('minor-placeholder');
+
+            if (league === 'minor') {
+                majorContent.style.display = 'none';
+                minorPlaceholder.style.display = 'block';
+            } else {
+                majorContent.style.display = 'block';
+                minorPlaceholder.style.display = 'none';
+            }
+        }
+
+        // Run on page load
+        updateLeagueDisplay();
+
+        // Listen for league changes
+        window.addEventListener('leagueChanged', updateLeagueDisplay);
+    </script>
+
+    <!-- League switcher with feature flag support -->
+    <script type="module" src="/js/init-league-switcher.js"></script>
+</body>
+</html>
