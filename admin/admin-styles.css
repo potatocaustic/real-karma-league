@@ -2267,7 +2267,7 @@ body.dark-mode:not(.s9-page) main#admin-container {
     border-color: #444;
 }
 .dark-mode .draft-table tr:nth-child(even) {
-    background-color: #333;
+    background-color: #1e293b;
 }
 .dark-mode .draft-table input[type="text"],
 .dark-mode .draft-table select,
