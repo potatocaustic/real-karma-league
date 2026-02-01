@@ -41,21 +41,38 @@ const API_HEADERS = {
  * @returns {Promise<string|null>} The resolved player handle or null if resolution failed.
  */
 const resolvePlayerHandle = async (playerId) => {
+    // Try NBA API first (primary)
     try {
-        const cardsResponse = await axios.get(
+        const nbaResponse = await axios.get(
             `https://api.real.vg/collectingcards/nba/season/2026/entity/play/user/${playerId}/cards?rarity=1&view=rating`,
             { headers: API_HEADERS }
         );
 
-        const cards = cardsResponse.data?.cards;
-        if (cards && cards.length > 0 && cards[0].user?.userName) {
-            return cards[0].user.userName;
+        const nbaCards = nbaResponse.data?.cards;
+        if (nbaCards && nbaCards.length > 0 && nbaCards[0].user?.userName) {
+            return nbaCards[0].user.userName;
         }
-        return null;
     } catch (error) {
-        console.error(`Failed to resolve handle for player ID ${playerId}:`, error.message);
-        return null;
+        console.error(`NBA cards API failed for player ID ${playerId}:`, error.message);
     }
+
+    // Try MLB API as fallback (secondary)
+    try {
+        const mlbResponse = await axios.get(
+            `https://api.real.vg/collectingcards/mlb/season/2025/entity/play/user/${playerId}/cards?rarity=all&view=rating`,
+            { headers: API_HEADERS }
+        );
+
+        const mlbCards = mlbResponse.data?.cards;
+        if (mlbCards && mlbCards.length > 0 && mlbCards[0].user?.userName) {
+            console.log(`Resolved handle via MLB fallback for player ID ${playerId}`);
+            return mlbCards[0].user.userName;
+        }
+    } catch (error) {
+        console.error(`MLB cards API fallback also failed for player ID ${playerId}:`, error.message);
+    }
+
+    return null;
 };
 
 /**
