@@ -469,8 +469,7 @@ exports.admin_approveParsedTransaction = onCall({
             created_at: FieldValue.serverTimestamp(),
             created_by: userId,
             source: 'parsed_transaction',
-            source_comment_id: parsedData.source_comment_id,
-            notes: `Auto-parsed from Real post by @${parsedData.source_author}`
+            source_comment_id: parsedData.source_comment_id
         };
 
         const newTransRef = db.collection(transactionCollection).doc();
