@@ -218,7 +218,9 @@ async function handleApprove(transactionId, league) {
  * Handle reject button click
  */
 async function handleReject(transactionId, league) {
-    const reason = prompt('Rejection reason (optional):');
+    if (!confirm('Reject this transaction?')) {
+        return;
+    }
 
     try {
         const btn = document.querySelector(`[data-reject-id="${transactionId}"]`);
@@ -229,8 +231,7 @@ async function handleReject(transactionId, league) {
 
         await rejectParsedTransaction({
             parsedTransactionId: transactionId,
-            league,
-            reason
+            league
         });
 
         showFeedback('Transaction rejected.', 'info');

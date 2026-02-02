@@ -37,6 +37,32 @@
         };
     </script>
     <style>
+        /* Light mode variables (default) */
+        :root {
+            --tm-card-bg: #ffffff;
+            --tm-border-color: #e2e8f0;
+            --tm-text-color: #0f172a;
+            --tm-text-muted: #64748b;
+            --tm-accent-color: #3b82f6;
+            --tm-accent-bg: #eff6ff;
+            --tm-input-bg: #ffffff;
+            --tm-code-bg: #f1f5f9;
+            --tm-code-color: #334155;
+        }
+
+        /* Dark mode variables */
+        .dark-mode {
+            --tm-card-bg: #1e293b;
+            --tm-border-color: #334155;
+            --tm-text-color: #e2e8f0;
+            --tm-text-muted: #94a3b8;
+            --tm-accent-color: #60a5fa;
+            --tm-accent-bg: #1e3a5f;
+            --tm-input-bg: #0f172a;
+            --tm-code-bg: #0f172a;
+            --tm-code-color: #e2e8f0;
+        }
+
         .monitor-header {
             display: flex;
             justify-content: space-between;
@@ -58,9 +84,9 @@
             flex-wrap: wrap;
             margin-bottom: 1.5rem;
             padding: 1rem;
-            background: var(--card-bg);
+            background: var(--tm-card-bg);
             border-radius: 8px;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--tm-border-color);
         }
 
         .filter-bar label {
@@ -68,14 +94,15 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 0.875rem;
+            color: var(--tm-text-color);
         }
 
         .filter-bar select {
             padding: 0.375rem 0.75rem;
             border-radius: 4px;
-            border: 1px solid var(--border-color);
-            background: var(--input-bg);
-            color: var(--text-color);
+            border: 1px solid var(--tm-border-color);
+            background: var(--tm-input-bg);
+            color: var(--tm-text-color);
         }
 
         .confidence-filters {
@@ -110,8 +137,8 @@
         .status-rejected { background: #6b7280; color: white; }
 
         .transaction-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            background: var(--tm-card-bg);
+            border: 1px solid var(--tm-border-color);
             border-radius: 8px;
             padding: 1.25rem;
             margin-bottom: 1rem;
@@ -133,11 +160,12 @@
             font-weight: 600;
             font-size: 1rem;
             margin: 0;
+            color: var(--tm-text-color);
         }
 
         .transaction-type {
-            background: var(--accent-bg);
-            color: var(--accent-color);
+            background: var(--tm-accent-bg);
+            color: var(--tm-accent-color);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             font-size: 0.75rem;
@@ -146,12 +174,12 @@
 
         .transaction-meta {
             font-size: 0.8rem;
-            color: var(--text-muted);
+            color: var(--tm-text-muted);
             margin-bottom: 0.75rem;
         }
 
         .transaction-raw {
-            background: var(--code-bg, #1e1e1e);
+            background: var(--tm-code-bg);
             border-radius: 6px;
             padding: 0.75rem 1rem;
             font-family: monospace;
@@ -159,11 +187,12 @@
             margin-bottom: 0.75rem;
             white-space: pre-wrap;
             word-break: break-word;
-            color: var(--code-color, #e0e0e0);
+            color: var(--tm-code-color);
         }
 
         .transaction-parsed {
             margin-bottom: 0.75rem;
+            color: var(--tm-text-color);
         }
 
         .parsed-detail {
@@ -176,6 +205,7 @@
         .parsed-label {
             font-weight: 600;
             min-width: 80px;
+            color: var(--tm-text-color);
         }
 
         .validation-errors {
@@ -206,7 +236,7 @@
             gap: 0.5rem;
             margin-top: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid var(--border-color);
+            border-top: 1px solid var(--tm-border-color);
         }
 
         .btn-approve {
@@ -238,7 +268,7 @@
         }
 
         .btn-scan {
-            background: var(--accent-color);
+            background: var(--tm-accent-color);
             color: white;
             padding: 0.5rem 1rem;
             border: none;
@@ -273,19 +303,19 @@
         .stat-value {
             font-size: 1.5rem;
             font-weight: 700;
-            color: var(--accent-color);
+            color: var(--tm-accent-color);
         }
 
         .stat-label {
             font-size: 0.75rem;
-            color: var(--text-muted);
+            color: var(--tm-text-muted);
             text-transform: uppercase;
         }
 
         .empty-state {
             text-align: center;
             padding: 3rem;
-            color: var(--text-muted);
+            color: var(--tm-text-muted);
         }
 
         .empty-state-icon {
@@ -297,7 +327,7 @@
             display: flex;
             gap: 0;
             margin-bottom: 1.5rem;
-            border-bottom: 2px solid var(--border-color);
+            border-bottom: 2px solid var(--tm-border-color);
         }
 
         .league-tab {
@@ -306,22 +336,23 @@
             border: none;
             cursor: pointer;
             font-weight: 500;
-            color: var(--text-muted);
+            color: var(--tm-text-muted);
             border-bottom: 2px solid transparent;
             margin-bottom: -2px;
         }
 
         .league-tab.active {
-            color: var(--accent-color);
-            border-bottom-color: var(--accent-color);
+            color: var(--tm-accent-color);
+            border-bottom-color: var(--tm-accent-color);
         }
 
         .league-tab:hover:not(.active) {
-            color: var(--text-color);
+            color: var(--tm-text-color);
         }
 
         .player-move {
-            background: var(--accent-bg);
+            background: var(--tm-accent-bg);
+            color: var(--tm-accent-color);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             font-size: 0.8rem;
