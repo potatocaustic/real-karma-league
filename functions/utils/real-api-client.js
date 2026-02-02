@@ -2,13 +2,15 @@
 // Client for fetching data from Real Sports API
 
 const fetch = require('node-fetch');
+const Hashids = require('hashids');
+const crypto = require('crypto');
 const { defineSecret } = require('firebase-functions/params');
 
 // Define secret parameter (stored in Google Secret Manager)
 const realAuthToken = defineSecret('REAL_AUTH_TOKEN');
 
 // Real API base URL
-const REAL_API_BASE = 'https://api.real.vg';
+const REAL_API_BASE = 'https://web.realsports.io';
 
 // Group IDs for transaction channels
 const GROUP_IDS = {
@@ -17,69 +19,32 @@ const GROUP_IDS = {
     NEWS_CHANNEL: '25237'     // RKL News channel
 };
 
-/**
- * Simple Hashids-like encoder for request tokens
- * Based on pollbot.py pattern
- */
-class SimpleHashids {
-    constructor(salt, minLength) {
-        this.salt = salt;
-        this.minLength = minLength;
-        this.alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
-    }
-
-    encode(number) {
-        // Convert to base62-like encoding with salt
-        const combined = `${this.salt}${number}`;
-        let hash = 0;
-        for (let i = 0; i < combined.length; i++) {
-            const char = combined.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32bit integer
-        }
-
-        // Use absolute value and convert to string
-        hash = Math.abs(hash);
-
-        // Build the encoded string
-        let result = '';
-        let n = hash;
-        const alphabetLength = this.alphabet.length;
-
-        while (n > 0 || result.length < this.minLength) {
-            result = this.alphabet[n % alphabetLength] + result;
-            n = Math.floor(n / alphabetLength);
-
-            // Add some entropy from timestamp bits
-            if (result.length < this.minLength) {
-                const bit = (number >> result.length) & 1;
-                result = this.alphabet[(bit * 26 + result.charCodeAt(0)) % alphabetLength] + result;
-            }
-        }
-
-        return result.slice(0, this.minLength);
-    }
-}
+// Cache the device UUID for this function instance
+let cachedDeviceUUID = null;
 
 /**
  * Generate a unique device UUID
  * Creates a consistent UUID for the function instance
  */
 function generateDeviceUUID() {
-    // Use a consistent UUID for the cloud function
-    return 'cf-rkl-' + require('crypto').randomBytes(8).toString('hex');
+    if (!cachedDeviceUUID) {
+        cachedDeviceUUID = crypto.randomUUID();
+    }
+    return cachedDeviceUUID;
 }
 
-// Cache the device UUID for this function instance
-let cachedDeviceUUID = null;
-
 /**
- * Generate a fresh request token using Hashids pattern
+ * Generate a fresh request token using Hashids
+ * Replicates how the RealSports web app generates tokens:
+ * - Salt: "realwebapp"
+ * - Min length: 16
+ * - Input: current Unix timestamp in milliseconds
  * @returns {string} Fresh request token
  */
 function generateRequestToken() {
-    const hashids = new SimpleHashids('realwebapp', 16);
-    return hashids.encode(Date.now());
+    const hashids = new Hashids('realwebapp', 16);
+    const timestampMs = Date.now();
+    return hashids.encode(timestampMs);
 }
 
 /**
@@ -107,20 +72,23 @@ function getAuthToken() {
 
 /**
  * Build headers for Real API requests
+ * Matches the header structure used by the RealSports web app
  * @returns {Object} Headers object
  */
 function buildHeaders() {
-    if (!cachedDeviceUUID) {
-        cachedDeviceUUID = generateDeviceUUID();
-    }
+    const token = generateRequestToken();
 
     return {
-        'real-auth-info': getAuthToken(),
-        'real-device-uuid': cachedDeviceUUID,
-        'real-request-token': generateRequestToken(),
-        'real-version': '27',
+        'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'DNT': '1',
+        'Referer': 'https://realsports.io/',
+        'real-auth-info': getAuthToken(),
+        'real-device-name': 'RKL Transaction Parser',
+        'real-device-type': 'desktop_web',
+        'real-device-uuid': generateDeviceUUID(),
+        'real-request-token': token,
+        'real-version': '27'
     };
 }
 
