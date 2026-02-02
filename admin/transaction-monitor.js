@@ -188,25 +188,51 @@ async function handleApprove(transactionId, league) {
         return;
     }
 
-    try {
-        const btn = document.querySelector(`[data-approve-id="${transactionId}"]`);
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = 'Approving...';
-        }
+    const card = document.querySelector(`[data-transaction-id="${transactionId}"]`);
+    const btn = document.querySelector(`[data-approve-id="${transactionId}"]`);
 
+    // Immediately fade out the card for instant feedback
+    if (card) {
+        card.style.transition = 'opacity 0.2s ease-out, transform 0.2s ease-out';
+        card.style.opacity = '0.5';
+        card.style.pointerEvents = 'none';
+    }
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Approving...';
+    }
+
+    try {
         await approveParsedTransaction({
             parsedTransactionId: transactionId,
             league
         });
 
+        // Remove from local data
+        if (transactions[league]) {
+            transactions[league] = transactions[league].filter(t => t.id !== transactionId);
+        }
+
+        // Animate card removal
+        if (card) {
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(20px)';
+            setTimeout(() => card.remove(), 200);
+        }
+
+        // Update stats without full reload
+        updateStats();
         showFeedback('Transaction approved and processed!', 'success');
-        await loadTransactions();
+
     } catch (error) {
         console.error('Error approving transaction:', error);
         showFeedback('Error approving: ' + error.message, 'error');
 
-        const btn = document.querySelector(`[data-approve-id="${transactionId}"]`);
+        // Restore card on error
+        if (card) {
+            card.style.opacity = '1';
+            card.style.pointerEvents = '';
+        }
         if (btn) {
             btn.disabled = false;
             btn.textContent = 'Approve';
