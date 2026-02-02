@@ -89,7 +89,7 @@ const TRANSACTION_PATTERNS = [
         type: TRANSACTION_TYPES.SIGN,
         extract: (match) => ({
             teamName: match[1],
-            players: [{ handle: match[2] }]
+            players: [{ handle: match[2], to: match[1] }]
         })
     },
 
