@@ -7,11 +7,14 @@ Thumbs.db
 .vscode/
 scripts/migration-logs/migration-1764210019944.json
 __pycache__/
-
+.secret.local
+.secret
+.local 
 # Local utility scripts
 scripts/diagnose-series-consistency.js
 scripts/dry-run-view-playoffs.js
 scripts/repair-postseason-stats.js
 scripts/repair-series-scores.js
 scripts/verify-conf-finals-stats.js
+scripts/seed-emulator.js
 todays_players.csv

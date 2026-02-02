@@ -34,6 +34,7 @@ const playoffBracketTest = require('./playoffs/bracket-test');
 // Import extracted transaction modules
 const transactionHandlers = require('./transactions/transaction-handlers');
 const transactionRelease = require('./transactions/transaction-release');
+const transactionParser = require('./transactions/transaction-parser');
 
 // Import extracted draft modules
 const draftResults = require('./draft/draft-results');
@@ -135,6 +136,13 @@ exports.minor_onTransactionUpdate_V2 = transactionHandlers.minor_onTransactionUp
 
 exports.releasePendingTransactions = transactionRelease.releasePendingTransactions;
 exports.minor_releasePendingTransactions = transactionRelease.minor_releasePendingTransactions;
+
+// Transaction parser functions (automated Real app monitoring)
+exports.scheduledTransactionParser = transactionParser.scheduledTransactionParser;
+exports.admin_triggerTransactionParser = transactionParser.admin_triggerTransactionParser;
+exports.admin_approveParsedTransaction = transactionParser.admin_approveParsedTransaction;
+exports.admin_rejectParsedTransaction = transactionParser.admin_rejectParsedTransaction;
+exports.admin_getPendingParsedTransactions = transactionParser.admin_getPendingParsedTransactions;
 
 // Re-export draft functions from extracted modules
 exports.onDraftResultCreate = draftResults.onDraftResultCreate;

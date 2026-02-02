@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en" data-style-rollout="modern">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8LNVNG5M1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-E8LNVNG5M1');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction Monitor - RKL Admin</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        // Apply theme immediately to prevent flash
+        (function() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        // Detect league immediately to prevent flash
+        window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+    </script>
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <style>
+        .monitor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .monitor-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filter-bar label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .filter-bar select {
+            padding: 0.375rem 0.75rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text-color);
+        }
+
+        .confidence-filters {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .confidence-high { background: #10b981; color: white; }
+        .confidence-medium { background: #f59e0b; color: white; }
+        .confidence-low { background: #ef4444; color: white; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-pending_review { background: #3b82f6; color: white; }
+        .status-approved { background: #10b981; color: white; }
+        .status-rejected { background: #6b7280; color: white; }
+
+        .transaction-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .transaction-card.confidence-high { border-left: 4px solid #10b981; }
+        .transaction-card.confidence-medium { border-left: 4px solid #f59e0b; }
+        .transaction-card.confidence-low { border-left: 4px solid #ef4444; }
+
+        .transaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .transaction-title {
+            font-weight: 600;
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .transaction-type {
+            background: var(--accent-bg);
+            color: var(--accent-color);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .transaction-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .transaction-raw {
+            background: var(--code-bg, #1e1e1e);
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            margin-bottom: 0.75rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--code-color, #e0e0e0);
+        }
+
+        .transaction-parsed {
+            margin-bottom: 0.75rem;
+        }
+
+        .parsed-detail {
+            display: flex;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .parsed-label {
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .validation-errors {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .dark-mode .validation-errors {
+            background: #450a0a;
+            border-color: #7f1d1d;
+        }
+
+        .validation-error-item {
+            font-size: 0.8rem;
+            color: #dc2626;
+            margin-bottom: 0.25rem;
+        }
+
+        .dark-mode .validation-error-item {
+            color: #fca5a5;
+        }
+
+        .transaction-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-approve {
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-approve:hover {
+            background: #059669;
+        }
+
+        .btn-reject {
+            background: #6b7280;
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn-reject:hover {
+            background: #4b5563;
+        }
+
+        .btn-scan {
+            background: var(--accent-color);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-scan:hover {
+            opacity: 0.9;
+        }
+
+        .btn-scan:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .league-tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .league-tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-muted);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .league-tab.active {
+            color: var(--accent-color);
+            border-bottom-color: var(--accent-color);
+        }
+
+        .league-tab:hover:not(.active) {
+            color: var(--text-color);
+        }
+
+        .player-move {
+            background: var(--accent-bg);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-right: 0.25rem;
+            display: inline-block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <header>
+      <div id="auth-status"></div>
+      <button id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="sun-icon">☀️</span>
+        <span class="moon-icon">🌙</span>
+      </button>
+      <h1>
+        <script>
+          document.write('<img src="../icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+        </script>
+        <script>
+          document.write('<span class="header-text"> Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+        </script>
+      </h1>
+      <div id="league-switcher-mount">
+        <div class="league-switcher">
+            <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="17 1 21 5 17 9"></polyline>
+                    <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                    <polyline points="7 23 3 19 7 15"></polyline>
+                    <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                </svg>
+            </button>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+        <ul id="nav-menu">
+            <li><a href="/admin/dashboard.html">Admin Dashboard</a></li>
+            <li><a href="/admin/manage-transactions.html">Log Transactions</a></li>
+            <li><a href="/S9/transactions.html">View Transactions</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="admin-container" style="display: none;">
+        <a href="/admin/dashboard.html" class="back-link">← Back to Dashboard</a>
+
+        <div class="monitor-header">
+            <h2>Transaction Monitor</h2>
+            <div class="monitor-actions">
+                <button id="scan-btn" class="btn-scan">
+                    <span class="scan-text">Scan for New Transactions</span>
+                    <span class="scan-spinner" style="display: none;"><span class="spinner"></span></span>
+                </button>
+            </div>
+        </div>
+
+        <div id="scan-feedback" class="admin-feedback" role="status" aria-live="polite" hidden></div>
+
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="stat-pending">-</div>
+                <div class="stat-label">Pending Review</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-approved">-</div>
+                <div class="stat-label">Approved Today</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="stat-rejected">-</div>
+                <div class="stat-label">Rejected Today</div>
+            </div>
+        </div>
+
+        <div class="league-tabs">
+            <button class="league-tab active" data-league="major">Major League</button>
+            <button class="league-tab" data-league="minor">Minor League</button>
+        </div>
+
+        <div class="filter-bar">
+            <label>
+                Status:
+                <select id="status-filter">
+                    <option value="pending_review">Pending Review</option>
+                    <option value="">All</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </label>
+            <label>
+                Confidence:
+                <select id="confidence-filter">
+                    <option value="">All</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                </select>
+            </label>
+        </div>
+
+        <div id="transactions-list">
+            <div class="empty-state">
+                <div class="empty-state-icon">📋</div>
+                <p>Loading transactions...</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="loading-container" class="loading">Authenticating...</div>
+
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/admin/transaction-monitor.js"></script>
+    <script type="module">
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+        const switcher = createLeagueSwitcher();
+        document.getElementById('league-switcher-mount').appendChild(switcher);
+    </script>
+</body>
+</html>

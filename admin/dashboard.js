@@ -42,6 +42,40 @@ async function checkForNotifications() {
     }
 }
 
+// --- Pending Transactions Notification Logic ---
+async function checkPendingTransactions() {
+    const badge = document.getElementById('pending-transactions-badge');
+    if (!badge) return;
+
+    try {
+        // Check both major and minor parsed transactions
+        const [majorSnap, minorSnap] = await Promise.all([
+            getDocs(query(
+                collection(db, 'parsed_transactions'),
+                where('status', '==', 'pending_review'),
+                limit(50)
+            )),
+            getDocs(query(
+                collection(db, 'minor_parsed_transactions'),
+                where('status', '==', 'pending_review'),
+                limit(50)
+            ))
+        ]);
+
+        const totalPending = majorSnap.size + minorSnap.size;
+
+        if (totalPending > 0) {
+            badge.textContent = totalPending > 9 ? '9+' : totalPending;
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch (error) {
+        console.error("Error checking pending transactions:", error);
+        badge.style.display = 'none';
+    }
+}
+
 // --- League Switcher Rollout Logic ---
 async function updateLeagueSwitcherStatus() {
     const statusDiv = document.getElementById('league-switcher-status');
@@ -119,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 addSeasonManagementListeners();
                 addLeagueSwitcherRolloutListener();
                 checkForNotifications(); // Check for notifications on load
+                checkPendingTransactions(); // Check pending parsed transactions on load
                 updateLeagueSwitcherStatus(); // Check league switcher status on load
             } else {
                 loadingContainer.innerHTML = '<div class="error">Access Denied. You do not have permission to view this page.</div>';
@@ -219,5 +254,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Reload notifications for the new league
         checkForNotifications();
+        checkPendingTransactions();
     });
 });

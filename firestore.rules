@@ -117,6 +117,23 @@ service cloud.firestore {
       allow write: if isUserAdmin();
     }
 
+    // Parser state for transaction monitoring (backend writes only)
+    match /parser_state/{groupId} {
+      allow read: if isUserAdmin();
+      allow write: if false; // Only backend can write
+    }
+
+    // Parsed transactions awaiting review
+    match /parsed_transactions/{docId} {
+      allow read: if isScorekeeperOrAdmin();
+      allow write: if false; // Only backend can write via Cloud Functions
+    }
+
+    match /minor_parsed_transactions/{docId} {
+      allow read: if isScorekeeperOrAdmin();
+      allow write: if false; // Only backend can write via Cloud Functions
+    }
+
     // Relegation/Promotion collections (shared between leagues)
     match /relegation_games/{seasonId} {
       allow read: if request.auth != null;
