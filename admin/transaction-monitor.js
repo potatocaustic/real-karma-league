@@ -1,9 +1,22 @@
 // admin/transaction-monitor.js
 // Transaction monitor page logic
 
-import { auth, db, functions } from '/js/firebase-init.js';
-import { httpsCallable } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js';
-import { onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js';
+import {
+    auth,
+    db,
+    functions,
+    onAuthStateChanged,
+    doc,
+    getDoc,
+    collection,
+    getDocs,
+    query,
+    where,
+    orderBy,
+    limit,
+    httpsCallable,
+    collectionNames
+} from '/js/firebase-init.js';
 
 // State
 let currentLeague = 'major';
@@ -34,7 +47,7 @@ const rejectParsedTransaction = httpsCallable(functions, 'admin_rejectParsedTran
 /**
  * Initialize the page
  */
-async function init() {
+function init() {
     // Check authentication
     onAuthStateChanged(auth, async (user) => {
         if (user) {
@@ -53,7 +66,8 @@ async function init() {
  */
 async function checkAdminAccess(user) {
     try {
-        const userDoc = await db.collection('users').doc(user.uid).get();
+        const userRef = doc(db, collectionNames.users, user.uid);
+        const userDoc = await getDoc(userRef);
         const userData = userDoc.data();
 
         if (!userData?.role || !['admin', 'commish', 'scorekeeper'].includes(userData.role)) {
@@ -79,11 +93,17 @@ async function checkAdminAccess(user) {
  */
 function setupEventListeners() {
     // Scan button
-    scanBtn.addEventListener('click', handleScan);
+    if (scanBtn) {
+        scanBtn.addEventListener('click', handleScan);
+    }
 
     // Filters
-    statusFilter.addEventListener('change', renderTransactions);
-    confidenceFilter.addEventListener('change', renderTransactions);
+    if (statusFilter) {
+        statusFilter.addEventListener('change', renderTransactions);
+    }
+    if (confidenceFilter) {
+        confidenceFilter.addEventListener('change', renderTransactions);
+    }
 
     // League tabs
     leagueTabs.forEach(tab => {
@@ -105,7 +125,7 @@ async function loadTransactions() {
         renderLoadingState();
 
         const result = await getPendingParsedTransactions({
-            status: statusFilter.value || null,
+            status: statusFilter?.value || null,
             limit: 100
         });
 
@@ -152,12 +172,12 @@ async function handleScan() {
  * Set scan button loading state
  */
 function setScanLoading(loading) {
-    const scanText = scanBtn.querySelector('.scan-text');
-    const scanSpinner = scanBtn.querySelector('.scan-spinner');
+    const scanText = scanBtn?.querySelector('.scan-text');
+    const scanSpinner = scanBtn?.querySelector('.scan-spinner');
 
-    scanBtn.disabled = loading;
-    scanText.style.display = loading ? 'none' : 'inline';
-    scanSpinner.style.display = loading ? 'inline-flex' : 'none';
+    if (scanBtn) scanBtn.disabled = loading;
+    if (scanText) scanText.style.display = loading ? 'none' : 'inline';
+    if (scanSpinner) scanSpinner.style.display = loading ? 'inline-flex' : 'none';
 }
 
 /**
@@ -231,7 +251,7 @@ async function handleReject(transactionId, league) {
  * Update stats display
  */
 function updateStats() {
-    const allTransactions = [...transactions.major, ...transactions.minor];
+    const allTransactions = [...(transactions.major || []), ...(transactions.minor || [])];
 
     const pending = allTransactions.filter(t => t.status === 'pending_review').length;
     const today = new Date().toISOString().split('T')[0];
@@ -246,39 +266,43 @@ function updateStats() {
         t.reviewed_at?.startsWith(today)
     ).length;
 
-    statPending.textContent = pending;
-    statApproved.textContent = approvedToday;
-    statRejected.textContent = rejectedToday;
+    if (statPending) statPending.textContent = pending;
+    if (statApproved) statApproved.textContent = approvedToday;
+    if (statRejected) statRejected.textContent = rejectedToday;
 }
 
 /**
  * Render loading state
  */
 function renderLoadingState() {
-    transactionsList.innerHTML = `
-        <div class="empty-state">
-            <div class="empty-state-icon">⏳</div>
-            <p>Loading transactions...</p>
-        </div>
-    `;
+    if (transactionsList) {
+        transactionsList.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">⏳</div>
+                <p>Loading transactions...</p>
+            </div>
+        `;
+    }
 }
 
 /**
  * Render transactions list
  */
 function renderTransactions() {
+    if (!transactionsList) return;
+
     const leagueTransactions = currentLeague === 'major' ?
-        transactions.major : transactions.minor;
+        (transactions.major || []) : (transactions.minor || []);
 
     // Apply filters
     let filtered = leagueTransactions;
 
-    const statusFilterValue = statusFilter.value;
+    const statusFilterValue = statusFilter?.value;
     if (statusFilterValue) {
         filtered = filtered.filter(t => t.status === statusFilterValue);
     }
 
-    const confidenceFilterValue = confidenceFilter.value;
+    const confidenceFilterValue = confidenceFilter?.value;
     if (confidenceFilterValue) {
         filtered = filtered.filter(t => t.confidence === confidenceFilterValue);
     }
@@ -362,7 +386,7 @@ function renderTransactionCard(t) {
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
                     <span class="confidence-badge confidence-${t.confidence}">${t.confidence}</span>
-                    <span class="status-badge status-${t.status}">${t.status.replace('_', ' ')}</span>
+                    <span class="status-badge status-${t.status}">${(t.status || '').replace('_', ' ')}</span>
                 </div>
             </div>
 
@@ -418,6 +442,8 @@ function escapeHtml(text) {
  * Show feedback message
  */
 function showFeedback(message, type = 'info') {
+    if (!scanFeedback) return;
+
     scanFeedback.textContent = message;
     scanFeedback.hidden = false;
     scanFeedback.className = `admin-feedback feedback-${type}`;
