@@ -32,7 +32,7 @@ const FILTER_KEYWORDS = [
 const TRANSACTION_PATTERNS = [
     // Retirement patterns
     {
-        regex: /@(\w+)\s+retir(?:es?|ing)\s+(?:from\s+)?(\w+)/i,
+        regex: /@([\w.]+)\s+retir(?:es?|ing)\s+(?:from\s+)?(\w+)/i,
         type: TRANSACTION_TYPES.RETIREMENT,
         extract: (match) => ({
             players: [{ handle: match[1], to: 'RETIRED' }],
@@ -41,7 +41,7 @@ const TRANSACTION_PATTERNS = [
     },
     {
         // "Player retires" without team name (simpler pattern)
-        regex: /@(\w+)\s+retir(?:es?|ing)/i,
+        regex: /@([\w.]+)\s+retir(?:es?|ing)/i,
         type: TRANSACTION_TYPES.RETIREMENT,
         extract: (match) => ({
             players: [{ handle: match[1], to: 'RETIRED' }],
@@ -51,10 +51,10 @@ const TRANSACTION_PATTERNS = [
 
     // Unretirement patterns
     {
-        regex: /@(\w+)\s+unretir(?:es?|ing)\s+to\s+(\w+)/i,
+        regex: /@([\w.]+)\s+unretir(?:es?|ing)\s+to\s+(\w+)/i,
         type: TRANSACTION_TYPES.UNRETIREMENT,
         extract: (match) => ({
-            players: [{ handle: match[1] }],
+            players: [{ handle: match[1], to: match[2] }],
             teamName: match[2]
         })
     },
@@ -62,7 +62,7 @@ const TRANSACTION_PATTERNS = [
     // Cut patterns
     {
         // "Team cuts/cut/cutting @player"
-        regex: /(\w+)\s+cut(?:s|ting)?\s+@(\w+)/i,
+        regex: /(\w+)\s+cut(?:s|ting)?\s+@([\w.]+)/i,
         type: TRANSACTION_TYPES.CUT,
         extract: (match) => ({
             teamName: match[1],
@@ -71,7 +71,7 @@ const TRANSACTION_PATTERNS = [
     },
     {
         // Multiple cuts: "Team cuts @player1 and @player2"
-        regex: /(\w+)\s+cut(?:s|ting)?\s+@(\w+)\s+and\s+@(\w+)/i,
+        regex: /(\w+)\s+cut(?:s|ting)?\s+@([\w.]+)\s+and\s+@([\w.]+)/i,
         type: TRANSACTION_TYPES.CUT,
         extract: (match) => ({
             teamName: match[1],
@@ -85,7 +85,7 @@ const TRANSACTION_PATTERNS = [
     // Sign patterns
     {
         // "Team signs/sign @player"
-        regex: /(\w+)\s+sign(?:s|ing)?\s+@(\w+)/i,
+        regex: /(\w+)\s+sign(?:s|ing)?\s+@([\w.]+)/i,
         type: TRANSACTION_TYPES.SIGN,
         extract: (match) => ({
             teamName: match[1],
@@ -104,7 +104,7 @@ const TRANSACTION_PATTERNS = [
     },
     {
         // "X receives @player from Y" pattern
-        regex: /(\w+)\s+receives?\s+@(\w+)\s+from\s+(\w+)/i,
+        regex: /(\w+)\s+receives?\s+@([\w.]+)\s+from\s+(\w+)/i,
         type: TRANSACTION_TYPES.TRADE,
         extract: (match) => ({
             teamNames: [match[1], match[3]],
@@ -235,7 +235,7 @@ function parseTradeBlock(text, mentions) {
         }
 
         // Extract assets (players and picks) from current line
-        const playerMatches = line.match(/@(\w+)/g);
+        const playerMatches = line.match(/@([\w.]+)/g);
         const pickMatch = line.match(/S\d+\s+\w+\s+(?:1st|2nd|3rd)/i);
 
         if (currentReceiver === 'team1') {
