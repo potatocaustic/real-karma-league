@@ -8,7 +8,7 @@ const { defineSecret } = require('firebase-functions/params');
 const realAuthToken = defineSecret('REAL_AUTH_TOKEN');
 
 // Real API base URL
-const REAL_API_BASE = 'https://api.realapp.link';
+const REAL_API_BASE = 'https://api.real.vg';
 
 // Group IDs for transaction channels
 const GROUP_IDS = {
