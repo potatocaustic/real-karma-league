@@ -218,10 +218,6 @@ async function handleApprove(transactionId, league) {
  * Handle reject button click
  */
 async function handleReject(transactionId, league) {
-    if (!confirm('Reject this transaction?')) {
-        return;
-    }
-
     try {
         const btn = document.querySelector(`[data-reject-id="${transactionId}"]`);
         if (btn) {
