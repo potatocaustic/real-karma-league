@@ -443,8 +443,12 @@ exports.admin_approveParsedTransaction = onCall({
                 to: p.to
             }));
 
-        // Build involved_teams array
-        const involvedTeams = [...new Set(trans.teams.map(t => t.id).filter(Boolean))];
+        // Build involved_teams array - include teams from both trans.teams and player moves
+        const teamsFromPlayers = trans.players
+            .flatMap(p => [p.from, p.to])
+            .filter(t => t && t !== 'RETIRED' && t !== 'FREE_AGENT');
+        const teamsFromMatches = trans.teams.map(t => t.id).filter(Boolean);
+        const involvedTeams = [...new Set([...teamsFromMatches, ...teamsFromPlayers])];
 
         // Build involved_picks array
         const involvedPicks = (trans.picks || []).map(pick => ({
@@ -461,6 +465,7 @@ exports.admin_approveParsedTransaction = onCall({
             involved_players: involvedPlayers,
             involved_teams: involvedTeams,
             involved_picks: involvedPicks,
+            date: FieldValue.serverTimestamp(),
             created_at: FieldValue.serverTimestamp(),
             created_by: userId,
             source: 'parsed_transaction',
