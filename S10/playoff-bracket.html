@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en" data-style-rollout="modern" data-season="active">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8LNVNG5M1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-E8LNVNG5M1');
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL Season 10 Playoff Bracket</title>
+    <link rel="stylesheet" href="/css/global-styles.css">
+    <link rel="stylesheet" href="/css/playoff-bracket.css">
+    <link rel="stylesheet" href="/css/league-switcher.css">
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <script>
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const leagueParam = urlParams.get('league');
+            if (leagueParam === 'major' || leagueParam === 'minor') {
+                window.__currentLeague = leagueParam;
+                localStorage.setItem('rkl_current_league', leagueParam);
+            } else {
+                window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+            }
+        })();
+    </script>
+
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body class="s9-page">
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <div id="league-switcher-mount">
+            <div class="league-switcher">
+                <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <script>
+                    document.write('<img src="/icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+                </script>
+                <script>
+                    document.write('<span class="header-text">Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+                </script>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S10.html" class="dropbtn">S10 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S10/RKL-S10.html">S10 Home</a>
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Season Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-order.html">S11 Draft Order</a>
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Players &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="players.html">Player Search</a>
+                        <a href="free-agents.html">Free Agents</a>
+                    </div>
+                </li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="page-header">
+            <h2>Season 10 Playoff Picture</h2>
+        </div>
+
+        <div id="play-in-container">
+            <div id="play-in-section" class="play-in-section">
+            </div>
+        </div>
+
+        <div class="bracket-container" id="bracket-container">
+            <div class="loading">Loading Playoff Bracket...</div>
+        </div>
+    </main>
+
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="/common/trade-block.html">GM Portal</a> | <a href="/commish/dashboard.html">Commish</a>
+    </footer>
+    
+    <script src="../js/main.js" type="module"></script>
+    <script type="module">
+        import { db, collection, getDocs, query, where, doc, getDoc, getLeagueCollectionName, getCurrentLeague, getConferenceNames, getShortConferenceNames } from '/js/firebase-init.js';
+        import { createLeagueSwitcher } from '/common/league-switcher.js';
+
+        const SEASON_ID = "S10";
+
+        let allTeamsMap = new Map();
+        let seriesMap = new Map();
+
+        async function fetchAllData() {
+            const container = document.getElementById('bracket-container');
+            try {
+                const conferences = getConferenceNames();
+                const teamsQuery = query(collection(db, getLeagueCollectionName('v2_teams')), where('conference', 'in', [conferences.primary, conferences.secondary]));
+                const teamsSnap = await getDocs(teamsQuery);
+                
+                const teamRecordPromises = teamsSnap.docs.map(async (teamDoc) => {
+                    try {
+                        const teamData = { id: teamDoc.id, ...teamDoc.data() };
+                        const teamDocRef = doc(db, getLeagueCollectionName('v2_teams'), teamDoc.id);
+                        const recordRef = doc(teamDocRef, getLeagueCollectionName('seasonal_records'), SEASON_ID);
+                        const recordSnap = await getDoc(recordRef);
+                        
+                        if (recordSnap.exists()) {
+                            return {
+                                ...teamData,
+                                ...recordSnap.data()
+                            };
+                        }
+                        return teamData;
+                    } catch (error) {
+                        console.error(`!!!!!! FAILED to fetch record for team: ${teamDoc.id} !!!!!!`);
+                        console.error("The error was:", error);
+                        return { id: teamDoc.id, ...teamDoc.data(), error: true };
+                    }
+                });
+                
+                const teamsWithRecords = await Promise.all(teamRecordPromises);
+                teamsWithRecords.forEach(team => allTeamsMap.set(team.id, team));
+
+                const seasonDocRef = doc(db, getLeagueCollectionName('seasons'), SEASON_ID);
+                const postGamesQuery = collection(seasonDocRef, 'post_games'); 
+                const postGamesSnap = await getDocs(postGamesQuery);
+
+                // ===================== FIX START =====================
+                // The original code overwrote series data for each game in a series.
+                // This new logic correctly groups all games by series, then finds the
+                // most recent game document to use as the source of truth for series state.
+
+                const gamesBySeries = new Map();
+                postGamesSnap.forEach(doc => {
+                    const gameData = { id: doc.id, ...doc.data() }; 
+                    if (!gamesBySeries.has(gameData.series_id)) {
+                        gamesBySeries.set(gameData.series_id, []);
+                    }
+                    gamesBySeries.get(gameData.series_id).push(gameData);
+                });
+
+                for (const [seriesId, games] of gamesBySeries.entries()) {
+                    // Sort games by their document ID in descending order. Since document IDs
+                    // are time-based, this reliably puts the most recently created game first.
+                    games.sort((a, b) => b.id.localeCompare(a.id));
+                    // Set the series data to be the most recent game, which has the cumulative win/loss counts.
+                    seriesMap.set(seriesId, games[0]); 
+                }
+                // ====================== FIX END ======================
+
+                return true; 
+            } catch (error) {
+                console.error("Error fetching Firestore data:", error);
+                container.innerHTML = `<div class="error">Could not load playoff data from Firestore.</div>`;
+                return false; 
+            }
+        }
+
+
+        function getTeam(teamId) {
+            if (!teamId || teamId === "TBD") return { id: "TBD", team_name: "TBD" };
+            return allTeamsMap.get(teamId) || { id: teamId, team_name: teamId };
+        }
+
+        function getSeries(seriesId) {
+            return seriesMap.get(seriesId);
+        }
+
+        function getSeriesWinner(seriesId) {
+            const series = getSeries(seriesId);
+            if (!series) return null;
+            if (series.week === 'Play-In') return series.winner || null;
+            return series.series_winner || null;
+        }
+
+
+        function createTeamHTML(teamId, series, displaySeed, isSeriesWinner) {
+            const teamData = getTeam(teamId);
+            const isWinner = isSeriesWinner && isSeriesWinner === teamId;
+            const isTBD = !teamId || teamId === "TBD";
+            const teamHref = isTBD ? 'javascript:void(0);' : `team.html?id=${teamData.id}`;
+            const seedToShow = displaySeed || '';
+            
+            let scoreOrRecordHTML = '';
+            const seriesHasStarted = series && (series.team1_wins > 0 || series.team2_wins > 0);
+
+            if (seriesHasStarted) {
+                const teamWins = (series.team1_id === teamId) ? series.team1_wins : series.team2_wins;
+                scoreOrRecordHTML = `<span class="series-score">${teamWins || 0}</span>`;
+            } else if (!isTBD && teamData.wins !== undefined && teamData.losses !== undefined) {
+                scoreOrRecordHTML = `<span class="team-record">(${teamData.wins}-${teamData.losses})</span>`;
+            }
+
+            return `
+                <a href="${teamHref}" class="team ${isWinner ? 'winner' : ''} ${isTBD ? 'tbd' : ''}">
+                    <span class="team-seed">${seedToShow}</span>
+                    <img src="/icons/${isTBD ? 'RKL' : teamData.id}.webp" alt="${teamData.team_name}" class="team-logo" onerror="this.onerror=null; this.src='/icons/RKL.webp';" loading="lazy">
+                    <div class="team-info">
+                        <span class="team-name">${teamData.team_name}</span>
+                        ${scoreOrRecordHTML}
+                    </div>
+                </a>`;
+        }
+        
+        function createMatchupHTML(seriesId, defaultTeam1Id = 'TBD', defaultTeam2Id = 'TBD') {
+            const series = getSeries(seriesId);
+            const seriesWinner = getSeriesWinner(seriesId);
+            
+            const team1Id = series?.team1_id || defaultTeam1Id;
+            const team2Id = series?.team2_id || defaultTeam2Id;
+            const team1Seed = series?.team1_seed || '';
+            const team2Seed = series?.team2_seed || '';
+
+            const isClickable = series && (series.team1_wins > 0 || series.team2_wins > 0 || series.winner);
+            const weekLink = isClickable ? `schedule.html#week-${encodeURIComponent(series.week)}` : null;
+            const matchupClass = isClickable ? 'matchup is-clickable' : 'matchup';
+            const clickHandler = isClickable ? `onclick="window.location.href='${weekLink}'"` : '';
+
+            return `<div class="${matchupClass}" ${clickHandler}>
+                        ${createTeamHTML(team1Id, series, team1Seed, seriesWinner)}
+                        ${createTeamHTML(team2Id, series, team2Seed, seriesWinner)}
+                    </div>`;
+        }
+
+        function createPlayInMatchupHTML(label, seriesId, defaultTeam1Id, defaultTeam2Id) {
+            const series = getSeries(seriesId);
+            const seriesWinner = getSeriesWinner(seriesId);
+            
+            const team1Id = series?.team1_id || defaultTeam1Id;
+            const team2Id = series?.team2_id || defaultTeam2Id;
+            const team1Seed = series?.team1_seed || '';
+            const team2Seed = series?.team2_seed || '';
+
+            const isClickable = !!seriesWinner;
+            const weekLink = isClickable ? `schedule.html#week-Play-In` : null;
+            const matchupClass = isClickable ? 'play-in-matchup is-clickable' : 'play-in-matchup';
+            const clickHandler = isClickable ? `onclick="window.location.href='${weekLink}'"` : '';
+
+            return `
+                <div class="${matchupClass}" ${clickHandler}>
+                    <div class="matchup-label">${label}</div>
+                    ${createTeamHTML(team1Id, series, team1Seed, seriesWinner)}
+                    ${createTeamHTML(team2Id, series, team2Seed, seriesWinner)}
+                </div>`;
+        }
+
+        function renderPlayInTournament() {
+            const playInContainer = document.getElementById('play-in-container');
+            const playInSection = document.getElementById('play-in-section');
+            const teams = Array.from(allTeamsMap.values());
+            const conferences = getConferenceNames();
+
+            const secondaryTeams = teams.filter(t => t.conference === conferences.secondary).sort((a, b) => a.postseed - b.postseed);
+            const primaryTeams = teams.filter(t => t.conference === conferences.primary).sort((a, b) => a.postseed - b.postseed);
+
+            const w7 = secondaryTeams.find(t => t.postseed === 7)?.id;
+            const w8 = secondaryTeams.find(t => t.postseed === 8)?.id;
+            const w9 = secondaryTeams.find(t => t.postseed === 9)?.id;
+            const w10 = secondaryTeams.find(t => t.postseed === 10)?.id;
+
+            const e7 = primaryTeams.find(t => t.postseed === 7)?.id;
+            const e8 = primaryTeams.find(t => t.postseed === 8)?.id;
+            const e9 = primaryTeams.find(t => t.postseed === 9)?.id;
+            const e10 = primaryTeams.find(t => t.postseed === 10)?.id;
+
+            const secondaryHTML = `
+                <div class="play-in-conference">
+                    <h3 class="play-in-title">${conferences.secondary} Conference Play-In</h3>
+                    ${createPlayInMatchupHTML('7th Seed Game', 'W7vW8', w7, w8)}
+                    ${createPlayInMatchupHTML('9th/10th Seed Game', 'W9vW10', w9, w10)}
+                    ${createPlayInMatchupHTML('8th Seed Game', 'W8thSeedGame')}
+                </div>`;
+            const primaryHTML = `
+                 <div class="play-in-conference">
+                    <h3 class="play-in-title">${conferences.primary} Conference Play-In</h3>
+                    ${createPlayInMatchupHTML('7th Seed Game', 'E7vE8', e7, e8)}
+                    ${createPlayInMatchupHTML('9th/10th Seed Game', 'E9vE10', e9, e10)}
+                    ${createPlayInMatchupHTML('8th Seed Game', 'E8thSeedGame')}
+                </div>`;
+
+            playInSection.innerHTML = secondaryHTML + primaryHTML;
+
+            const isRoundOneStarted = Array.from(seriesMap.values()).some(s => s.week === 'Round 1' && (s.team1_wins > 0 || s.team2_wins > 0));
+
+            if (isRoundOneStarted) {
+                playInContainer.innerHTML = `
+                    <details id="play-in-details">
+                        <summary id="play-in-summary">Play-In Tournament Results</summary>
+                        <div class="play-in-content-wrapper">
+                            ${playInSection.outerHTML}
+                        </div>
+                    </details>`;
+            } else {
+                playInContainer.innerHTML = playInSection.outerHTML;
+            }
+        }
+
+        async function renderBracket() {
+            const container = document.getElementById('bracket-container');
+            const success = await fetchAllData();
+            if (!success) return;
+
+            renderPlayInTournament();
+
+            const championId = getSeriesWinner('Finals');
+            const shortConferences = getShortConferenceNames();
+            const isMinor = getCurrentLeague() === 'minor';
+            const leagueName = isMinor ? 'RKML' : 'RKL';
+
+            let bracketHTML = `
+                <div class="bracket">
+                    <div class="bracket-header-row">
+                        <div class="round-title">Round 1<small class="series-format">(Best of 3)</small></div>
+                        <div class="round-title">Conference Semis<small class="series-format">(Best of 3)</small></div>
+                        <div class="round-title">Conference Finals<small class="series-format">(Best of 5)</small></div>
+                        <div class="round-title">${leagueName} Finals<small class="series-format">(Best of 7)</small></div>
+                    </div>
+                    <div class="bracket-body-row">
+                        <div class="round-column">
+                            <div class="conference-section">
+                                <h3 class="conference-subtitle">${shortConferences.secondary}</h3>
+                                <div class="conference-group">
+                                    <div class="matchup-subgroup">
+                                        ${createMatchupHTML('W1vW8')}
+                                        ${createMatchupHTML('W4vW5')}
+                                    </div>
+                                    <div class="matchup-subgroup">
+                                        ${createMatchupHTML('W3vW6')}
+                                        ${createMatchupHTML('W2vW7')}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="conference-section">
+                                <h3 class="conference-subtitle">${shortConferences.primary}</h3>
+                                <div class="conference-group">
+                                    <div class="matchup-subgroup">
+                                        ${createMatchupHTML('E1vE8')}
+                                        ${createMatchupHTML('E4vE5')}
+                                    </div>
+                                    <div class="matchup-subgroup">
+                                        ${createMatchupHTML('E3vE6')}
+                                        ${createMatchupHTML('E2vE7')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="round-column">
+                            <div class="conference-section">
+                                <div class="conference-group">
+                                    <div class="matchup-subgroup">${createMatchupHTML('W-R2-T')}</div>
+                                    <div class="matchup-subgroup">${createMatchupHTML('W-R2-B')}</div>
+                                </div>
+                            </div>
+                            <div class="conference-section">
+                                <div class="conference-group">
+                                    <div class="matchup-subgroup">${createMatchupHTML('E-R2-T')}</div>
+                                    <div class="matchup-subgroup">${createMatchupHTML('E-R2-B')}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="round-column">
+                            <div class="conference-section">
+                                <div class="conference-group">${createMatchupHTML('WCF')}</div>
+                            </div>
+                            <div class="conference-section">
+                                <div class="conference-group">${createMatchupHTML('ECF')}</div>
+                            </div>
+                        </div>
+
+                        <div class="round-column final-round">
+                            ${championId ? `
+                                <div class="finals-champion">
+                                    <div class="champion-box is-clickable" onclick="window.location.href='schedule.html#week-Finals'">
+                                        <h3>🏆 ${leagueName} Champion 🏆</h3>
+                                        ${createTeamHTML(championId, getSeries('Finals'), getSeries('Finals')?.team1_id === championId ? getSeries('Finals')?.team1_seed : getSeries('Finals')?.team2_seed, championId)}
+                                    </div>
+                                </div>
+                            ` : `
+                                <div class="conference-group">${createMatchupHTML('Finals')}</div>
+                            `}
+                        </div>
+                    </div>
+                </div>`;
+
+            container.innerHTML = bracketHTML;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize league switcher
+            const mountPoint = document.getElementById('league-switcher-mount');
+            if (mountPoint) {
+                const switcher = createLeagueSwitcher();
+                mountPoint.innerHTML = '';
+                mountPoint.appendChild(switcher);
+            }
+
+            // Initial bracket render
+            renderBracket();
+        });
+
+        // Listen for league changes and re-render
+        window.addEventListener('leagueChanged', () => {
+            allTeamsMap.clear();
+            seriesMap.clear();
+            renderBracket();
+        });
+
+        import { httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-functions.js";
+        import { functions } from '/js/firebase-init.js';
+
+        const testBracketButton = document.getElementById('testBracketButton');
+        const testResultDiv = document.getElementById('testResult');
+
+        if (testBracketButton) {
+            testBracketButton.addEventListener('click', async () => {
+                console.log("Calling 'test_updatePlayoffBracket'...");
+                testResultDiv.textContent = 'Running test...';
+
+                const test_updatePlayoffBracket = httpsCallable(functions, 'test_updatePlayoffBracket');
+
+                try {
+                    const result = await test_updatePlayoffBracket();
+                    console.log("Function returned:", result.data);
+                    testResultDiv.textContent = `Success! ${result.data.message}`;
+                } catch (error) {
+                    console.error("Error calling function:", error);
+                    testResultDiv.textContent = `Error: ${error.message}`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>

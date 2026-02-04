@@ -1,13 +1,11 @@
 import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName, getCurrentLeague, getConferenceNames } from './firebase-init.js';
+import { getSeasonIdFromPage } from './season-utils.js';
 
-// Get season from path (/S8/ or /S9/), URL parameter, or query for active season
-const urlParams = new URLSearchParams(window.location.search);
-const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-const urlSeasonId = seasonFromPath || urlParams.get('season');
+// Get season from page lock (data-season, path, or ?season)
+const { seasonId: lockedSeasonId, isLocked: isSeasonLocked } = getSeasonIdFromPage();
 
 // --- GLOBAL STATE ---
-let activeSeasonId = urlSeasonId || '';
+let activeSeasonId = lockedSeasonId || '';
 let allTeamsData = [];
 let allPowerRankingsData = {}; // Key: "v1", Value: [team, team, ...]
 let latestPRVersion = null;
@@ -36,10 +34,10 @@ const prVersionSelect = document.getElementById('pr-version-select');
 
 async function getActiveSeason() {
     // If season is specified via URL parameter, skip querying for active season
-    if (urlSeasonId) {
-        const seasonDocRef = doc(db, collectionNames.seasons, urlSeasonId);
+    if (isSeasonLocked) {
+        const seasonDocRef = doc(db, collectionNames.seasons, lockedSeasonId);
         const seasonDocSnap = await getDoc(seasonDocRef);
-        if (!seasonDocSnap.exists()) throw new Error(`Season ${urlSeasonId} not found.`);
+        if (!seasonDocSnap.exists()) throw new Error(`Season ${lockedSeasonId} not found.`);
         return seasonDocSnap.data();
     }
 

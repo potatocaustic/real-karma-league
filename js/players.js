@@ -1,7 +1,8 @@
 // /js/players.js
-// Players search page for S9
+// Players search page for the active season
 
 import {
+import { getSeasonIdFromPage } from './season-utils.js';
     db,
     collection,
     getDocs,
@@ -23,7 +24,11 @@ const playersContainer = document.getElementById('players-container');
 // --- State ---
 let allTeams = new Map();
 let searchDebounceId = null;
-const SEASON_ID = 'S9'; // Current season
+const { seasonId: SEASON_ID } = getSeasonIdFromPage({ fallback: 'S9' });
+const seasonNumber = parseInt(SEASON_ID.substring(1), 10);
+const previousSeasons = [seasonNumber - 1, seasonNumber - 2]
+    .filter((value) => Number.isFinite(value) && value > 0)
+    .map((value) => `S${value}`);
 
 // --- Initialize ---
 document.addEventListener('DOMContentLoaded', async () => {
@@ -202,18 +207,13 @@ function createPlayerCard(player) {
     // Build profile links
     const profileLinks = [];
 
-    // Always include S9
-    profileLinks.push(`<a href="/S9/player.html?id=${player.id}">S9 Profile</a>`);
+    profileLinks.push(`<a href="/${SEASON_ID}/player.html?id=${player.id}">${SEASON_ID} Profile</a>`);
 
-    // Include S8 if applicable
-    if (player.hasS8) {
-        profileLinks.push(`<a href="/S8/player.html?id=${player.id}">S8 Profile</a>`);
-    }
-
-    // Include S7 if applicable
-    if (player.hasS7) {
-        profileLinks.push(`<a href="/S7/player.html?id=${player.id}">S7 Profile</a>`);
-    }
+    previousSeasons.forEach((seasonId) => {
+        if (player.seasonChecks?.[seasonId]) {
+            profileLinks.push(`<a href="/${seasonId}/player.html?id=${player.id}">${seasonId} Profile</a>`);
+        }
+    });
 
     return `
         <div class="player-card" data-player-id="${player.id}">

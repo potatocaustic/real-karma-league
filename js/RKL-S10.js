@@ -633,7 +633,7 @@ async function loadRecentGames() {
 }
 
 
-// js/RKL-S9.js
+// js/RKL-S10.js
 
 async function loadSeasonInfo(seasonData) {
     const currentWeekContainer = document.getElementById('current-week-container');
@@ -2148,7 +2148,7 @@ window.addEventListener('pagehide', cleanupListeners);
 // Reload data when league changes
 window.addEventListener('leagueChanged', async (event) => {
     const newLeague = event.detail.league;
-    console.log('[RKL-S9] League changed to:', newLeague);
+    console.log('[RKL-S10] League changed to:', newLeague);
 
     // Clean up existing listeners
     cleanupListeners();
@@ -2177,7 +2177,7 @@ window.addEventListener('leagueChanged', async (event) => {
 
         // Update page title
         if (pageTitle) {
-            pageTitle.textContent = (newLeague === 'minor' ? 'RKML' : 'RKL') + ' Season 9';
+            pageTitle.textContent = (newLeague === 'minor' ? 'RKML' : 'RKL') + ' Season 10';
         }
 
         loadStandingsPreview();
@@ -2198,7 +2198,7 @@ window.addEventListener('leagueChanged', async (event) => {
                 loadRecentGames();
             }
         } catch (error) {
-            console.error('[RKL-S9] Error loading games after league change:', error);
+            console.error('[RKL-S10] Error loading games after league change:', error);
             loadRecentGames(); // Fallback to recent games
         }
 
@@ -2210,7 +2210,7 @@ window.addEventListener('leagueChanged', async (event) => {
             if (seasonInfo) seasonInfo.style.opacity = '1';
         }, 100);
     } catch (error) {
-        console.error('[RKL-S9] Error reloading data after league change:', error);
+        console.error('[RKL-S10] Error reloading data after league change:', error);
         // Restore visibility even on error
         if (mainGrid) mainGrid.style.opacity = '1';
         if (seasonInfo) seasonInfo.style.opacity = '1';

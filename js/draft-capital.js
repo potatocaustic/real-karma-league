@@ -2,6 +2,7 @@
 
 // Import functions from your firebase-init.js
 import {
+import { getSeasonIdFromPage } from './season-utils.js';
     db,
     collection,
     getDocs,
@@ -13,7 +14,10 @@ import {
 } from './firebase-init.js';
 
 // --- Globals ---
-let currentSeason = 10; 
+const { seasonId: lockedSeasonId } = getSeasonIdFromPage({ fallback: 'S9' });
+const activeSeasonNumber = lockedSeasonId ? parseInt(lockedSeasonId.substring(1), 10) : 9;
+const ACTIVE_LEAGUE_SEASON = `S${activeSeasonNumber}`;
+let currentSeason = activeSeasonNumber + 1;
 let currentView = 'table';
 let allDraftPicks = [];
 let allTeams = [];
@@ -81,7 +85,7 @@ async function loadData() {
       allDraftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
       // Fetch only current season (S9) team records for team names
-      const activeLeagueSeason = "S9";
+      const activeLeagueSeason = ACTIVE_LEAGUE_SEASON;
       const teamRecordsQuery = query(
           collectionGroup(db, collectionNames.seasonalRecords),
           where('seasonId', '==', activeLeagueSeason)

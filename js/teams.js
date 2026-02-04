@@ -1,5 +1,6 @@
 // /js/teams.js
 import {
+import { getSeasonIdFromPage } from './season-utils.js';
   db,
   collection,
   getDocs,
@@ -12,11 +13,8 @@ import {
   getCurrentLeague
 } from './firebase-init.js';
 
-// Get season from path (/S8/ or /S9/), URL parameter, or default to S9
-const urlParams = new URLSearchParams(window.location.search);
-const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-const SEASON_ID = seasonFromPath || urlParams.get('season') || 'S9';
+// Get season from page lock (data-season, path, or ?season), fallback to S9
+const { seasonId: SEASON_ID } = getSeasonIdFromPage({ fallback: 'S9' });
 
 function getPlayoffIndicator(rankInConference) {
   if (rankInConference <= 6) {

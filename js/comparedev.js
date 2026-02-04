@@ -1,6 +1,7 @@
 // /js/comparedev.js
 
 import {
+import { getSeasonIdFromPage } from './season-utils.js';
     db,
     collection,
     getDocs,
@@ -14,11 +15,8 @@ import {
     getConferenceNames
 } from '../js/firebase-init.js';
 
-// Get season from URL parameter or default to querying for active season
-const urlParams = new URLSearchParams(window.location.search);
-const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-const urlSeasonId = seasonFromPath || urlParams.get('season');
+// Get season from page lock (data-season, path, or ?season)
+const { seasonId: urlSeasonId } = getSeasonIdFromPage({ fallback: 'S9' });
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Global State ---

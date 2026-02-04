@@ -1,13 +1,11 @@
 // /js/player.js
 import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
+import { getSeasonIdFromPage } from './season-utils.js';
 
 // --- Configuration ---
-// Get season from path (/S8/ or /S9/), URL parameter, or default to S9
-const urlParams = new URLSearchParams(window.location.search);
-const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-const SEASON_ID = seasonFromPath || urlParams.get('season') || 'S9';
+// Get season from page lock (data-season, path, or ?season), fallback to S9
+const { seasonId: SEASON_ID } = getSeasonIdFromPage({ fallback: 'S9' });
 
 // --- Global State ---
 let allTeamsData = new Map();

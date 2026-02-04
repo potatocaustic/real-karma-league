@@ -1,4 +1,7 @@
 import { db, collection, getDocs, collectionNames } from '/js/firebase-init.js';
+import { getSeasonIdFromPage } from './season-utils.js';
+
+const { seasonId: SEASON_ID } = getSeasonIdFromPage({ fallback: 'S9' });
 
 document.addEventListener('DOMContentLoaded', async () => {
     const tableBody = document.getElementById('free-agents-table-body');
@@ -55,7 +58,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     try {
-        const freeAgentsCollectionRef = collection(db, `${collectionNames.seasons}/S9/free_agents`);
+        const freeAgentsCollectionRef = collection(db, `${collectionNames.seasons}/${SEASON_ID}/free_agents`);
         const querySnapshot = await getDocs(freeAgentsCollectionRef);
 
         freeAgentsData = querySnapshot.docs.map(doc => doc.data());

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" data-style-rollout="modern" data-season="active">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8LNVNG5M1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-E8LNVNG5M1');
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="page-title">RKL Postseason Team</title>
+    <link rel="stylesheet" href="/css/global-styles.css" />
+    <link rel="stylesheet" href="/css/postseason-team.css" />
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true
+        };
+    </script>
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark-mode');
+            }
+        })();
+    </script>
+    <style id="team-icon-styles"></style>
+    <script>
+        window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+</head>
+<body class="s9-page">
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <img src="/icons/RKL.webp" alt="RKL Logo" class="header-logo" onerror="this.style.display='none'" loading="lazy">
+                <span class="header-text">Real Karma League</span>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S10.html" class="dropbtn">S10 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S10/RKL-S10.html">S10 Home</a>
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Season Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-order.html">S11 Draft Order</a>
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Players &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="players.html">Player Search</a>
+                        <a href="free-agents.html">Free Agents</a>
+                    </div>
+                </li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+            <a href="teams.html" class="back-button" style="margin-bottom: 0;">← Back to All Teams</a>
+            <a href="#" id="regular-season-btn" class="back-button" style="margin-bottom: 0; background-color: #6c757d; display: none;">View Regular Season Profile →</a>
+        </div>
+
+        <div class="team-header-content">
+            <div class="team-main-info" id="team-main-info">
+                <div class="loading">Loading team information...</div>
+            </div>
+            <div class="team-stats-grid" id="team-stats" style="display: none;">
+                </div>
+        </div>
+
+        <div class="content-grid">
+            <div class="roster-section">
+                <div class="section-header">
+                    <h3>Postseason Roster</h3>
+                </div>
+                <div class="roster-list" id="roster-list">
+                    <div class="loading">Loading roster...</div>
+                </div>
+            </div>
+            <div class="schedule-section">
+                <div class="section-header">
+                    <h3>Postseason Schedule</h3>
+                </div>
+                <div class="games-list" id="team-schedule">
+                    <div class="loading">Loading schedule...</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal-placeholder"></div>
+
+    <footer>
+        <p>@caustic on Real</p>
+        <a href="/gm/dashboard.html">GM Portal</a> | <a href="/commish/dashboard.html">Commish</a>
+    </footer>
+    
+    <script type="module" src="/js/firebase-init.js"></script>
+    <script type="module" src="/js/main.js"></script>
+    <script type="module" src="/js/postseason-team.js"></script>
+</body>
+</html>

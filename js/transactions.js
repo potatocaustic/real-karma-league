@@ -1,6 +1,7 @@
 // transactions.js
 
 import {
+import { getSeasonIdFromPage } from './season-utils.js';
   db,
   collection,
   query,
@@ -15,11 +16,8 @@ import {
   getLeagueCollectionName
 } from "../js/firebase-init.js";
 
-// Get season from path (/S8/ or /S9/), URL parameter, or default to S9
-const urlParams = new URLSearchParams(window.location.search);
-const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-const ACTIVE_SEASON_ID = seasonFromPath || urlParams.get('season') || 'S9';
+// Get season from page lock (data-season, path, or ?season), fallback to S9
+const { seasonId: ACTIVE_SEASON_ID } = getSeasonIdFromPage({ fallback: 'S9' });
 
 // --- DOM Elements ---
 const transactionsListEl = document.getElementById('transactions-list');

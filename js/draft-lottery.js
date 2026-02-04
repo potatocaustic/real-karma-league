@@ -2,12 +2,10 @@
 
 import './main.js'; // Import main.js to run it first
 import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName, getConferenceNames, getCurrentLeague } from './firebase-init.js';
+import { getSeasonIdFromPage } from './season-utils.js';
 
-// Get season from path (/S8/ or /S9/), URL parameter, or default to S9
-const urlParams = new URLSearchParams(window.location.search);
-const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-const urlSeasonId = seasonFromPath || urlParams.get('season');
+// Get season from page lock (data-season, path, or ?season), fallback to S9
+const { seasonId: urlSeasonId } = getSeasonIdFromPage({ fallback: 'S9' });
 
 // --- DATA AND CONFIGURATION ---
 const PREVIOUS_SEASON_ID = urlSeasonId;

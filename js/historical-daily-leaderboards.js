@@ -1,10 +1,8 @@
 import { db, getDoc, getDocs, collection, doc, query, orderBy, limit as fbLimit, collectionNames, getLeagueCollectionName, getCurrentLeague, getConferenceNames } from './firebase-init.js';
+import { getSeasonIdFromPage } from './season-utils.js';
 
 // Get season from path (/S8/ or /S9/)
-const pathMatch = window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-
-let activeSeasonId = seasonFromPath || 'S9';
+const { seasonId: activeSeasonId } = getSeasonIdFromPage({ fallback: 'S9' });
 let allTeams = [];
 let currentDate = null;
 let availableDates = [];

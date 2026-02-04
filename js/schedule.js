@@ -2,14 +2,12 @@
 
 import { generateLineupTable } from '../js/main.js';
 import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot, collectionNames, getLeagueCollectionName, getCurrentLeague } from '../js/firebase-init.js';
+import { getSeasonIdFromPage } from './season-utils.js';
 
-// Get season from path (/S8/ or /S9/), URL parameter, or query for active season
-const urlParams = new URLSearchParams(window.location.search);
-const pathMatch =  window.location.pathname.match(/\/S(\d+)\//);
-const seasonFromPath = pathMatch ? `S${pathMatch[1]}` : null;
-const urlSeasonId = seasonFromPath || urlParams.get('season');
+// Get season from page lock (data-season, path, or ?season)
+const { seasonId: lockedSeasonId, isLocked: isSeasonLocked } = getSeasonIdFromPage();
 
-let activeSeasonId = urlSeasonId || '';
+let activeSeasonId = lockedSeasonId || '';
 let allTeams = [];
 let allGamesCache = [];
 // Caches for lineups and scores are removed from global scope to enforce on-demand loading.
@@ -110,7 +108,7 @@ function getPostseasonGameLabel(seriesName) {
 // --- DATA FETCHING ---
 async function getActiveSeason() {
     // If season is specified via URL parameter, skip querying for active season
-    if (urlSeasonId) {
+    if (isSeasonLocked) {
         return; // activeSeasonId is already set from URL parameter
     }
 

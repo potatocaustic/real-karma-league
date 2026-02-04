@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en" data-style-rollout="modern" data-season="active">
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E8LNVNG5M1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-E8LNVNG5M1');
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RKL Season 10 Transactions</title>
+    <link rel="stylesheet" href="/css/global-styles.css" />
+    <link rel="stylesheet" href="/css/league-switcher.css" />
+    <link rel="stylesheet" href="/css/transactions.css" />
+    <link rel="stylesheet" href="/admin/admin-styles.css">
+    <link rel="icon" href="/rklfavicon.ico" type="image/x-icon" />
+    <script>
+        window.firebasePageConfig = {
+            useProdCollections: true 
+        };
+    </script>
+    <script>
+      (function() {
+        const theme = localStorage.getItem('theme');
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark-mode');
+        }
+      })();
+    </script>
+    <script>
+        // Detect league immediately to prevent flash
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const leagueParam = urlParams.get('league');
+            if (leagueParam === 'major' || leagueParam === 'minor') {
+                window.__currentLeague = leagueParam;
+                localStorage.setItem('rkl_current_league', leagueParam);
+            } else {
+                window.__currentLeague = localStorage.getItem('rkl_current_league') || 'major';
+            }
+        })();
+    </script>
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body class="s9-page">
+    <header>
+        <button id="theme-toggle-btn" aria-label="Toggle Theme">
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+        </button>
+        <div id="league-switcher-mount">
+            <div class="league-switcher">
+                <button id="league-toggle-btn" class="league-toggle-btn" aria-label="Toggle League" title="Switch League">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="17 1 21 5 17 9"></polyline>
+                        <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
+                        <polyline points="7 23 3 19 7 15"></polyline>
+                        <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <h1>
+            <a href="/index.html" class="header-link">
+                <script>
+                  document.write('<img src="/icons/' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + '.webp" alt="' + (window.__currentLeague === 'minor' ? 'RKML' : 'RKL') + ' Logo" class="header-logo" onerror="this.style.display=\'none\'" loading="eager">');
+                </script>
+                <script>
+                  document.write('<span class="header-text">Real Karma ' + (window.__currentLeague === 'minor' ? 'Minor ' : '') + 'League</span>');
+                </script>
+            </a>
+        </h1>
+        <nav>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul id="nav-menu">
+                <li class="dropdown">
+                    <a href="RKL-S10.html" class="dropbtn">S10 Home &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="/S10/RKL-S10.html">S10 Home</a>
+                        <a href="/S9/RKL-S9.html">S9 Home</a>
+                        <a href="/S8/RKL-S8.html">S8 Home</a>
+                    </div>
+                </li>
+                <li><a href="standings.html">Standings & Rankings</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Stats Hub &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="leaderboards.html">Season Leaderboards</a>
+                        <a href="historical-daily-leaderboards.html">Daily Leaderboards</a>
+                        <a href="compare.html">Comparison Tool</a>
+                    </div>
+                </li>
+                <li><a href="schedule.html">Schedule</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Draft Central &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="draft-order.html">S11 Draft Order</a>
+                        <a href="draft-capital.html">Draft Capital</a>
+                        <a href="draft-results.html">Draft Results</a>
+                        <a href="draft-lottery.html">Draft Lottery</a>
+                        <a href="draft-prospects.html">Draft Prospects</a>
+                    </div>
+                </li>
+                <li><a href="transactions.html">Transactions</a></li>
+                <li><a href="teams.html">Teams</a></li>
+                <li class="dropdown">
+                    <a href="javascript:void(0);" class="dropbtn">Players &#9662;</a>
+                    <div class="dropdown-content">
+                        <a href="players.html">Player Search</a>
+                        <a href="free-agents.html">Free Agents</a>
+                    </div>
+                </li>
+                <li><a href="trophy-case.html">Trophy Case</a></li>
+                <li><a href="/common/changelog.html">Changelog</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+      <div class="page-header">
+        <h2>Transaction Log</h2>
+        <p>Complete history of all trades, retirements, and roster moves</p>
+      </div>
+
+      <div class="filter-controls">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="week-filter">Week:</label>
+            <select id="week-filter">
+              <option value="all">All Weeks</option>
+              </select>
+          </div>
+          <div class="filter-group">
+            <label for="type-filter">Transaction Type:</label>
+            <select id="type-filter">
+              <option value="all">All Types</option>
+              <option value="TRADE">Trades</option>
+              <option value="SIGN">Free Agent Signings</option>
+              <option value="CUT">Cuts</option>
+              <option value="RETIREMENT">Retirements</option>
+              <option value="UNRETIREMENT">Unretirements</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="team-filter">Team:</label>
+            <select id="team-filter">
+              <option value="all">All Teams</option>
+              </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="transactions-container">
+        <div class="transactions-header">
+          <h3 id="transactions-title">Recent Transactions</h3>
+        </div>
+        <div class="transactions-list" id="transactions-list">
+          <div class="loading">Loading transactions...</div>
+        </div>
+      </div>
+    </main>
+    
+    <footer>
+      <p>@caustic on Real</p>
+      <a href="/common/trade-block.html">GM Portal</a> | <a href="/commish/dashboard.html">Commish</a>
+    </footer>
+
+    <script src="/js/main.js" type="module"></script>
+    <script src="/js/firebase-init.js" type="module"></script>
+    <script src="/js/transactions.js" type="module"></script>
+
+        <!-- League switcher with feature flag support -->
+    <script type="module" src="/js/init-league-switcher.js"></script>
+  </body>
+</html>
