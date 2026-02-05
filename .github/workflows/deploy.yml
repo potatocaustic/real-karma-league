@@ -8,9 +8,15 @@ on:
     branches:
       - main
 
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest # Use a standard virtual machine
+    env:
+      FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
     steps:
       # 1. Check out your code from the repository
       - name: Checkout code
@@ -26,12 +32,70 @@ jobs:
       - name: Install dependencies
         run: cd functions && npm install
 
-      # 4. Deploy to Firebase
-      - name: Deploy to Firebase
-        uses: w9jds/firebase-action@master
-        with:
-          # Deploy both functions and hosting
-          args: deploy --only functions,hosting
+      # 4. Install Firebase CLI
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      # 5. Deploy hosting first (fast path)
+      - name: Deploy Hosting
+        run: firebase deploy --only hosting --token "$FIREBASE_TOKEN" --non-interactive
+
+      # 6. Deploy functions in throttled batches to avoid mutation quota errors
+      - name: Deploy Functions (Batched)
         env:
-          # Use the secret token you created earlier
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FUNCTIONS_BATCH_SIZE: "15"
+          FUNCTIONS_BATCH_SLEEP_MS: "60000"
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const { spawnSync } = require('child_process');
+
+          const token = process.env.FIREBASE_TOKEN;
+          if (!token) {
+            console.error('FIREBASE_TOKEN is not set.');
+            process.exit(1);
+          }
+
+          const content = fs.readFileSync('functions/index.js', 'utf8');
+          const matches = [...content.matchAll(/exports\.(\w+)\s*=/g)];
+          const names = [...new Set(matches.map(m => m[1]))];
+
+          if (names.length === 0) {
+            console.log('No functions found to deploy.');
+            process.exit(0);
+          }
+
+          const batchSize = Number(process.env.FUNCTIONS_BATCH_SIZE || 15);
+          const sleepMs = Number(process.env.FUNCTIONS_BATCH_SLEEP_MS || 60000);
+          const totalBatches = Math.ceil(names.length / batchSize);
+
+          const runDeploy = (onlyArg) => {
+            const result = spawnSync('firebase', ['deploy', '--only', onlyArg, '--token', token, '--non-interactive'], {
+              stdio: 'inherit'
+            });
+            if (result.status !== 0) {
+              process.exit(result.status ?? 1);
+            }
+          };
+
+          const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+          (async () => {
+            for (let i = 0; i < names.length; i += batchSize) {
+              const batch = names.slice(i, i + batchSize);
+              const onlyArg = batch.map(name => `functions:${name}`).join(',');
+              const batchNumber = Math.floor(i / batchSize) + 1;
+
+              console.log(`Deploying batch ${batchNumber}/${totalBatches} (${batch.length} functions)...`);
+              runDeploy(onlyArg);
+
+              if (i + batchSize < names.length) {
+                console.log(`Sleeping ${sleepMs}ms to avoid quota limits...`);
+                await sleep(sleepMs);
+              }
+            }
+          })().catch((err) => {
+            console.error(err);
+            process.exit(1);
+          });
+          NODE
