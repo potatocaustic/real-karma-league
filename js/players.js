@@ -1,8 +1,8 @@
 // /js/players.js
 // Players search page for the active season
 
-import {
 import { getSeasonIdFromPage } from './season-utils.js';
+import {
     db,
     collection,
     getDocs,

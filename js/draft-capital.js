@@ -1,8 +1,8 @@
 // /js/draft-capital.js
 
 // Import functions from your firebase-init.js
-import {
 import { getSeasonIdFromPage } from './season-utils.js';
+import {
     db,
     collection,
     getDocs,

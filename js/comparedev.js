@@ -1,7 +1,7 @@
 // /js/comparedev.js
 
-import {
 import { getSeasonIdFromPage } from './season-utils.js';
+import {
     db,
     collection,
     getDocs,

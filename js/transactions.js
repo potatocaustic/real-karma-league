@@ -1,7 +1,7 @@
 // transactions.js
 
-import {
 import { getSeasonIdFromPage } from './season-utils.js';
+import {
   db,
   collection,
   query,
