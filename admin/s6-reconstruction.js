@@ -1,7 +1,7 @@
 /**
  * S6 Season Reconstruction - Admin Module
  *
- * Uses Cloud Functions to proxy API calls to real.vg (avoids CORS issues).
+ * Uses Cloud Functions to proxy API calls to RealSports (avoids CORS issues).
  * Supabase calls are made directly from the browser.
  */
 

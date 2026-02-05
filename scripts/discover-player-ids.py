@@ -17,6 +17,7 @@ Usage:
 import json
 import os
 import time
+import uuid
 import argparse
 import requests
 from collections import defaultdict
@@ -28,13 +29,58 @@ try:
     SUPABASE_AVAILABLE = True
 except ImportError:
     SUPABASE_AVAILABLE = False
+try:
+    from hashids import Hashids
+    HASHIDS_AVAILABLE = True
+except ImportError:
+    HASHIDS_AVAILABLE = False
+    print("⚠️  Hashids not installed. Run: pip install hashids")
 
 
 # Configuration
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(SCRIPT_DIR, "output")
-RANKED_DAYS_API = "https://api.real.vg/rankeddays"
+REAL_API_BASE = "https://web.realsports.io"
+REAL_VERSION = "27"
+RANKED_DAYS_API = f"{REAL_API_BASE}/rankeddays"
 REQUEST_DELAY = 0.5
+
+REAL_AUTH_TOKEN = os.environ.get("REAL_AUTH_TOKEN")
+if not REAL_AUTH_TOKEN:
+    try:
+        from getpass import getpass
+        REAL_AUTH_TOKEN = getpass("Enter RealSports auth token: ")
+    except Exception:
+        REAL_AUTH_TOKEN = None
+
+DEVICE_UUID = os.environ.get("REAL_DEVICE_UUID") or str(uuid.uuid4())
+DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+
+
+def generate_request_token() -> str:
+    if not HASHIDS_AVAILABLE:
+        raise RuntimeError("hashids is required. Install with: pip install hashids")
+    hashids = Hashids(salt="realwebapp", min_length=16)
+    return hashids.encode(int(time.time() * 1000))
+
+
+def build_real_headers(device_name: str = "Chrome on Windows") -> dict:
+    if not REAL_AUTH_TOKEN:
+        raise RuntimeError("REAL_AUTH_TOKEN is not set.")
+    return {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "DNT": "1",
+        "Origin": "https://realsports.io",
+        "Referer": "https://realsports.io/",
+        "User-Agent": DEFAULT_USER_AGENT,
+        "real-auth-info": REAL_AUTH_TOKEN,
+        "real-device-name": device_name,
+        "real-device-type": "desktop_web",
+        "real-device-uuid": DEVICE_UUID,
+        "real-request-token": generate_request_token(),
+        "real-version": REAL_VERSION,
+    }
 
 
 class PlayerDiscovery:
@@ -336,7 +382,7 @@ class PlayerDiscovery:
                 url += f"&before={oldest_date}"
 
             try:
-                response = requests.get(url, timeout=30)
+                response = requests.get(url, headers=build_real_headers(), timeout=30)
                 response.raise_for_status()
                 data = response.json()
 

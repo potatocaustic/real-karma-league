@@ -12,6 +12,10 @@ const realAuthToken = defineSecret('REAL_AUTH_TOKEN');
 // Real API base URL
 const REAL_API_BASE = 'https://web.realsports.io';
 
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36';
+const DEFAULT_SEC_CH_UA = '"Chromium";v="125", "Not.A/Brand";v="24", "Google Chrome";v="125"';
+const DEFAULT_DEVICE_NAME = 'Chrome on Windows';
+
 // Group IDs for transaction channels
 const GROUP_IDS = {
     MAJOR_CHAT: '17515',      // Major league transaction chat
@@ -75,20 +79,31 @@ function getAuthToken() {
  * Matches the header structure used by the RealSports web app
  * @returns {Object} Headers object
  */
-function buildHeaders() {
+function buildHeaders(options = {}) {
     const token = generateRequestToken();
+    const {
+        userAgent = DEFAULT_USER_AGENT,
+        deviceName = DEFAULT_DEVICE_NAME,
+        extraHeaders = {}
+    } = options;
 
     return {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'DNT': '1',
+        'Origin': 'https://realsports.io',
         'Referer': 'https://realsports.io/',
+        'User-Agent': userAgent,
+        'sec-ch-ua': DEFAULT_SEC_CH_UA,
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
         'real-auth-info': getAuthToken(),
-        'real-device-name': 'RKL Transaction Parser',
+        'real-device-name': deviceName,
         'real-device-type': 'desktop_web',
         'real-device-uuid': generateDeviceUUID(),
         'real-request-token': token,
-        'real-version': '27'
+        'real-version': '27',
+        ...extraHeaders
     };
 }
 
@@ -111,7 +126,7 @@ async function fetchGroupFeed(groupId, before = null, limit = 50) {
 
     const response = await fetch(url, {
         method: 'GET',
-        headers: buildHeaders()
+        headers: buildHeaders({ deviceName: 'Chrome on Windows' })
     });
 
     if (!response.ok) {
@@ -232,6 +247,7 @@ function extractMentions(content) {
 }
 
 module.exports = {
+    buildHeaders,
     fetchGroupFeed,
     fetchNewComments,
     extractPlainText,

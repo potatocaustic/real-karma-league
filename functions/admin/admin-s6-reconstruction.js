@@ -4,26 +4,22 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { db } = require('../utils/firebase-admin');
 const { getCollectionName } = require('../utils/firebase-helpers');
 const axios = require("axios");
+const { buildHeaders, REAL_API_BASE, realAuthToken } = require('../utils/real-api-client');
 
 // API configuration
-const RANKED_DAYS_API = "https://api.real.vg/rankeddays";
-const KARMA_RANKS_API = "https://api.real.vg/userkarmaranks/day";
-
-const API_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-    'Origin': 'https://real.vg',
-    'Referer': 'https://real.vg/',
-};
+const RANKED_DAYS_API = `${REAL_API_BASE}/rankeddays`;
+const KARMA_RANKS_API = `${REAL_API_BASE}/userkarmaranks/day`;
+const buildRealHeaders = () => buildHeaders({ deviceName: 'Chrome on Windows' });
 
 /**
- * Fetches ranked days history for a player from real.vg API.
+ * Fetches ranked days history for a player from RealSports API.
  * Proxies the request through Cloud Functions to avoid CORS issues.
  */
 exports.admin_fetchRankedDays = onCall({
     region: "us-central1",
     timeoutSeconds: 120,
-    memory: "256MiB"
+    memory: "256MiB",
+    secrets: [realAuthToken]
 }, async (request) => {
     // Security check
     if (!request.auth) {
@@ -48,7 +44,7 @@ exports.admin_fetchRankedDays = onCall({
         console.log(`Fetching ranked days for ${userId}: ${url}`);
 
         const response = await axios.get(url, {
-            headers: API_HEADERS,
+            headers: buildRealHeaders(),
             timeout: 30000
         });
 
@@ -71,7 +67,8 @@ exports.admin_fetchRankedDays = onCall({
 exports.admin_fetchAllRankedDays = onCall({
     region: "us-central1",
     timeoutSeconds: 300,
-    memory: "512MiB"
+    memory: "512MiB",
+    secrets: [realAuthToken]
 }, async (request) => {
     // Security check
     if (!request.auth) {
@@ -102,7 +99,7 @@ exports.admin_fetchAllRankedDays = onCall({
             console.log(`Fetching ranked days page ${iterations + 1} for ${userId}`);
 
             const response = await axios.get(url, {
-                headers: API_HEADERS,
+                headers: buildRealHeaders(),
                 timeout: 30000
             });
 
@@ -140,13 +137,14 @@ exports.admin_fetchAllRankedDays = onCall({
 });
 
 /**
- * Fetches karma rankings for a specific date from real.vg API.
+ * Fetches karma rankings for a specific date from RealSports API.
  * Returns up to 1000 entries (the API limit).
  */
 exports.admin_fetchKarmaRankings = onCall({
     region: "us-central1",
     timeoutSeconds: 300,
-    memory: "512MiB"
+    memory: "512MiB",
+    secrets: [realAuthToken]
 }, async (request) => {
     // Security check
     if (!request.auth) {
@@ -176,7 +174,7 @@ exports.admin_fetchKarmaRankings = onCall({
             console.log(`Fetching karma rankings for ${date}, offset ${offset}`);
 
             const response = await axios.get(url, {
-                headers: API_HEADERS,
+                headers: buildRealHeaders(),
                 timeout: 30000
             });
 
@@ -226,7 +224,8 @@ exports.admin_fetchKarmaRankings = onCall({
 exports.admin_fetchKarmaRankingsBatch = onCall({
     region: "us-central1",
     timeoutSeconds: 540,
-    memory: "1GiB"
+    memory: "1GiB",
+    secrets: [realAuthToken]
 }, async (request) => {
     // Security check
     if (!request.auth) {
@@ -262,7 +261,7 @@ exports.admin_fetchKarmaRankingsBatch = onCall({
                 }
 
                 const response = await axios.get(url, {
-                    headers: API_HEADERS,
+                    headers: buildRealHeaders(),
                     timeout: 30000
                 });
 

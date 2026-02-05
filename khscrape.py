@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1M2aN6XbGXYxJCLOyEAZk4FklU6ozT4s8
 """
 
-!pip install supabase requests
+!pip install supabase requests hashids
 
 from getpass import getpass
 SUPABASE_URL = getpass("Enter your Supabase URL: ")
@@ -15,16 +15,51 @@ SUPABASE_KEY = getpass("Enter your Supabase API Key: ")
 
 import os
 import time
+import uuid
 import requests
 import random
 from datetime import datetime, timedelta
 from typing import Optional
 from dataclasses import dataclass
+from hashids import Hashids
 
 # Scraper settings
 ENTRIES_PER_PAGE = 20
 MAX_ENTRIES_PER_DAY = 1020
-BASE_URL = "https://api.real.vg/userkarmaranks/day"
+REAL_API_BASE = "https://web.realsports.io"
+REAL_VERSION = "27"
+BASE_URL = f"{REAL_API_BASE}/userkarmaranks/day"
+
+REAL_AUTH_TOKEN = os.environ.get("REAL_AUTH_TOKEN")
+if not REAL_AUTH_TOKEN:
+    REAL_AUTH_TOKEN = getpass("Enter RealSports auth token: ")
+
+DEVICE_UUID = os.environ.get("REAL_DEVICE_UUID") or str(uuid.uuid4())
+DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+
+
+def generate_request_token() -> str:
+    hashids = Hashids(salt="realwebapp", min_length=16)
+    return hashids.encode(int(time.time() * 1000))
+
+
+def build_real_headers(device_name: str = "Chrome on Windows") -> dict:
+    if not REAL_AUTH_TOKEN:
+        raise RuntimeError("REAL_AUTH_TOKEN is not set.")
+    return {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "DNT": "1",
+        "Origin": "https://realsports.io",
+        "Referer": "https://realsports.io/",
+        "User-Agent": DEFAULT_USER_AGENT,
+        "real-auth-info": REAL_AUTH_TOKEN,
+        "real-device-name": device_name,
+        "real-device-type": "desktop_web",
+        "real-device-uuid": DEVICE_UUID,
+        "real-request-token": generate_request_token(),
+        "real-version": REAL_VERSION,
+    }
 
 # Politeness settings
 REQUEST_DELAY_SECONDS = random.uniform(0.3, 0.7)  # Delay between requests
@@ -88,7 +123,7 @@ def fetch_leaderboard_page(date_str: str, before: Optional[int], circuit: Circui
         url += f"&before={before}"
 
     try:
-        response = requests.get(url, timeout=TIMEOUT_SECONDS)
+        response = requests.get(url, headers=build_real_headers(), timeout=TIMEOUT_SECONDS)
 
         if response.status_code != 200:
             circuit.record_error(f"HTTP {response.status_code} for {url}")

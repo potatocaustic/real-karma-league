@@ -12,7 +12,7 @@ The admin module at `/admin/s6-reconstruction.html` + `/admin/s6-reconstruction.
 
 1. **Phase 1: Fetch Karma Data** - Fetches daily karma rankings from either:
    - Supabase (pre-scraped data in `karma_rankings` table)
-   - Cloud Functions (live API proxy to `api.real.vg/userkarmaranks/day`)
+   - Cloud Functions (live API proxy to `web.realsports.io/userkarmaranks/day` with auth headers)
 
 2. **Phase 2: Direct Matching** - For players with known `player_id` in the JSON, directly looks up their karma data
 
@@ -21,7 +21,7 @@ The admin module at `/admin/s6-reconstruction.html` + `/admin/s6-reconstruction.
 4. **Phase 4: Rank Discovery** - For players with weekly `ranking` but no `player_id`, finds candidates in karma data within ±tolerance of that rank
 
 5. **Phase 5: API Verification** - Validates ALL discoveries (username AND rank) by:
-   - Fetching each candidate's ranked days history from `api.real.vg/rankeddays/{user_id}`
+   - Fetching each candidate's ranked days history from `web.realsports.io/rankeddays/{user_id}`
    - Comparing their actual daily ranks to expected rankings from the `.json` across multiple dates
    - Requiring 70%+ of dates to match within tolerance
    - On failure, searching for alternative candidates and trying them
@@ -440,7 +440,7 @@ Very unlikely for two different players to have the same ranking pattern across 
 Current work is on: `claude/reconstruct-seasons-data-ygxfw`
 
 Recent commits:
-- Add Cloud Functions to proxy real.vg API calls
+- Add Cloud Functions to proxy RealSports API calls
 - Add S6 Reconstruction admin module
 - Fix multi-date pattern matching verification
 - Improve validation to check all discoveries with fallback matching

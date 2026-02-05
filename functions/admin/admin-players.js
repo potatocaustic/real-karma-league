@@ -7,11 +7,10 @@ const { getCollectionName, getLeagueFromRequest, LEAGUES } = require('../utils/f
 const { calculateMedian, calculateMean, calculateGeometricMean } = require('../utils/calculations');
 const { performPlayerRankingUpdate } = require('../utils/ranking-helpers');
 const axios = require("axios");
+const { buildHeaders, REAL_API_BASE, realAuthToken } = require('../utils/real-api-client');
 
-const API_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-};
+const buildRealHeaders = () => buildHeaders({ deviceName: 'Chrome on Windows' });
+const realApiGet = (path) => axios.get(`${REAL_API_BASE}${path}`, { headers: buildRealHeaders() });
 
 /**
  * Recalculates all seasonal stats for a specific player in a specific season.
@@ -765,11 +764,11 @@ exports.admin_updatePlayerDetails = onCall({ region: "us-central1" }, async (req
 });
 
 /**
- * Batch creates player documents from a list of Real.vg handles.
+ * Batch creates player documents from a list of RealSports handles.
  * Fetches player_id from the API and uses it as the document ID.
  * Admin-only function.
  */
-exports.admin_batchCreatePlayers = onCall({ region: "us-central1" }, async (request) => {
+exports.admin_batchCreatePlayers = onCall({ region: "us-central1", secrets: [realAuthToken] }, async (request) => {
     const league = getLeagueFromRequest(request.data);
 
     // Security Check
@@ -802,8 +801,8 @@ exports.admin_batchCreatePlayers = onCall({ region: "us-central1" }, async (requ
 
     const processingPromises = handles.map(async (handle) => {
         try {
-            // Fetch player data from Real.vg API
-            const userResponse = await axios.get(`https://api.real.vg/user/${handle}`, { headers: API_HEADERS });
+            // Fetch player data from RealSports API
+            const userResponse = await realApiGet(`/user/${handle}`);
             const userData = userResponse.data?.user;
 
             if (!userData || !userData.id) {

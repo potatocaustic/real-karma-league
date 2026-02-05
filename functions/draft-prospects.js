@@ -3,6 +3,7 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
 const axios = require("axios");
 const { LEAGUES } = require('./league-helpers');
+const { buildHeaders, REAL_API_BASE, realAuthToken } = require('./utils/real-api-client');
 
 if (admin.apps.length === 0) {
     admin.initializeApp();
@@ -29,10 +30,8 @@ const getCollectionName = (baseName, league = LEAGUES.MAJOR) => {
   return `${leaguePrefix}${baseName}${devSuffix}`;
 };
 
-const API_HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-};
+const buildRealHeaders = () => buildHeaders({ deviceName: 'Chrome on Windows' });
+const realApiGet = (path) => axios.get(`${REAL_API_BASE}${path}`, { headers: buildRealHeaders() });
 
 /**
  * Attempts to resolve a player's current handle by querying their cards.
@@ -43,9 +42,8 @@ const API_HEADERS = {
 const resolvePlayerHandle = async (playerId) => {
     // Try NBA API first (primary)
     try {
-        const nbaResponse = await axios.get(
-            `https://api.real.vg/collectingcards/nba/season/2026/entity/play/user/${playerId}/cards?rarity=1&view=rating`,
-            { headers: API_HEADERS }
+        const nbaResponse = await realApiGet(
+            `/collectingcards/nba/season/2026/entity/play/user/${playerId}/cards?rarity=1&view=rating`
         );
 
         const nbaCards = nbaResponse.data?.cards;
@@ -58,9 +56,8 @@ const resolvePlayerHandle = async (playerId) => {
 
     // Try MLB API as fallback (secondary)
     try {
-        const mlbResponse = await axios.get(
-            `https://api.real.vg/collectingcards/mlb/season/2025/entity/play/user/${playerId}/cards?rarity=all&view=rating`,
-            { headers: API_HEADERS }
+        const mlbResponse = await realApiGet(
+            `/collectingcards/mlb/season/2025/entity/play/user/${playerId}/cards?rarity=all&view=rating`
         );
 
         const mlbCards = mlbResponse.data?.cards;
@@ -76,13 +73,13 @@ const resolvePlayerHandle = async (playerId) => {
 };
 
 /**
- * Fetches user data from the Real.vg API for a given player handle.
+ * Fetches user data from the RealSports API for a given player handle.
  * @param {string} playerHandle The player's username.
  * @returns {Promise<object|null>} The processed prospect data or null if failed.
  */
 const fetchProspectData = async (playerHandle) => {
     try {
-        const userResponse = await axios.get(`https://api.real.vg/user/${playerHandle}`, { headers: API_HEADERS });
+        const userResponse = await realApiGet(`/user/${playerHandle}`);
         const userData = userResponse.data?.user;
 
         if (!userData || !userData.id) {
@@ -99,7 +96,7 @@ const fetchProspectData = async (playerHandle) => {
             monthly_rank: null
         };
 
-        const karmaFeedResponse = await axios.get(`https://api.real.vg/user/${playerId}/karmafeed`, { headers: API_HEADERS });
+        const karmaFeedResponse = await realApiGet(`/user/${playerId}/karmafeed`);
         const karmaMonthRank = karmaFeedResponse.data?.stats?.karmaMonthRank;
 
         if (karmaMonthRank !== undefined) {
@@ -117,7 +114,7 @@ const fetchProspectData = async (playerHandle) => {
 /**
  * Cloud Function (v2) to add new draft prospects.
  */
-exports.addDraftProspects = onCall(async (request) => {
+exports.addDraftProspects = onCall({ secrets: [realAuthToken] }, async (request) => {
     // Add league context extraction
     const league = request.data?.league || LEAGUES.MAJOR;
 
@@ -179,6 +176,7 @@ exports.addDraftProspects = onCall(async (request) => {
 exports.updateAllProspectsScheduled = onSchedule({
     schedule: "30 6 * * *",
     timeZone: "America/Chicago",
+    secrets: [realAuthToken]
 }, async (event) => {
     console.log('Running daily prospect update job for MAJOR league with resiliency checks...');
 
@@ -203,7 +201,7 @@ exports.updateAllProspectsScheduled = onSchedule({
 
         try {
             // 1. Perform reliable karmafeed request first using player_id
-            const karmaFeedResponse = await axios.get(`https://api.real.vg/user/${prospect.player_id}/karmafeed`, { headers: API_HEADERS });
+            const karmaFeedResponse = await realApiGet(`/user/${prospect.player_id}/karmafeed`);
             const newKarma = karmaFeedResponse.data?.stats?.karma;
             const newMonthlyRank = karmaFeedResponse.data?.stats?.karmaMonthRank;
 
@@ -212,7 +210,7 @@ exports.updateAllProspectsScheduled = onSchedule({
             if (newMonthlyRank !== undefined) updates.monthly_rank = newMonthlyRank;
 
             // 2. Perform potentially unreliable handle request
-            const handleResponse = await axios.get(`https://api.real.vg/user/${prospect.player_handle}`, { headers: API_HEADERS });
+            const handleResponse = await realApiGet(`/user/${prospect.player_handle}`);
             const handleData = handleResponse.data?.user;
 
             // 3. Verify that the ID from the handle lookup matches the stored ID
@@ -230,7 +228,7 @@ exports.updateAllProspectsScheduled = onSchedule({
 
                     // Fetch ranked_days using the new resolved handle
                     try {
-                        const resolvedHandleResponse = await axios.get(`https://api.real.vg/user/${resolvedHandle}`, { headers: API_HEADERS });
+                        const resolvedHandleResponse = await realApiGet(`/user/${resolvedHandle}`);
                         const resolvedHandleData = resolvedHandleResponse.data?.user;
                         if (resolvedHandleData && resolvedHandleData.id === prospect.player_id) {
                             updates.ranked_days = resolvedHandleData.daysTopHundred || 0;
@@ -279,6 +277,7 @@ exports.updateAllProspectsScheduled = onSchedule({
 exports.minor_updateAllProspectsScheduled = onSchedule({
     schedule: "30 6 * * *",
     timeZone: "America/Chicago",
+    secrets: [realAuthToken]
 }, async (event) => {
     console.log('Running daily prospect update job for MINOR league with resiliency checks...');
 
@@ -303,7 +302,7 @@ exports.minor_updateAllProspectsScheduled = onSchedule({
 
         try {
             // 1. Perform reliable karmafeed request first using player_id
-            const karmaFeedResponse = await axios.get(`https://api.real.vg/user/${prospect.player_id}/karmafeed`, { headers: API_HEADERS });
+            const karmaFeedResponse = await realApiGet(`/user/${prospect.player_id}/karmafeed`);
             const newKarma = karmaFeedResponse.data?.stats?.karma;
             const newMonthlyRank = karmaFeedResponse.data?.stats?.karmaMonthRank;
 
@@ -312,7 +311,7 @@ exports.minor_updateAllProspectsScheduled = onSchedule({
             if (newMonthlyRank !== undefined) updates.monthly_rank = newMonthlyRank;
 
             // 2. Perform potentially unreliable handle request
-            const handleResponse = await axios.get(`https://api.real.vg/user/${prospect.player_handle}`, { headers: API_HEADERS });
+            const handleResponse = await realApiGet(`/user/${prospect.player_handle}`);
             const handleData = handleResponse.data?.user;
 
             // 3. Verify that the ID from the handle lookup matches the stored ID
@@ -330,7 +329,7 @@ exports.minor_updateAllProspectsScheduled = onSchedule({
 
                     // Fetch ranked_days using the new resolved handle
                     try {
-                        const resolvedHandleResponse = await axios.get(`https://api.real.vg/user/${resolvedHandle}`, { headers: API_HEADERS });
+                        const resolvedHandleResponse = await realApiGet(`/user/${resolvedHandle}`);
                         const resolvedHandleData = resolvedHandleResponse.data?.user;
                         if (resolvedHandleData && resolvedHandleData.id === prospect.player_id) {
                             updates.ranked_days = resolvedHandleData.daysTopHundred || 0;
