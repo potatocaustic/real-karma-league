@@ -6,15 +6,19 @@ import {
     collectionGroup,
     doc,
     getDoc,
+    getDocFromCache,
     getDocs,
+    getDocsFromCache,
     query,
     where,
     collectionNames,
-    getLeagueCollectionName
+    getLeagueCollectionName,
+    getCurrentLeague
 } from './firebase-init.js';
 
 import { generateLineupTable } from './main.js';
 import { getSeasonIdFromPage } from './season-utils.js';
+import { loadSeasonBundle } from './firestore-bundles.js';
 
 // --- CONFIGURATION ---
 // Get season from page lock (data-season, path, or ?season), fallback to S9
@@ -29,6 +33,23 @@ let rosterPlayers = []; // Array of combined player + seasonal_stats objects
 let allScheduleData = [];
 let allTeamsSeasonalRecords = new Map(); // Map of teamId -> seasonal_record for getTeamName()
 let rosterSortState = { column: 'post_rel_median', direction: 'desc' };
+
+// --- CACHE HELPERS ---
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
+
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 /**
  * Initializes the page, fetching and injecting the modal, and then loading all data.
@@ -70,6 +91,8 @@ async function loadPageData() {
             document.getElementById('team-main-info').innerHTML = '<div class="error">No team specified in URL.</div>';
             return;
         }
+
+        await loadSeasonBundle({ seasonId: ACTIVE_SEASON_ID, league: getCurrentLeague() });
         
         // --- DEFINE ALL DATA PROMISES ---
         // ✅ EFFICIENT - Use collectionGroup to fetch all seasonal records in one query
@@ -78,14 +101,14 @@ async function loadPageData() {
             where('seasonId', '==', ACTIVE_SEASON_ID)
         );
 
-        const teamDocPromise = getDoc(doc(db, collectionNames.teams, teamId));
-        const teamSeasonalPromise = getDoc(doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID));
+        const teamDocPromise = getDocPreferCache(doc(db, collectionNames.teams, teamId));
+        const teamSeasonalPromise = getDocPreferCache(doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID));
 
         const rosterQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const rosterPromise = getDocs(rosterQuery);
 
         // Fetch POSTSEASON games instead of regular season
-        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, 'post_games'));
+        const schedulePromise = getDocsPreferCache(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, 'post_games'));
 
         // --- AWAIT ALL PROMISES ---
         const [
@@ -95,7 +118,7 @@ async function loadPageData() {
             rosterSnap,
             scheduleSnap
         ] = await Promise.all([
-            getDocs(allTeamsRecordsQuery),
+            getDocsPreferCache(allTeamsRecordsQuery),
             teamDocPromise,
             teamSeasonalPromise,
             rosterPromise,

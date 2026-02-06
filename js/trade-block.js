@@ -10,6 +10,7 @@ import {
     doc,
     getDoc,
     getDocs,
+    getDocsFromCache,
     httpsCallable,
     query,
     where,
@@ -19,11 +20,21 @@ import {
     collectionNames,
     getCurrentLeague
 } from './firebase-init.js';
+import { loadDraftPicksBundle } from './firestore-bundles.js';
 
 const container = document.getElementById('trade-blocks-container');
 const adminControlsContainer = document.getElementById('admin-controls');
 const pageHeader = document.querySelector('.page-header');
 const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "RSE", "RSW"];
+
+// --- CACHE HELPERS ---
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -97,6 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function displayAllTradeBlocks(currentUserId) {
     try {
+        await loadDraftPicksBundle({ league: getCurrentLeague() });
+
         const settingsDocRef = doc(db, 'settings', 'tradeBlock');
         const settingsDoc = await getDoc(settingsDocRef);
         const tradeBlockStatus = settingsDoc.exists() ? settingsDoc.data().status : 'open';
@@ -207,7 +220,7 @@ async function displayAllTradeBlocks(currentUserId) {
              for (let i = 0; i < allPickIds.length; i += CHUNK_SIZE) {
                 const chunk = allPickIds.slice(i, i + CHUNK_SIZE);
                 const picksQuery = query(collection(db, collectionNames.draftPicks), where(documentId(), 'in', chunk));
-                const picksDataSnap = await getDocs(picksQuery);
+                const picksDataSnap = await getDocsPreferCache(picksQuery);
                 picksDataSnap.forEach(doc => draftPicksMap.set(doc.id, doc.data()));
             }
         }

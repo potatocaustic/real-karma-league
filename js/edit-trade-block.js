@@ -8,7 +8,8 @@ import {
     collectionGroup,
     doc,
     getDoc, 
-    getDocs, 
+    getDocs,
+    getDocsFromCache,
     query, 
     where, 
     serverTimestamp, 
@@ -17,8 +18,10 @@ import {
     limit,
     documentId,
     collectionNames,
-    Timestamp
+    Timestamp,
+    getCurrentLeague
 } from './firebase-init.js';
+import { loadDraftPicksBundle } from './firestore-bundles.js';
 
 const formContainer = document.getElementById('form-container');
 const editTitle = document.getElementById('edit-title');
@@ -31,6 +34,15 @@ function escapeHtml(text) {
 
 const urlParams = new URLSearchParams(window.location.search);
 const teamId = urlParams.get('team');
+
+// --- CACHE HELPERS ---
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 async function getActiveSeasonId() {
     const q = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
@@ -63,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
 async function authorizeAndLoadForm(user, teamId) {
     try {
         const activeSeasonId = await getActiveSeasonId();
+        await loadDraftPicksBundle({ league: getCurrentLeague() });
 
         // Define references to the new V2 collections
         const teamRef = doc(db, collectionNames.teams, teamId);
@@ -79,7 +92,7 @@ async function authorizeAndLoadForm(user, teamId) {
             getDoc(teamRecordRef),
             getDoc(userAdminRef),
             getDocs(playersQuery),
-            getDocs(picksQuery),
+            getDocsPreferCache(picksQuery),
             getDoc(blockRef)
         ]);
 
@@ -100,7 +113,7 @@ async function authorizeAndLoadForm(user, teamId) {
         }
 
         // Fetch seasonal records for all teams (this is necessary to format pick descriptions)
-        const teamsRecordSnap = await getDocs(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
+        const teamsRecordSnap = await getDocsPreferCache(query(collectionGroup(db, collectionNames.seasonalRecords), where('season', '==', activeSeasonId)));
         const teamsMap = new Map(teamsRecordSnap.docs.map(doc => [doc.data().team_id, doc.data()]));
         
         editTitle.textContent = `Edit ${teamRecordData.team_name || teamId} Trade Block`;

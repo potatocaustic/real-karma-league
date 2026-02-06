@@ -1,8 +1,9 @@
 // /js/draft-lottery.js
 
 import './main.js'; // Import main.js to run it first
-import { db, collection, getDocs, doc, getDoc, query, where, collectionNames, getLeagueCollectionName, getConferenceNames, getCurrentLeague } from './firebase-init.js';
+import { db, collection, getDocs, getDocsFromCache, doc, getDoc, query, where, collectionNames, getLeagueCollectionName, getConferenceNames, getCurrentLeague } from './firebase-init.js';
 import { getSeasonIdFromPage } from './season-utils.js';
+import { loadDraftPicksBundle } from './firestore-bundles.js';
 
 // Get season from page lock (data-season, path, or ?season), fallback to S9
 const { seasonId: urlSeasonId } = getSeasonIdFromPage({ fallback: 'S9' });
@@ -28,6 +29,15 @@ let initialLotteryTeams = [];
 let teamDataMap = {};
 let pickOwnership = {};
 let finalLotteryResults = null;
+
+// --- CACHE HELPERS ---
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 // --- RENDERING FUNCTIONS ---
 function renderTableHeader(isSimulatedView = false) {
@@ -214,6 +224,8 @@ async function initializeApp() {
     document.getElementById('table-description').textContent = `${DRAFT_SEASON_ID} lottery odds for the 14 non-playoff teams.`;
 
     try {
+        await loadDraftPicksBundle({ league: getCurrentLeague() });
+
         // 1. Fetch official lottery results first
         const lotteryResultsRef = doc(db, getLeagueCollectionName('lottery_results'), `${DRAFT_SEASON_ID}_lottery_results`);
         const lotteryResultsSnap = await getDoc(lotteryResultsRef);
@@ -239,7 +251,7 @@ async function initializeApp() {
 
         const [teamsSnap, draftPicksSnap, postseasonGamesSnap] = await Promise.all([
             getDocs(teamsQuery),
-            getDocs(draftPicksQuery),
+            getDocsPreferCache(draftPicksQuery),
             getDocs(postGamesQuery)
         ]);
 

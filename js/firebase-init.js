@@ -9,6 +9,7 @@ import {
     doc,
     getDoc,
     getDocs,
+    getDocsFromCache,
     query,
     where,
     limit,
@@ -27,6 +28,8 @@ import {
     connectFirestoreEmulator,
     collectionGroup,
     documentId,
+    getDocFromCache,
+    loadBundle,
     Timestamp,
     increment
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
@@ -196,6 +199,7 @@ export {
     doc,
     getDoc,
     getDocs,
+    getDocsFromCache,
     query,
     where,
     limit,
@@ -214,6 +218,8 @@ export {
     onSnapshot,
     collectionGroup,
     documentId,
+    getDocFromCache,
+    loadBundle,
     Timestamp,
     increment
 };

@@ -1,6 +1,7 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId, getCurrentLeague, collectionNames, getLeagueCollectionName, getConferenceNames } from '../js/firebase-init.js';
+import { db, getDoc, getDocFromCache, getDocs, getDocsFromCache, collection, doc, query, where, orderBy, limit, onSnapshot, collectionGroup, documentId, getCurrentLeague, collectionNames, getLeagueCollectionName, getConferenceNames } from '../js/firebase-init.js';
 import { generateLineupTable } from './main.js';
 import { getSeasonIdFromPage } from './season-utils.js';
+import { loadSeasonBundle } from '../js/firestore-bundles.js';
 
 // Get season from page lock (data-season, path, or ?season)
 const { seasonId: lockedSeasonId, isLocked: isSeasonLocked } = getSeasonIdFromPage();
@@ -14,6 +15,23 @@ let dailyLeaderboardUnsubscribe = null; // To store the daily leaderboard listen
 let statusUnsubscribe = null; // To store the status listener unsubscribe function
 let usageStatsUnsubscribe = null; // To store the usage stats listener unsubscribe function
 let showLiveFeatures = true; // Controls visibility of new live features
+
+// --- CACHE HELPERS ---
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
+
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 // --- UTILITY FUNCTIONS ---
 function formatInThousands(value) {
@@ -72,7 +90,7 @@ async function fetchGameDoc(gameId, collectionName) {
     }
     try {
         const gameRef = doc(db, collectionNames.seasons, activeSeasonId, collectionName, gameId);
-        const gameSnap = await getDoc(gameRef);
+        const gameSnap = await getDocPreferCache(gameRef);
         if (!gameSnap.exists()) {
             console.warn(`Game not found: ${collectionName}/${gameId}`);
             return null;
@@ -90,14 +108,14 @@ async function getActiveSeason() {
     // If season is specified via URL parameter, fetch that season's data
     if (isSeasonLocked) {
         const seasonDocRef = doc(db, collectionNames.seasons, lockedSeasonId);
-        const seasonDocSnap = await getDoc(seasonDocRef);
+        const seasonDocSnap = await getDocPreferCache(seasonDocRef);
         if (!seasonDocSnap.exists()) throw new Error(`Season ${lockedSeasonId} not found.`);
         return seasonDocSnap.data();
     }
 
     // Otherwise query for the active season
     const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
-    const seasonsSnapshot = await getDocs(seasonsQuery);
+    const seasonsSnapshot = await getDocsPreferCache(seasonsQuery);
     if (seasonsSnapshot.empty) {
         throw new Error("No active season found in Firestore.");
     }
@@ -121,8 +139,8 @@ async function fetchAllTeams(seasonId) {
     );
 
     const [teamsSnap, recordsSnap] = await Promise.all([
-        getDocs(teamsQuery),
-        getDocs(recordsQuery)
+        getDocsPreferCache(teamsQuery),
+        getDocsPreferCache(recordsQuery)
     ]);
 
     if (teamsSnap.empty) {
@@ -510,9 +528,9 @@ async function loadRecentGames() {
         );
 
         const [regSnap, postSnap, exhSnap] = await Promise.all([
-            getDocs(regularSeasonGamesQuery),
-            getDocs(postSeasonGamesQuery),
-            getDocs(exhibitionGamesQuery)
+            getDocsPreferCache(regularSeasonGamesQuery),
+            getDocsPreferCache(postSeasonGamesQuery),
+            getDocsPreferCache(exhibitionGamesQuery)
         ]);
 
         // Get the most recent game from each collection type
@@ -533,7 +551,7 @@ async function loadRecentGames() {
         const collectionToQuery = mostRecentGameInfo.collection;
 
         // Fetch all completed games from that date in the winning collection
-        const gamesSnapshot = await getDocs(query(
+        const gamesSnapshot = await getDocsPreferCache(query(
             collection(db, collectionNames.seasons, activeSeasonId, collectionToQuery),
             where('date', '==', mostRecentDate),
             where('completed', '==', 'TRUE')
@@ -668,7 +686,7 @@ async function loadSeasonInfo(seasonData) {
             where('series_id', '==', 'Finals'),
             limit(1)
         );
-        const finalsSnap = await getDocs(finalsQuery);
+        const finalsSnap = await getDocsPreferCache(finalsQuery);
         const finalsWinnerId = !finalsSnap.empty ? finalsSnap.docs[0].data().series_winner : null;
         const winnerInfo = finalsWinnerId ? allTeams.find(t => t.id === finalsWinnerId) : null;
 
@@ -703,7 +721,7 @@ async function loadSeasonInfo(seasonData) {
             collection(db, collectionNames.seasons, activeSeasonId, 'post_games'),
             where('completed', '!=', 'TRUE')
         );
-        const incompleteSnap = await getDocs(incompleteQuery);
+        const incompleteSnap = await getDocsPreferCache(incompleteQuery);
         const remainingTeamIds = new Set();
         incompleteSnap.forEach(doc => {
             const game = doc.data();
@@ -2092,6 +2110,8 @@ async function initializePage() {
             console.warn("Info modal elements not found. The info icon may not work.");
         }
 
+        await loadSeasonBundle({ seasonId: lockedSeasonId, league: getCurrentLeague() });
+        await loadSeasonBundle({ seasonId: lockedSeasonId, league: getCurrentLeague() });
         const seasonData = await getActiveSeason();
         await fetchAllTeams(activeSeasonId);
 

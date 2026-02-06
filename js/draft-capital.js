@@ -6,12 +6,15 @@ import {
     db,
     collection,
     getDocs,
+    getDocsFromCache,
     collectionGroup,
     query,
     where,
     collectionNames,
-    getLeagueCollectionName
+    getLeagueCollectionName,
+    getCurrentLeague
 } from './firebase-init.js';
+import { loadDraftPicksBundle, loadTransactionsBundle } from './firestore-bundles.js';
 
 // --- Globals ---
 const { seasonId: lockedSeasonId } = getSeasonIdFromPage({ fallback: 'S9' });
@@ -22,6 +25,15 @@ let currentView = 'table';
 let allDraftPicks = [];
 let allTeams = [];
 let allTransactionsLogData = [];
+
+// --- CACHE HELPERS ---
+async function getDocsPreferCache(q) {
+  try {
+    return await getDocsFromCache(q);
+  } catch (error) {
+    return await getDocs(q);
+  }
+}
 
 function escapeHTML(str) {
   if (typeof str !== 'string') return str; 
@@ -80,8 +92,11 @@ async function loadData() {
   try {
       console.log("Loading data from Firestore...");
 
+      await loadTransactionsBundle({ seasonId: ACTIVE_LEAGUE_SEASON, league: getCurrentLeague() });
+      await loadDraftPicksBundle({ league: getCurrentLeague() });
+
       const draftPicksCol = collection(db, collectionNames.draftPicks);
-      const draftPicksSnap = await getDocs(draftPicksCol);
+      const draftPicksSnap = await getDocsPreferCache(draftPicksCol);
       allDraftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
       // Fetch only current season (S9) team records for team names
@@ -90,7 +105,7 @@ async function loadData() {
           collectionGroup(db, collectionNames.seasonalRecords),
           where('seasonId', '==', activeLeagueSeason)
       );
-      const teamRecordsSnap = await getDocs(teamRecordsQuery);
+      const teamRecordsSnap = await getDocsPreferCache(teamRecordsQuery);
       allTeams = teamRecordsSnap.docs.map(doc => ({
           team_id: doc.ref.parent.parent.id,
           team_name: doc.data().team_name,
@@ -98,7 +113,7 @@ async function loadData() {
       }));
 
       const transCol = collection(db, collectionNames.transactions, 'seasons', activeLeagueSeason);
-      const transSnap = await getDocs(transCol);
+      const transSnap = await getDocsPreferCache(transCol);
       allTransactionsLogData = transSnap.docs.map(doc => ({
           transaction_id: doc.id,
           ...doc.data()

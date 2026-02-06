@@ -192,7 +192,8 @@
 
     <script src="../js/main.js" type="module"></script>
     <script type="module">
-      import { db, collection, getDocs, doc, getDoc, query, where } from '../js/firebase-init.js';
+      import { db, collection, getDocs, getDocsFromCache, doc, getDoc, query, where } from '../js/firebase-init.js';
+      import { loadDraftResultsBundle } from '../js/firestore-bundles.js';
 
       // --- DEV ENVIRONMENT CONFIG ---
       const USE_DEV_COLLECTIONS = false;
@@ -207,15 +208,25 @@
       let allDraftData = [];
       let sortState = { column: 'overall', direction: 'asc' };
 
+      async function getDocsPreferCache(q) {
+        try {
+          return await getDocsFromCache(q);
+        } catch (error) {
+          return await getDocs(q);
+        }
+      }
+
       async function loadDataAndDisplay() {
         const resultsBody = document.getElementById('results-body');
         resultsBody.innerHTML = `<tr><td colspan="8" class="loading">Fetching data from Firestore...</td></tr>`;
 
         try {
+          await loadDraftResultsBundle({ seasonId: CURRENT_SEASON_ID });
+
           // 1. Fetch all draft picks for the current season
           const seasonNumber = CURRENT_SEASON_ID.replace('S', '');
           const draftResultsCollectionRef = collection(db, getCollectionName('draft_results'), `season_${seasonNumber}`, getCollectionName(`S${seasonNumber}_draft_results`));
-          const draftPicksSnap = await getDocs(draftResultsCollectionRef);
+          const draftPicksSnap = await getDocsPreferCache(draftResultsCollectionRef);
           const draftPicks = draftPicksSnap.docs.map(doc => doc.data());
 
           if (draftPicks.length === 0) {

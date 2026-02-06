@@ -5,19 +5,40 @@ import {
     collection,
     doc,
     getDoc,
+    getDocFromCache,
     getDocs,
+    getDocsFromCache,
     query,
     where,
     orderBy,
     limit,
     collectionNames,
-    getLeagueCollectionName
+    getLeagueCollectionName,
+    getCurrentLeague
 } from './firebase-init.js';
+import { loadAwardsBundle } from './firestore-bundles.js';
 
 // --- DOM ELEMENT REFERENCES ---
 const currentSeasonContainer = document.getElementById('current-season-container');
 const navGridContainer = document.getElementById('nav-grid-container');
 const seasonsGridContainer = document.getElementById('seasons-grid-container');
+
+// --- CACHE HELPERS ---
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
+
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -30,6 +51,8 @@ function escapeHtml(text) {
  */
 async function initHomepage() {
     try {
+        await loadAwardsBundle({ league: getCurrentLeague() });
+
         // Fetch the active season first to determine context
         // Note: Removed orderBy to avoid requiring composite index (status + __name__)
         const activeSeasonQuery = query(
@@ -37,7 +60,7 @@ async function initHomepage() {
             where("status", "==", "active"),
             limit(1)
         );
-        const activeSeasonSnap = await getDocs(activeSeasonQuery);
+        const activeSeasonSnap = await getDocsPreferCache(activeSeasonQuery);
 
         let activeSeasonId = null;
 
@@ -54,7 +77,7 @@ async function initHomepage() {
             // No active season found - try to find the most recent season
             console.warn("No active season found, looking for most recent season...");
             const allSeasonsQuery = query(collection(db, collectionNames.seasons));
-            const allSeasonsSnap = await getDocs(allSeasonsQuery);
+            const allSeasonsSnap = await getDocsPreferCache(allSeasonsQuery);
 
             if (!allSeasonsSnap.empty) {
                 // Sort seasons by ID (S1, S2, S3, etc.) and get the most recent
@@ -141,7 +164,7 @@ function updateNavGrid(activeSeasonId) {
  */
 async function updateLeagueHistory(activeSeasonId) {
     const seasonsQuery = query(collection(db, collectionNames.seasons), orderBy('__name__', 'desc'));
-    const seasonsSnap = await getDocs(seasonsQuery);
+    const seasonsSnap = await getDocsPreferCache(seasonsQuery);
 
     const seasonHistoryPromises = seasonsSnap.docs.map(async (seasonDoc) => {
         const seasonId = seasonDoc.id;
@@ -158,7 +181,7 @@ async function updateLeagueHistory(activeSeasonId) {
         if (!isCurrent) {
             try {
                 const champRef = doc(db, getLeagueCollectionName('awards'), `season_${seasonNum}`, `S${seasonNum}_awards`, 'league-champion');
-                const champSnap = await getDoc(champRef);
+                const champSnap = await getDocPreferCache(champRef);
                 if (champSnap.exists()) {
                     const champData = champSnap.data();
                     championHTML = `

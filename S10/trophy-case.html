@@ -153,11 +153,20 @@
 
     <script src="../js/main.js" type="module"></script>
     <script type="module">
-        import { db, doc, getDoc, getDocs, collection, query, where, limit, collectionGroup, getCurrentLeague, getLeagueCollectionName } from '../js/firebase-init.js';
+        import { db, doc, getDoc, getDocs, getDocsFromCache, collection, query, where, limit, collectionGroup, getCurrentLeague, getLeagueCollectionName } from '../js/firebase-init.js';
         import { generateLineupTable } from '../js/main.js';
+        import { loadAwardsBundle } from '../js/firestore-bundles.js';
 
         const SEASON_ID = 'S10';
         const USE_DEV_COLLECTIONS = false;
+
+        async function getDocsPreferCache(q) {
+            try {
+                return await getDocsFromCache(q);
+            } catch (error) {
+                return await getDocs(q);
+            }
+        }
         const SEASON_NUMBER = SEASON_ID.replace('S', '');
 
         let allTeamRecords = new Map();
@@ -218,12 +227,14 @@
             playerStatsCache.clear();
             try {
                 currentLeague = getCurrentLeague();
+                await loadAwardsBundle({ seasonId: SEASON_ID, league: getCurrentLeague() });
+
                 const awardsCollectionRef = collection(db, getCollectionName('awards'), `season_${SEASON_NUMBER}`, getCollectionName(`S${SEASON_NUMBER}_awards`));
                 const teamRecordsQuery = query(collectionGroup(db, getCollectionName('seasonal_records')));
                 const playerStatsQuery = query(collectionGroup(db, getCollectionName('seasonal_stats')));
 
                 const [awardsSnap, teamRecordsSnap, playerStatsSnap] = await Promise.all([
-                    getDocs(awardsCollectionRef),
+                    getDocsPreferCache(awardsCollectionRef),
                     getDocs(teamRecordsQuery),
                     getDocs(playerStatsQuery)
                 ]);

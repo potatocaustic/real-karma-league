@@ -14,6 +14,32 @@
       "functions/",
       "**/node_modules/**"
     ],
+    "rewrites": [
+      {
+        "source": "/bundles/standings",
+        "function": "standingsBundle"
+      },
+      {
+        "source": "/bundles/season",
+        "function": "seasonBundle"
+      },
+      {
+        "source": "/bundles/draft-picks",
+        "function": "draftPicksBundle"
+      },
+      {
+        "source": "/bundles/transactions",
+        "function": "transactionsBundle"
+      },
+      {
+        "source": "/bundles/awards",
+        "function": "awardsBundle"
+      },
+      {
+        "source": "/bundles/draft-results",
+        "function": "draftResultsBundle"
+      }
+    ],
     "headers": [
       {
         "source": "/icons/**",

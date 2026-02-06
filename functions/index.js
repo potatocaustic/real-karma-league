@@ -67,6 +67,14 @@ const reports = require('./reporting/reports');
 // Import extracted data sync modules
 const sheetsSync = require('./data-sync/sheets-sync');
 
+// Import extracted bundle modules
+const standingsBundle = require('./bundles/standings-bundle');
+const seasonBundle = require('./bundles/season-bundle');
+const draftPicksBundle = require('./bundles/draft-picks-bundle');
+const transactionsBundle = require('./bundles/transactions-bundle');
+const awardsBundle = require('./bundles/awards-bundle');
+const draftResultsBundle = require('./bundles/draft-results-bundle');
+
 // Import auth modules
 const activation = require('./auth/activation');
 
@@ -215,6 +223,14 @@ exports.getReportData = reports.getReportData;
 
 // Re-export data sync functions from extracted modules
 exports.syncSheetsToFirestore = sheetsSync.syncSheetsToFirestore;
+
+// Re-export bundle functions
+exports.standingsBundle = standingsBundle.standingsBundle;
+exports.seasonBundle = seasonBundle.seasonBundle;
+exports.draftPicksBundle = draftPicksBundle.draftPicksBundle;
+exports.transactionsBundle = transactionsBundle.transactionsBundle;
+exports.awardsBundle = awardsBundle.awardsBundle;
+exports.draftResultsBundle = draftResultsBundle.draftResultsBundle;
 
 // Re-export auth functions from extracted modules
 exports.generateActivationCode = activation.generateActivationCode;

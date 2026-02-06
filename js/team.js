@@ -6,20 +6,42 @@ import {
     collectionGroup,
     doc,
     getDoc,
+    getDocFromCache,
     getDocs,
+    getDocsFromCache,
     query,
     where,
+    limit,
     orderBy,
     collectionNames,
-    getLeagueCollectionName
+    getLeagueCollectionName,
+    getCurrentLeague
 } from './firebase-init.js';
 
 import { generateLineupTable } from './main.js';
 import { getSeasonIdFromPage } from './season-utils.js';
+import { loadDraftPicksBundle, loadSeasonBundle, loadStandingsBundle } from './firestore-bundles.js';
 
 // --- CONFIGURATION ---
 // Get season from page lock (data-season, path, or ?season), fallback to S9
 const { seasonId: ACTIVE_SEASON_ID } = getSeasonIdFromPage({ fallback: 'S9' });
+
+// --- CACHE HELPERS ---
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
+
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 
 // --- STATE MANAGEMENT ---
@@ -79,6 +101,10 @@ async function loadPageData() {
             document.getElementById('team-main-info').innerHTML = '<div class="error">No team specified in URL.</div>';
             return;
         }
+
+        await loadStandingsBundle({ seasonId: ACTIVE_SEASON_ID, league: getCurrentLeague() });
+        await loadSeasonBundle({ seasonId: ACTIVE_SEASON_ID, league: getCurrentLeague() });
+        await loadDraftPicksBundle({ league: getCurrentLeague() });
         
         // --- DEFINE ALL DATA PROMISES ---
         // ✅ EFFICIENT - Use collectionGroup to fetch all seasonal records in one query
@@ -87,15 +113,20 @@ async function loadPageData() {
             where('seasonId', '==', ACTIVE_SEASON_ID)
         );
 
-        const teamDocPromise = getDoc(doc(db, collectionNames.teams, teamId));
-        const teamSeasonalPromise = getDoc(doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID));
+        const teamDocPromise = getDocPreferCache(doc(db, collectionNames.teams, teamId));
+        const teamSeasonalPromise = getDocPreferCache(doc(db, collectionNames.teams, teamId, collectionNames.seasonalRecords, ACTIVE_SEASON_ID));
 
         const rosterQuery = query(collection(db, collectionNames.players), where("current_team_id", "==", teamId));
         const rosterPromise = getDocs(rosterQuery);
 
-        const schedulePromise = getDocs(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, "games"));
+        const schedulePromise = getDocsPreferCache(collection(db, collectionNames.seasons, ACTIVE_SEASON_ID, "games"));
 
-        const draftPicksPromise = getDocs(collection(db, collectionNames.draftPicks));
+        // ✅ OPTIMIZED: Only fetch draft picks owned by this team (avoid full collection scan)
+        const draftPicksQuery = query(
+            collection(db, collectionNames.draftPicks),
+            where("current_owner", "==", teamId)
+        );
+        const draftPicksPromise = getDocsPreferCache(draftPicksQuery);
 
         // ✅ OPTIMIZED: Filter transactions by team at database level (reduces from 615 to ~30-50 docs)
         const transactionsQuery = query(
@@ -106,8 +137,8 @@ async function loadPageData() {
         const transactionsPromise = getDocs(transactionsQuery);
 
         // NEW: Fetch the active season document for postseason button logic
-        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
-        const activeSeasonPromise = getDocs(activeSeasonQuery);
+        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
+        const activeSeasonPromise = getDocsPreferCache(activeSeasonQuery);
 
 
         // --- AWAIT ALL PROMISES ---
@@ -121,7 +152,7 @@ async function loadPageData() {
             transactionsSnap,
             activeSeasonSnap // NEW: Active season snapshot
         ] = await Promise.all([
-            getDocs(allTeamsRecordsQuery),
+            getDocsPreferCache(allTeamsRecordsQuery),
             teamDocPromise,
             teamSeasonalPromise,
             rosterPromise,

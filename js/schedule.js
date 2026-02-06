@@ -1,8 +1,9 @@
 // /js/schedule.js
 
 import { generateLineupTable } from '../js/main.js';
-import { db, getDoc, getDocs, collection, doc, query, where, onSnapshot, collectionNames, getLeagueCollectionName, getCurrentLeague } from '../js/firebase-init.js';
+import { db, getDoc, getDocFromCache, getDocs, getDocsFromCache, collection, collectionGroup, doc, query, where, limit, onSnapshot, collectionNames, getLeagueCollectionName, getCurrentLeague } from '../js/firebase-init.js';
 import { getSeasonIdFromPage } from './season-utils.js';
+import { loadSeasonBundle } from '../js/firestore-bundles.js';
 
 // Get season from page lock (data-season, path, or ?season)
 const { seasonId: lockedSeasonId, isLocked: isSeasonLocked } = getSeasonIdFromPage();
@@ -22,6 +23,23 @@ let currentGameFlowData = null;
 let currentChartType = 'cumulative'; // 'cumulative' or 'differential'
 let currentTeam1 = null;
 let currentTeam2 = null;
+
+// --- CACHE HELPERS ---
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
+
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 // Listener unsubscribe functions for cleanup
 let liveGamesUnsubscribe = null;
@@ -113,8 +131,8 @@ async function getActiveSeason() {
     }
 
     // Otherwise query for the active season
-    const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
-    const seasonsSnapshot = await getDocs(seasonsQuery);
+    const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
+    const seasonsSnapshot = await getDocsPreferCache(seasonsQuery);
     if (seasonsSnapshot.empty) throw new Error("No active season found.");
     activeSeasonId = seasonsSnapshot.docs[0].id;
 }
@@ -123,24 +141,30 @@ async function fetchInitialPageData(seasonId) {
     const gamesRef = collection(db, collectionNames.seasons, seasonId, 'games');
     const postGamesRef = collection(db, collectionNames.seasons, seasonId, 'post_games');
     const exhibitionGamesRef = collection(db, collectionNames.seasons, seasonId, 'exhibition_games');
+    const recordsQuery = query(
+        collectionGroup(db, collectionNames.seasonalRecords),
+        where('seasonId', '==', seasonId)
+    );
 
-    const [teamsSnapshot, gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
-        getDocs(collection(db, collectionNames.teams)),
-        getDocs(gamesRef),
-        getDocs(postGamesRef),
-        getDocs(exhibitionGamesRef),
+    const [teamsSnapshot, recordsSnapshot, gamesSnap, postGamesSnap, exhibitionGamesSnap] = await Promise.all([
+        getDocsPreferCache(collection(db, collectionNames.teams)),
+        getDocsPreferCache(recordsQuery),
+        getDocsPreferCache(gamesRef),
+        getDocsPreferCache(postGamesRef),
+        getDocsPreferCache(exhibitionGamesRef),
     ]);
 
-    const teamPromises = teamsSnapshot.docs.map(async (teamDoc) => {
-        let teamData = { id: teamDoc.id, ...teamDoc.data(), wins: 0, losses: 0 }; // Start with base data and default record
-        const seasonalRecordRef = doc(db, collectionNames.teams, teamDoc.id, collectionNames.seasonalRecords, seasonId);
-        const seasonalRecordSnap = await getDoc(seasonalRecordRef);
-        if (seasonalRecordSnap.exists()) {
-            teamData = { ...teamData, ...seasonalRecordSnap.data() }; // Merge seasonal record if it exists
-        }
-        return teamData;
+    const seasonalRecordsMap = new Map();
+    recordsSnapshot.forEach(recordDoc => {
+        const teamId = recordDoc.ref.parent.parent.id;
+        seasonalRecordsMap.set(teamId, recordDoc.data());
     });
-    allTeams = await Promise.all(teamPromises);
+
+    allTeams = teamsSnapshot.docs.map(teamDoc => {
+        const baseData = { id: teamDoc.id, ...teamDoc.data(), wins: 0, losses: 0 };
+        const recordData = seasonalRecordsMap.get(teamDoc.id);
+        return recordData ? { ...baseData, ...recordData } : baseData;
+    });
     
     allGamesCache = [
         ...gamesSnap.docs.filter(doc => doc.id !== 'placeholder').map(d => ({ id: d.id, ...d.data() })), 
@@ -1586,6 +1610,7 @@ async function initializePage() {
             console.warn("Game modal component was loaded, but its internal elements were not found.");
         }
 
+        await loadSeasonBundle({ seasonId: lockedSeasonId, league: getCurrentLeague() });
         await getActiveSeason();
         await fetchInitialPageData(activeSeasonId);
         calculateHistoricalRecords();

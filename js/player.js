@@ -1,7 +1,8 @@
 // /js/player.js
-import { db, collection, doc, getDoc, getDocs, query, where, collectionGroup, collectionNames, getLeagueCollectionName } from './firebase-init.js';
+import { db, collection, doc, getDoc, getDocFromCache, getDocs, getDocsFromCache, query, where, limit, collectionGroup, collectionNames, getLeagueCollectionName, getCurrentLeague } from './firebase-init.js';
 import { generateLineupTable } from './main.js';
 import { getSeasonIdFromPage } from './season-utils.js';
+import { loadSeasonBundle } from './firestore-bundles.js';
 
 // --- Configuration ---
 // Get season from page lock (data-season, path, or ?season), fallback to S9
@@ -18,6 +19,23 @@ let currentChartType = 'cumulative'; // 'cumulative' or 'differential'
 let currentTeam1 = null;
 let currentTeam2 = null;
 let showLiveFeatures = true; // Controls visibility of live features
+
+// --- CACHE HELPERS ---
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
+
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 /**
  * Generates and injects CSS rules for team logos.
@@ -57,6 +75,8 @@ async function loadPlayerData() {
     }
     
     try {
+        await loadSeasonBundle({ seasonId: SEASON_ID, league: getCurrentLeague() });
+
         let playerSnap;
         let finalPlayerId;
 
@@ -95,12 +115,12 @@ async function loadPlayerData() {
 
         const seasonalStatsRef = doc(db, collectionNames.players, finalPlayerId, collectionNames.seasonalStats, SEASON_ID);
         const teamsQuery = query(collection(db, collectionNames.teams));
-        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'));
+        const activeSeasonQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
 
         const [seasonalStatsSnap, teamsSnap, activeSeasonSnap] = await Promise.all([
             getDoc(seasonalStatsRef),
-            getDocs(teamsQuery),
-            getDocs(activeSeasonQuery)
+            getDocsPreferCache(teamsQuery),
+            getDocsPreferCache(activeSeasonQuery)
         ]);
 
         const postseasonBtn = document.getElementById('postseason-btn');
@@ -138,7 +158,7 @@ async function loadPlayerData() {
             collectionGroup(db, collectionNames.seasonalRecords),
             where('seasonId', '==', SEASON_ID)
         );
-        const seasonalRecordsSnap = await getDocs(seasonalRecordsQuery);
+        const seasonalRecordsSnap = await getDocsPreferCache(seasonalRecordsQuery);
         seasonalRecordsSnap.forEach(recordDoc => {
             // Server-side filtered by seasonId - all results match SEASON_ID
             const teamId = recordDoc.ref.parent.parent.id;
@@ -159,7 +179,7 @@ async function loadPlayerData() {
 
         const [lineupsSnap, gamesSnap] = await Promise.all([
             getDocs(lineupsQuery),
-            getDocs(gamesQuery)
+            getDocsPreferCache(gamesQuery)
         ]);
 
         playerLineups = lineupsSnap.docs.map(d => d.data()).sort((a,b) => (a.week || 0) - (b.week || 0));

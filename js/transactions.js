@@ -7,14 +7,18 @@ import {
   query,
   where,
   getDocs,
+  getDocsFromCache,
   orderBy,
   doc,
   getDoc,
+  getDocFromCache,
   limit,
   startAfter,
   collectionNames,
-  getLeagueCollectionName
+  getLeagueCollectionName,
+  getCurrentLeague
 } from "../js/firebase-init.js";
+import { loadDraftPicksBundle, loadTransactionsBundle } from './firestore-bundles.js';
 
 // Get season from page lock (data-season, path, or ?season), fallback to S9
 const { seasonId: ACTIVE_SEASON_ID } = getSeasonIdFromPage({ fallback: 'S9' });
@@ -32,6 +36,23 @@ let allTeams = [];
 let allDraftPicks = {};
 let allPlayerStats = {};
 let availableWeeks = new Set();
+
+// --- CACHE HELPERS ---
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
+
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
 
 // --- Filter State ---
 const currentFilters = {
@@ -57,9 +78,12 @@ async function loadData() {
     transactionsListEl.innerHTML = '<div class="loading">Loading transactions...</div>';
 
     try {
+        await loadTransactionsBundle({ seasonId: ACTIVE_SEASON_ID, league: getCurrentLeague() });
+        await loadDraftPicksBundle({ league: getCurrentLeague() });
+
         const [allTeamsSnap, draftPicksSnap] = await Promise.all([
             getDocs(collection(db, collectionNames.teams)),
-            getDocs(collection(db, collectionNames.draftPicks)),
+            getDocsPreferCache(collection(db, collectionNames.draftPicks)),
         ]);
 
         const teamPromises = allTeamsSnap.docs.map(async (teamDoc) => {
@@ -122,7 +146,7 @@ async function fetchAvailableWeeks() {
             orderBy('week')
         );
 
-        const weeksSnap = await getDocs(weeksQuery);
+        const weeksSnap = await getDocsPreferCache(weeksQuery);
         weeksSnap.docs.forEach(doc => {
             const weekValue = doc.data()?.week;
             if (weekValue) {
@@ -137,7 +161,7 @@ async function fetchAvailableWeeks() {
 async function loadSpecificTransaction(transactionId) {
     try {
         const transactionRef = doc(db, collectionNames.transactions, 'seasons', ACTIVE_SEASON_ID, transactionId);
-        const transactionSnap = await getDoc(transactionRef);
+        const transactionSnap = await getDocPreferCache(transactionRef);
 
         if (!transactionSnap.exists()) {
             transactionsListEl.innerHTML = '<div class="error">Transaction not found.</div>';
@@ -207,7 +231,7 @@ async function fetchTransactionsPage({ reset = false } = {}) {
     const transactionsQuery = query(...constraints);
 
     try {
-        const snap = await getDocs(transactionsQuery);
+        const snap = await getDocsPreferCache(transactionsQuery);
         const newTransactions = snap.docs.map(normalizeTransactionDoc);
 
         allTransactions = reset ? newTransactions : [...allTransactions, ...newTransactions];

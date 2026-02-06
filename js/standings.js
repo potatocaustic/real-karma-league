@@ -1,5 +1,6 @@
-import { db, getDoc, getDocs, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName, getCurrentLeague, getConferenceNames } from './firebase-init.js';
+import { db, getDoc, getDocFromCache, getDocs, getDocsFromCache, collection, doc, query, where, orderBy, limit, collectionGroup, collectionNames, getLeagueCollectionName, getCurrentLeague, getConferenceNames } from './firebase-init.js';
 import { getSeasonIdFromPage } from './season-utils.js';
+import { loadStandingsBundle } from './firestore-bundles.js';
 
 // Get season from page lock (data-season, path, or ?season)
 const { seasonId: lockedSeasonId, isLocked: isSeasonLocked } = getSeasonIdFromPage();
@@ -9,6 +10,7 @@ let activeSeasonId = lockedSeasonId || '';
 let allTeamsData = [];
 let allPowerRankingsData = {}; // Key: "v1", Value: [team, team, ...]
 let latestPRVersion = null;
+let availablePRVersions = [];
 let currentView = 'conferences'; // 'conferences', 'fullLeague', or 'powerRankings'
 
 const sortState = {
@@ -29,6 +31,23 @@ const playoffLegend = document.querySelector('.playoff-legend');
 const playoffBracketBtn = document.querySelector('button[onclick*="playoff-bracket.html"]');
 const prVersionSelect = document.getElementById('pr-version-select');
 
+// --- CACHE HELPERS ---
+
+async function getDocPreferCache(docRef) {
+    try {
+        return await getDocFromCache(docRef);
+    } catch (error) {
+        return await getDoc(docRef);
+    }
+}
+
+async function getDocsPreferCache(q) {
+    try {
+        return await getDocsFromCache(q);
+    } catch (error) {
+        return await getDocs(q);
+    }
+}
 
 // --- DATA FETCHING ---
 
@@ -36,14 +55,14 @@ async function getActiveSeason() {
     // If season is specified via URL parameter, skip querying for active season
     if (isSeasonLocked) {
         const seasonDocRef = doc(db, collectionNames.seasons, lockedSeasonId);
-        const seasonDocSnap = await getDoc(seasonDocRef);
+        const seasonDocSnap = await getDocPreferCache(seasonDocRef);
         if (!seasonDocSnap.exists()) throw new Error(`Season ${lockedSeasonId} not found.`);
         return seasonDocSnap.data();
     }
 
     // Otherwise query for the active season
     const seasonsQuery = query(collection(db, collectionNames.seasons), where('status', '==', 'active'), limit(1));
-    const seasonsSnapshot = await getDocs(seasonsQuery);
+    const seasonsSnapshot = await getDocsPreferCache(seasonsQuery);
     if (seasonsSnapshot.empty) throw new Error("No active season found.");
     const seasonDoc = seasonsSnapshot.docs[0];
     activeSeasonId = seasonDoc.id;
@@ -59,8 +78,8 @@ async function fetchAllTeamsAndRecords() {
     );
 
     const [teamsSnapshot, recordsSnapshot] = await Promise.all([
-        getDocs(teamsQuery),
-        getDocs(recordsQuery)
+        getDocsPreferCache(teamsQuery),
+        getDocsPreferCache(recordsQuery)
     ]);
 
     const seasonalRecordsMap = new Map();
@@ -79,10 +98,10 @@ async function fetchAllTeamsAndRecords() {
     allTeamsData = teams.filter(t => t !== null);
 }
 
-async function fetchAllPowerRankings() {
+async function fetchPowerRankingsMetaAndLatest() {
     const seasonDocName = `season_${activeSeasonId.replace('S', '')}`;
     const seasonDocRef = doc(db, getLeagueCollectionName('power_rankings'), seasonDocName);
-    const seasonDocSnap = await getDoc(seasonDocRef);
+    const seasonDocSnap = await getDocPreferCache(seasonDocRef);
 
     if (!seasonDocSnap.exists() || !seasonDocSnap.data().latest_version) {
         console.warn(`No 'latest_version' field found for ${seasonDocName}.`);
@@ -94,31 +113,34 @@ async function fetchAllPowerRankings() {
 
     if (isNaN(latestVersionNumber)) return;
 
-    const fetchPromises = [];
-    for (let i = 0; i <= latestVersionNumber; i++) {
-        const versionString = `v${i}`;
-        const prCollectionRef = collection(db, getLeagueCollectionName('power_rankings'), seasonDocName, versionString);
-        fetchPromises.push(getDocs(prCollectionRef));
+    availablePRVersions = Array.from({ length: latestVersionNumber + 1 }, (_, i) => `v${i}`);
+
+    await fetchPowerRankingsVersion(latestPRVersion, seasonDocName);
+}
+
+async function fetchPowerRankingsVersion(version, seasonDocNameOverride = null) {
+    if (allPowerRankingsData[version]) return;
+
+    const seasonDocName = seasonDocNameOverride || `season_${activeSeasonId.replace('S', '')}`;
+    const prCollectionRef = collection(db, getLeagueCollectionName('power_rankings'), seasonDocName, version);
+    const snapshot = await getDocsPreferCache(prCollectionRef);
+
+    if (snapshot.empty) {
+        allPowerRankingsData[version] = [];
+        return;
     }
 
-    const allSnapshots = await Promise.all(fetchPromises);
+    const prDocsData = snapshot.docs.map(doc => doc.data());
 
-    allSnapshots.forEach((snapshot, index) => {
-        if (!snapshot.empty) {
-            const versionString = `v${index}`;
-            const prDocsData = snapshot.docs.map(doc => doc.data());
-            
-            const combinedData = prDocsData
-                .map(prTeam => {
-                    const teamRecord = allTeamsData.find(t => t.id === prTeam.team_id);
-                    return teamRecord ? { ...prTeam, ...teamRecord } : null;
-                })
-                .filter(t => t !== null)
-                .sort((a, b) => (a.rank || 99) - (b.rank || 99));
-            
-            allPowerRankingsData[versionString] = combinedData;
-        }
-    });
+    const combinedData = prDocsData
+        .map(prTeam => {
+            const teamRecord = allTeamsData.find(t => t.id === prTeam.team_id);
+            return teamRecord ? { ...prTeam, ...teamRecord } : null;
+        })
+        .filter(t => t !== null)
+        .sort((a, b) => (a.rank || 99) - (b.rank || 99));
+
+    allPowerRankingsData[version] = combinedData;
 }
 
 
@@ -218,8 +240,12 @@ function generateStandingsRows(teams, isFullLeague = false) {
     }).join('');
 }
 
-function renderPowerRankings(version) {
+async function renderPowerRankings(version) {
     const tableBody = document.getElementById('power-rankings-standings');
+    if (!allPowerRankingsData[version]) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="loading">Loading power rankings...</td></tr>';
+        await fetchPowerRankingsVersion(version);
+    }
     const versionData = allPowerRankingsData[version];
 
     if (!versionData || versionData.length === 0) {
@@ -372,7 +398,7 @@ function switchView(view) {
 }
 
 function setupPowerRankingsSelector() {
-    const versions = Object.keys(allPowerRankingsData).sort((a, b) => {
+    const versions = availablePRVersions.sort((a, b) => {
         return parseInt(a.replace('v', '')) - parseInt(b.replace('v', ''));
     });
 
@@ -391,8 +417,8 @@ function setupPowerRankingsSelector() {
 
     prVersionSelect.value = latestPRVersion;
 
-    prVersionSelect.addEventListener('change', () => {
-        renderPowerRankings(prVersionSelect.value);
+    prVersionSelect.addEventListener('change', async () => {
+        await renderPowerRankings(prVersionSelect.value);
     });
 }
 
@@ -438,14 +464,18 @@ async function initializePage() {
         const urlParams = new URLSearchParams(window.location.search);
         const viewParam = urlParams.get('view');
 
+        await loadStandingsBundle({ seasonId: lockedSeasonId, league: getCurrentLeague() });
+
         const seasonData = await getActiveSeason();
         await fetchAllTeamsAndRecords();
-        await fetchAllPowerRankings();
+        await fetchPowerRankingsMetaAndLatest();
 
         updateConferenceHeaders();
         renderStandings();
         setupPowerRankingsSelector();
-        renderPowerRankings(latestPRVersion);
+        if (latestPRVersion) {
+            await renderPowerRankings(latestPRVersion);
+        }
         
         if (playoffBracketBtn) {
             const isPostseason = isPostseasonWeek(seasonData.current_week);
