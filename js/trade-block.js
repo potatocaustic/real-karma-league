@@ -30,12 +30,13 @@ const excludedTeams = ["FREE_AGENT", "RETIRED", "EAST", "WEST", "EGM", "WGM", "R
 // --- CACHE HELPERS ---
 async function getDocsPreferCache(q) {
     try {
-        return await getDocsFromCache(q);
+        const cached = await getDocsFromCache(q);
+        if (!cached.empty) return cached;
     } catch (error) {
-        return await getDocs(q);
+        // Cache miss; fall back to server.
     }
+    return await getDocs(q);
 }
-
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;

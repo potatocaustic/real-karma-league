@@ -17,20 +17,22 @@ let currentPlayer = null;
 // --- CACHE HELPERS ---
 async function getDocPreferCache(docRef) {
     try {
-        return await getDocFromCache(docRef);
+        const cached = await getDocFromCache(docRef);
+        if (cached.exists()) return cached;
     } catch (error) {
-        return await getDoc(docRef);
+        // Cache miss; fall back to server.
     }
+    return await getDoc(docRef);
 }
-
 async function getDocsPreferCache(q) {
     try {
-        return await getDocsFromCache(q);
+        const cached = await getDocsFromCache(q);
+        if (!cached.empty) return cached;
     } catch (error) {
-        return await getDocs(q);
+        // Cache miss; fall back to server.
     }
+    return await getDocs(q);
 }
-
 /**
  * Generates and injects CSS rules for team logos.
  */

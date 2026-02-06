@@ -40,20 +40,22 @@ let availableWeeks = new Set();
 // --- CACHE HELPERS ---
 async function getDocsPreferCache(q) {
     try {
-        return await getDocsFromCache(q);
+        const cached = await getDocsFromCache(q);
+        if (!cached.empty) return cached;
     } catch (error) {
-        return await getDocs(q);
+        // Cache miss; fall back to server.
     }
+    return await getDocs(q);
 }
-
 async function getDocPreferCache(docRef) {
     try {
-        return await getDocFromCache(docRef);
+        const cached = await getDocFromCache(docRef);
+        if (cached.exists()) return cached;
     } catch (error) {
-        return await getDoc(docRef);
+        // Cache miss; fall back to server.
     }
+    return await getDoc(docRef);
 }
-
 // --- Filter State ---
 const currentFilters = {
     week: 'all',

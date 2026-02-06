@@ -38,12 +38,13 @@ const teamId = urlParams.get('team');
 // --- CACHE HELPERS ---
 async function getDocsPreferCache(q) {
     try {
-        return await getDocsFromCache(q);
+        const cached = await getDocsFromCache(q);
+        if (!cached.empty) return cached;
     } catch (error) {
-        return await getDocs(q);
+        // Cache miss; fall back to server.
     }
+    return await getDocs(q);
 }
-
 async function getActiveSeasonId() {
     const q = query(collection(db, collectionNames.seasons), where("status", "==", "active"), limit(1));
     const querySnapshot = await getDocs(q);

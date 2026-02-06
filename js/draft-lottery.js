@@ -33,12 +33,13 @@ let finalLotteryResults = null;
 // --- CACHE HELPERS ---
 async function getDocsPreferCache(q) {
     try {
-        return await getDocsFromCache(q);
+        const cached = await getDocsFromCache(q);
+        if (!cached.empty) return cached;
     } catch (error) {
-        return await getDocs(q);
+        // Cache miss; fall back to server.
     }
+    return await getDocs(q);
 }
-
 // --- RENDERING FUNCTIONS ---
 function renderTableHeader(isSimulatedView = false) {
     const pickOrSeed = isSimulatedView ? 'Pick' : 'Seed';
