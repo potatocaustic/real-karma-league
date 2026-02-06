@@ -9,5 +9,31 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/bundles/standings",
+      "destination": "https://us-central1-real-karma-league.cloudfunctions.net/standingsBundle"
+    },
+    {
+      "source": "/bundles/season",
+      "destination": "https://us-central1-real-karma-league.cloudfunctions.net/seasonBundle"
+    },
+    {
+      "source": "/bundles/draft-picks",
+      "destination": "https://us-central1-real-karma-league.cloudfunctions.net/draftPicksBundle"
+    },
+    {
+      "source": "/bundles/transactions",
+      "destination": "https://us-central1-real-karma-league.cloudfunctions.net/transactionsBundle"
+    },
+    {
+      "source": "/bundles/awards",
+      "destination": "https://us-central1-real-karma-league.cloudfunctions.net/awardsBundle"
+    },
+    {
+      "source": "/bundles/draft-results",
+      "destination": "https://us-central1-real-karma-league.cloudfunctions.net/draftResultsBundle"
+    }
   ]
 }
