@@ -2,13 +2,13 @@
 
 const { onRequest } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase-admin");
-const { getCollectionName, validateLeague, LEAGUES } = require("../utils/firebase-helpers");
+const { getCollectionName, validateLeague, LEAGUES, normalizeLeagueParam } = require("../utils/firebase-helpers");
 
 const CACHE_CONTROL_HEADER = "public, max-age=300, s-maxage=7200";
 
 exports.draftPicksBundle = onRequest({ region: "us-central1" }, async (req, res) => {
   try {
-    const league = (req.query.league || LEAGUES.MAJOR).toString();
+    const league = normalizeLeagueParam(req.query.league);
     validateLeague(league);
 
     const draftPicksCollection = getCollectionName('draftPicks', league);

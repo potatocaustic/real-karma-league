@@ -22,6 +22,22 @@ const LEAGUES = {
 };
 
 /**
+ * Normalizes league query parameters from HTTP requests.
+ * Accepts arrays, trims whitespace, and extracts 'major'/'minor' if present.
+ * Defaults to MAJOR when unset or empty.
+ * @param {string|string[]|undefined|null} leagueParam
+ * @returns {string}
+ */
+const normalizeLeagueParam = (leagueParam) => {
+    if (!leagueParam) return LEAGUES.MAJOR;
+    const rawValue = Array.isArray(leagueParam) ? leagueParam[0] : leagueParam;
+    const raw = String(rawValue).trim().toLowerCase();
+    if (!raw) return LEAGUES.MAJOR;
+    const match = raw.match(/(major|minor)/);
+    return match ? match[1] : raw;
+};
+
+/**
  * Gets the proper collection name with league prefix and dev suffix as needed
  * @param {string} baseName - Base collection name (e.g., 'seasons', 'v2_players')
  * @param {string} league - League context ('major' or 'minor')
@@ -119,5 +135,6 @@ module.exports = {
     getLeagueFromRequest,
     deleteCollection,
     LEAGUES,
-    USE_DEV_COLLECTIONS
+    USE_DEV_COLLECTIONS,
+    normalizeLeagueParam
 };

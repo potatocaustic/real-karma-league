@@ -2,17 +2,19 @@
 
 const { onRequest } = require("firebase-functions/v2/https");
 const { db } = require("../utils/firebase-admin");
-const { getCollectionName, validateLeague, LEAGUES } = require("../utils/firebase-helpers");
+const { getCollectionName, validateLeague, LEAGUES, normalizeLeagueParam } = require("../utils/firebase-helpers");
 
 const CACHE_CONTROL_HEADER = "public, max-age=600, s-maxage=86400";
 
 function normalizeSeasonId(seasonParam) {
   if (!seasonParam) return null;
-  const raw = String(seasonParam).trim();
+  const rawParam = Array.isArray(seasonParam) ? seasonParam[0] : seasonParam;
+  const raw = String(rawParam).trim().toUpperCase();
   if (!raw) return null;
-  if (/^S\\d+$/i.test(raw)) return raw.toUpperCase();
-  if (/^\\d+$/.test(raw)) return `S${raw}`;
-  return raw.toUpperCase();
+  const match = raw.match(/S?\d+/);
+  if (!match) return null;
+  const token = match[0];
+  return token.startsWith('S') ? token : `S${token}`;
 }
 
 function getSeasonNumber(seasonId) {
@@ -22,7 +24,7 @@ function getSeasonNumber(seasonId) {
 
 exports.awardsBundle = onRequest({ region: "us-central1" }, async (req, res) => {
   try {
-    const league = (req.query.league || LEAGUES.MAJOR).toString();
+    const league = normalizeLeagueParam(req.query.league);
     validateLeague(league);
 
     const awardsCollection = getCollectionName('awards', league);
